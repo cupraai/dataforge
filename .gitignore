@@ -56,5 +56,9 @@ terminals/
 mcps/
 .grok/
 .cursor/
+# Share Claude skill entry points while keeping local settings and runtime files private.
 .claude/
+!/.claude/
+/.claude/*
+!/.claude/skills/
 .hermes/

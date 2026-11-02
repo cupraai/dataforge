@@ -10,6 +10,35 @@ For running the app, see [Getting started](getting-started.md). Contributor and 
 - **Frontend:** React 19, TypeScript, Vite, SCSS, and TanStack Query for server data.
 - **Integrations:** OpenAI-compatible model servers, ComfyUI, and AI-Toolkit; see [Configuration](configuration.md).
 
+## Agent workflows
+
+[AGENTS.md](../AGENTS.md) holds shared repository policy; [CLAUDE.md](../CLAUDE.md) imports
+it for Claude Code. Model and reasoning-effort choices belong in the host application, not
+in repository instructions. The guidance is intended for GPT-6.1 Sol and Claude Opus 5.5
+without prescribing how either model must plan, investigate, or implement a task.
+
+Skills add repository-specific context for debugging, change review, API contracts, and UI
+verification. They load when relevant, rather than imposing a workflow on every change.
+
+| Host | Skill discovery | Explicit invocation |
+| --- | --- | --- |
+| Codex | Shared sources in `.agents/skills/` | `$debug-regression`, `$review-changes`, `$change-api-contract`, `$verify-ui` |
+| Claude Code | Entry points in `.claude/skills/` link to the shared sources | `/debug-regression`, `/review-changes`, `/change-api-contract`, `/verify-ui` |
+
+The Claude entry points duplicate only discovery metadata; keep workflow guidance in the
+shared sources. When adding or renaming a skill, keep its name and description aligned in
+both locations. Other tools that support `.agents/skills/` can use the shared sources too.
+The `.github/copilot-instructions.md` entry point also points to the shared policy.
+
+New Codex skills are available on the next turn; restart the session if they do not appear.
+In Claude Code, check the `/` menu for the four commands. Selection remains the agent's
+judgment; repository checks and CI verify the resulting code.
+
+See the official [Codex skills](https://learn.chatgpt.com/docs/build-skills),
+[Claude skills](https://code.claude.com/docs/en/skills), and
+[Claude instruction imports](https://code.claude.com/docs/en/memory#import-additional-files)
+documentation for discovery behavior.
+
 ## Run with hot reload
 
 Complete [setup](getting-started.md#install-and-run), then run `dev.bat` (or `.\dev.ps1`) on Windows, or `./dev.sh` on Linux/macOS. The launcher regenerates API files, starts the API at `http://localhost:18080` and Vite at `http://localhost:18081`, waits for both, and opens the browser. Vite proxies `/api` to the backend.
