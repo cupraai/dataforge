@@ -142,6 +142,8 @@ export function getFilterEmptyState(options: {
   /** The regex search ran out of time, so it matches nothing. */
   searchTooSlow?: boolean;
   hasFilterMatches: boolean;
+  /** A range is active, so "the folder has none" claims below would be unfounded. */
+  hasRanges?: boolean;
   imageCount: number;
   videoCount: number;
   audioCount: number;
@@ -200,6 +202,16 @@ export function getFilterEmptyState(options: {
       icon: iconImage,
       title: "No images",
       description: "This folder has no supported image files.",
+      variant: "muted",
+    };
+  }
+
+  if (options.hasRanges) {
+    return {
+      icon: iconSearch,
+      title: "Nothing in range",
+      description:
+        "No files match the ranges together with the other filters. Widen or remove a range.",
       variant: "muted",
     };
   }

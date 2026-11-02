@@ -1,5 +1,9 @@
 import { useCallback, useState } from "react";
-import { useGalleryItemDialog } from "@/features/gallery/hooks/useGalleryItemDialog";
+import {
+  galleryItemOpenOutcome,
+  useGalleryItemDialog,
+  type GalleryItemOpenOutcome,
+} from "@/features/gallery/hooks/useGalleryItemDialog";
 import type { GalleryItem } from "@/shared/types";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
 import { readStored, writeStored } from "@/shared/lib/storage";
@@ -52,8 +56,11 @@ export function useGalleryOverlays({
     setInstructionsOpen(false);
   }
 
+  /** Decided before any transition, so a caller can say why nothing opened. */
   const openGalleryItem = useCallback(
-    (path: string, mode?: GalleryItemOpenMode) => {
+    (path: string, mode?: GalleryItemOpenMode): GalleryItemOpenOutcome => {
+      const outcome = galleryItemOpenOutcome(images, filteredItems, path);
+      if (outcome !== "opened") return outcome;
       const open = () => {
         setInstructionsOpen(false);
         setOpenIntent(mode ? { mode } : null);
@@ -61,8 +68,9 @@ export function useGalleryOverlays({
       };
       if (requestTransition) void requestTransition(open);
       else open();
+      return outcome;
     },
-    [openGalleryItemBase, requestTransition],
+    [filteredItems, images, openGalleryItemBase, requestTransition],
   );
 
   const openSysPrompt = useCallback(() => {

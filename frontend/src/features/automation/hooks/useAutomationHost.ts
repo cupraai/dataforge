@@ -16,6 +16,7 @@ import { touchRecentAction } from "@/features/quickAction/lib/quickActionHistory
 import type { Breadcrumb, GalleryItem, JobType } from "@/shared/types";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
+import type { GalleryItemOpenOutcome } from "@/features/gallery/hooks/useGalleryItemDialog";
 
 type FolderAutomation = ReturnType<typeof useFolderAutomation>;
 
@@ -40,7 +41,7 @@ type UseAutomationHostOptions = {
   onResolveDuplicates?: () => void;
   candidateCount: number;
   onReviewCandidates?: () => void;
-  onOpenItem?: (path: string) => void;
+  onOpenItem?: (path: string) => GalleryItemOpenOutcome;
   onRetryFailed?: (jobType: JobType, paths: string[]) => void;
 };
 

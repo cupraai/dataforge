@@ -17,6 +17,18 @@ function successorPath(
   return null;
 }
 
+/** Only a visible item opens: the dialog pages through the visible ones. */
+export type GalleryItemOpenOutcome = "opened" | "hidden" | "missing";
+
+export function galleryItemOpenOutcome(
+  images: readonly GalleryItem[],
+  filteredItems: readonly GalleryItem[],
+  path: string,
+): GalleryItemOpenOutcome {
+  if (filteredItems.some((item) => item.path === path)) return "opened";
+  return images.some((item) => item.path === path) ? "hidden" : "missing";
+}
+
 export function useGalleryItemDialog(
   images: GalleryItem[],
   filteredItems: GalleryItem[],
@@ -56,10 +68,12 @@ export function useGalleryItemDialog(
 
   const openGalleryItem = useCallback(
     (path: string) => {
+      // A path outside the listing would read as a just-deleted item and open its neighbour.
+      if (galleryItemOpenOutcome(images, filteredItems, path) !== "opened") return;
       setDialogNavigationPaths(filteredItems.map((item) => item.path));
       setSelectedPath(path);
     },
-    [filteredItems],
+    [images, filteredItems],
   );
 
   const closeGalleryItem = useCallback(() => {

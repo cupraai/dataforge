@@ -115,6 +115,19 @@ describe("getFilterEmptyState", () => {
     expect(state.variant).toBe("success");
   });
 
+  // "All files captioned" or "No duplicates" would lie when a range is what hides the files.
+  it("blames the ranges rather than claiming the folder has none", () => {
+    for (const filters of [
+      { filter: "uncaptioned" as const },
+      { fileFilter: "duplicates" as const },
+    ]) {
+      const state = getFilterEmptyState({ ...baseOptions, ...filters, hasRanges: true });
+
+      expect(state.title).toBe("Nothing in range");
+      expect(state.variant).toBe("muted");
+    }
+  });
+
   // "No duplicates" would lie: the folder may have them, just none the caption filter keeps.
   it("blames the combination when duplicates and a caption filter are both active", () => {
     const state = getFilterEmptyState({

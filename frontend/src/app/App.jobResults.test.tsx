@@ -15,11 +15,11 @@ const failedJob: Job = {
   job_type: "auto_caption",
   status: "completed",
   effective_status: "completed",
-  total: 3,
-  processed: 3,
+  total: 4,
+  processed: 4,
   current_file: null,
   current_name: null,
-  stats: { total: 3, success: 2, write_error: 1 },
+  stats: { total: 4, success: 3, write_error: 1 },
   error: null,
   created_at: "2026-01-01T00:00:00Z",
   revision: 1,
@@ -46,6 +46,8 @@ function installBackendWithFailedJob() {
           shared_with: [],
         },
         { path: HOME_PATH + "\\waves.mp4", name: "waves.mp4", status: "success", shared_with: [] },
+        // Moved or deleted since the job ran.
+        { path: HOME_PATH + "\\gone.png", name: "gone.png", status: "success", shared_with: [] },
       ],
     },
   });
@@ -92,5 +94,44 @@ describe("App: job results", () => {
     await waitFor(() => {
       expect(screen.getByRole("complementary", { name: "Viewing beach.jpg" })).toBeInTheDocument();
     });
+  });
+
+  it("says a file is gone instead of opening another one in its place", async () => {
+    const user = userEvent.setup();
+    installBackendWithFailedJob();
+    await renderApp();
+
+    await user.click(await screen.findByRole("button", { name: /^Open automation jobs/ }));
+    await user.click(await screen.findByRole("button", { name: /1 failed/ }));
+    await user.click(await screen.findByRole("button", { name: "gone.png" }));
+
+    expect(await screen.findByText("gone.png is no longer in this folder.")).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: /^Viewing / })).not.toBeInTheDocument();
+    // The drawer stays open, so the list is still there to pick another file from.
+    expect(screen.getByRole("button", { name: "beach.jpg" })).toBeInTheDocument();
+  });
+
+  it("says a file is hidden by the filters instead of closing on nothing", async () => {
+    const user = userEvent.setup();
+    installBackendWithFailedJob();
+    await renderApp();
+
+    await user.type(
+      await screen.findByRole("searchbox", {
+        name: "Search files and folders by name, caption or tag",
+      }),
+      "sunset",
+    );
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "View beach.jpg" })).not.toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /^Open automation jobs/ }));
+    await user.click(await screen.findByRole("button", { name: /1 failed/ }));
+    await user.click(await screen.findByRole("button", { name: "beach.jpg" }));
+
+    expect(
+      await screen.findByText("beach.jpg is hidden by the current filters or search."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: /^Viewing / })).not.toBeInTheDocument();
   });
 });

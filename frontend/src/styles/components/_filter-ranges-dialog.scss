@@ -1,0 +1,164 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+.filter-ranges-dialog {
+  width: min(34rem, 100%);
+
+  &__axes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__axis {
+    padding: 0.625rem 0.75rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+  }
+
+  &__axis-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.25rem;
+  }
+
+  &__axis-label {
+    margin: 0;
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+  }
+
+  &__axis-summary {
+    margin-left: auto;
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    @include tabular-nums;
+
+    &--set {
+      color: var(--accent);
+      font-weight: var(--font-semibold);
+    }
+
+    &--preview {
+      color: var(--text);
+    }
+  }
+
+  &__axis-clear {
+    @include icon-btn-xs;
+  }
+
+  // Chart and fields share a row; on a phone the fields drop below the chart.
+  &__axis-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem 0.875rem;
+    margin-top: 0.5rem;
+  }
+
+  &__histogram {
+    display: flex;
+    flex: 1 1 11rem;
+    align-items: flex-end;
+    gap: 0.1875rem;
+    height: 2.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  &__bar {
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0.1875rem 0.1875rem 0 0;
+    background: transparent;
+    cursor: pointer;
+    @include focus-ring;
+  }
+
+  &__bar-fill {
+    width: 100%;
+    // An empty bucket still shows where it is, so it can be picked as a bound.
+    min-height: 0.125rem;
+    border-radius: inherit;
+    background: var(--border-strong);
+  }
+
+  &__bar:hover &__bar-fill {
+    background: var(--text-subtle);
+  }
+
+  &__bar--picked &__bar-fill,
+  &__bar--picked:hover &__bar-fill {
+    background: var(--accent);
+  }
+
+  &__empty {
+    flex: 1 1 11rem;
+    margin: 0;
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+  }
+
+  &__bounds {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  &__field {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    width: 6.25rem;
+  }
+
+  &__field-name {
+    color: var(--text-subtle);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-semibold);
+    letter-spacing: var(--tracking-caps);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  &__input {
+    @include dialog-form-input(2.25rem);
+    padding: 0.25rem 2.75rem 0.25rem 0.5rem;
+    text-align: right;
+    @include tabular-nums;
+    @include input-focus;
+
+    &::placeholder {
+      color: var(--text-subtle);
+    }
+
+    &[aria-invalid="true"] {
+      border-color: var(--danger);
+    }
+  }
+
+  // Sits inside the field's right edge, so the number and its unit read as one value.
+  &__unit {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    height: 2.25rem;
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    pointer-events: none;
+  }
+
+  &__count {
+    margin-top: 0.875rem;
+  }
+}

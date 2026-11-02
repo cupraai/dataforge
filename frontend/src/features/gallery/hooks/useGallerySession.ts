@@ -112,16 +112,8 @@ export function useGallerySession({
     requestTransition,
   });
 
-  // Skip paths out of the filtered set: selectedIndex is -1 with the scroll lock still held.
-  const returnToGalleryItem = useCallback(
-    (path: string) => {
-      if (!query.filteredItems.some((item) => item.path === path)) return;
-      openGalleryItem(path);
-    },
-    [openGalleryItem, query.filteredItems],
-  );
-
-  const issueResolver = useIssueResolverOverlay(returnToGalleryItem);
+  // openGalleryItem skips paths out of the filtered set itself.
+  const issueResolver = useIssueResolverOverlay(openGalleryItem);
   const { openIssueResolver } = issueResolver;
 
   const onCaptionSaved = useCallback(
@@ -285,7 +277,6 @@ export function useGallerySession({
     setFocusView,
     editExpanded,
     setEditExpanded,
-    returnToGalleryItem,
     goToPrevious,
     goToNext,
     goToIndex,

@@ -862,7 +862,9 @@ export function buildFilterItems({
       section: "filters",
       label: "Reset all filters",
       // Search is separate state with its own clear button, so it is not swept up here.
-      detail: hasActiveFilters ? "Back to all media, captions and files" : "No filters active",
+      detail: hasActiveFilters
+        ? "Back to all media, captions, files and ranges"
+        : "No filters active",
       icon: iconFilterX,
       keywords: "clear remove unfilter show everything all files",
       disabled: !hasActiveFilters,

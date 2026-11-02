@@ -103,7 +103,7 @@ test("statistics chart media creation dates above caption length", async ({ page
   await expect(page.getByRole("tooltip")).toHaveText("Jun 1, 2026: 1 file");
 });
 
-test("timeline tabs filter the current period and keep historical years available", async ({
+test("timeline tabs open on the newest media's period and keep historical years", async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 375, height: 900 });
@@ -118,10 +118,11 @@ test("timeline tabs filter the current period and keep historical years availabl
   await expect(chart.getByRole("img", { name: "1 file", exact: true })).toHaveCount(1);
   await grouping.getByText("Day", { exact: true }).click();
 
-  await expect(chart.getByRole("term")).toHaveCount(30);
-  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "Jun 1, 2026");
-  await expect(chart.getByText("No media created in this period.")).toBeVisible();
-  await expect(chart.getByRole("img")).toHaveCount(0);
+  // Today is June, but the newest file is from January, so the days shown are January's.
+  await expect(chart.getByRole("term")).toHaveCount(31);
+  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "Jan 1, 2026");
+  await expect(chart.getByText("No media created in this period.")).toHaveCount(0);
+  await expect(chart.getByRole("img", { name: "1 file", exact: true })).toHaveCount(1);
   await grouping.getByText("Year", { exact: true }).click();
   await expect(chart.getByRole("term")).toHaveCount(2);
   await expect(chart.getByRole("term").first()).toHaveAttribute("title", "2025");
@@ -177,7 +178,6 @@ test("timeline bars grow on opening and replay when statistics reopen", async ({
 });
 
 test("period arrows browse months and years beside the caption", async ({ page }, testInfo) => {
-  await page.clock.setFixedTime(new Date(2026, 0, 31, 12));
   await page.setViewportSize({ width: 375, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openTimelineWorkspace(page, "2025-12-31T12:00:00", "2026-02-28T12:00:00");
@@ -185,6 +185,11 @@ test("period arrows browse months and years beside the caption", async ({ page }
   const grouping = page.getByRole("radiogroup", { name: "Creation timeline grouping" });
   await grouping.getByText("Day", { exact: true }).click();
   const chart = page.getByRole("figure", { name: "Distribution by media creation date" });
+  // Opens on the newest file's month; the month before it is empty.
+  await expect(chart.getByText("Feb 2026", { exact: true })).toBeVisible();
+  await expect(chart.getByRole("term")).toHaveCount(28);
+  await expect(chart.getByRole("img", { name: "1 file" })).toHaveCount(1);
+  await chart.getByRole("button", { name: "Previous month" }).click();
   await expect(chart.getByText("Jan 2026", { exact: true })).toBeVisible();
   const navigation = chart.locator(".stats-dialog__timeline-navigation");
   const note = navigation.getByText("No media created in this period.");

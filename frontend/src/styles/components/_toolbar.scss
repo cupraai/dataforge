@@ -350,6 +350,8 @@ $toolbar-search-width-max: 22rem;
         font-size: var(--text-2xs);
         font-weight: var(--font-semibold);
         line-height: 0.95;
+        // A range reads "1 – 2 MP"; it must not break inside the pill.
+        white-space: nowrap;
         @include tabular-nums;
       }
 

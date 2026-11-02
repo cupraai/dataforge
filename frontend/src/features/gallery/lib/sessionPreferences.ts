@@ -3,7 +3,9 @@ import {
   isFileFilter,
   isItemFilter,
   isMediaTypeFilter,
+  parseRanges,
   type FileFilter,
+  type GalleryRanges,
   type ItemFilter,
   type MediaTypeFilter,
 } from "./query";
@@ -14,6 +16,7 @@ export interface GallerySessionQuery {
   filter: ItemFilter;
   mediaTypeFilter: MediaTypeFilter;
   fileFilter: FileFilter;
+  ranges: GalleryRanges;
   searchQuery: string;
   searchRegex: boolean;
   searchNames: boolean;
@@ -23,6 +26,7 @@ const DEFAULT_SESSION_QUERY: GallerySessionQuery = {
   filter: "all",
   mediaTypeFilter: "all",
   fileFilter: "all",
+  ranges: {},
   searchQuery: "",
   searchRegex: false,
   searchNames: true,
@@ -41,6 +45,7 @@ function parseStoredSessionQuery(value: unknown): GallerySessionQuery | null {
     filter: isItemFilter(filter) ? filter : "all",
     mediaTypeFilter: isMediaTypeFilter(mediaTypeFilter) ? mediaTypeFilter : "all",
     fileFilter: isFileFilter(fileFilter) ? fileFilter : "all",
+    ranges: parseRanges(parsed.ranges),
     searchQuery: typeof parsed.searchQuery === "string" ? parsed.searchQuery : "",
     searchRegex: typeof parsed.searchRegex === "boolean" ? parsed.searchRegex : false,
     searchNames: typeof parsed.searchNames === "boolean" ? parsed.searchNames : true,
@@ -64,6 +69,7 @@ export function cacheGallerySessionQuery(partial: Partial<GallerySessionQuery>):
       filter: partial.filter ?? current.filter,
       mediaTypeFilter: partial.mediaTypeFilter ?? current.mediaTypeFilter,
       fileFilter: partial.fileFilter ?? current.fileFilter,
+      ranges: partial.ranges ?? current.ranges,
       searchQuery: partial.searchQuery ?? current.searchQuery,
       searchRegex: partial.searchRegex ?? current.searchRegex,
       searchNames: partial.searchNames ?? current.searchNames,

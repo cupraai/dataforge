@@ -1,6 +1,7 @@
 import type { JobStartContext } from "@/features/jobs/lib/jobMeta";
 import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
 import type { Job, JobType } from "@/shared/types";
+import type { GalleryItemOpenOutcome } from "@/features/gallery/hooks/useGalleryItemDialog";
 
 /** Folder automation state and handlers shared by the workspace actions and quick actions. */
 export interface AutomationActions {
@@ -10,7 +11,8 @@ export interface AutomationActions {
   startContext: JobStartContext;
   onEditSysprompt: () => void;
   onRequestStart: (jobType: JobType) => void;
-  onOpenItem?: (path: string) => void;
+  /** Says why nothing opened, so the caller can tell the user. */
+  onOpenItem?: (path: string) => GalleryItemOpenOutcome;
   onRetryFailed?: (jobType: JobType, paths: string[]) => void;
   onCancelJob: () => void;
   cancellingJob?: boolean;

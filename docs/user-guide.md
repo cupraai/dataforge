@@ -10,6 +10,7 @@ A dataset is a folder: `scene.jpg` uses `scene.txt` beside it. DataForge reads a
 
 - **Search** (`Ctrl+F` or `/`) matches file names, folder names, captions, and [tags](#tags). Turn on regex for regular expressions. A pattern that takes more than a second is stopped and reported as **Pattern too slow**.
 - **Filters** narrow by media type, caption state, issues, edits, duplicates, or ComfyUI results. Each active filter gets a removable chip; **Reset all filters** keeps the search text.
+- **Ranges** in the filter menu narrow by megapixels, video duration, or caption length in characters. Each range shows a small chart of the files the other filters keep: click a bar to pick it, another to widen the span, or type **From** and **Below** values. A range keeps files from its minimum up to, not including, its maximum, and leaves out files without that value, such as stills for duration. Clicking a megapixel, duration, or caption-length bar in the statistics drawer sets the same range.
 - **Sort** by name, date modified, caption length, megapixels, or duration. The sort is remembered.
 - **View** as large cards, small cards, or a list. Each folder remembers its view.
 - The **captioned** and **issue** counts in the toolbar filter to those files; click again to clear.

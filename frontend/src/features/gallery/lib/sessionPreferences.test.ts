@@ -22,6 +22,7 @@ describe("gallery session preferences", () => {
         filter: "captioned",
         mediaTypeFilter: "image",
         fileFilter: "all",
+        ranges: {},
         searchQuery: "sunset",
         searchRegex: true,
         searchNames: false,
@@ -31,6 +32,7 @@ describe("gallery session preferences", () => {
       filter: "captioned",
       mediaTypeFilter: "image",
       fileFilter: "all",
+      ranges: {},
       searchQuery: "sunset",
       searchRegex: true,
       searchNames: false,
@@ -55,6 +57,7 @@ describe("gallery session preferences", () => {
       filter: "uncaptioned",
       mediaTypeFilter: "all",
       fileFilter: "duplicates",
+      ranges: {},
       searchQuery: "mountain",
       searchRegex: false,
       searchNames: true,
@@ -68,6 +71,7 @@ describe("gallery session preferences", () => {
       filter: "all",
       mediaTypeFilter: "all",
       fileFilter: "all",
+      ranges: {},
       searchQuery: "",
       searchRegex: false,
       searchNames: true,
@@ -90,6 +94,7 @@ describe("gallery session preferences", () => {
       filter: "all",
       mediaTypeFilter: "all",
       fileFilter: "all",
+      ranges: {},
       searchQuery: "",
       searchRegex: false,
       searchNames: true,
@@ -108,6 +113,31 @@ describe("gallery session preferences", () => {
     );
 
     expect(readGallerySessionQuery().searchNames).toBe(true);
+  });
+
+  it("keeps ranges across partial updates", () => {
+    cacheGallerySessionQuery({ ranges: { duration: { min: 2, max: 4 } } });
+    cacheGallerySessionQuery({ searchQuery: "river" });
+
+    expect(readGallerySessionQuery().ranges).toEqual({ duration: { min: 2, max: 4 } });
+  });
+
+  it("drops stored ranges that are not numbers, empty or inverted", () => {
+    window.sessionStorage.setItem(
+      SESSION_QUERY_CACHE_KEY,
+      JSON.stringify({
+        ranges: {
+          megapixels: { min: "1", max: null },
+          duration: { min: 8, max: 2 },
+          caption_length: { min: 400, max: null },
+          unknown_axis: { min: 1 },
+        },
+      }),
+    );
+
+    expect(readGallerySessionQuery().ranges).toEqual({
+      caption_length: { min: 400, max: null },
+    });
   });
 
   it("reads and writes the file filter", () => {

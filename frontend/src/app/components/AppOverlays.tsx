@@ -61,6 +61,7 @@ export function AppOverlays({
         items={stats.items}
         onClose={stats.onClose}
         onSearchWord={stats.onSearchWord}
+        onFilterRange={stats.onFilterRange}
       />
 
       <SelectionActionOverlays {...selectionActions} />

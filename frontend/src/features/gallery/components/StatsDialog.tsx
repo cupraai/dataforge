@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState } from "react";
 import { CreationTimelineChart } from "@/features/gallery/components/CreationTimelineChart";
 import { useCountUp } from "@/features/gallery/hooks/useCountUp";
 import {
+  BUCKET_RANGES,
   computeDatasetStats,
   latestCreationDate,
   type CreationTimelineGrouping,
@@ -30,6 +31,7 @@ import { readStored, writeStored } from "@/shared/lib/storage";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { Tooltip } from "@/shared/ui/Tooltip";
+import type { GalleryRange, RangeAxis } from "@/features/gallery/lib/query";
 import type { GalleryItem } from "@/shared/types";
 
 const CREATION_GROUPING_KEY = "stats-creation-grouping";
@@ -45,9 +47,17 @@ interface StatsDialogProps {
   onClose: () => void;
   /** Sends a frequent word or tag to the gallery search. Omitted, both lists stay read-only. */
   onSearchWord?: (word: string) => void;
+  /** A numeric bucket was picked; its range selects exactly the files it counts. */
+  onFilterRange?: (axis: RangeAxis, range: GalleryRange) => void;
 }
 
-export function StatsDialog({ open, items, onClose, onSearchWord }: StatsDialogProps) {
+export function StatsDialog({
+  open,
+  items,
+  onClose,
+  onSearchWord,
+  onFilterRange,
+}: StatsDialogProps) {
   // Slides out rather than vanishing, so it outlives open by the animation length.
   const [closing, setClosing] = useState(false);
   const [renderedOpen, setRenderedOpen] = useState(open);
@@ -83,7 +93,7 @@ export function StatsDialog({ open, items, onClose, onSearchWord }: StatsDialogP
       </header>
 
       <div className="stats-dialog__content" data-scroll-lock-allow>
-        <StatsContent items={items} onSearchWord={onSearchWord} />
+        <StatsContent items={items} onSearchWord={onSearchWord} onFilterRange={onFilterRange} />
       </div>
     </DialogShell>
   );
@@ -98,10 +108,14 @@ function compactCount(value: number): string {
 function StatsContent({
   items,
   onSearchWord,
+  onFilterRange,
 }: {
   items: GalleryItem[];
   onSearchWord?: (word: string) => void;
+  onFilterRange?: (axis: RangeAxis, range: GalleryRange) => void;
 }) {
+  const rangeSelect = (axis: RangeAxis) =>
+    onFilterRange && ((index: number) => onFilterRange(axis, BUCKET_RANGES[axis][index]));
   const [creationGrouping, setCreationGrouping] = useState<CreationTimelineGrouping | undefined>(
     () => {
       const stored = readStored(CREATION_GROUPING_KEY);
@@ -195,7 +209,12 @@ function StatsContent({
             <Tile value={stats.captionLength.median} label="Median" />
             <Tile value={stats.captionLength.max} label="Longest" />
           </div>
-          <BarChart buckets={stats.captionLength.buckets} unit="caption length in characters" />
+          <BarChart
+            buckets={stats.captionLength.buckets}
+            unit="caption length in characters"
+            onSelect={rangeSelect("caption_length")}
+            selectTitle={showFilesIn}
+          />
         </Section>
       )}
 
@@ -216,7 +235,12 @@ function StatsContent({
 
       {stats.mediaTypes.videos > 0 && (
         <Section title="Video duration" icon={iconHourglass}>
-          <BarChart buckets={stats.durations} unit="video duration in seconds" />
+          <BarChart
+            buckets={stats.durations}
+            unit="video duration in seconds"
+            onSelect={rangeSelect("duration")}
+            selectTitle={showFilesIn}
+          />
           {stats.unknownDuration > 0 && (
             <p className="stats-dialog__note">
               {stats.unknownDuration} {stats.unknownDuration === 1 ? "video has" : "videos have"} an
@@ -227,7 +251,12 @@ function StatsContent({
       )}
 
       <Section title="Resolution" icon={iconRulerDimensionLine}>
-        <BarChart buckets={stats.megapixels} unit="megapixels" />
+        <BarChart
+          buckets={stats.megapixels}
+          unit="megapixels"
+          onSelect={rangeSelect("megapixels")}
+          selectTitle={showFilesIn}
+        />
         {stats.unknownResolution > 0 && (
           <p className="stats-dialog__note">
             {stats.unknownResolution} {stats.unknownResolution === 1 ? "file has" : "files have"} an
@@ -248,7 +277,7 @@ function StatsContent({
             buckets={stats.topWords.map((entry) => ({ label: entry.word, count: entry.count }))}
             unit="how often each word appears"
             labelWidth="wide"
-            onSelectLabel={onSearchWord}
+            onSelect={onSearchWord && ((index) => onSearchWord(stats.topWords[index].word))}
           />
         </Section>
       )}
@@ -259,7 +288,7 @@ function StatsContent({
             buckets={stats.topTags}
             unit="how many files have each tag"
             labelWidth="wide"
-            onSelectLabel={onSearchWord}
+            onSelect={onSearchWord && ((index) => onSearchWord(stats.topTags[index].label))}
           />
         </Section>
       )}
@@ -396,33 +425,46 @@ function MediaMix({ buckets, total }: { buckets: StatBucket[]; total: number }) 
   );
 }
 
+function searchFor(label: string): string {
+  return `Search for "${label}"`;
+}
+
+function showFilesIn(label: string): string {
+  return `Show files in "${label}"`;
+}
+
 function BarChart({
   buckets,
   unit,
   labelWidth = "narrow",
-  onSelectLabel,
+  onSelect,
+  selectTitle = searchFor,
 }: {
   buckets: StatBucket[];
   unit: string;
   labelWidth?: "narrow" | "wide";
-  onSelectLabel?: (label: string) => void;
+  /** Called with the bucket's index in `buckets`, empty buckets included. */
+  onSelect?: (index: number) => void;
+  selectTitle?: (label: string) => string;
 }) {
-  const visible = buckets.filter((bucket) => bucket.count > 0);
+  const visible = buckets
+    .map((bucket, index) => ({ bucket, index }))
+    .filter(({ bucket }) => bucket.count > 0);
   if (visible.length === 0) return null;
-  const peak = Math.max(...visible.map((bucket) => bucket.count));
+  const peak = Math.max(...visible.map(({ bucket }) => bucket.count));
 
   return (
     <figure className="stats-dialog__chart" aria-label={`Distribution by ${unit}`}>
       <dl className={`stats-dialog__bars stats-dialog__bars--${labelWidth}`}>
-        {visible.map((bucket) => (
+        {visible.map(({ bucket, index }) => (
           <div key={bucket.label} className="stats-dialog__bar-row">
             <dt className="stats-dialog__bar-label" title={bucket.label}>
-              {onSelectLabel ? (
+              {onSelect ? (
                 <button
                   type="button"
                   className="stats-dialog__bar-button"
-                  onClick={() => onSelectLabel(bucket.label)}
-                  title={`Search for "${bucket.label}"`}
+                  onClick={() => onSelect(index)}
+                  title={selectTitle(bucket.label)}
                 >
                   {bucket.label}
                 </button>

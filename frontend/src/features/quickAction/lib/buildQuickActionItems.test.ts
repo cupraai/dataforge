@@ -849,7 +849,7 @@ describe("buildFilterItems", () => {
     const onReset = vi.fn<() => void>();
     const active = filterItems({ hasActiveFilters: true, onReset }).at(-1);
     expect(active?.disabled).toBe(false);
-    expect(active?.detail).toBe("Back to all media, captions and files");
+    expect(active?.detail).toBe("Back to all media, captions, files and ranges");
 
     active?.run();
     expect(onReset).toHaveBeenCalledTimes(1);

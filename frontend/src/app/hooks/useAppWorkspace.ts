@@ -35,6 +35,8 @@ import { filterSubfoldersBySearch, searchRegexError } from "@/features/gallery/l
 import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
 import { reviewScopeFor } from "@/features/gallery/lib/reviewScope";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
+import { pathBaseName } from "@/features/gallery/lib/mediaActionMessages";
+import { useNotify } from "@/shared/notifications/notifications";
 import type { GalleryItem, JobType } from "@/shared/types";
 import { useWorkspaceTransitions } from "@/app/hooks/useWorkspaceTransitions";
 
@@ -183,12 +185,33 @@ export function useAppWorkspace() {
 
   const statsDialog = useStatsDialog();
   const settings = useSettingsDialog();
+  const notify = useNotify();
+
+  // A job's file may be gone or filtered out by now; say so instead of opening nothing.
+  const { openGalleryItem } = gallery;
+  const openJobResultItem = useCallback(
+    (path: string) => {
+      const outcome = openGalleryItem(path);
+      if (outcome !== "opened") {
+        const name = pathBaseName(path);
+        notify({
+          variant: "warning",
+          message:
+            outcome === "missing"
+              ? `${name} is no longer in this folder.`
+              : `${name} is hidden by the current filters or search.`,
+        });
+      }
+      return outcome;
+    },
+    [notify, openGalleryItem],
+  );
   const shortcuts = useShortcutsDialog();
 
   // Refresh on close: per-deletion reloads race the watcher's push against the frozen queue.
   const duplicateResolverOverlay = useDuplicateResolverOverlay(
     refreshFolder,
-    gallery.returnToGalleryItem,
+    gallery.openGalleryItem,
   );
   const selectedPaths =
     selection.selectionMode && gallery.visibleSelectedCount > 0
@@ -219,10 +242,7 @@ export function useAppWorkspace() {
     [items],
   );
 
-  const candidateReviewOverlay = useCandidateReviewOverlay(
-    refreshFolder,
-    gallery.returnToGalleryItem,
-  );
+  const candidateReviewOverlay = useCandidateReviewOverlay(refreshFolder, gallery.openGalleryItem);
   const { openCandidateReview } = candidateReviewOverlay;
   const { closeGalleryItem } = gallery;
   const folderPath = folder?.path;
@@ -318,7 +338,7 @@ export function useAppWorkspace() {
               );
             })
         : undefined,
-    onOpenItem: gallery.openGalleryItem,
+    onOpenItem: openJobResultItem,
     onRetryFailed: retryFailedFiles,
   });
 

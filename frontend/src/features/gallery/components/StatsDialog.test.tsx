@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { COUNT_UP_MS } from "@/features/gallery/lib/countUp";
 import { StatsDialog } from "./StatsDialog";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";
+import type { GalleryRange, RangeAxis } from "@/features/gallery/lib/query";
 
 const items = [
   mediaItem("one.png", HOME_PATH, {
@@ -393,6 +394,40 @@ describe("StatsDialog", () => {
     await user.click(within(chart).getByRole("button", { name: "brown" }));
 
     expect(onSearchWord).toHaveBeenCalledWith("brown");
+  });
+
+  it("filters the gallery to a numeric bucket's exact range", async () => {
+    const user = userEvent.setup();
+    const onFilterRange = vi.fn<(axis: RangeAxis, range: GalleryRange) => void>();
+    renderDrawer({
+      onFilterRange,
+      items: [
+        mediaItem("short.mp4", HOME_PATH, { duration: 1 }),
+        mediaItem("mid.mp4", HOME_PATH, { duration: 3, width: 1920, height: 1080 }),
+      ],
+    });
+
+    const durations = screen.getByRole("figure", {
+      name: "Distribution by video duration in seconds",
+    });
+    await user.click(within(durations).getByRole("button", { name: "2 – 4 s" }));
+    expect(onFilterRange).toHaveBeenLastCalledWith("duration", { min: 2, max: 4 });
+
+    await user.click(within(durations).getByRole("button", { name: "0 – 2 s" }));
+    expect(onFilterRange).toHaveBeenLastCalledWith("duration", { min: null, max: 2 });
+
+    const megapixels = screen.getByRole("figure", { name: "Distribution by megapixels" });
+    await user.click(within(megapixels).getByRole("button", { name: "2 – 4 MP" }));
+    expect(onFilterRange).toHaveBeenLastCalledWith("megapixels", { min: 2, max: 4 });
+  });
+
+  it("keeps numeric buckets as plain labels without a range handler", () => {
+    renderDrawer({ items: [mediaItem("mid.mp4", HOME_PATH, { duration: 3 })] });
+
+    const durations = screen.getByRole("figure", {
+      name: "Distribution by video duration in seconds",
+    });
+    expect(within(durations).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("ranks tags by how many files carry them and sends one to the search", async () => {

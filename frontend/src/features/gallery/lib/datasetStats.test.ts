@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeDatasetStats } from "./datasetStats";
+import { BUCKET_RANGES, computeDatasetStats } from "./datasetStats";
+import { RANGE_AXES, applyRanges } from "./query";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";
 
 function captioned(name: string, description: string) {
@@ -440,5 +441,44 @@ describe("computeDatasetStats", () => {
 
     expect(stats.unknownDuration).toBe(0);
     expect(stats.durations.every((bucket) => bucket.count === 0)).toBe(true);
+  });
+});
+
+describe("BUCKET_RANGES", () => {
+  const boundaryItems = [
+    mediaItem("tiny.png", HOME_PATH, { width: 100, height: 100 }),
+    mediaItem("one-mp.png", HOME_PATH, { width: 1000, height: 1000 }),
+    mediaItem("two-mp.png", HOME_PATH, { width: 2000, height: 1000 }),
+    mediaItem("huge.png", HOME_PATH, { width: 8000, height: 8000 }),
+    mediaItem("zero.mp4", HOME_PATH, { duration: 0.5 }),
+    mediaItem("two.mp4", HOME_PATH, { duration: 2 }),
+    mediaItem("four.mp4", HOME_PATH, { duration: 4 }),
+    mediaItem("long.mp4", HOME_PATH, { duration: 30 }),
+    mediaItem("short.png", HOME_PATH, { caption_status: "text", description: "a".repeat(255) }),
+    mediaItem("edge.png", HOME_PATH, { caption_status: "text", description: "a".repeat(256) }),
+    mediaItem("wordy.png", HOME_PATH, { caption_status: "text", description: "a".repeat(2000) }),
+  ];
+
+  it("selects exactly the files each bucket counts, boundaries included", () => {
+    const stats = computeDatasetStats(boundaryItems);
+    const bucketsByAxis = {
+      megapixels: stats.megapixels,
+      duration: stats.durations,
+      caption_length: stats.captionLength?.buckets ?? [],
+    };
+
+    for (const axis of RANGE_AXES) {
+      const buckets = bucketsByAxis[axis];
+      expect(BUCKET_RANGES[axis]).toHaveLength(buckets.length);
+      buckets.forEach((bucket, index) => {
+        const matched = applyRanges(boundaryItems, { [axis]: BUCKET_RANGES[axis][index] });
+        expect([axis, bucket.label, matched.length]).toEqual([axis, bucket.label, bucket.count]);
+      });
+    }
+  });
+
+  it("leaves the outer sides of the first and last buckets open", () => {
+    expect(BUCKET_RANGES.duration[0]).toEqual({ min: null, max: 2 });
+    expect(BUCKET_RANGES.duration.at(-1)).toEqual({ min: 15, max: null });
   });
 });

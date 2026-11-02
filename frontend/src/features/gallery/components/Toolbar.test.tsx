@@ -12,6 +12,8 @@ import type {
   MediaTypeFilter,
   SortOption,
 } from "@/features/gallery/lib/query";
+import type { GalleryRanges } from "@/features/gallery/lib/query";
+import type { GalleryItem } from "@/shared/types";
 import { Toolbar } from "./Toolbar";
 
 vi.mock("@/features/jobs/components/JobsButton", () => ({
@@ -60,6 +62,11 @@ const defaultProps = {
   onFilterChange: vi.fn<(value: ItemFilter) => void>(),
   onMediaTypeFilterChange: vi.fn<(value: MediaTypeFilter) => void>(),
   onFileFilterChange: vi.fn<(value: FileFilter) => void>(),
+  rangeControls: {
+    ranges: {} as GalleryRanges,
+    onRangesChange: vi.fn<(ranges: GalleryRanges) => void>(),
+    rangeBaseItems: vi.fn<() => GalleryItem[]>(() => []),
+  },
 };
 
 function renderToolbar(props: Partial<typeof defaultProps> = {}) {
@@ -223,6 +230,54 @@ describe("Toolbar", () => {
     expect(defaultProps.onMediaTypeFilterChange).toHaveBeenCalledWith("image");
     // Picking one axis leaves the menu open for the other.
     expect(screen.getByRole("menu", { name: "Filters" })).toBeInTheDocument();
+  });
+
+  it("shows each range and opens the range dialog on the picked axis", async () => {
+    const user = userEvent.setup();
+    const onRangesChange = vi.fn<(ranges: GalleryRanges) => void>();
+    renderToolbar({
+      rangeControls: {
+        ...defaultProps.rangeControls,
+        ranges: { megapixels: { min: 1, max: 2 } },
+        onRangesChange,
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Filter media" }));
+    const ranges = within(screen.getByRole("menu", { name: "Filters" })).getByRole("group", {
+      name: "Ranges",
+    });
+    expect(
+      within(ranges).getByRole("menuitem", { name: /Megapixels\s*1 – 2 MP/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(ranges).getByRole("menuitem", { name: /Video duration\s*Any/ }),
+    ).toBeInTheDocument();
+
+    await user.click(within(ranges).getByRole("menuitem", { name: /Video duration/ }));
+    const dialog = screen.getByRole("dialog", { name: "Filter by range" });
+    expect(within(dialog).getByRole("textbox", { name: "Minimum video duration" })).toHaveFocus();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Minimum video duration" }), "2");
+    await user.type(within(dialog).getByRole("textbox", { name: "Maximum video duration" }), "8");
+    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+
+    expect(onRangesChange).toHaveBeenCalledWith({
+      megapixels: { min: 1, max: 2 },
+      duration: { min: 2, max: 8 },
+    });
+    expect(screen.queryByRole("dialog", { name: "Filter by range" })).not.toBeInTheDocument();
+  });
+
+  it("names active ranges in the filter button's tooltip summary", async () => {
+    const user = userEvent.setup();
+    renderToolbar({
+      rangeControls: { ...defaultProps.rangeControls, ranges: { duration: { min: 4 } } },
+    });
+
+    await user.hover(screen.getByRole("button", { name: "Filter media" }));
+
+    expect(await screen.findByText("Filtering by ≥ 4 s")).toBeInTheDocument();
   });
 
   it("keeps the file options out of the caption status group", async () => {

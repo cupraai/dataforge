@@ -15,6 +15,7 @@ import type {
   GalleryItem,
   InstructionFileResponse,
 } from "@/shared/types";
+import type { GalleryRange, RangeAxis } from "@/features/gallery/lib/query";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { RefObject } from "react";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
@@ -88,6 +89,7 @@ type StatsOverlayState = {
   items: GalleryItem[];
   onClose: () => void;
   onSearchWord: (word: string) => void;
+  onFilterRange: (axis: RangeAxis, range: GalleryRange) => void;
 };
 
 type JobStartConfirmState = {

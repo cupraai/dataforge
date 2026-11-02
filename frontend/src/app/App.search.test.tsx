@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { HOME_PATH, homeFolder } from "@/test/fixtures";
+import { HOME_PATH, homeFolder, mediaItem } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderApp } from "@/test/renderApp";
 
@@ -404,6 +404,42 @@ describe("App: search and filters", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tools" })).toBeInTheDocument();
+  });
+
+  it("shows exactly a statistics bucket's files when the bucket is picked", async () => {
+    const user = userEvent.setup();
+    const clipsHome = {
+      ...homeFolder,
+      items: [
+        ...homeFolder.items.filter((item) => item.name !== "waves.mp4"),
+        mediaItem("short.mp4", HOME_PATH, { duration: 1.5 }),
+        mediaItem("edge.mp4", HOME_PATH, { duration: 2 }),
+        mediaItem("mid.mp4", HOME_PATH, { duration: 3.9 }),
+        mediaItem("long.mp4", HOME_PATH, { duration: 4 }),
+      ],
+    };
+    installMockBackend({ folderByPath: { undefined: clipsHome, [HOME_PATH]: clipsHome } });
+    await renderApp();
+
+    await user.click(await screen.findByRole("button", { name: "Open dataset statistics" }));
+    const chart = await screen.findByRole("figure", {
+      name: "Distribution by video duration in seconds",
+    });
+    await user.click(within(chart).getByRole("button", { name: "2 – 4 s" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /statistics/i })).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "View short.mp4" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "View edge.mp4" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View mid.mp4" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View long.mp4" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View sunset.png" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove duration range" })).toHaveTextContent(
+      "2 – 4 s",
+    );
   });
 
   it("searches captions for a word picked from the statistics drawer", async () => {

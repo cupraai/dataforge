@@ -5,7 +5,7 @@ import {
 } from "@/features/gallery/lib/aspectRatio";
 import { tokenizeCaptionWords } from "@/features/gallery/lib/captionTokens";
 import { isAudio, isGif, isVideo } from "@/features/gallery/lib/itemKind";
-import { durationSeconds } from "@/shared/lib/format";
+import { rangeValue, type GalleryRange, type RangeAxis } from "@/features/gallery/lib/query";
 import type { GalleryItem } from "@/shared/types";
 
 const TOP_WORD_LIMIT = 15;
@@ -42,6 +42,20 @@ const LENGTH_BUCKETS = [
   { label: "1200 – 1400", max: 1400 },
   { label: "> 1400", max: Number.POSITIVE_INFINITY },
 ] as const;
+
+function bucketRanges(buckets: ReadonlyArray<{ max: number }>): GalleryRange[] {
+  return buckets.map((bucket, index) => ({
+    min: index === 0 ? null : buckets[index - 1].max,
+    max: Number.isFinite(bucket.max) ? bucket.max : null,
+  }));
+}
+
+/** Each numeric bucket as a range filter, in bucket order, selecting exactly what it counts. */
+export const BUCKET_RANGES: Record<RangeAxis, readonly GalleryRange[]> = {
+  megapixels: bucketRanges(MEGAPIXEL_BUCKETS),
+  duration: bucketRanges(DURATION_BUCKETS),
+  caption_length: bucketRanges(LENGTH_BUCKETS),
+};
 
 export interface StatBucket {
   label: string;
@@ -302,10 +316,12 @@ export function computeDatasetStats(
       else ungroupedDuplicates += 1;
     }
 
-    if (item.caption_status === "text" && item.description) {
+    // Measured by rangeValue, so a bucket's range filter selects exactly what it counts.
+    const length = rangeValue(item, "caption_length");
+    if (length != null && item.description) {
       captioned += 1;
       captions.push(item.description);
-      lengths.push(item.description.length);
+      lengths.push(length);
     }
 
     if (isAudio(item)) {
@@ -321,7 +337,7 @@ export function computeDatasetStats(
     } else if (isVideo(item)) {
       videos += 1;
       bumpExtension(videoExtensions, item.name);
-      const duration = durationSeconds(item.duration);
+      const duration = rangeValue(item, "duration");
       if (duration == null) unknownDuration += 1;
       else durations.push(duration);
     } else {
@@ -329,11 +345,10 @@ export function computeDatasetStats(
       bumpExtension(imageExtensions, item.name);
     }
 
-    const width = item.width ?? 0;
-    const height = item.height ?? 0;
-    if (width > 0 && height > 0) {
-      megapixels.push((width * height) / 1_000_000);
-      aspectRatioLabels.push(aspectRatioLabel(width, height));
+    const pixels = rangeValue(item, "megapixels");
+    if (pixels != null) {
+      megapixels.push(pixels);
+      aspectRatioLabels.push(aspectRatioLabel(item.width ?? 0, item.height ?? 0));
     } else {
       unknownResolution += 1;
     }

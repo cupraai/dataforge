@@ -214,6 +214,11 @@ export function AppContent() {
                 onFilterChange: query.setFilter,
                 onMediaTypeFilterChange: query.setMediaTypeFilter,
                 onFileFilterChange: query.setFileFilter,
+                rangeControls: {
+                  ranges: query.ranges,
+                  onRangesChange: query.setRanges,
+                  rangeBaseItems: query.rangeBaseItems,
+                },
               }}
             />
           )}
@@ -248,9 +253,12 @@ export function AppContent() {
                     filter={query.filter}
                     mediaTypeFilter={query.mediaTypeFilter}
                     fileFilter={query.fileFilter}
+                    ranges={query.ranges}
                     onFilterChange={query.setFilter}
                     onMediaTypeFilterChange={query.setMediaTypeFilter}
                     onFileFilterChange={query.setFileFilter}
+                    onRangeChange={query.setRange}
+                    onClearFilters={query.resetFilters}
                   />
                 }
                 fileDrop={{
@@ -319,6 +327,10 @@ export function AppContent() {
                 onSearchWord: (word) => {
                   query.setSearchNames(false);
                   query.setSearchQuery(word);
+                  statsDialog.closeStats();
+                },
+                onFilterRange: (axis, range) => {
+                  query.setRange(axis, range);
                   statsDialog.closeStats();
                 },
               }}

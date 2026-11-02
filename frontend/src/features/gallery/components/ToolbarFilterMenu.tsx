@@ -1,19 +1,44 @@
-import { useId } from "react";
+import { useId, useState } from "react";
+import { FilterRangesDialog } from "@/features/gallery/components/FilterRangesDialog";
 import {
   FILE_FILTER_OPTIONS,
   FILTER_AXIS_LABELS,
   FILTER_OPTIONS,
   MEDIA_TYPE_FILTER_OPTIONS,
 } from "@/features/gallery/lib/filters";
-import type { FileFilter, ItemFilter, MediaTypeFilter } from "@/features/gallery/lib/query";
+import {
+  RANGE_AXES,
+  formatRange,
+  isActiveRange,
+  type FileFilter,
+  type GalleryRanges,
+  type ItemFilter,
+  type MediaTypeFilter,
+  type RangeAxis,
+} from "@/features/gallery/lib/query";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
-import { iconFilter, type AppIcon } from "@/shared/icons";
+import { iconFilter, iconRulerDimensionLine, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
+import type { GalleryItem } from "@/shared/types";
 
-interface ToolbarFilterMenuProps {
+const RANGE_MENU_LABELS: Record<RangeAxis, string> = {
+  megapixels: "Megapixels",
+  duration: "Video duration",
+  caption_length: "Caption length",
+};
+
+/** The range filters, threaded through the toolbar as one prop. */
+export interface RangeControls {
+  ranges: GalleryRanges;
+  onRangesChange: (ranges: GalleryRanges) => void;
+  /** What every filter but the ranges keeps, which the range dialog charts and counts. */
+  rangeBaseItems: () => GalleryItem[];
+}
+
+interface ToolbarFilterMenuProps extends RangeControls {
   searchQuery: string;
   filter: ItemFilter;
   filterCounts: Record<ItemFilter, number>;
@@ -106,8 +131,13 @@ export function ToolbarFilterMenu({
   onFilterChange,
   onMediaTypeFilterChange,
   onFileFilterChange,
+  ranges,
+  onRangesChange,
+  rangeBaseItems,
 }: ToolbarFilterMenuProps) {
-  const { open, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const [rangesAxis, setRangesAxis] = useState<RangeAxis | null>(null);
+  const rangesLabelId = useId();
   const activeLabels: string[] = [];
   if (mediaTypeFilter !== "all") {
     activeLabels.push(optionLabelFor(MEDIA_TYPE_FILTER_OPTIONS, mediaTypeFilter));
@@ -119,11 +149,15 @@ export function ToolbarFilterMenu({
   if (fileFilter !== "all") {
     activeLabels.push(optionLabelFor(FILE_FILTER_OPTIONS, fileFilter));
   }
+  for (const axis of RANGE_AXES) {
+    const range = ranges[axis];
+    if (isActiveRange(range)) activeLabels.push(formatRange(axis, range));
+  }
 
   const filtering = activeLabels.length > 0;
   const tooltip = filtering
     ? `Filtering by ${activeLabels.join(" & ")}`
-    : "Filter by media type, caption status and files";
+    : "Filter by media type, caption status, files and ranges";
 
   return (
     <div
@@ -177,7 +211,47 @@ export function ToolbarFilterMenu({
           searchQuery={searchQuery}
           onChange={onFileFilterChange}
         />
+        <div className="toolbar__filter-menu-group" role="group" aria-labelledby={rangesLabelId}>
+          <span id={rangesLabelId} className="toolbar__filter-menu-group-label">
+            Ranges
+          </span>
+          {RANGE_AXES.map((axis) => {
+            const range = ranges[axis];
+            const active = isActiveRange(range);
+            return (
+              <button
+                key={axis}
+                type="button"
+                role="menuitem"
+                className={classNames(
+                  "toolbar__filter-menu-option",
+                  active && "toolbar__filter-menu-option--active",
+                )}
+                onClick={() => {
+                  close();
+                  setRangesAxis(axis);
+                }}
+              >
+                <Icon icon={iconRulerDimensionLine} className="toolbar__filter-menu-option-icon" />
+                <span className="toolbar__filter-menu-option-label">{RANGE_MENU_LABELS[axis]}</span>
+                <span className="toolbar__filter-menu-option-count">
+                  {active ? formatRange(axis, range) : "Any"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </AnchoredLayer>
+
+      {rangesAxis && (
+        <FilterRangesDialog
+          ranges={ranges}
+          focusAxis={rangesAxis}
+          rangeBaseItems={rangeBaseItems}
+          onApply={onRangesChange}
+          onClose={() => setRangesAxis(null)}
+        />
+      )}
     </div>
   );
 }

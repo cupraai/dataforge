@@ -300,6 +300,53 @@ describe("useGalleryQuery", () => {
     expect(stored.mediaTypeFilter).toBe("all");
   });
 
+  it("narrows the gallery and every menu count by a range", () => {
+    const clips = [
+      { ...item("short.mp4", "video", true, false), duration: 1 },
+      { ...item("mid.mp4", "video", false, false), duration: 3 },
+      { ...item("long.mp4", "video", true, false), duration: 9 },
+      item("still.png", "image", true, false),
+    ];
+    const { result } = renderHookWithQueryClient(() => useGalleryQuery(clips));
+
+    act(() => {
+      result.current.setRange("duration", { min: 2, max: 10 });
+    });
+
+    expect(result.current.filteredItems.map((entry) => entry.name).sort()).toEqual([
+      "long.mp4",
+      "mid.mp4",
+    ]);
+    expect(result.current.hasActiveFilters).toBe(true);
+    expect(result.current.filterCounts).toMatchObject({ all: 2, captioned: 1, uncaptioned: 1 });
+    expect(result.current.mediaTypeFilterCounts).toMatchObject({ all: 2, image: 0, video: 2 });
+    expect(result.current.fileFilterCounts.all).toBe(2);
+    expect(readGallerySessionQuery().ranges).toEqual({ duration: { min: 2, max: 10 } });
+
+    act(() => {
+      result.current.setRange("duration", null);
+    });
+
+    expect(result.current.filteredItems).toHaveLength(4);
+    expect(result.current.hasActiveFilters).toBe(false);
+  });
+
+  it("clears ranges with the other filters, leaving the search", () => {
+    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+
+    act(() => {
+      result.current.setRange("megapixels", { min: 1 });
+      result.current.setSearchQuery("shot");
+    });
+    act(() => {
+      result.current.resetFilters();
+    });
+
+    expect(result.current.ranges).toEqual({});
+    expect(readGallerySessionQuery().ranges).toEqual({});
+    expect(result.current.searchQuery).toBe("shot");
+  });
+
   it("treats duplicates as an active filter on its own", () => {
     const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
 

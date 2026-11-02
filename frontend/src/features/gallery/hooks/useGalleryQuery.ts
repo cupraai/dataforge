@@ -11,17 +11,22 @@ import {
   applyFileFilter,
   applyItemFilter,
   applyMediaTypeFilter,
+  applyRanges,
   countCaptioned,
   countEdited,
   countIssues,
   countMediaType,
   filterBySearch,
+  hasActiveRanges,
   parseSortOption,
   processGalleryItems,
   searchRegexError,
   type FileFilter,
+  type GalleryRange,
+  type GalleryRanges,
   type ItemFilter,
   type MediaTypeFilter,
+  type RangeAxis,
   type SortOption,
 } from "@/features/gallery/lib/query";
 import { regexSearchTexts } from "@/features/gallery/lib/regexSearch";
@@ -37,6 +42,7 @@ export function useGalleryQuery(items: GalleryItem[]) {
   const [fileFilter, setFileFilterState] = useState<FileFilter>(
     () => readGallerySessionQuery().fileFilter,
   );
+  const [ranges, setRangesState] = useState<GalleryRanges>(() => readGallerySessionQuery().ranges);
   const [searchQuery, setSearchQueryState] = useState(() => readGallerySessionQuery().searchQuery);
   const [searchRegex, setSearchRegexState] = useState(() => readGallerySessionQuery().searchRegex);
   const [searchNames, setSearchNamesState] = useState(() => readGallerySessionQuery().searchNames);
@@ -61,12 +67,34 @@ export function useGalleryQuery(items: GalleryItem[]) {
     cacheGallerySessionQuery({ fileFilter: value });
   }, []);
 
+  /** `null` removes the axis's range. */
+  const setRange = useCallback((axis: RangeAxis, range: GalleryRange | null) => {
+    setRangesState((current) => {
+      const next = { ...current };
+      if (range) next[axis] = range;
+      else delete next[axis];
+      cacheGallerySessionQuery({ ranges: next });
+      return next;
+    });
+  }, []);
+
+  const setRanges = useCallback((value: GalleryRanges) => {
+    setRangesState(value);
+    cacheGallerySessionQuery({ ranges: value });
+  }, []);
+
   // Search is deliberately untouched: it has its own clear button and its own intent.
   const resetFilters = useCallback(() => {
     setFilterState("all");
     setMediaTypeFilterState("all");
     setFileFilterState("all");
-    cacheGallerySessionQuery({ filter: "all", mediaTypeFilter: "all", fileFilter: "all" });
+    setRangesState({});
+    cacheGallerySessionQuery({
+      filter: "all",
+      mediaTypeFilter: "all",
+      fileFilter: "all",
+      ranges: {},
+    });
   }, []);
 
   const setSearchQuery = useCallback((value: string) => {
@@ -105,12 +133,18 @@ export function useGalleryQuery(items: GalleryItem[]) {
       ? filterQuery
       : "";
 
+  // Ranges narrow every axis below, menu counts included, so they are applied first.
+  const rangedItems = useMemo(() => applyRanges(items, ranges), [items, ranges]);
+
   const mediaTypeFilteredItems = useMemo(
-    () => applyMediaTypeFilter(items, mediaTypeFilter),
-    [items, mediaTypeFilter],
+    () => applyMediaTypeFilter(rangedItems, mediaTypeFilter),
+    [rangedItems, mediaTypeFilter],
   );
 
-  const captionScopedItems = useMemo(() => applyItemFilter(items, filter), [items, filter]);
+  const captionScopedItems = useMemo(
+    () => applyItemFilter(rangedItems, filter),
+    [rangedItems, filter],
+  );
 
   const captionFilteredItems = useMemo(
     () => applyItemFilter(mediaTypeFilteredItems, filter),
@@ -124,7 +158,7 @@ export function useGalleryQuery(items: GalleryItem[]) {
 
   const filteredItems = useMemo(
     () =>
-      processGalleryItems(items, {
+      processGalleryItems(rangedItems, {
         filter,
         mediaTypeFilter,
         fileFilter,
@@ -135,7 +169,7 @@ export function useGalleryQuery(items: GalleryItem[]) {
         sort,
       }),
     [
-      items,
+      rangedItems,
       filter,
       mediaTypeFilter,
       fileFilter,
@@ -148,7 +182,35 @@ export function useGalleryQuery(items: GalleryItem[]) {
   );
 
   const hasActiveSearch = searchQuery.trim().length > 0;
-  const hasActiveFilters = filter !== "all" || mediaTypeFilter !== "all" || fileFilter !== "all";
+  const rangesActive = hasActiveRanges(ranges);
+  const hasActiveFilters =
+    filter !== "all" || mediaTypeFilter !== "all" || fileFilter !== "all" || rangesActive;
+
+  /** What every filter but the ranges keeps; read on demand, as only the range dialog needs it. */
+  const rangeBaseItems = useCallback(
+    () =>
+      filterBySearch(
+        applyFileFilter(
+          applyItemFilter(applyMediaTypeFilter(items, mediaTypeFilter), filter),
+          fileFilter,
+        ),
+        filterQuery,
+        searchRegex,
+        searchNames,
+        regexMatches,
+      ),
+    [
+      items,
+      mediaTypeFilter,
+      filter,
+      fileFilter,
+      filterQuery,
+      searchRegex,
+      searchNames,
+      regexMatches,
+    ],
+  );
+
   const captionedCount = useMemo(() => countCaptioned(items), [items]);
 
   // Each axis counts with the others applied, so a menu count is what picking it leaves.
@@ -226,6 +288,7 @@ export function useGalleryQuery(items: GalleryItem[]) {
         searchError: searchRegex ? searchRegexError(filterQuery) : null,
         searchTooSlow: regexSearch.status === "too-expensive",
         hasFilterMatches: filterMatchedItems.length > 0,
+        hasRanges: rangesActive,
         imageCount: countMediaType(items, "image"),
         videoCount: countMediaType(items, "video"),
         audioCount: countMediaType(items, "audio"),
@@ -239,6 +302,7 @@ export function useGalleryQuery(items: GalleryItem[]) {
       filterQuery,
       searchRegex,
       regexSearch.status,
+      rangesActive,
     ],
   );
 
@@ -249,6 +313,10 @@ export function useGalleryQuery(items: GalleryItem[]) {
     setMediaTypeFilter,
     fileFilter,
     setFileFilter,
+    ranges,
+    setRange,
+    setRanges,
+    rangeBaseItems,
     resetFilters,
     searchQuery,
     searchRegex,

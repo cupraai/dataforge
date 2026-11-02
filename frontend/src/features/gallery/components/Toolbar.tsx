@@ -32,7 +32,7 @@ import { JobsButton } from "@/features/jobs/components/JobsButton";
 import { NotificationsButton } from "@/shared/notifications/NotificationsButton";
 import { StatsButton } from "./StatsButton";
 import { Tooltip } from "@/shared/ui/Tooltip";
-import { ToolbarFilterMenu } from "./ToolbarFilterMenu";
+import { ToolbarFilterMenu, type RangeControls } from "./ToolbarFilterMenu";
 import { ToolbarSortMenu } from "./ToolbarSortMenu";
 
 interface ToolbarProps {
@@ -65,6 +65,7 @@ interface ToolbarProps {
   onFilterChange: (value: ItemFilter) => void;
   onMediaTypeFilterChange: (value: MediaTypeFilter) => void;
   onFileFilterChange: (value: FileFilter) => void;
+  rangeControls: RangeControls;
 }
 
 interface ToolbarSearchProps {
@@ -261,6 +262,7 @@ export function Toolbar({
   onFilterChange,
   onMediaTypeFilterChange,
   onFileFilterChange,
+  rangeControls,
 }: ToolbarProps) {
   const allCaptioned = captionedCount === fileCount;
   const captionPercent =
@@ -379,6 +381,7 @@ export function Toolbar({
           onFilterChange={onFilterChange}
           onMediaTypeFilterChange={onMediaTypeFilterChange}
           onFileFilterChange={onFileFilterChange}
+          {...rangeControls}
         />
 
         <StatsButton open={statsOpen} onToggle={onToggleStats} />

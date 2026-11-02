@@ -3,10 +3,12 @@ import {
   applyFileFilter,
   applyItemFilter,
   applyMediaTypeFilter,
+  applyRanges,
   countCaptioned,
   countMediaType,
   filterBySearch,
   filterSubfoldersBySearch,
+  formatRange,
   parseSortOption,
   processGalleryItems,
   searchRegexError,
@@ -463,5 +465,89 @@ describe("parseSortOption", () => {
     expect(parseSortOption("date-desc")).toBe("date-desc");
     expect(parseSortOption("megapixels-desc")).toBe("megapixels-desc");
     expect(parseSortOption("duration-desc")).toBe("duration-desc");
+  });
+});
+
+describe("applyRanges", () => {
+  const clip = (name: string, duration: number | null) => item(name, "video", { duration });
+
+  it("keeps a value equal to min and drops one equal to max, as Statistics buckets do", () => {
+    const items = [clip("a.mp4", 1.99), clip("b.mp4", 2), clip("c.mp4", 3.5), clip("d.mp4", 4)];
+
+    const result = applyRanges(items, { duration: { min: 2, max: 4 } });
+
+    expect(result.map((entry) => entry.name)).toEqual(["b.mp4", "c.mp4"]);
+  });
+
+  it("leaves a side open when its bound is missing", () => {
+    const items = [clip("a.mp4", 1), clip("b.mp4", 20)];
+
+    expect(applyRanges(items, { duration: { min: 10 } }).map((entry) => entry.name)).toEqual([
+      "b.mp4",
+    ]);
+    expect(applyRanges(items, { duration: { max: 10 } }).map((entry) => entry.name)).toEqual([
+      "a.mp4",
+    ]);
+  });
+
+  it("drops files without the value: stills, GIFs and audio for duration", () => {
+    const items = [
+      clip("clip.mp4", 3),
+      clip("unknown.mp4", null),
+      item("still.png", "image"),
+      item("loop.gif", "gif", { duration: 3 }),
+      item("song.mp3", "audio", { duration: 3 }),
+    ];
+
+    expect(applyRanges(items, { duration: { min: 0 } }).map((entry) => entry.name)).toEqual([
+      "clip.mp4",
+    ]);
+  });
+
+  it("measures megapixels from known dimensions only", () => {
+    const items = [
+      item("big.png", "image", { width: 2000, height: 1000 }),
+      item("small.png", "image", { width: 100, height: 100 }),
+      item("unknown.png", "image"),
+    ];
+
+    expect(
+      applyRanges(items, { megapixels: { min: 1, max: 4 } }).map((entry) => entry.name),
+    ).toEqual(["big.png"]);
+  });
+
+  it("measures caption length in characters of a text caption", () => {
+    const items = [
+      item("long.png", "image", { caption_status: "text", description: "x".repeat(500) }),
+      item("short.png", "image", { caption_status: "text", description: "x".repeat(50) }),
+      item("none.png", "image"),
+    ];
+
+    expect(
+      applyRanges(items, { caption_length: { min: 400, max: 600 } }).map((entry) => entry.name),
+    ).toEqual(["long.png"]);
+  });
+
+  it("ANDs the axes and passes everything through without ranges", () => {
+    const items = [
+      item("a.mp4", "video", { duration: 3, width: 1920, height: 1080 }),
+      item("b.mp4", "video", { duration: 3, width: 640, height: 360 }),
+    ];
+
+    expect(
+      applyRanges(items, { duration: { min: 2, max: 4 }, megapixels: { min: 1 } }).map(
+        (entry) => entry.name,
+      ),
+    ).toEqual(["a.mp4"]);
+    expect(applyRanges(items, {})).toBe(items);
+  });
+});
+
+describe("formatRange", () => {
+  it("names both bounds, or the open side", () => {
+    expect(formatRange("megapixels", { min: 1, max: 2 })).toBe("1 – 2 MP");
+    expect(formatRange("duration", { min: 4 })).toBe("≥ 4 s");
+    expect(formatRange("caption_length", { max: 256 })).toBe("< 256 chars");
+    expect(formatRange("megapixels", { min: 0.3, max: 0.5 })).toBe("0.3 – 0.5 MP");
   });
 });

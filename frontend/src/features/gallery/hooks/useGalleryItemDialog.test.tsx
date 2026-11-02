@@ -2,7 +2,7 @@ import { StrictMode, type ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { GalleryItem } from "@/shared/types";
-import { useGalleryItemDialog } from "./useGalleryItemDialog";
+import { galleryItemOpenOutcome, useGalleryItemDialog } from "./useGalleryItemDialog";
 
 function item(name: string): GalleryItem {
   return {
@@ -37,6 +37,21 @@ function renderDialog() {
 }
 
 describe("useGalleryItemDialog", () => {
+  // The listing guard would take an unknown path for a just-deleted item and open a neighbour.
+  it("opens nothing for a path the listing does not show", () => {
+    const visible = images.slice(1);
+    const { result } = renderHook(() => useGalleryItemDialog(images, visible), { wrapper });
+
+    act(() => result.current.openGalleryItem("C:\\Photos\\gone.png"));
+    expect(result.current.selectedPath).toBeNull();
+
+    act(() => result.current.openGalleryItem(images[0].path));
+    expect(result.current.selectedPath).toBeNull();
+    expect(galleryItemOpenOutcome(images, visible, images[0].path)).toBe("hidden");
+    expect(galleryItemOpenOutcome(images, visible, "C:\\Photos\\gone.png")).toBe("missing");
+    expect(galleryItemOpenOutcome(images, visible, images[1].path)).toBe("opened");
+  });
+
   it("jumps straight to an index in the navigation list", () => {
     const { result } = renderDialog();
 

@@ -247,8 +247,8 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
         onOpenItem={
           actions?.onOpenItem
             ? (path) => {
-                closeDrawer();
-                actions.onOpenItem?.(path);
+                // A miss keeps the drawer open, so another file can be picked from it.
+                if (actions.onOpenItem?.(path) === "opened") closeDrawer();
               }
             : undefined
         }
