@@ -7,6 +7,7 @@ import { failureMessage, pathBaseName } from "@/features/gallery/lib/mediaAction
 import { formatApiError } from "@/shared/api/http";
 import { formatCount } from "@/shared/lib/format";
 import {
+  UNDO_TOAST_DURATION_MS,
   useNotificationActions,
   useNotify,
   type ToastAction,
@@ -19,14 +20,15 @@ function captions(count: number): string {
 
 /**
  * A caption job's outcome offers to take its writes back while the server still can. The
- * job's `undoable` flag goes false once used, which drops the button from toast and history.
+ * job's `undoable` flag goes false once used, which drops the button from toast and history;
+ * the server keeps the restores that failed, so their toast offers a retry.
  */
 export function useJobUndoNotifications() {
   const queryClient = useQueryClient();
   const notify = useNotify();
 
   const undo = useCallback(
-    async (jobId: string) => {
+    async function attempt(jobId: string): Promise<void> {
       try {
         const { restored, changed, failed } = await undoJob(jobId);
         if (restored.length > 0) {
@@ -38,7 +40,12 @@ export function useJobUndoNotifications() {
         }
         if (failed.length > 0) {
           const failures = failed.map(({ path, detail }) => ({ path, error: detail }));
-          notify({ variant: "danger", message: failureMessage("restore", failures) });
+          notify({
+            variant: "danger",
+            message: failureMessage("restore", failures),
+            action: { label: "Retry", run: () => void attempt(jobId) },
+            durationMs: UNDO_TOAST_DURATION_MS,
+          });
         }
       } catch (error) {
         notify({ variant: "danger", message: `Could not undo the job: ${formatApiError(error)}` });

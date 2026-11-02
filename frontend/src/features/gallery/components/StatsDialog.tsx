@@ -3,6 +3,7 @@ import { CreationTimelineChart } from "@/features/gallery/components/CreationTim
 import { useCountUp } from "@/features/gallery/hooks/useCountUp";
 import {
   computeDatasetStats,
+  latestCreationDate,
   type CreationTimelineGrouping,
   type DatasetStats,
   type StatBucket,
@@ -107,7 +108,9 @@ function StatsContent({
       return CREATION_GROUPING_OPTIONS.find((option) => option.value === stored)?.value;
     },
   );
-  const [creationPeriod, setCreationPeriod] = useState(() => new Date());
+  const [creationPeriod, setCreationPeriod] = useState(
+    () => latestCreationDate(items) ?? new Date(),
+  );
   const groupingName = useId();
   const stats = useMemo(
     () => computeDatasetStats(items, creationGrouping, creationPeriod),

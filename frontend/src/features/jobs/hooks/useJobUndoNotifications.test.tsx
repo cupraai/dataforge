@@ -92,4 +92,22 @@ describe("useJobUndoNotifications", () => {
       expect(screen.getByText("Kept captions edited since the job: lake.png.")).toBeInTheDocument(),
     );
   });
+
+  it("offers a retry for captions that could not be restored", async () => {
+    undoMock
+      .mockResolvedValueOnce({
+        restored: [],
+        changed: [],
+        failed: [{ path: `${HOME_PATH}\\lake.png`, detail: "The caption is in use" }],
+      })
+      .mockResolvedValueOnce({ restored: [`${HOME_PATH}\\lake.png`], changed: [], failed: [] });
+    const user = userEvent.setup();
+    renderWithProviders(<Harness jobs={[job({ id: "set", undoable: true })]} />);
+
+    await user.click(await screen.findByRole("button", { name: "Undo set" }));
+    await user.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(undoMock).toHaveBeenNthCalledWith(2, "set");
+    expect(await screen.findByText("Restored 1 caption.")).toBeInTheDocument();
+  });
 });

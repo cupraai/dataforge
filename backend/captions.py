@@ -191,6 +191,8 @@ def build_caption_response(media_path: Path) -> dict[str, object]:
         "issue_fixes": issue.fixes,
         "rule_findings": issue.rules,
         "has_issue_file": issue.has_file,
+        "issue_fixes_revision": issue.fixes_revision,
+        "rule_findings_revision": issue.rules_revision,
     }
 
 
@@ -326,6 +328,10 @@ class IssueSummary(NamedTuple):
     fixes: list[str]
     rules: list[str]
     has_file: bool
+    #: The caption revision each source checked; ``None`` when it has no findings or the
+    #: sidecar has no record of it, so nothing can be said about staleness.
+    fixes_revision: str | None = None
+    rules_revision: str | None = None
 
 
 def _normalize_rule_findings(value: object) -> list[str]:
@@ -342,7 +348,13 @@ _NORMALIZERS: dict[IssueSource, Callable[[object], list[str]]] = {
 }
 
 
-def _findings_from_json(raw: bytes | None) -> dict[IssueSource, list[str]]:
+class _StoredIssues(NamedTuple):
+    findings: dict[IssueSource, list[str]]
+    #: Only for sources with findings: a revision without findings says nothing.
+    checked: dict[IssueSource, str]
+
+
+def _issues_from_json(raw: bytes | None) -> _StoredIssues:
     """An unusable sidecar reads as empty; callers still count the file as present."""
     try:
         data = json.loads(raw) if raw is not None else None
@@ -352,33 +364,48 @@ def _findings_from_json(raw: bytes | None) -> dict[IssueSource, list[str]]:
     if not isinstance(data, dict):
         data = {}
 
-    return {source: normalize(data.get(source)) for source, normalize in _NORMALIZERS.items()}
+    findings = {source: normalize(data.get(source)) for source, normalize in _NORMALIZERS.items()}
+    revisions = data.get("checked")
+    if not isinstance(revisions, dict):
+        revisions = {}
+    checked: dict[IssueSource, str] = {
+        source: revision
+        for source in _NORMALIZERS
+        if findings[source] and isinstance(revision := revisions.get(source), str)
+    }
+    return _StoredIssues(findings, checked)
 
 
-def _findings_from_file(issue_path: Path) -> dict[IssueSource, list[str]]:
+def _issues_from_file(issue_path: Path) -> _StoredIssues:
     try:
         raw = issue_path.read_bytes()
     except OSError:
         raw = None
-    return _findings_from_json(raw)
+    return _issues_from_json(raw)
 
 
-def _frozen(findings: dict[IssueSource, list[str]]) -> dict[IssueSource, tuple[str, ...]]:
-    return {source: tuple(found) for source, found in findings.items()}
+def _summary(stored: _StoredIssues) -> IssueSummary:
+    # Fresh lists per call: the stat cache hands back the same stored value every time.
+    return IssueSummary(
+        list(stored.findings["fixes"]),
+        list(stored.findings["rules"]),
+        True,
+        stored.checked.get("fixes"),
+        stored.checked.get("rules"),
+    )
 
 
 def issue_summary_from_sidecar(issue_path: Path, mtime_ns: int, size: int) -> IssueSummary:
     """:func:`load_issue_summary` for a sidecar the caller has already stat'ed."""
-    findings = cached_by_stat(
+    stored = cached_by_stat(
         "issue",
         issue_path,
         mtime_ns,
         size,
-        lambda: _frozen(_findings_from_json(issue_path.read_bytes())),
-        lambda: _frozen(_findings_from_json(None)),
+        lambda: _issues_from_json(issue_path.read_bytes()),
+        lambda: _issues_from_json(None),
     )
-    # Fresh lists per call: the cache hands back the same tuples every time.
-    return IssueSummary(list(findings["fixes"]), list(findings["rules"]), True)
+    return _summary(stored)
 
 
 def load_issue_summary(media_path: Path) -> IssueSummary:
@@ -386,20 +413,29 @@ def load_issue_summary(media_path: Path) -> IssueSummary:
     if not issue_path.is_file():
         return IssueSummary([], [], False)
 
-    findings = _findings_from_file(issue_path)
-    return IssueSummary(findings["fixes"], findings["rules"], True)
+    return _summary(_issues_from_file(issue_path))
 
 
-def save_issue_findings(media_path: Path, source: IssueSource, findings: list[str]) -> None:
-    """Replace one source's findings and keep the other's; the sidecar goes once both are empty."""
+def save_issue_findings(
+    media_path: Path, source: IssueSource, findings: list[str], *, revision: str | None
+) -> None:
+    """Replace one source's findings and keep the other's; the sidecar goes once both are empty.
+
+    ``revision`` is the caption revision the findings describe, so a later edit shows them stale.
+    """
     issue_path = issue_file_path(media_path)
-    stored = _findings_from_file(issue_path)
-    stored[source] = _NORMALIZERS[source](findings)
-    payload = {key: found for key, found in stored.items() if found}
+    stored = _issues_from_file(issue_path)
+    stored.findings[source] = _NORMALIZERS[source](findings)
+    stored.checked.pop(source, None)
+    if stored.findings[source] and revision is not None:
+        stored.checked[source] = revision
+    payload: dict[str, object] = {key: found for key, found in stored.findings.items() if found}
 
     if not payload:
         if issue_path.is_file():
             issue_path.unlink()
         return
 
+    if stored.checked:
+        payload["checked"] = stored.checked
     write_text_atomic(issue_path, json.dumps(payload, indent=2) + "\n")

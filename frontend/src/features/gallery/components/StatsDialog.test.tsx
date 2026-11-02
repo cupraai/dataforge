@@ -184,16 +184,20 @@ describe("StatsDialog", () => {
     expect(screen.getByText("1 file has an unknown creation date.")).toBeInTheDocument();
   });
 
-  it("keeps grouping available when the current month has no created media", async () => {
+  it("opens on the period of the newest media rather than today", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 5, 15, 12));
-    const user = userEvent.setup();
-    renderDrawer({ items: [{ ...items[0], created_at: "2025-01-01T12:00:00" }] });
+    renderDrawer({
+      items: [
+        { ...items[0], created_at: "2025-01-01T12:00:00" },
+        { ...items[1], created_at: "2025-01-03T12:00:00" },
+      ],
+    });
 
-    expect(screen.getByText("No media created in this period.")).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "Year" }));
-    expect(screen.queryByText("No media created in this period.")).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "1 file" })).toBeInTheDocument();
+    const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
+    expect(within(chart).getByText("Jan 2025")).toBeInTheDocument();
+    expect(within(chart).getAllByRole("img", { name: "1 file" })).toHaveLength(2);
+    expect(within(chart).queryByText("No media created in this period.")).not.toBeInTheDocument();
   });
 
   it("remembers the selected timeline grouping when the drawer mounts again", async () => {
@@ -228,21 +232,19 @@ describe("StatsDialog", () => {
   });
 
   it("steps through months across year boundaries without skipping a short month", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 0, 31, 12));
     localStorage.setItem("stats-creation-grouping", "day");
     const user = userEvent.setup();
     renderDrawer({
       items: [
         mediaItem("december.png", HOME_PATH, { created_at: "2025-12-31T12:00:00" }),
-        mediaItem("january.png", HOME_PATH, { created_at: "2026-01-31T12:00:00" }),
         mediaItem("february.png", HOME_PATH, { created_at: "2026-02-28T12:00:00" }),
+        mediaItem("march.png", HOME_PATH, { created_at: "2026-03-31T12:00:00" }),
       ],
     });
     const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
-    expect(within(chart).getByText("Jan 2026")).toBeInTheDocument();
+    expect(within(chart).getByText("Mar 2026")).toBeInTheDocument();
 
-    await user.click(within(chart).getByRole("button", { name: "Next month" }));
+    await user.click(within(chart).getByRole("button", { name: "Previous month" }));
     expect(within(chart).getByText("Feb 2026")).toBeInTheDocument();
     expect(within(chart).getAllByRole("term")).toHaveLength(28);
     expect(within(chart).getByRole("img", { name: "1 file" })).toBeInTheDocument();

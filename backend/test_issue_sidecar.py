@@ -8,6 +8,7 @@ import json
 import unittest
 
 from captions import (
+    IssueSummary,
     delete_issue_file,
     issue_file_path,
     load_issue_summary,
@@ -49,7 +50,7 @@ class LoadIssueSummaryTests(unittest.TestCase):
 
             self.assertEqual(
                 load_issue_summary(media),
-                (['The caption claims "a blue lake".'], [], True),
+                IssueSummary(['The caption claims "a blue lake".'], [], True),
             )
             self.assertEqual(path.read_bytes(), original)
 
@@ -57,7 +58,7 @@ class LoadIssueSummaryTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
 
-            self.assertEqual(load_issue_summary(media), ([], [], False))
+            self.assertEqual(load_issue_summary(media), IssueSummary([], [], False))
 
     def test_reads_the_fixes_array(self) -> None:
         with TempMediaFolder() as root:
@@ -66,7 +67,9 @@ class LoadIssueSummaryTests(unittest.TestCase):
 
             self.assertEqual(
                 load_issue_summary(media),
-                (['Replace "a blue lake" with "a harbour".', 'Remove "dusk".'], [], True),
+                IssueSummary(
+                    ['Replace "a blue lake" with "a harbour".', 'Remove "dusk".'], [], True
+                ),
             )
 
     def test_caps_the_fix_list(self) -> None:
@@ -74,7 +77,7 @@ class LoadIssueSummaryTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, *[f"Fix {index}." for index in range(MAX_ISSUE_FIXES + 2)])
 
-            fixes, _rules, has_issue_file = load_issue_summary(media)
+            fixes, _rules, has_issue_file, *_revisions = load_issue_summary(media)
 
             self.assertEqual(len(fixes), MAX_ISSUE_FIXES)
             self.assertTrue(has_issue_file)
@@ -88,32 +91,34 @@ class LoadIssueSummaryTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            self.assertEqual(load_issue_summary(media), ([], [], True))
+            self.assertEqual(load_issue_summary(media), IssueSummary([], [], True))
 
     def test_unreadable_sidecars_read_as_broken(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
             issue_file_path(media).write_text("{not json", encoding="utf-8")
 
-            self.assertEqual(load_issue_summary(media), ([], [], True))
+            self.assertEqual(load_issue_summary(media), IssueSummary([], [], True))
 
 
 class SaveIssueFixesTests(unittest.TestCase):
     def test_normalized_quotes_round_trip_as_valid_json(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
-            save_issue_findings(media, "fixes", [r'Replace \\"blue lake,\\" with \"river,\".'])
+            save_issue_findings(
+                media, "fixes", [r'Replace \\"blue lake,\\" with \"river,\".'], revision=None
+            )
 
             expected = ['Replace "blue lake" with "river".']
             payload = json.loads(issue_file_path(media).read_text(encoding="utf-8"))
             self.assertEqual(payload, {"fixes": expected})
-            self.assertEqual(load_issue_summary(media), (expected, [], True))
+            self.assertEqual(load_issue_summary(media), IssueSummary(expected, [], True))
 
     def test_writes_the_fixes_it_is_given(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
 
-            save_issue_findings(media, "fixes", ['Remove "dusk".'])
+            save_issue_findings(media, "fixes", ['Remove "dusk".'], revision=None)
 
             payload = json.loads(issue_file_path(media).read_text(encoding="utf-8"))
             self.assertEqual(payload, {"fixes": ['Remove "dusk".']})
@@ -123,7 +128,10 @@ class SaveIssueFixesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
 
             save_issue_findings(
-                media, "fixes", [f"Fix {index}." for index in range(MAX_ISSUE_FIXES + 2)]
+                media,
+                "fixes",
+                [f"Fix {index}." for index in range(MAX_ISSUE_FIXES + 2)],
+                revision=None,
             )
 
             self.assertEqual(len(load_issue_summary(media)[0]), MAX_ISSUE_FIXES)
@@ -133,7 +141,7 @@ class SaveIssueFixesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, 'Remove "dusk".')
 
-            save_issue_findings(media, "fixes", [])
+            save_issue_findings(media, "fixes", [], revision=None)
 
             self.assertFalse(issue_file_path(media).exists())
 
@@ -141,7 +149,7 @@ class SaveIssueFixesTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
 
-            save_issue_findings(media, "fixes", [])
+            save_issue_findings(media, "fixes", [], revision=None)
 
             self.assertFalse(issue_file_path(media).exists())
 
@@ -154,11 +162,11 @@ class IssueSourcesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, "The caption omits the mountains.")
 
-            save_issue_findings(media, "rules", ['Flagged "floating".'])
+            save_issue_findings(media, "rules", ['Flagged "floating".'], revision=None)
 
             self.assertEqual(
                 load_issue_summary(media),
-                (["The caption omits the mountains."], ['Flagged "floating".'], True),
+                IssueSummary(["The caption omits the mountains."], ['Flagged "floating".'], True),
             )
 
     def test_saving_model_findings_keeps_the_rule_hits(self) -> None:
@@ -166,11 +174,11 @@ class IssueSourcesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, "Old finding.", rules=('Flagged "floating".',))
 
-            save_issue_findings(media, "fixes", ["The caption omits the mountains."])
+            save_issue_findings(media, "fixes", ["The caption omits the mountains."], revision=None)
 
             self.assertEqual(
                 load_issue_summary(media),
-                (["The caption omits the mountains."], ['Flagged "floating".'], True),
+                IssueSummary(["The caption omits the mountains."], ['Flagged "floating".'], True),
             )
 
     def test_a_clean_verdict_leaves_the_rule_hits_behind(self) -> None:
@@ -178,17 +186,49 @@ class IssueSourcesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, "Old finding.", rules=('Flagged "floating".',))
 
-            save_issue_findings(media, "fixes", [])
+            save_issue_findings(media, "fixes", [], revision=None)
 
             payload = json.loads(issue_file_path(media).read_text(encoding="utf-8"))
             self.assertEqual(payload, {"rules": ['Flagged "floating".']})
+
+    def test_each_source_keeps_the_caption_revision_it_checked(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_media(root, "sunset.png")
+
+            save_issue_findings(media, "fixes", ["The caption omits the mountains."], revision="a1")
+            save_issue_findings(media, "rules", ['Flagged "floating".'], revision="b2")
+
+            summary = load_issue_summary(media)
+            self.assertEqual((summary.fixes_revision, summary.rules_revision), ("a1", "b2"))
+
+    def test_a_clean_source_drops_only_its_own_revision(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_media(root, "sunset.png")
+            save_issue_findings(media, "fixes", ["The caption omits the mountains."], revision="a1")
+            save_issue_findings(media, "rules", ['Flagged "floating".'], revision="b2")
+
+            save_issue_findings(media, "fixes", [], revision="c3")
+
+            payload = json.loads(issue_file_path(media).read_text(encoding="utf-8"))
+            self.assertEqual(
+                payload, {"rules": ['Flagged "floating".'], "checked": {"rules": "b2"}}
+            )
+
+    def test_a_recheck_without_a_revision_forgets_the_old_one(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_media(root, "sunset.png")
+            save_issue_findings(media, "rules", ['Flagged "floating".'], revision="b2")
+
+            save_issue_findings(media, "rules", ['Flagged "drifting".'], revision=None)
+
+            self.assertIsNone(load_issue_summary(media).rules_revision)
 
     def test_the_sidecar_goes_once_both_sources_are_clean(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
             write_issue_sidecar(media, rules=('Flagged "floating".',))
 
-            save_issue_findings(media, "rules", [])
+            save_issue_findings(media, "rules", [], revision=None)
 
             self.assertFalse(issue_file_path(media).exists())
 
@@ -205,9 +245,11 @@ class IssueSourcesTests(unittest.TestCase):
             media = write_media(root, "sunset.png")
             issue_file_path(media).write_text("{not json", encoding="utf-8")
 
-            save_issue_findings(media, "rules", ['Flagged "floating".'])
+            save_issue_findings(media, "rules", ['Flagged "floating".'], revision=None)
 
-            self.assertEqual(load_issue_summary(media), ([], ['Flagged "floating".'], True))
+            self.assertEqual(
+                load_issue_summary(media), IssueSummary([], ['Flagged "floating".'], True)
+            )
 
 
 class SidecarNamingTests(unittest.TestCase):
@@ -224,8 +266,10 @@ class SidecarNamingTests(unittest.TestCase):
             first = write_media(root, "clip.png")
             second = write_media(root, "clip.jpg")
 
-            save_issue_findings(first, "fixes", ["The caption omits the mountains."])
-            save_issue_findings(second, "fixes", ["The caption says dusk, the sky is bright."])
+            save_issue_findings(first, "fixes", ["The caption omits the mountains."], revision=None)
+            save_issue_findings(
+                second, "fixes", ["The caption says dusk, the sky is bright."], revision=None
+            )
 
             self.assertEqual(load_issue_summary(first)[0], ["The caption omits the mountains."])
             self.assertEqual(
@@ -237,20 +281,25 @@ class SidecarNamingTests(unittest.TestCase):
         with TempMediaFolder() as root:
             flagged = write_media(root, "clip.png")
             clean = write_media(root, "clip.jpg")
-            save_issue_findings(flagged, "fixes", ["The caption omits the mountains."])
+            save_issue_findings(
+                flagged, "fixes", ["The caption omits the mountains."], revision=None
+            )
 
-            save_issue_findings(clean, "fixes", [])
+            save_issue_findings(clean, "fixes", [], revision=None)
 
             self.assertEqual(
-                load_issue_summary(flagged), (["The caption omits the mountains."], [], True)
+                load_issue_summary(flagged),
+                IssueSummary(["The caption omits the mountains."], [], True),
             )
 
     def test_deleting_removes_only_this_file_findings(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "clip.png")
             stem_sharer = write_media(root, "clip.jpg")
-            save_issue_findings(media, "fixes", ["The caption omits the mountains."])
-            save_issue_findings(stem_sharer, "fixes", ["The caption says dusk, the sky is bright."])
+            save_issue_findings(media, "fixes", ["The caption omits the mountains."], revision=None)
+            save_issue_findings(
+                stem_sharer, "fixes", ["The caption says dusk, the sky is bright."], revision=None
+            )
 
             delete_issue_file(media)
 

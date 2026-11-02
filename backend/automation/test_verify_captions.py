@@ -35,7 +35,7 @@ from automation.vision import (
     MediaLoadError,
     load_media_images,
 )
-from captions import issue_file_path, load_issue_summary
+from captions import IssueSummary, issue_file_path, load_issue_summary, read_caption
 from constants import MAX_ISSUE_FIXES
 from testing_fixtures import (
     FakeChatClient,
@@ -456,10 +456,14 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
                 result = run_verify_captions_job(root)
 
             issue_data = json.loads(issue_file_path(media).read_text(encoding="utf-8"))
+            checked = read_caption(media).revision
 
         self.assertEqual(
             issue_data,
-            {"fixes": ['Replace "blue" with "red".', 'Remove "in the rain".']},
+            {
+                "fixes": ['Replace "blue" with "red".', 'Remove "in the rain".'],
+                "checked": {"fixes": checked},
+            },
         )
         self.assertEqual(result["stats"]["success"], 1)
         self.assertEqual(result["stats"]["issues_found"], 1)
@@ -525,7 +529,9 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
             ):
                 run_verify_captions_job(root)
 
-            self.assertEqual(load_issue_summary(media), ([], ['Flagged "floating".'], True))
+            self.assertEqual(
+                load_issue_summary(media), IssueSummary([], ['Flagged "floating".'], True)
+            )
 
     def test_a_clean_file_does_not_clear_a_stem_sharer_findings(self) -> None:
         """clip.jpg and clip.png once shared one stem-named sidecar, so the last one verified won."""
@@ -544,7 +550,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
                 run_verify_captions_job(root)
 
             self.assertEqual(load_issue_summary(flagged)[0], ["The caption omits the mountains."])
-            self.assertEqual(load_issue_summary(clean), ([], [], False))
+            self.assertEqual(load_issue_summary(clean), IssueSummary([], [], False))
 
     def test_run_job_records_model_failures_after_every_attempt(self) -> None:
         for response, status in ((None, "api_error"), ("not valid json", "parse_error")):

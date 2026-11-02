@@ -246,6 +246,22 @@ function creationTimeline(
   };
 }
 
+function creationDate(item: GalleryItem): Date | undefined {
+  if (!item.created_at) return undefined;
+  const date = new Date(item.created_at);
+  return Number.isFinite(date.getTime()) ? date : undefined;
+}
+
+/** Where the timeline opens: the newest media's period, which today's may not contain. */
+export function latestCreationDate(media: GalleryItem[]): Date | undefined {
+  let latest: Date | undefined;
+  for (const item of media) {
+    const date = creationDate(item);
+    if (date && (!latest || date > latest)) latest = date;
+  }
+  return latest;
+}
+
 export function computeDatasetStats(
   media: GalleryItem[],
   creationGrouping?: CreationTimelineGrouping,
@@ -274,10 +290,8 @@ export function computeDatasetStats(
   let unknownDuration = 0;
 
   for (const item of media) {
-    if (item.created_at) {
-      const date = new Date(item.created_at);
-      if (Number.isFinite(date.getTime())) creationDates.push(date);
-    }
+    const created = creationDate(item);
+    if (created) creationDates.push(created);
 
     if (item.has_issue_file) issues += 1;
 

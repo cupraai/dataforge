@@ -603,7 +603,8 @@ class JobManager:
     def undo_job(self, job_id: str) -> dict[str, object] | None:
         """Take back a finished caption job's writes; ``None`` when there is no such job.
 
-        Raises :class:`JobUndoError` while the job runs or once its undo was used.
+        Raises :class:`JobUndoError` while the job runs or while nothing is left to undo, which
+        includes while another undo of it is restoring. Failed restores stay for a retry.
         """
         with self._lock:
             job = self._jobs.get(job_id) or self._job_from_store(job_id)
@@ -618,7 +619,14 @@ class JobManager:
             self._jobs[job_id] = job
             self._save_snapshot(job_id, job.to_dict())
         # Outside the lock: each restore waits on its caption's claim.
-        return undo_caption_writes(records)
+        outcome, retry = undo_caption_writes(records)
+        if retry:
+            with self._lock:
+                if job_id not in self._deleted_ids:
+                    jobs_store.save_job_undo(job_id, retry)
+                    job.undoable = True
+                    self._save_snapshot(job_id, job.to_dict())
+        return outcome
 
     def delete_job(self, job_id: str) -> bool:
         stored = jobs_store.get_job(job_id)

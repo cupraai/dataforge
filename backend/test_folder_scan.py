@@ -13,7 +13,12 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from caption_cache import clear_caption_cache_for_tests
-from captions import caption_from_sidecar, issue_file_path, issue_summary_from_sidecar
+from captions import (
+    IssueSummary,
+    caption_from_sidecar,
+    issue_file_path,
+    issue_summary_from_sidecar,
+)
 from constants import STAGING_DIR_NAME
 from duplicates import (
     DuplicateFinding,
@@ -407,7 +412,7 @@ class CaptionCacheTests(unittest.TestCase):
             first.rules.append("mutated")
             second = issue_summary_from_sidecar(issue_path, stat.st_mtime_ns, stat.st_size)
 
-            self.assertEqual(second, (['Replace "a" with "b".'], [], True))
+            self.assertEqual(second, IssueSummary(['Replace "a" with "b".'], [], True))
 
 
 if __name__ == "__main__":

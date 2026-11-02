@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import textwrap
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from PIL import Image
@@ -48,6 +48,8 @@ from schemas import AutomationMode
 @dataclass(frozen=True)
 class VerificationResult:
     fixes: tuple[str, ...]
+    #: The caption revision the verdict judged, so a later edit shows it stale.
+    caption_revision: str | None = None
 
 
 def _extract_json_object(text: str) -> dict | None:
@@ -367,7 +369,7 @@ def process_media(
     should_cancel: ShouldCancel | None = None,
 ) -> tuple[VerificationResult | None, str, str | None]:
     # Per file, not per caption: a shared caption is checked against each file it describes.
-    ref_caption, status, _revision = load_reference_caption(media_path)
+    ref_caption, status, revision = load_reference_caption(media_path)
     if status != "ok" or ref_caption is None:
         return None, status, None
 
@@ -414,7 +416,10 @@ def process_media(
         should_cancel=should_cancel,
         on_abandon=lambda: close_model_client(client),
     )
-    return outcome.value, outcome.status, outcome.message
+    verification = outcome.value
+    if verification is not None:
+        verification = replace(verification, caption_revision=revision)
+    return verification, outcome.status, outcome.message
 
 
 def validate_verify_captions_folder(folder: Path) -> None:
@@ -482,7 +487,12 @@ def run_verify_captions_job(
                 return FileOutcome.cancelled()
 
             try:
-                save_issue_findings(media_path, "fixes", list(verification.fixes))
+                save_issue_findings(
+                    media_path,
+                    "fixes",
+                    list(verification.fixes),
+                    revision=verification.caption_revision,
+                )
             except OSError as exc:
                 return FileOutcome.counted("write_error", exc)
 

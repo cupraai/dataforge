@@ -43,12 +43,32 @@ import { PlaybackCheckedVideo } from "@/shared/ui/PlaybackCheckedVideo";
 interface IssueGroup {
   label: string;
   entries: string[];
+  /** The findings describe an earlier caption; a rerun of their job brings them up to date. */
+  stale: boolean;
 }
 
-function issueGroups(fixes: string[], ruleHits: string[], resolved: boolean): IssueGroup[] {
+/** Without a record of the caption a check read, nothing can be said either way. */
+function checkedEarlierCaption(item: GalleryItem, checked: string | null | undefined): boolean {
+  return checked != null && checked !== item.caption_revision;
+}
+
+function issueGroups(
+  item: GalleryItem,
+  fixes: string[],
+  ruleHits: string[],
+  resolved: boolean,
+): IssueGroup[] {
   const groups = [
-    { label: resolved ? "Applied changes" : "Suggested changes", entries: fixes },
-    { label: "Rule hits", entries: ruleHits },
+    {
+      label: resolved ? "Applied changes" : "Suggested changes",
+      entries: fixes,
+      stale: !resolved && checkedEarlierCaption(item, item.issue_fixes_revision),
+    },
+    {
+      label: "Rule hits",
+      entries: ruleHits,
+      stale: !resolved && checkedEarlierCaption(item, item.rule_findings_revision),
+    },
   ];
   return groups.filter((group) => group.entries.length > 0);
 }
@@ -236,7 +256,7 @@ export function IssueResolverDialog({
   const placeholder =
     captionDisplay.variant === "success" ? "Add a caption..." : captionDisplay.message;
   const alreadyResolved = resolvedPaths.has(item.path);
-  const groups = issueGroups(fixes, ruleHits, alreadyResolved);
+  const groups = issueGroups(item, fixes, ruleHits, alreadyResolved);
 
   return (
     <DialogShell
@@ -345,6 +365,11 @@ export function IssueResolverDialog({
                 {groups.map((group) => (
                   <section key={group.label} className="issue-resolver-dialog__issue-group">
                     <span className="issue-resolver-dialog__issue-label">{group.label}</span>
+                    {group.stale && (
+                      <p className="issue-resolver-dialog__issue-stale">
+                        The caption changed since this check.
+                      </p>
+                    )}
                     <ol className="issue-resolver-dialog__issue-list">
                       {group.entries.map((entry) => (
                         <li key={entry} className="issue-resolver-dialog__issue-text">

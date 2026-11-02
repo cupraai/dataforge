@@ -57,7 +57,7 @@ class FolderFingerprintTests(unittest.TestCase):
             media = write_media(root, "alpha.png")
             first = compute_folder_fingerprint(root)
 
-            save_issue_findings(media, "fixes", ["The caption omits the mountains."])
+            save_issue_findings(media, "fixes", ["The caption omits the mountains."], revision=None)
             second = compute_folder_fingerprint(root)
 
             save_duplicate_finding(

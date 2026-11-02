@@ -86,7 +86,7 @@ Each file applies to subfolders that have no file of their own. The nearest one 
 2. Open **Review > Caption issues** to step through findings.
 3. Correct the caption, mark it resolved (`Ctrl+Enter`), and continue with the arrow keys.
 
-Both checks write `.issue.json` findings and leave captions unchanged. Model and rule findings are kept apart; rerunning one check replaces only its own. Still images can be zoomed and, on Windows, opened in the system viewer. **Delete all .issue.json files** in Quick actions clears findings.
+Both checks write `.issue.json` findings and leave captions unchanged. Model and rule findings are kept apart; rerunning one check replaces only its own. Findings stay after a caption is edited outside the resolver, and the resolver notes when the caption changed since the check; rerun it to bring them up to date. Still images can be zoomed and, on Windows, opened in the system viewer. **Delete all .issue.json files** in Quick actions clears findings.
 
 ### Caption rules
 
@@ -124,7 +124,9 @@ Missing caption files are skipped; an empty caption is checked. Each file keeps 
 
 ### Caption backups
 
-Back up before a bulk rewrite you may want to undo.
+**Set captions**, **Edit captions**, and **Find & replace** can be undone once from **Undo** on the finished job's notification. It puts back the exact previous captions and leaves any caption edited since the job. A caption that could not be restored, for example because another program held it, keeps its undo, so **Retry** can try again. Undo lasts until the job is deleted from the history.
+
+Undo covers one job's writes. To return to a state from before several jobs or hand edits, back up before a bulk rewrite.
 
 - **Backup captions** copies `.txt` files into `.backup/`, overwriting older copies.
 - **Edit captions** and **Find & replace** start with **Back up captions first** on, so the backup holds the caption from just before the latest edit.

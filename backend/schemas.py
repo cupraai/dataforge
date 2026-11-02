@@ -161,6 +161,9 @@ class GalleryItem(BaseModel):
     issue_fixes: list[str] = Field(default_factory=list)
     rule_findings: list[str] = Field(default_factory=list)
     has_issue_file: bool = False
+    #: The ``caption_revision`` each source's findings describe; ``None`` when unknown.
+    issue_fixes_revision: str | None = None
+    rule_findings_revision: str | None = None
     #: Group membership comes from ``/api/duplicates``, never from the item.
     duplicate_group: str | None = None
     has_duplicate_file: bool = False
@@ -666,6 +669,8 @@ class CaptionSaveResponse(BaseModel):
     issue_fixes: list[str] = Field(default_factory=list)
     rule_findings: list[str] = Field(default_factory=list)
     has_issue_file: bool = False
+    issue_fixes_revision: str | None = None
+    rule_findings_revision: str | None = None
 
 
 class CaptionBackupResponse(BaseModel):

@@ -10,7 +10,7 @@ from automation.check_caption_rules import (
     run_check_caption_rules_job,
     validate_check_caption_rules_folder,
 )
-from captions import issue_file_path, load_issue_summary
+from captions import IssueSummary, issue_file_path, load_issue_summary, read_caption
 from constants import CAPTION_RULES_FILENAME, MAX_RULE_FINDINGS
 from testing_fixtures import (
     TempMediaFolder,
@@ -92,12 +92,27 @@ class CheckCaptionRulesJobTests(unittest.TestCase):
 
             self.assertEqual(
                 load_issue_summary(media),
-                (
+                IssueSummary(
                     ["The caption omits the river."],
                     ['"floating": check the subject is off the ground'],
                     True,
+                    rules_revision=read_caption(media).revision,
                 ),
             )
+
+    def test_rule_hits_record_the_caption_they_checked(self) -> None:
+        with TempMediaFolder() as root:
+            _write_rules(root)
+            media = write_media(root, "balloon.png")
+            write_txt_caption(media, "A balloon floating over the hills.")
+            run_check_caption_rules_job(root)
+            checked = load_issue_summary(media).rules_revision
+
+            write_txt_caption(media, "A balloon floating over the river.")
+
+            self.assertIsNotNone(checked)
+            self.assertNotEqual(checked, read_caption(media).revision)
+            self.assertEqual(load_issue_summary(media).rules_revision, checked)
 
     def test_a_fixed_caption_clears_its_old_rule_hits(self) -> None:
         with TempMediaFolder() as root:

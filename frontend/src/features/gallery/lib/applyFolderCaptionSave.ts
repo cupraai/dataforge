@@ -19,6 +19,8 @@ export function applyFolderCaptionSave(
       issue_fixes: update.issue_fixes,
       rule_findings: update.rule_findings,
       has_issue_file: update.has_issue_file,
+      issue_fixes_revision: update.issue_fixes_revision,
+      rule_findings_revision: update.rule_findings_revision,
     };
   });
 

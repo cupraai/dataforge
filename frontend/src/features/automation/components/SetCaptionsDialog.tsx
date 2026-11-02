@@ -39,8 +39,8 @@ export function SetCaptionsDialog({
       title="Set captions?"
       description={
         <>
-          Writes the provided caption text to each image and video as .txt sidecars. This action
-          cannot be undone.
+          Writes the provided caption text to each image and video as .txt sidecars. Undo on the
+          job's notification puts back the previous captions, except ones edited since.
         </>
       }
       panelClassName="set-captions-dialog"

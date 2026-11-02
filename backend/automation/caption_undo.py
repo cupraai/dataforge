@@ -35,14 +35,19 @@ def _from_record(record: dict[str, object]) -> CaptionUndo:
     )
 
 
-def undo_caption_writes(records: list[dict[str, object]]) -> dict[str, object]:
+def undo_caption_writes(
+    records: list[dict[str, object]],
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    """The outcome per caption, and the records of failed restores, which a retry can take again."""
     restored: list[str] = []
     changed: list[str] = []
     failed: list[dict[str, str]] = []
+    retry: list[dict[str, object]] = []
     for record in records:
         undo = _from_record(record)
         try:
             (restored if restore_caption(undo) else changed).append(str(undo.media_path))
         except (OSError, MediaBusyError) as exc:
             failed.append({"path": str(undo.media_path), "detail": str(exc)})
-    return {"restored": restored, "changed": changed, "failed": failed}
+            retry.append(record)
+    return {"restored": restored, "changed": changed, "failed": failed}, retry

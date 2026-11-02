@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 from automation.jobs_store import get_job as get_job_from_store
 from automation.jobs_store import save_job
+from captions import restore_caption
 from routes._test_client import client
 from testing_fixtures import (
     TempMediaFolder,
@@ -329,6 +330,40 @@ class JobUndoTests(unittest.TestCase):
 
             self.assertEqual(again.status_code, 409)
             self.assertEqual(again.json()["code"], "job_undo_unavailable")
+
+    def test_a_restore_that_failed_can_be_retried(self) -> None:
+        with TempMediaFolder() as root:
+            locked = write_media(root, "lake.png")
+            write_txt_caption(locked, "A lake.")
+            free = write_media(root, "field.png")
+            write_txt_caption(free, "A field.")
+            job_id = self._set_captions(root, "Replaced.")
+            real_restore = restore_caption
+
+            def restore_unless_locked(undo):
+                if undo.media_path == locked:
+                    raise PermissionError("The caption is in use")
+                return real_restore(undo)
+
+            with patch("automation.caption_undo.restore_caption", restore_unless_locked):
+                first = client.post(f"/api/jobs/{job_id}/undo").json()
+
+            self.assertEqual(first["restored"], [str(free)])
+            self.assertEqual([entry["path"] for entry in first["failed"]], [str(locked)])
+            self.assertTrue(client.get(f"/api/jobs/{job_id}").json()["undoable"])
+
+            # Edited after the first undo: the retry must not take this back again.
+            write_txt_caption(free, "Edited by hand.")
+            retry = client.post(f"/api/jobs/{job_id}/undo").json()
+
+            self.assertEqual(retry, {"restored": [str(locked)], "changed": [], "failed": []})
+            self.assertEqual(
+                locked.with_suffix(".txt").read_text(encoding="utf-8").strip(), "A lake."
+            )
+            self.assertEqual(
+                free.with_suffix(".txt").read_text(encoding="utf-8").strip(), "Edited by hand."
+            )
+            self.assertFalse(client.get(f"/api/jobs/{job_id}").json()["undoable"])
 
     def test_a_job_that_wrote_nothing_has_nothing_to_undo(self) -> None:
         with TempMediaFolder() as root:

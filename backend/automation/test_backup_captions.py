@@ -18,7 +18,7 @@ from automation.backup_captions import (
     validate_backup_captions_folder,
     validate_restore_captions_folder,
 )
-from captions import issue_file_path, load_issue_summary
+from captions import IssueSummary, issue_file_path, load_issue_summary
 from constants import CAPTION_BACKUP_DIR_NAME
 from testing_fixtures import (
     TempMediaFolder,
@@ -284,7 +284,7 @@ class RestoreCaptionsJobTests(unittest.TestCase):
 
             self.assertTrue(media.with_suffix(".txt").is_file())
             self.assertFalse(issue_file_path(media).exists())
-            self.assertEqual(load_issue_summary(media), ([], [], False))
+            self.assertEqual(load_issue_summary(media), IssueSummary([], [], False))
             self.assertEqual(result["stats"]["success"], 1)
 
     def test_skips_backed_up_captions_without_media(self) -> None:

@@ -136,6 +136,53 @@ describe("IssueResolverDialog", () => {
     });
   });
 
+  it("marks findings that describe an earlier version of the caption", async () => {
+    render(
+      <IssueResolverDialog
+        items={[
+          makeIssueItem("balloon.png", {
+            caption_revision: "edited",
+            issue_fixes: ['Replace "hills" with "dunes".'],
+            issue_fixes_revision: "edited",
+            rule_findings: ['"floating": check the subject is off the ground'],
+            rule_findings_revision: "original",
+          }),
+        ]}
+        index={0}
+        onClose={vi.fn<() => void>()}
+        onIndexChange={vi.fn<(index: number) => void>()}
+        onCaptionSaved={vi.fn<(path: string, update: CaptionSaveResponse) => void>()}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Resolve caption issue for balloon.png",
+    });
+
+    const suggested = within(dialog).getByText("Suggested changes").closest("section")!;
+    const ruleHits = within(dialog).getByText("Rule hits").closest("section")!;
+    expect(ruleHits).toHaveTextContent("The caption changed since this check.");
+    expect(suggested).not.toHaveTextContent("changed since this check");
+  });
+
+  it("does not mark findings stale without a record of the caption they checked", async () => {
+    render(
+      <IssueResolverDialog
+        items={[makeIssueItem("balloon.png", { caption_revision: "edited" })]}
+        index={0}
+        onClose={vi.fn<() => void>()}
+        onIndexChange={vi.fn<(index: number) => void>()}
+        onCaptionSaved={vi.fn<(path: string, update: CaptionSaveResponse) => void>()}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Resolve caption issue for balloon.png",
+    });
+
+    expect(dialog).not.toHaveTextContent("changed since this check");
+  });
+
   it("shows rule hits alone when the model found nothing", async () => {
     render(
       <IssueResolverDialog

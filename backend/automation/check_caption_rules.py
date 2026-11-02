@@ -44,14 +44,14 @@ def run_check_caption_rules_job(
 
     def process(media_path: Path) -> FileOutcome:
         # Per file, not per caption: each file has its own issue sidecar.
-        caption, status, _revision = load_reference_caption(media_path)
+        caption, status, revision = load_reference_caption(media_path)
 
         if status == CAPTION_READ_ERROR:
             return FileOutcome.counted(CAPTION_READ_ERROR, "Could not read the caption")
 
         findings = [] if caption is None else cap_rule_findings(checker.check(caption))
         try:
-            save_issue_findings(media_path, "rules", findings)
+            save_issue_findings(media_path, "rules", findings, revision=revision)
         except OSError as exc:
             return FileOutcome.counted("write_error", exc)
 

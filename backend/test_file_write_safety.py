@@ -63,7 +63,9 @@ class SidecarWriteSafetyTests(unittest.TestCase):
     def test_failed_writes_preserve_existing_sidecars(self) -> None:
         writers: dict[str, Callable[[Path], object]] = {
             "caption": _save_landscape_caption,
-            "issue": lambda media: save_issue_findings(media, "fixes", ["Describe the trees."]),
+            "issue": lambda media: save_issue_findings(
+                media, "fixes", ["Describe the trees."], revision=None
+            ),
             "duplicate": lambda media: save_duplicate_finding(
                 media, DuplicateFinding("sample", 1, "8")
             ),

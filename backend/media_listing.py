@@ -192,6 +192,8 @@ def _build_media_item(
         "issue_fixes": issue.fixes,
         "rule_findings": issue.rules,
         "has_issue_file": issue.has_file,
+        "issue_fixes_revision": issue.fixes_revision,
+        "rule_findings_revision": issue.rules_revision,
         "duplicate_group": None if duplicate_finding is None else duplicate_finding.group,
         "has_duplicate_file": duplicate_finding is not None,
         "has_candidate": candidate_name is not None,
