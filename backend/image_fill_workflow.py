@@ -44,10 +44,13 @@ _LOADERS: dict[str, tuple[str, str, str]] = {
     "LoraLoaderModelOnly": ("lora_name", "turbo_lora", "loras"),
 }
 
-#: Sent when the instruction is empty, which is how a fill removes what was selected.
+#: Removal includes partial objects so the model does not reconnect them across the selection.
 DEFAULT_FILL_INSTRUCTION = (
-    "Continue the surrounding background seamlessly through the entire selected area. "
-    "Remove the selected object completely, without adding a new object, border, frame or outline"
+    "Remove all content covered by the selection, including parts of larger objects that extend "
+    "outside it. Reconstruct only the background that would be visible behind the removed "
+    "content, as if that content had never been there. Keep the entire selected area free of "
+    "the removed content and any continuation or replacement of it. Blend the reconstructed "
+    "background seamlessly, without adding a new object, border, frame or outline"
 )
 
 #: The reference marks the selection; the sampler separately masks the untouched source.
