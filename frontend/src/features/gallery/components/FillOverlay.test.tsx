@@ -83,6 +83,7 @@ function renderOverlay(overrides: Partial<Props> = {}) {
     erasing: false,
     interactive: true,
     showStrokes: true,
+    working: false,
     onBegin: vi.fn<(point: FillPoint) => void>(),
     onExtend: vi.fn<(point: FillPoint) => void>(),
     ...overrides,
@@ -135,6 +136,25 @@ describe("FillOverlay", () => {
     expect(onBegin).not.toHaveBeenCalled();
     expect(onExtend).not.toHaveBeenCalled();
     expect(surface).not.toHaveClass("fill-overlay--interactive");
+  });
+
+  it("holds a result's comparison for as long as the button is down, and paints nothing", () => {
+    const onCompare = vi.fn<(holding: boolean) => void>();
+    const { surface, onBegin } = renderOverlay({ interactive: false, onCompare });
+
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 300, clientY: 150 });
+    expect(onCompare).toHaveBeenLastCalledWith(true);
+    fireEvent.pointerUp(surface, { pointerId: 1 });
+
+    expect(onCompare).toHaveBeenLastCalledWith(false);
+    expect(onBegin).not.toHaveBeenCalled();
+    expect(surface).toHaveClass("fill-overlay--compare");
+  });
+
+  it("marks the selection a run is working on", () => {
+    const { surface } = renderOverlay({ interactive: false, working: true });
+
+    expect(surface).toHaveClass("fill-overlay--working");
   });
 
   it("shows a ring the size of the brush where the pointer hovers", () => {

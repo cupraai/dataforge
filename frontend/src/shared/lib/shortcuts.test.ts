@@ -59,6 +59,15 @@ describe("matchesChord", () => {
     expect(matchesChord(keydown({ key: "/", shiftKey: true }), { key: "/" })).toBe(true);
   });
 
+  it("takes a symbol typed with AltGr, which Windows reports as Ctrl+Alt, as unmodified", () => {
+    // German QWERTZ types [ as AltGr+8.
+    const altGr = { key: "[", ctrlKey: true, altKey: true, modifierAltGraph: true };
+
+    expect(matchesShortcut(keydown(altGr), SHORTCUTS.fillBrushSize)).toBe(true);
+    expect(matchesChord(keydown({ ...altGr, modifierAltGraph: false }), { key: "[" })).toBe(false);
+    expect(matchesChord(keydown({ ...altGr, key: "q" }), { key: "q" })).toBe(false);
+  });
+
   it("still holds Shift to account for named keys", () => {
     expect(
       matchesChord(keydown({ key: "ArrowUp", altKey: true, shiftKey: true }), {

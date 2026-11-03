@@ -7,7 +7,6 @@ import {
 } from "@/features/gallery/lib/imageEdit";
 import { describeMasks } from "@/features/gallery/lib/mask";
 import { describeFills } from "@/features/gallery/lib/fillMask";
-import { fillStatusText } from "@/features/gallery/lib/fillStatus";
 import { isAdjustIdentity } from "@/features/gallery/lib/colorAdjust";
 import {
   iconCrop,
@@ -23,7 +22,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
-import { AdjustTools } from "./AdjustTools";
+import { AdjustHint, AdjustTools } from "./AdjustTools";
 import { FillTools } from "./FillTools";
 import {
   AspectTools,
@@ -37,7 +36,10 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
+  type ToolHintEntry,
 } from "./EditPanelParts";
+import { HANDLE_GESTURES, MASK_GESTURES } from "@/features/gallery/lib/stageGestures";
+import { FillStatusBar } from "./FillStatusBar";
 
 type ToolId = "crop" | "blur" | "rotate" | "size" | "adjust" | "fill";
 
@@ -50,12 +52,15 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "fill", label: "Fill", icon: iconSparkles },
 ];
 
-// Adjust has none: its strip and dial take the whole row and label themselves.
-const HINTS: Partial<Record<ToolId, string>> = {
-  crop: "Drag the frame or its handles on the picture, or pick a ratio.",
-  size: "Pick a scale, or type a width or height; the other follows.",
-  rotate: "Turns go in quarter steps; flips mirror the picture.",
-  blur: "Add a region, then drag it over what to hide.",
+// Adjust and Fill have their own, which follow the wand and the generation.
+const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
+  crop: {
+    message: "Drag the frame or its handles on the picture, or pick a ratio.",
+    gestures: HANDLE_GESTURES,
+  },
+  size: { message: "Pick a scale, or type a width or height; the other follows." },
+  rotate: { message: "Turns go in quarter steps; flips mirror the picture." },
+  blur: { message: "Add a region, then drag it over what to hide.", gestures: MASK_GESTURES },
 };
 
 interface ImageEditPanelProps {
@@ -182,11 +187,11 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
         </div>
 
         {activeTool === "fill" ? (
-          <ToolHint status wide>
-            {fillStatusText(edit.fill)}
-          </ToolHint>
+          edit.ready && <FillStatusBar fill={edit.fill} />
+        ) : activeTool === "adjust" ? (
+          edit.ready && <AdjustHint controls={edit.adjust} />
         ) : (
-          HINTS[activeTool] && <ToolHint>{HINTS[activeTool]}</ToolHint>
+          <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
         )}
       </div>
 

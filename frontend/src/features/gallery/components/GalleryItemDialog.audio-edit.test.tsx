@@ -135,6 +135,38 @@ describe("GalleryItemDialog audio editing", () => {
     );
   });
 
+  it("keeps the whole length on coming back to a file through another kind of item", async () => {
+    const user = userEvent.setup();
+    const items = [
+      makeItem("voice.wav", { media_type: "audio" }),
+      makeItem("photo.png", { media_type: "image" }),
+    ];
+    const props = {
+      items,
+      currentFolder: HOME_PATH,
+      onClose: vi.fn<() => void>(),
+      onPrevious: vi.fn<() => void>(),
+      onNext: vi.fn<() => void>(),
+      onCaptionSaved: vi.fn<(path: string, update: CaptionSaveResponse) => void>(),
+      onCopied: vi.fn<() => void | Promise<void>>(),
+    };
+    const { rerender } = renderWithProviders(<GalleryItemDialog {...props} index={0} />);
+    await openEditMode(user);
+
+    // Paged to the image and back, still editing: the audio tools must seed the file again.
+    rerender(<GalleryItemDialog {...props} index={1} />);
+    await screen.findByRole("group", { name: "Image editing" });
+    rerender(<GalleryItemDialog {...props} index={0} />);
+
+    const panel = await screen.findByRole("group", { name: "Audio editing" });
+    await waitFor(() =>
+      expect(within(panel).getByRole("slider", { name: "Trim end" })).toHaveAttribute(
+        "aria-valuenow",
+        "8",
+      ),
+    );
+  });
+
   it("applies the chosen fades and level as one spec", async () => {
     const user = userEvent.setup();
     const { onCopied } = renderDialog();

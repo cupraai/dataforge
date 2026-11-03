@@ -1,6 +1,8 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { swapsAxes } from "@/features/gallery/lib/imageEdit";
 import { classNames } from "@/shared/lib/classNames";
+import { iconMinimize2 } from "@/shared/icons";
+import { Icon } from "@/shared/ui/Icon";
 import { fillPreviewUrl } from "@/features/gallery/api/imageFill";
 import { useStageZoom } from "@/features/gallery/hooks/useStageZoom";
 import { AdjustCanvas } from "./AdjustCanvas";
@@ -32,11 +34,13 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
   const shown = fill.previewIds.length > 0 ? fillPreviewUrl(path, fill.previewIds) : src;
 
   const turned = swapsAxes(edit.draft.rotate);
+  const fillShown = edit.fillActive && !edit.adjust.zoomed;
+  const comparable = !disabled && fill.candidate !== null && !fill.candidateStale;
   // The Fill tool's own: a brush wants close-up work, and the wheel means nothing to the others.
   const zoom = useStageZoom({
     stageRef,
     canvasRef,
-    active: edit.fillActive && !edit.adjust.zoomed,
+    active: fillShown,
     turned,
     resetKey: path,
     onAltWheel: fill.stepBrush,
@@ -114,7 +118,7 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
             onRemove={edit.removeMask}
           />
         )}
-        {edit.fillActive && !edit.adjust.zoomed && (
+        {fillShown && (
           <FillOverlay
             mediaRef={imageRef}
             sourceWidth={edit.sourceWidth}
@@ -125,6 +129,8 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
             erasing={fill.brushMode === "erase"}
             interactive={!disabled && edit.ready && fill.canPaint}
             showStrokes={fill.candidate === null}
+            working={fill.generating}
+            onCompare={comparable ? fill.setShowBefore : undefined}
             onBegin={fill.beginStroke}
             onExtend={fill.extendStroke}
           />
@@ -142,6 +148,15 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
           />
         )}
       </div>
+      {zoomed && (
+        <div className="image-edit-stage__zoom">
+          <span className="image-edit-stage__zoom-level">{Math.round(zoom.view.scale * 100)}%</span>
+          <button type="button" className="image-edit-stage__zoom-fit" onClick={zoom.reset}>
+            <Icon icon={iconMinimize2} />
+            Fit
+          </button>
+        </div>
+      )}
     </div>
   );
 }

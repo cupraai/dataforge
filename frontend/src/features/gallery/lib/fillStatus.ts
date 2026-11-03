@@ -1,4 +1,19 @@
-import type { FillProgress, ImageFillControls } from "@/features/gallery/hooks/useImageFill";
+import {
+  FILL_NEEDS_PAINT,
+  type FillProgress,
+  type ImageFillControls,
+} from "@/features/gallery/hooks/useImageFill";
+
+/**
+ * `paint` and `ready` are the two steps of a request, each with its own keys; `busy` is a run;
+ * `result` waits for Keep or Discard; `warning` and `error` stop the next step.
+ */
+export type FillStatusKind = "paint" | "ready" | "busy" | "result" | "warning" | "error";
+
+export interface FillStatus {
+  kind: FillStatusKind;
+  message: string;
+}
 
 const PROGRESS_LABELS: Partial<Record<FillProgress, string>> = {
   starting: "Preparing the selection...",
@@ -7,19 +22,31 @@ const PROGRESS_LABELS: Partial<Record<FillProgress, string>> = {
   running: "Generating...",
 };
 
-/** What the hint row says: progress, the reason Generate is off, or how to start. */
-export function fillStatusText(fill: ImageFillControls): string {
+/** What the stage's status bar says: progress, the reason Generate is off, or the next step. */
+export function fillStatus(fill: ImageFillControls): FillStatus {
   const progress = PROGRESS_LABELS[fill.progress];
-  if (progress) return progress;
-  if (fill.error) return fill.error;
+  if (progress) return { kind: "busy", message: progress };
+  if (fill.error) return { kind: "error", message: fill.error };
   if (fill.candidate) {
     return fill.candidateStale
-      ? "The kept fills changed since this was generated. Discard it and generate again."
-      : "Compare, then keep the fill or discard it. Apply saves kept fills to the file.";
+      ? {
+          kind: "warning",
+          message:
+            "The kept fills changed since this was generated. Discard it and generate again.",
+        }
+      : {
+          kind: "result",
+          message: "Keep the fill or discard it. Hold the picture to see it before.",
+        };
   }
-  if (fill.presetsError) return `Could not check ComfyUI: ${fill.presetsError}`;
-  return (
-    fill.generateBlocker ??
-    "Leave the instruction blank to remove what you painted, or say what should appear there."
-  );
+  if (fill.presetsError) {
+    return { kind: "warning", message: `Could not check ComfyUI: ${fill.presetsError}` };
+  }
+  if (fill.generateBlocker === FILL_NEEDS_PAINT)
+    return { kind: "paint", message: FILL_NEEDS_PAINT };
+  if (fill.generateBlocker) return { kind: "warning", message: fill.generateBlocker };
+  return {
+    kind: "ready",
+    message: "Say what goes there, or leave the instruction blank to remove it.",
+  };
 }

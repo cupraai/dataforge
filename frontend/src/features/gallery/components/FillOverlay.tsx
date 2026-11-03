@@ -36,6 +36,10 @@ interface FillOverlayProps {
   interactive: boolean;
   /** Off while a result is shown, so the picture is what Keep would add. */
   showStrokes: boolean;
+  /** A run is working on the painted selection. */
+  working: boolean;
+  /** Set while a result can be compared: holding the picture shows it before. */
+  onCompare?: (holding: boolean) => void;
   onBegin: (point: FillPoint) => void;
   onExtend: (point: FillPoint) => void;
 }
@@ -51,6 +55,8 @@ export function FillOverlay({
   erasing,
   interactive,
   showStrokes,
+  working,
+  onCompare,
   onBegin,
   onExtend,
 }: FillOverlayProps) {
@@ -103,12 +109,24 @@ export function FillOverlay({
   return (
     <div
       ref={surfaceRef}
-      className={classNames("fill-overlay", interactive && "fill-overlay--interactive")}
+      className={classNames(
+        "fill-overlay",
+        interactive && "fill-overlay--interactive",
+        onCompare && "fill-overlay--compare",
+        working && "fill-overlay--working",
+      )}
       style={style}
       data-testid="fill-overlay"
       aria-hidden="true"
       onPointerDown={(event) => {
-        if (!interactive || event.button !== 0) return;
+        if (event.button !== 0) return;
+        if (onCompare) {
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          onCompare(true);
+          return;
+        }
+        if (!interactive) return;
         const point = toSource(event);
         if (!point) return;
         event.preventDefault();
@@ -130,9 +148,11 @@ export function FillOverlay({
           event.currentTarget.releasePointerCapture(event.pointerId);
         }
         lastPointRef.current = null;
+        onCompare?.(false);
       }}
       onPointerCancel={() => {
         lastPointRef.current = null;
+        onCompare?.(false);
       }}
       onPointerLeave={() => setCursor(null)}
     >

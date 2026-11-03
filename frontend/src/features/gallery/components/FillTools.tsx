@@ -1,4 +1,4 @@
-import { useId } from "react";
+import type { KeyboardEvent } from "react";
 import type { ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import {
   BRUSH_FRACTION_STEP,
@@ -20,13 +20,15 @@ import {
 } from "@/shared/icons";
 import type { FillPreset } from "@/shared/types";
 import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
-import { SHORTCUTS } from "@/shared/lib/shortcuts";
+import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
+import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
+import { Tooltip } from "@/shared/ui/Tooltip";
 import { PresetButton, ToolGroup, ToolPresets } from "./EditPanelParts";
 
-const PRESETS: ReadonlyArray<{ id: FillPreset; label: string }> = [
-  { id: "fast", label: "Fast" },
-  { id: "quality", label: "Quality" },
+const PRESETS: ReadonlyArray<{ id: FillPreset; label: string; tip: string }> = [
+  { id: "fast", label: "Fast", tip: "Fewer steps: quicker, a little less detail" },
+  { id: "quality", label: "Quality", tip: "The full step count: slower, finer detail" },
 ];
 
 interface FillToolsProps {
@@ -37,12 +39,13 @@ interface FillToolsProps {
 }
 
 export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsProps) {
-  const sizeId = useId();
   const deciding = fill.candidate !== null;
   const paintLocked = disabled || !fill.canPaint;
-  const { setBrushMode } = fill;
+  const requestLocked = disabled || fill.generating;
+  const canUndoStroke = !paintLocked && fill.strokes.length > 0;
+  const { setBrushMode, stepBrush, undoStroke, generate } = fill;
 
-  // Mounted only while the Fill tool is open, so the letters mean nothing elsewhere. The editor
+  // Mounted only while the Fill tool is open, so the keys mean nothing elsewhere. The editor
   // sits in a modal, hence whenLocked; typing in the instruction still types.
   useGlobalShortcut(SHORTCUTS.fillBrush, () => setBrushMode("paint"), {
     enabled: !paintLocked,
@@ -52,12 +55,24 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
     enabled: !paintLocked,
     whenLocked: true,
   });
-  const requestLocked = disabled || fill.generating;
+  useGlobalShortcut(SHORTCUTS.fillBrushSize, (event) => stepBrush(event.key === "]" ? 1 : -1), {
+    enabled: !paintLocked,
+    whenLocked: true,
+  });
+  useGlobalShortcut(SHORTCUTS.fillUndoStroke, undoStroke, {
+    enabled: canUndoStroke,
+    whenLocked: true,
+  });
 
-  // While a result waits for a decision only its own controls show: the request is settled, and
-  // the row has no room for both.
+  const onInstructionKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    if (fill.canGenerate) generate();
+  };
+
   return (
     <>
+      {/* While a result waits, painting is settled; the request stays, to tweak and regenerate. */}
       {!deciding && (
         <>
           <ToolPresets label="Brush">
@@ -81,13 +96,19 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
             </PresetButton>
           </ToolPresets>
 
-          <ToolGroup label="Selection" className="edit-panel__tool-actions">
-            <label className="edit-panel__field" htmlFor={sizeId}>
-              Size
+          <ToolGroup label="Size" className="edit-panel__tool-actions">
+            <Tooltip
+              content={
+                <ShortcutHint shortcut={SHORTCUTS.fillBrushSize}>
+                  Smaller or bigger, or Alt+wheel
+                </ShortcutHint>
+              }
+            >
               <input
-                id={sizeId}
                 className="edit-panel__range"
                 type="range"
+                aria-label="Brush size"
+                aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.fillBrushSize)}
                 min={BRUSH_MIN_FRACTION}
                 max={BRUSH_MAX_FRACTION}
                 step={BRUSH_FRACTION_STEP}
@@ -96,56 +117,71 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
                 aria-valuetext={`${fill.brushRadius * 2} pixels`}
                 onChange={(event) => fill.setBrushFraction(Number(event.currentTarget.value))}
               />
-            </label>
-            <button
-              type="button"
-              className="edit-panel__control edit-panel__control--icon"
-              aria-label="Undo stroke"
-              title="Undo stroke"
-              disabled={paintLocked || fill.strokes.length === 0}
-              onClick={fill.undoStroke}
-            >
-              <Icon icon={iconUndo2} />
-            </button>
-            <button
-              type="button"
-              className="edit-panel__control edit-panel__control--icon"
-              aria-label="Clear selection"
-              title="Clear selection"
-              disabled={paintLocked || fill.strokes.length === 0}
-              onClick={fill.clearStrokes}
-            >
-              <Icon icon={iconTrash2} />
-            </button>
+            </Tooltip>
+            {/* The slider announces its own value; this is the same number for the eye. */}
+            <span className="edit-panel__readout" aria-hidden="true">
+              {fill.brushRadius * 2} px
+            </span>
           </ToolGroup>
 
-          <ToolGroup label="Instruction" className="edit-panel__tool-actions">
-            <input
-              className="edit-panel__text"
-              type="text"
-              aria-label="Instruction"
-              placeholder="Blank removes it, or: a wooden bench"
-              maxLength={MAX_FILL_INSTRUCTION_LENGTH}
-              value={fill.instruction}
-              disabled={requestLocked}
-              onChange={(event) => fill.setInstruction(event.currentTarget.value)}
-            />
-          </ToolGroup>
-
-          <ToolPresets label="Preset">
-            {PRESETS.map((entry) => (
-              <PresetButton
-                key={entry.id}
-                active={fill.preset === entry.id}
-                disabled={requestLocked}
-                onClick={() => fill.setPreset(entry.id)}
+          <ToolGroup label="Selection" className="edit-panel__tool-actions">
+            <Tooltip
+              content={<ShortcutHint shortcut={SHORTCUTS.fillUndoStroke}>Undo stroke</ShortcutHint>}
+            >
+              <button
+                type="button"
+                className="edit-panel__control edit-panel__control--icon"
+                aria-label="Undo stroke"
+                aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.fillUndoStroke)}
+                disabled={!canUndoStroke}
+                onClick={fill.undoStroke}
               >
-                {entry.label}
-              </PresetButton>
-            ))}
-          </ToolPresets>
+                <Icon icon={iconUndo2} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Clear selection">
+              <button
+                type="button"
+                className="edit-panel__control edit-panel__control--icon"
+                aria-label="Clear selection"
+                disabled={paintLocked || fill.strokes.length === 0}
+                onClick={fill.clearStrokes}
+              >
+                <Icon icon={iconTrash2} />
+              </button>
+            </Tooltip>
+          </ToolGroup>
         </>
       )}
+
+      <ToolGroup label="Instruction" className="edit-panel__tool-actions" grow>
+        <input
+          className="edit-panel__text"
+          type="text"
+          aria-label="Instruction"
+          placeholder="What goes there, e.g. a wooden bench. Blank removes it."
+          maxLength={MAX_FILL_INSTRUCTION_LENGTH}
+          value={fill.instruction}
+          disabled={requestLocked}
+          enterKeyHint="go"
+          onChange={(event) => fill.setInstruction(event.currentTarget.value)}
+          onKeyDown={onInstructionKey}
+        />
+      </ToolGroup>
+
+      <ToolPresets label="Preset">
+        {PRESETS.map((entry) => (
+          <Tooltip key={entry.id} content={entry.tip}>
+            <PresetButton
+              active={fill.preset === entry.id}
+              disabled={requestLocked}
+              onClick={() => fill.setPreset(entry.id)}
+            >
+              {entry.label}
+            </PresetButton>
+          </Tooltip>
+        ))}
+      </ToolPresets>
 
       <ToolGroup label={deciding ? "Result" : "Generate"} className="edit-panel__tool-actions">
         {fill.generating ? (
@@ -178,16 +214,18 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
               <Icon icon={iconX} />
               Discard
             </button>
-            <button
-              type="button"
-              className="edit-panel__control"
-              aria-pressed={fill.showBefore}
-              disabled={disabled || fill.candidateStale}
-              onClick={() => fill.setShowBefore(!fill.showBefore)}
-            >
-              <Icon icon={iconEye} />
-              {fill.showBefore ? "Showing before" : "Before"}
-            </button>
+            <Tooltip content="Or hold the picture">
+              <button
+                type="button"
+                className="edit-panel__control"
+                aria-pressed={fill.showBefore}
+                disabled={disabled || fill.candidateStale}
+                onClick={() => fill.setShowBefore(!fill.showBefore)}
+              >
+                <Icon icon={iconEye} />
+                Before
+              </button>
+            </Tooltip>
             <button
               type="button"
               className="edit-panel__control"

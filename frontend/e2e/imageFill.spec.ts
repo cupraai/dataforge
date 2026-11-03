@@ -75,10 +75,19 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
 }, testInfo) => {
   const folder = await sceneFolder();
   const dialog = await openFill(page, folder);
-  const status = dialog.getByRole("status");
+  // The fill tool's own status, apart from the app's refresh indicator.
+  const status = dialog.locator(".stage-hint").getByRole("status");
   const generate = dialog.getByRole("button", { name: "Generate" });
 
-  await expect(status).toHaveText("Paint over what to fill first.");
+  await expect(status).toHaveText("Paint over what you want to change.");
+  // The hint sits over the picture and clears while the pointer is over it.
+  const hint = dialog.locator(".stage-hint");
+  const hintBox = await hint.boundingBox();
+  if (!hintBox) throw new Error("The hint is not laid out");
+  await page.mouse.move(hintBox.x + hintBox.width / 2, hintBox.y + hintBox.height / 2);
+  await expect(hint).toHaveClass(/stage-hint--clear/);
+  await page.mouse.move(hintBox.x + hintBox.width / 2, hintBox.y - 120);
+  await expect(hint).not.toHaveClass(/stage-hint--clear/);
   await expect(dialog.getByRole("textbox", { name: "Instruction" })).toHaveValue("");
   await expect(generate).toBeDisabled();
   await paintMiddle(page);
@@ -95,9 +104,20 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
   await expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath("fill-result.png") });
 
-  await dialog.getByRole("button", { name: "Before" }).click();
+  const before = dialog.getByRole("button", { name: "Before" });
+  await before.click();
+  await expect(before).toHaveAttribute("aria-pressed", "true");
   await expect(stage).toHaveAttribute("src", /original=1/);
-  await dialog.getByRole("button", { name: "Showing before" }).click();
+  await before.click();
+  await expect(stage).toHaveAttribute("src", /image-fill\/preview/);
+
+  // Holding the picture shows it before, for as long as the button is down.
+  const surface = await page.getByTestId("fill-overlay").boundingBox();
+  if (!surface) throw new Error("The brush surface is not laid out");
+  await page.mouse.move(surface.x + surface.width / 2, surface.y + surface.height / 2);
+  await page.mouse.down();
+  await expect(stage).toHaveAttribute("src", /original=1/);
+  await page.mouse.up();
   await expect(stage).toHaveAttribute("src", /image-fill\/preview/);
 
   await keep.click();
@@ -124,7 +144,8 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
 test("cancels a running fill, and asks before leaving an undecided one", async ({ page }) => {
   const folder = await sceneFolder();
   const dialog = await openFill(page, folder);
-  const status = dialog.getByRole("status");
+  // The fill tool's own status, apart from the app's refresh indicator.
+  const status = dialog.locator(".stage-hint").getByRole("status");
   const stopsBefore = comfyStops().length;
 
   await paintMiddle(page);
@@ -142,8 +163,9 @@ test("cancels a running fill, and asks before leaving an undecided one", async (
       .map((stop) => stop.path),
   ).toEqual(["/interrupt"]);
 
+  // Enter in the instruction generates, so a reworded request needs no trip to the button.
   await dialog.getByRole("textbox", { name: "Instruction" }).fill("a red bench");
-  await dialog.getByRole("button", { name: "Generate" }).click();
+  await dialog.getByRole("textbox", { name: "Instruction" }).press("Enter");
   await expect(dialog.getByRole("button", { name: "Keep fill" })).toBeVisible({ timeout: 15_000 });
 
   await dialog.getByRole("button", { name: "Exit image editing for scene.png" }).click();
@@ -155,13 +177,23 @@ test("cancels a running fill, and asks before leaving an undecided one", async (
   expect(pixel(path.join(folder, "scene.png"), 240, 160)).toEqual(BACKGROUND);
 });
 
-test("narrow: the fill row scrolls and keeps its status readable", async ({ page }, testInfo) => {
+test("narrow: the fill row scrolls and its status stays on the stage", async ({
+  page,
+}, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const folder = await sceneFolder();
   const dialog = await openFill(page, folder);
 
   await paintMiddle(page);
-  await expect(dialog.getByRole("status")).toHaveText(/Leave the instruction blank to remove/);
+  await expect(dialog.locator(".stage-hint").getByRole("status")).toHaveText(
+    /leave the instruction blank to remove/,
+  );
+  const stageBox = await dialog.locator(".gallery-item-dialog__stage").boundingBox();
+  const statusBox = await dialog.locator(".stage-hint").boundingBox();
+  if (!stageBox || !statusBox) throw new Error("The stage is not laid out");
+  expect(statusBox.x).toBeGreaterThanOrEqual(stageBox.x);
+  expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width);
+  expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height);
   const controls = dialog.locator(".edit-panel__tool-controls");
   const overflow = await controls.evaluate((element) => element.scrollWidth > element.clientWidth);
   expect(overflow).toBe(true);
@@ -187,6 +219,11 @@ test("the fill tool keeps the panel's height, so the picture does not move", asy
   // Polled: the panel fades in, and a box read mid-animation is not its height.
   await expect.poll(height).toBe(await height());
   const fillHeight = await height();
+  // Every group's caption on one line, however short its controls are.
+  const captionTops = await panel
+    .locator(".edit-panel__group-label")
+    .evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().top));
+  expect(new Set(captionTops).size).toBe(1);
 
   await page.getByRole("button", { name: /^Crop/ }).click();
   await expect(page.getByRole("group", { name: "Aspect" })).toBeVisible();
@@ -217,7 +254,7 @@ test("zooms with the wheel, pans with the middle button, and paints where the po
   expect((target.y - zoomed!.y) / zoomed!.height).toBeCloseTo(0.75, 2);
 
   // Alt+wheel sizes the brush and leaves the zoom alone.
-  const size = dialog.getByRole("slider", { name: "Size" });
+  const size = dialog.getByRole("slider", { name: "Brush size" });
   const sizeBefore = Number(await size.inputValue());
   const zoomBefore = await zoomVar("--edit-zoom");
   await page.keyboard.down("Alt");
@@ -262,6 +299,15 @@ test("zooms with the wheel, pans with the middle button, and paints where the po
   await expect
     .poll(async () => parseFloat(await zoomVar("--edit-pan-x")))
     .toBeCloseTo(panBefore + 60, 0);
+
+  // ] grows the brush; Fit returns to the whole picture.
+  const sizeNow = Number(await size.inputValue());
+  await page.keyboard.press("]");
+  await expect.poll(async () => Number(await size.inputValue())).toBeGreaterThan(sizeNow);
+  await expect(dialog.getByText(/^\d{3}%$/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Fit" }).click();
+  await expect.poll(async () => Number(await zoomVar("--edit-zoom"))).toBe(1);
+  await expect(dialog.getByRole("button", { name: "Fit" })).toBeHidden();
 
   await dialog.getByRole("button", { name: "Generate" }).click();
   await dialog.getByRole("button", { name: "Keep fill" }).click({ timeout: 15_000 });

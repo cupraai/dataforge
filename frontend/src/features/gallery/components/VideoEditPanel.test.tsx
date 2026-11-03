@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VideoEditPanel } from "./VideoEditPanel";
+import { stageHintSlot } from "@/test/stageHintSlot";
 import { emptyDraft, type VideoEditDraft } from "@/features/gallery/lib/videoEdit";
 import {
   DEFAULT_MASK_MODE,
@@ -90,7 +91,8 @@ function renderPanel(
     ...overrides,
   };
 
-  render(<VideoEditPanel {...props} />);
+  // In the dialog's stage slot, where the panel shows its hint.
+  render(<VideoEditPanel {...props} />, { wrapper: stageHintSlot().wrapper });
   return props;
 }
 
@@ -120,6 +122,8 @@ describe("VideoEditPanel", () => {
     it("explains the open tool, and says nothing where the controls speak for themselves", () => {
       renderPanel(makeEdit());
       expect(screen.getByText(/follow the playhead/)).toBeInTheDocument();
+      // With the keys a focused trim handle takes, since the handles do not show them.
+      expect(screen.getByText("To the start or end")).toBeInTheDocument();
 
       fireEvent.click(tool("Volume"));
       expect(screen.queryByText(/follow the playhead/)).not.toBeInTheDocument();

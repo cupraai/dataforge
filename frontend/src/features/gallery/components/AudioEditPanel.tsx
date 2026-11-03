@@ -56,7 +56,9 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
+  type ToolHintEntry,
 } from "./EditPanelParts";
+import { TRIM_GESTURES } from "@/features/gallery/lib/stageGestures";
 import { VideoEditTimeline } from "./VideoEditTimeline";
 
 type ToolId = "trim" | "fades" | "volume" | "speed" | "eq" | "clean";
@@ -70,13 +72,18 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "clean", label: "Clean", icon: iconBroom },
 ];
 
-const HINTS: Record<ToolId, string> = {
-  trim: "Both follow the playhead. Drag a handle, or nudge it with the arrow keys.",
-  fades: "Equal power sounds even; linear dips in the middle.",
-  volume: "Peaks are limited in the file, not in the preview.",
-  speed: "Speed changes the length and keeps the pitch; pitch keeps the length.",
-  eq: "Cuts remove rumble or hiss; the shelves and the peak lift or lower a range.",
-  clean: "Learns the noise from the file's quietest moment, then lowers it everywhere.",
+const HINTS: Record<ToolId, ToolHintEntry> = {
+  trim: {
+    message: "Both follow the playhead. Drag a handle, or focus it and use the keys.",
+    gestures: TRIM_GESTURES,
+  },
+  fades: { message: "Equal power sounds even; linear dips in the middle." },
+  volume: { message: "Peaks are limited in the file, not in the preview." },
+  speed: { message: "Speed changes the length and keeps the pitch; pitch keeps the length." },
+  eq: { message: "Cuts remove rumble or hiss; the shelves and the peak lift or lower a range." },
+  clean: {
+    message: "Learns the noise from the file's quietest moment, then lowers it everywhere.",
+  },
 };
 
 type BandId = "low_cut" | "bass" | "mid" | "treble" | "high_cut";
@@ -153,6 +160,7 @@ export function AudioEditPanel({
   const [bandId, setBandId] = useState<BandId>("low_cut");
 
   const { draft } = edit;
+  const levelHint = AUDIO_LEVELS.find((level) => level.value === draft.level)?.hint;
   const locked = !edit.ready || busy || edit.applying;
   const modified: Record<ToolId, boolean> = {
     trim: draft.trimStart > 0 || (edit.ready && draft.trimEnd < edit.duration),
@@ -369,11 +377,15 @@ export function AudioEditPanel({
           )}
         </div>
 
-        <ToolHint>
-          {activeTool === "volume"
-            ? (AUDIO_LEVELS.find((level) => level.value === draft.level)?.hint ?? HINTS.volume)
-            : HINTS[activeTool]}
-        </ToolHint>
+        <ToolHint
+          tools={TOOLS}
+          activeTool={activeTool}
+          hint={
+            activeTool === "volume"
+              ? { message: levelHint ?? HINTS.volume.message }
+              : HINTS[activeTool]
+          }
+        />
       </div>
 
       <div className="edit-panel__footer">

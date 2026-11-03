@@ -33,6 +33,8 @@ export interface StageZoom {
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLElement>) => void;
+  /** Back to the whole picture. */
+  reset: () => void;
 }
 
 /** Wheel zooms around the pointer, a middle-button drag pans, and Alt+wheel is handed back. */
@@ -131,5 +133,7 @@ export function useStageZoom({
     setPanning(false);
   }, []);
 
-  return { view, panning, onPointerDown, onPointerMove, onPointerUp };
+  const reset = useCallback(() => setView(UNZOOMED), []);
+
+  return { view, panning, onPointerDown, onPointerMove, onPointerUp, reset };
 }

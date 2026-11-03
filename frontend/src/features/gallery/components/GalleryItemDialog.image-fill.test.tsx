@@ -180,9 +180,19 @@ describe("GalleryItemDialog", () => {
       // Apply waits for the decision; it never takes an undecided result.
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeDisabled();
 
-      await user.click(within(dialog).getByRole("button", { name: "Before" }));
+      const before = within(dialog).getByRole("button", { name: "Before" });
+      await user.click(before);
+      expect(before).toHaveAttribute("aria-pressed", "true");
       expect(stage().getAttribute("src")).not.toContain("image-fill");
-      await user.click(within(dialog).getByRole("button", { name: "Showing before" }));
+      await user.click(before);
+      expect(stage().getAttribute("src")).toContain(`fills=${FILL.id}`);
+
+      // Holding the picture compares too, only while the button is down.
+      const overlay = within(dialog).getByTestId("fill-overlay");
+      fireEvent.pointerDown(overlay, { pointerId: 2, button: 0, clientX: 0, clientY: 0 });
+      expect(stage().getAttribute("src")).not.toContain("image-fill");
+      fireEvent.pointerUp(overlay, { pointerId: 2 });
+      expect(stage().getAttribute("src")).toContain(`fills=${FILL.id}`);
 
       await user.click(within(dialog).getByRole("button", { name: "Keep fill" }));
       expect(within(dialog).getByText("1 fill")).toBeInTheDocument();

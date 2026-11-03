@@ -42,6 +42,50 @@
     cursor: grabbing;
   }
 
+  // The zoom readout; a button, so it is the one part of the stage chrome that takes the pointer.
+  &__zoom {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1875rem 0.1875rem 0.1875rem 0.625rem;
+    border: 1px solid var(--media-guide);
+    border-radius: var(--radius-pill);
+    background: var(--media-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--media-text);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    @include tabular-nums;
+  }
+
+  &__zoom-level {
+    min-width: 2.75rem;
+    text-align: right;
+  }
+
+  &__zoom-fit {
+    @include control-interactive;
+    @include inline-flex-center;
+    @include icon-scope-sm;
+    gap: 0.25rem;
+    height: 1.5rem;
+    padding: 0 0.5rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    @include fade-bg(var(--media-key-bg));
+    color: var(--media-text);
+    font: inherit;
+
+    &:hover {
+      @include fade-bg(var(--media-key-border));
+    }
+  }
+
   &__img--covered {
     visibility: hidden;
   }

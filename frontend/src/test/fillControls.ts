@@ -30,7 +30,7 @@ export function makeFillControls(overrides: Partial<ImageFillControls> = {}): Im
     generating: false,
     error: null,
     canGenerate: false,
-    generateBlocker: "Paint over what to fill first.",
+    generateBlocker: "Paint over what you want to change.",
     generate: vi.fn<() => void>(),
     cancel: vi.fn<() => void>(),
     candidate: null,

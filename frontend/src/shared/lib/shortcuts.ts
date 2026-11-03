@@ -159,6 +159,16 @@ export const SHORTCUTS = {
   removeMask: { group: "editors", label: "Remove the focused mask", chords: [{ key: "Delete" }] },
   fillBrush: { group: "editors", label: "Fill: paint the selection", chords: [{ key: "b" }] },
   fillEraser: { group: "editors", label: "Fill: erase the selection", chords: [{ key: "e" }] },
+  fillBrushSize: {
+    group: "editors",
+    label: "Fill: smaller or bigger brush",
+    chords: [{ key: "[" }, { key: "]" }],
+  },
+  fillUndoStroke: {
+    group: "editors",
+    label: "Fill: undo the last stroke",
+    chords: [{ key: "z", mod: true }],
+  },
 
   editorPlayPause: { group: "videoEditor", label: "Play or pause", chords: [{ key: " " }] },
   editorStepBack: {
@@ -380,8 +390,10 @@ function keyMatches(event: KeyboardEvent, key: string): boolean {
 
 export function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
   if (!keyMatches(event, chord.key)) return false;
-  if ((event.ctrlKey || event.metaKey) !== Boolean(chord.mod)) return false;
-  if (event.altKey !== Boolean(chord.alt)) return false;
+  // Windows reports AltGr as Ctrl+Alt, and QWERTZ types [ and ] with it: the symbol is the key.
+  const altGraph = isLayoutSymbol(chord.key) && event.getModifierState("AltGraph");
+  if ((!altGraph && (event.ctrlKey || event.metaKey)) !== Boolean(chord.mod)) return false;
+  if ((!altGraph && event.altKey) !== Boolean(chord.alt)) return false;
   if (isLayoutSymbol(chord.key)) return true;
   return event.shiftKey === Boolean(chord.shift);
 }

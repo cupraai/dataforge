@@ -38,3 +38,29 @@
     border-style: dashed;
   }
 }
+
+// Holding the result shows the picture before it; the brush ring has nothing to say then.
+.fill-overlay--compare {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.fill-overlay--working .fill-overlay__paint {
+  animation: fill-working 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes fill-working {
+  from {
+    opacity: 0.2;
+  }
+
+  to {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill-overlay--working .fill-overlay__paint {
+    animation: none;
+  }
+}

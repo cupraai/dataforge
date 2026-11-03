@@ -13,6 +13,7 @@ import { formatSizeFit } from "@/shared/lib/sizeFit";
 import type { SizeFit } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
 import { SizeNumberField } from "./SizeNumberField";
+import { StageHint, type StageGesture } from "./StageHint";
 
 /** Pieces the image and video edit panels share; both render inside `.edit-panel`. */
 
@@ -74,19 +75,22 @@ export function OutputChange({ from, to }: { from: ReactNode; to: ReactNode }) {
   );
 }
 
-/** A control cluster under a visible caption, which also names the group. */
+/** A control cluster under a visible caption, which also names the group. `grow` takes the
+ * row's spare width, for a text field. */
 export function ToolGroup({
   label,
   className,
+  grow,
   children,
 }: {
   label: string;
   className: string;
+  grow?: boolean;
   children: ReactNode;
 }) {
   const labelId = useId();
   return (
-    <div className="edit-panel__group">
+    <div className={classNames("edit-panel__group", grow && "edit-panel__group--grow")}>
       <span id={labelId} className="edit-panel__group-label">
         {label}
       </span>
@@ -105,26 +109,24 @@ export function ToolPresets({ label, children }: { label: string; children: Reac
   );
 }
 
-/** How the open tool is used, mostly the gesture on the picture the buttons do not show.
- * `status` announces changes, for a tool whose hint reports progress; `wide` keeps a longer
- * message to a few lines rather than a narrow column. */
-export function ToolHint({
-  children,
-  status,
-  wide,
+export interface ToolHintEntry {
+  message: string;
+  gestures?: readonly StageGesture[];
+}
+
+/** How the open tool is used, over the media under the tool's own icon. */
+export function ToolHint<T extends string>({
+  tools,
+  activeTool,
+  hint,
 }: {
-  children: ReactNode;
-  status?: boolean;
-  wide?: boolean;
+  tools: ReadonlyArray<EditTool<T>>;
+  activeTool: T;
+  hint: ToolHintEntry | undefined;
 }) {
-  return (
-    <p
-      className={classNames("edit-panel__hint", wide && "edit-panel__hint--wide")}
-      role={status ? "status" : undefined}
-    >
-      {children}
-    </p>
-  );
+  const tool = tools.find((entry) => entry.id === activeTool);
+  if (!hint || !tool) return null;
+  return <StageHint icon={tool.icon} message={hint.message} gestures={hint.gestures} />;
 }
 
 export function PresetButton({

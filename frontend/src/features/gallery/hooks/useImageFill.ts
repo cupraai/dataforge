@@ -32,6 +32,9 @@ export const FILL_POLL_INTERVAL_MS = 1000;
 export const FILL_INTERRUPTED_MESSAGE =
   "The generation was interrupted: the server restarted. Generate again.";
 
+/** The blocker before anything is painted: the first step, not a fault. */
+export const FILL_NEEDS_PAINT = "Paint over what you want to change.";
+
 const TERMINAL: ReadonlySet<FillOperationStatus> = new Set(["succeeded", "failed", "cancelled"]);
 
 /** `starting` covers drawing the mask and the start request, before the server has an id. */
@@ -287,7 +290,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     generateBlocker = `An edit holds at most ${MAX_IMAGE_FILLS} fills. Undo one to make another.`;
   } else if (presetState && !presetState.available) {
     generateBlocker = presetState.reason ?? "This preset cannot run.";
-  } else if (!hasPaint(strokes)) generateBlocker = "Paint over what to fill first.";
+  } else if (!hasPaint(strokes)) generateBlocker = FILL_NEEDS_PAINT;
   const canGenerate = Boolean(path) && sized && !generating && generateBlocker === null;
 
   const stateRef = useLatestRef({

@@ -167,7 +167,7 @@ describe("useImageFill", () => {
     const { result } = renderFill();
     await waitFor(() => expect(result.current.presets).not.toBeNull());
 
-    expect(result.current.generateBlocker).toBe("Paint over what to fill first.");
+    expect(result.current.generateBlocker).toBe("Paint over what you want to change.");
     paint(result);
     expect(result.current.canGenerate).toBe(true);
 

@@ -120,6 +120,7 @@ import { CropOverlay } from "./CropOverlay";
 import { AdjustCanvas } from "./AdjustCanvas";
 import { MaskOverlay } from "./MaskOverlay";
 import { ImageEditPanel } from "./ImageEditPanel";
+import { StageHintSlot } from "@/features/gallery/lib/stageHintSlot";
 import { ImageEditStage } from "./ImageEditStage";
 import { VideoEditPanel } from "./VideoEditPanel";
 import { AudioEditPanel } from "./AudioEditPanel";
@@ -333,6 +334,7 @@ export function GalleryItemDialog({
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [hintSlot, setHintSlot] = useState<HTMLDivElement | null>(null);
   const audioEdit = useAudioEdit({
     item,
     audioRef,
@@ -1339,6 +1341,9 @@ export function GalleryItemDialog({
             />
           )}
 
+          {/* The edit panels portal their hint here, over the media they describe. */}
+          {editMode && <div ref={setHintSlot} className="gallery-item-dialog__hint-slot" />}
+
           {!inline && (
             <button
               type="button"
@@ -1387,30 +1392,32 @@ export function GalleryItemDialog({
             />
           ))}
 
-        {editMode && canEditVideoItem && (
-          <VideoEditPanel
-            edit={videoEdit}
-            busy={otherWorkBusy}
-            onRevertRequested={() => setRevertConfirmOpen(true)}
-          />
-        )}
+        <StageHintSlot.Provider value={hintSlot}>
+          {editMode && canEditVideoItem && (
+            <VideoEditPanel
+              edit={videoEdit}
+              busy={otherWorkBusy}
+              onRevertRequested={() => setRevertConfirmOpen(true)}
+            />
+          )}
 
-        {editMode && canEditAudioItem && (
-          <AudioEditPanel
-            edit={audioEdit}
-            waveformUrl={audioTrackWaveform}
-            busy={otherWorkBusy}
-            onRevertRequested={() => setRevertConfirmOpen(true)}
-          />
-        )}
+          {editMode && canEditAudioItem && (
+            <AudioEditPanel
+              edit={audioEdit}
+              waveformUrl={audioTrackWaveform}
+              busy={otherWorkBusy}
+              onRevertRequested={() => setRevertConfirmOpen(true)}
+            />
+          )}
 
-        {editMode && canEditImageItem && (
-          <ImageEditPanel
-            edit={imageEdit}
-            busy={otherWorkBusy}
-            onRevertRequested={() => setRevertConfirmOpen(true)}
-          />
-        )}
+          {editMode && canEditImageItem && (
+            <ImageEditPanel
+              edit={imageEdit}
+              busy={otherWorkBusy}
+              onRevertRequested={() => setRevertConfirmOpen(true)}
+            />
+          )}
+        </StageHintSlot.Provider>
 
         {!editMode && (
           <>

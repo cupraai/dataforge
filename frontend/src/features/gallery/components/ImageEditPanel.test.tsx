@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ImageEditPanel } from "./ImageEditPanel";
+import { stageHintSlot } from "@/test/stageHintSlot";
 import {
   emptyDraft,
   orientationOf,
@@ -90,7 +91,8 @@ function renderPanel(
     ...overrides,
   };
 
-  render(<ImageEditPanel {...props} />);
+  // In the dialog's stage slot, where the panel shows its hint.
+  render(<ImageEditPanel {...props} />, { wrapper: stageHintSlot().wrapper });
   return props;
 }
 
@@ -104,6 +106,43 @@ function tools() {
 
 describe("ImageEditPanel", () => {
   describe("tools", () => {
+    it("shows the open tool's hint on the stage, with the keys its handles take", async () => {
+      const user = userEvent.setup();
+      renderPanel(makeEdit());
+      const slot = () => screen.getByTestId("stage-hint-slot");
+
+      expect(slot()).toHaveTextContent("Drag the frame or its handles on the picture");
+      expect(slot()).toHaveTextContent("Bigger steps");
+
+      await user.click(tools().getByRole("button", { name: "Blur" }));
+      expect(slot()).toHaveTextContent("drag it over what to hide");
+      expect(slot()).toHaveTextContent("Remove");
+
+      await user.click(tools().getByRole("button", { name: "Rotate" }));
+      expect(slot()).toHaveTextContent("quarter steps");
+      expect(slot().querySelector(".stage-hint__keys")).toBeNull();
+
+      await user.click(tools().getByRole("button", { name: "Adjust" }));
+      expect(slot()).toHaveTextContent("turn its ruler");
+      expect(slot()).toHaveTextContent("Turn the ruler");
+    });
+
+    it.each([
+      [{}, "let the wand fix levels and cast"],
+      [{ autoPending: true }, "Measuring for Auto..."],
+      [
+        { auto: { amount: 1, suggestion: { ...RESTING_ADJUST, exposure: 0.2 } } },
+        "its ruler sets how much",
+      ],
+    ])("follows the wand in the Adjust hint (%o)", async (adjust, message) => {
+      const user = userEvent.setup();
+      renderPanel(makeEdit({ adjust: makeAdjustControls(adjust) }));
+
+      await user.click(tools().getByRole("button", { name: "Adjust" }));
+
+      expect(screen.getByRole("status")).toHaveTextContent(message);
+    });
+
     it("opens on the crop tool", () => {
       renderPanel(makeEdit());
 
@@ -213,8 +252,11 @@ describe("ImageEditPanel", () => {
 
       await user.click(screen.getByRole("button", { name: "Erase" }));
       expect(fill.setBrushMode).toHaveBeenCalledWith("erase");
-      fireEvent.change(screen.getByRole("slider", { name: "Size" }), { target: { value: "0.05" } });
+      fireEvent.change(screen.getByRole("slider", { name: "Brush size" }), {
+        target: { value: "0.05" },
+      });
       expect(fill.setBrushFraction).toHaveBeenCalledWith(0.05);
+      expect(screen.getByText("64 px")).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Undo stroke" }));
       expect(fill.undoStroke).toHaveBeenCalled();
       await user.click(screen.getByRole("button", { name: "Clear selection" }));
@@ -249,6 +291,39 @@ describe("ImageEditPanel", () => {
       expect(fill.setBrushMode).not.toHaveBeenCalled();
     });
 
+    it("sizes the brush with [ and ], and undoes a stroke with Ctrl+Z outside the field", async () => {
+      const fill = makeFillControls({ strokes: [{ mode: "paint", radius: 4, points: [] }] });
+      const user = await openFill(makeEdit({ fill }));
+
+      await user.keyboard("]");
+      expect(fill.stepBrush).toHaveBeenLastCalledWith(1);
+      await user.keyboard("[[");
+      expect(fill.stepBrush).toHaveBeenLastCalledWith(-1);
+      await user.keyboard("{Control>}z{/Control}");
+      expect(fill.undoStroke).toHaveBeenCalledTimes(1);
+
+      // In the instruction, Ctrl+Z undoes typing, as it does in any text field.
+      await user.click(screen.getByRole("textbox", { name: "Instruction" }));
+      await user.keyboard("{Control>}z{/Control}");
+      expect(fill.undoStroke).toHaveBeenCalledTimes(1);
+    });
+
+    it("generates on Enter in the instruction, but only when Generate could", async () => {
+      const ready = makeFillControls({ canGenerate: true, generateBlocker: null });
+      const user = await openFill(makeEdit({ fill: ready }));
+
+      await user.type(screen.getByRole("textbox", { name: "Instruction" }), "{Enter}");
+      expect(ready.generate).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores Enter in the instruction while nothing is painted", async () => {
+      const fill = makeFillControls();
+      const user = await openFill(makeEdit({ fill }));
+
+      await user.type(screen.getByRole("textbox", { name: "Instruction" }), "{Enter}");
+      expect(fill.generate).not.toHaveBeenCalled();
+    });
+
     it("leaves B and E alone while painting is locked", async () => {
       const fill = makeFillControls({ canPaint: false, generating: true, progress: "running" });
       const user = await openFill(makeEdit({ fill }));
@@ -258,12 +333,12 @@ describe("ImageEditPanel", () => {
       expect(fill.setBrushMode).not.toHaveBeenCalled();
     });
 
-    it("says why Generate is off in the status line", async () => {
-      const fill = makeFillControls({ generateBlocker: "Update ComfyUI for Qwen-Image 2.1." });
-      await openFill(makeEdit({ fill }));
+    it("swaps the tool hint for its own status once the picture is ready", async () => {
+      await openFill(makeEdit());
 
       expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
-      expect(screen.getByRole("status")).toHaveTextContent("Update ComfyUI for Qwen-Image 2.1.");
+      expect(screen.getByRole("status")).toHaveTextContent("Paint over what you want to change.");
+      expect(screen.queryByText(/Drag the frame/)).not.toBeInTheDocument();
     });
 
     it("swaps Generate for Cancel while a run is in progress", async () => {
@@ -271,7 +346,7 @@ describe("ImageEditPanel", () => {
       const user = await openFill(makeEdit({ fill }));
 
       expect(screen.queryByRole("button", { name: "Generate" })).not.toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("Generating...");
+      expect(screen.getByRole("textbox", { name: "Instruction" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Paint" })).toBeDisabled();
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(fill.cancel).toHaveBeenCalled();
@@ -286,8 +361,9 @@ describe("ImageEditPanel", () => {
       });
       const user = await openFill(makeEdit({ fill, pending: true, dirty: true }));
 
-      // The request is settled; only the result's own controls take the row.
+      // Painting is settled, but the request stays to reword and regenerate.
       expect(screen.queryByRole("button", { name: "Paint" })).not.toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: "Instruction" })).toBeEnabled();
       await user.click(screen.getByRole("button", { name: "Before" }));
       expect(fill.setShowBefore).toHaveBeenCalledWith(true);
       await user.click(screen.getByRole("button", { name: "Regenerate" }));
@@ -306,7 +382,7 @@ describe("ImageEditPanel", () => {
       await openFill(makeEdit({ fill }));
 
       expect(screen.getByRole("button", { name: "Keep fill" })).toBeDisabled();
-      expect(screen.getByRole("status")).toHaveTextContent("generate again");
+      expect(screen.getByRole("button", { name: "Before" })).toBeDisabled();
     });
 
     it("undoes the newest kept fill and counts them in the output line", async () => {

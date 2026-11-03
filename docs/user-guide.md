@@ -178,10 +178,12 @@ Hold the compare button to see the original. Click the preview to inspect at out
 
 **Fill** removes or replaces part of an image with Qwen-Image 2.1 running in your own ComfyUI. It needs the models described in [Generative fill setup](comfyui.md#generative-fill); the tool says what is missing.
 
-1. Paint over what to change. **Erase** takes paint away, the slider sets the brush size, and the buttons beside it undo the last stroke or clear the selection. Cover the whole object, including its edge and shadow. Press `B` for the brush and `E` for the eraser; the mouse wheel zooms around the pointer, dragging with the middle button pans, and `Alt` + wheel changes the brush size.
+The hint at the bottom of the picture says what to do next, shows progress with the elapsed time, and explains why **Generate** is off. Like every editing tool's hint, it fades out while the pointer is over it.
+
+1. Paint over what to change. **Erase** takes paint away, the slider sets the brush size, and the buttons beside it undo the last stroke or clear the selection. Cover the whole object, including its edge and shadow. Press `B` for the brush and `E` for the eraser, `[` and `]` for a smaller or bigger brush, and `Ctrl+Z` to undo a stroke. The mouse wheel zooms around the pointer, dragging with the middle button pans, and `Alt` + wheel changes the brush size. **Fit** in the corner returns to the whole picture.
 2. Leave **Instruction** blank to remove what you painted and continue the background, or describe what should appear there, such as "a wooden bench".
-3. Choose **Fast** (Turbo LoRA, 8 steps) or **Quality** (base model), then **Generate**. Progress shows in the tool's status line; **Cancel** stops only this generation in ComfyUI.
-4. Compare with **Before**, then **Keep fill** or **Discard**. **Regenerate** tries again with a new seed; the previous result stays until the new one arrives.
+3. Choose **Fast** (Turbo LoRA, 8 steps) or **Quality** (base model), then **Generate**, or press `Enter` in the instruction. The painted area pulses while it is generated; **Cancel** stops only this generation in ComfyUI.
+4. Hold the mouse button on the picture to see it before the fill, or toggle **Before**. Then **Keep fill** or **Discard**. The instruction stays editable, so you can reword it and **Regenerate**, which also tries a new seed; the previous result stays until the new one arrives.
 
 A kept fill joins the edit like any other change: crop, masks, turns, size and Adjust all work on the filled picture, and **Apply** writes it without generating again. Fills stack, each generated on top of the ones before it. **Undo last fill** removes the newest; an earlier fill cannot go without the ones built on it. **Reset** returns to the saved edit, and **Revert original** removes every fill with the rest of the edit.
 
@@ -350,7 +352,11 @@ Press `?` outside a text field to see the shortcut list in the app. On macOS, us
 | Arrow keys | Nudge a focused crop, mask, or trim handle, or Adjust slider; `Shift` for larger steps |
 | `Delete` | Remove the focused mask |
 | `B` / `E` | Fill: paint or erase the selection |
+| `[` / `]` | Fill: smaller or bigger brush |
+| `Ctrl+Z` | Fill: undo the last stroke |
+| `Enter` | Fill: generate, from the instruction field |
 | Wheel / middle-drag | Fill: zoom around the pointer / pan; `Alt` + wheel sizes the brush |
+| Hold the picture | Fill: show a result's picture before it |
 | `Home` / `End` | Move a video trim handle to the start / end |
 
 A video trim handle moves one frame per arrow press, or one second with Shift. For the video editor, see its [shortcuts](video-editor.md#keyboard-shortcuts).

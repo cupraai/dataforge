@@ -32,6 +32,7 @@ import {
   iconAdjustNoiseReduction,
   iconLoader2,
   iconRotateCcw,
+  iconSliders,
   iconSquareSplitHorizontal,
   iconWandSparkles,
   type AppIcon,
@@ -42,6 +43,8 @@ import { Icon } from "@/shared/ui/Icon";
 import { RulerDial } from "@/shared/ui/RulerDial";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
+import { ADJUST_GESTURES } from "@/features/gallery/lib/stageGestures";
+import { StageHint } from "./StageHint";
 
 type StripId = "auto" | AdjustTool;
 
@@ -340,5 +343,31 @@ function ToolRing() {
       <circle className="adjust-tools__ring-track" cx="14" cy="14" r="12.5" pathLength={100} />
       <circle className="adjust-tools__ring-value" cx="14" cy="14" r="12.5" pathLength={100} />
     </svg>
+  );
+}
+
+/** The Adjust tool's hint, which follows the wand: off, measuring, or on. One status region,
+ * so the change to measuring and back is read out. */
+export function AdjustHint({ controls }: { controls: ColorAdjustControls }) {
+  if (controls.autoPending) {
+    return <StageHint icon={iconLoader2} tone="busy" message="Measuring for Auto..." status />;
+  }
+  if (controls.auto) {
+    return (
+      <StageHint
+        icon={iconWandSparkles}
+        message="Auto fixed levels and cast; its ruler sets how much. Adjust the rest on top, or click the wand to turn it off."
+        gestures={ADJUST_GESTURES}
+        status
+      />
+    );
+  }
+  return (
+    <StageHint
+      icon={iconSliders}
+      message="Pick a setting and turn its ruler, or let the wand fix levels and cast. Hold the split button to see the original."
+      gestures={ADJUST_GESTURES}
+      status
+    />
   );
 }

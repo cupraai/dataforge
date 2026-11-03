@@ -224,14 +224,15 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     })();
   }, [audioPath, editMode, optionsRef]);
 
-  // Seeded once both the spec and a length are in, whichever arrives last.
+  // Seeded once both the spec and a length are in, whichever arrives last. Forgotten while the
+  // file is not loaded, as on paging away: the reset emptied the draft, so a return seeds again.
   const seededForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!editMode) {
+    if (!editMode || !ready) {
       seededForRef.current = null;
       return;
     }
-    if (!ready || !path || seededForRef.current === path) return;
+    if (!path || seededForRef.current === path) return;
     seededForRef.current = path;
     seedDraft(savedSpecRef.current, durationRef.current);
   }, [durationRef, editMode, path, ready, savedSpecRef, seedDraft]);

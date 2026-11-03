@@ -26,7 +26,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
-import { AdjustTools } from "./AdjustTools";
+import { AdjustHint, AdjustTools } from "./AdjustTools";
 import {
   AspectTools,
   BlurTools,
@@ -41,7 +41,13 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
+  type ToolHintEntry,
 } from "./EditPanelParts";
+import {
+  HANDLE_GESTURES,
+  MASK_GESTURES,
+  TRIM_GESTURES,
+} from "@/features/gallery/lib/stageGestures";
 import { VideoEditTimeline } from "./VideoEditTimeline";
 
 type ToolId = "trim" | "crop" | "blur" | "speed" | "size" | "volume" | "adjust";
@@ -57,13 +63,19 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
 ];
 
 // Adjust has none: its strip and dial take the whole row and label themselves.
-const HINTS: Partial<Record<ToolId, string>> = {
-  trim: "Both follow the playhead. Drag a handle, or nudge it with the arrow keys.",
-  speed: "Changes the length too; the audio keeps its pitch.",
-  volume: "Applies to the whole clip; Mute removes the sound.",
-  crop: "Drag the frame or its handles on the picture, or pick a ratio.",
-  size: "Pick a scale, or type a width or height; the other follows.",
-  blur: "Add a region, then drag it over what to hide.",
+const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
+  trim: {
+    message: "Both follow the playhead. Drag a handle, or focus it and use the keys.",
+    gestures: TRIM_GESTURES,
+  },
+  speed: { message: "Changes the length too; the audio keeps its pitch." },
+  volume: { message: "Applies to the whole clip; Mute removes the sound." },
+  crop: {
+    message: "Drag the frame or its handles on the picture, or pick a ratio.",
+    gestures: HANDLE_GESTURES,
+  },
+  size: { message: "Pick a scale, or type a width or height; the other follows." },
+  blur: { message: "Add a region, then drag it over what to hide.", gestures: MASK_GESTURES },
 };
 
 interface VideoEditPanelProps {
@@ -222,7 +234,11 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
           )}
         </div>
 
-        {HINTS[activeTool] && <ToolHint>{HINTS[activeTool]}</ToolHint>}
+        {activeTool === "adjust" ? (
+          edit.ready && <AdjustHint controls={edit.adjust} />
+        ) : (
+          <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
+        )}
       </div>
 
       <div className="edit-panel__footer">
