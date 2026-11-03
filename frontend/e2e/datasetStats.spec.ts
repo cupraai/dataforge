@@ -20,6 +20,7 @@ async function openTimelineWorkspace(page: Page, photoCreatedAt: string, clipCre
     });
   });
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
+  await expect(page.getByRole("button", { name: "View photo.png", exact: true })).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {

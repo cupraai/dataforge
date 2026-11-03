@@ -257,6 +257,25 @@ describe("StatsDialog", () => {
     expect(within(chart).getByRole("img", { name: "1 file" })).toBeInTheDocument();
   });
 
+  it("opens on the newest media's month when the folder loads after the dialog", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 15, 12));
+    localStorage.setItem("stats-creation-grouping", "day");
+    const onClose = vi.fn<() => void>();
+    const { rerender } = render(<StatsDialog open items={[]} onClose={onClose} />);
+    rerender(
+      <StatsDialog
+        open
+        items={[mediaItem("february.png", HOME_PATH, { created_at: "2026-02-28T12:00:00" })]}
+        onClose={onClose}
+      />,
+    );
+
+    const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
+    expect(within(chart).getByText("Feb 2026")).toBeInTheDocument();
+    expect(within(chart).getByRole("img", { name: "1 file" })).toBeInTheDocument();
+  });
+
   it("steps through years in monthly view and keeps empty periods navigable", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 5, 15, 12));

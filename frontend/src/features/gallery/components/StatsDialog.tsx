@@ -122,8 +122,11 @@ function StatsContent({
       return CREATION_GROUPING_OPTIONS.find((option) => option.value === stored)?.value;
     },
   );
-  const [creationPeriod, setCreationPeriod] = useState(
-    () => latestCreationDate(items) ?? new Date(),
+  // Unset until the arrows pick one, so a folder that loads after opening still sets the period.
+  const [pickedCreationPeriod, setCreationPeriod] = useState<Date>();
+  const creationPeriod = useMemo(
+    () => pickedCreationPeriod ?? latestCreationDate(items),
+    [pickedCreationPeriod, items],
   );
   const groupingName = useId();
   const stats = useMemo(
@@ -178,16 +181,18 @@ function StatsContent({
           buckets={stats.creationTimeline}
           grouping={stats.creationTimelineGrouping}
           onNavigatePeriod={(direction) => {
+            // The arrows only render beside dated media, so the period is set here.
+            if (!creationPeriod) return;
             // Day one avoids skipping February when navigating from January 31.
             setCreationPeriod(
-              (period) =>
-                new Date(
-                  period.getFullYear() +
-                    (stats.creationTimelineGrouping === "month" ? direction : 0),
-                  period.getMonth() + (stats.creationTimelineGrouping === "day" ? direction : 0),
-                  1,
-                  12,
-                ),
+              new Date(
+                creationPeriod.getFullYear() +
+                  (stats.creationTimelineGrouping === "month" ? direction : 0),
+                creationPeriod.getMonth() +
+                  (stats.creationTimelineGrouping === "day" ? direction : 0),
+                1,
+                12,
+              ),
             );
           }}
         />
