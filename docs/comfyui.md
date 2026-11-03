@@ -100,12 +100,54 @@ The following are unsupported:
 | ------------------ | ----------------------------------------------------- |
 | `DataForge Prompt` | `text`, `value` or `prompt`, if a prompt is entered   |
 | `DataForge Seed`   | `seed`, `noise_seed` or `value`, if a seed is entered |
+| `DataForge Mask`   | `image`, set to an uploaded black-and-white mask      |
 
-Without these nodes, or with optional fields left empty, the workflow uses its saved values. The dialog disables Prompt or Seed when the matching node is absent. A prompt or custom input value must belong to the titled node, rather than be wired from another node; an unusable prompt node causes a supplied prompt to be refused.
+Without these nodes, or with optional fields left empty, the workflow uses its saved values. Only the editor's [generative fill](#generative-fill) uploads a mask; processing runs a mask node with its saved file. The dialog disables Prompt or Seed when the matching node is absent. A prompt or custom input value must belong to the titled node, rather than be wired from another node; an unusable prompt node causes a supplied prompt to be refused.
 
 ### Custom inputs
 
 Any other node titled `DataForge <name>`, such as `DataForge Denoise`, adds a field called `<name>` to the dialog. Title a primitive node (Int, Float, String or Boolean) and wire its output wherever the value is needed; the dialog shows a number, whole-number, text or on/off field to match the saved value, with that value as the placeholder. DataForge writes the node's `value`, or its only literal input when it has no `value`. Leave a field empty to keep the saved value. Like the seed and prompt, values are remembered per preset. Two nodes with the same title add no field.
+
+## Generative fill
+
+The image editor's **Fill** tool ([how to use it](user-guide.md#generative-fill)) runs Qwen-Image 2.1 with ComfyUI's native masked sampler. Its two workflows ship with DataForge in [`comfy_fill_templates/`](../comfy_fill_templates/); they are not presets and do not appear under **Process with ComfyUI**. Fill and processing share one queue, so they never run at the same time.
+
+### Install
+
+1. Update ComfyUI to a release with Qwen-Image 2.1 support (the `TextEncodeQwenImage21` node). The templates were written against ComfyUI 0.42.0.
+2. Download the model files from [Comfy-Org/Qwen-Image-2.1](https://huggingface.co/Comfy-Org/Qwen-Image-2.1) into these `ComfyUI/models` folders. The workflows use core ComfyUI nodes; LanPaint is not required.
+
+| File                                                      | Folder              | Used by          |
+| --------------------------------------------------------- | ------------------- | ---------------- |
+| `qwen_image_2.1_int8_convrot.safetensors`                 | `diffusion_models/` | Fast and Quality |
+| `qwen3vl_8b_int8_convrot.safetensors`                     | `text_encoders/`    | Fast and Quality |
+| `qwen_image_2.1_vae_bf16.safetensors`                     | `vae/`              | Fast and Quality |
+| `qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors` | `loras/`            | Fast             |
+
+The bf16 diffusion model and text encoder from the same repository work too; enter their names in **Settings > Integrations > Generative fill**. Fast adds the Turbo LoRA to the base model; it does not use the separate full Turbo checkpoint, whose fixed eight-step schedule is a different workflow. Keep every file from the Qwen-Image 2.1 release.
+
+The Qwen-Image 2.1 weights are released under the [Qwen Research license](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE); check its terms before using results commercially.
+
+The Fill tool checks ComfyUI each time it opens and names a missing node or model file. A preset that cannot run stays selectable but **Generate** stays off; DataForge never switches to the other preset by itself.
+
+### Presets and settings
+
+| Preset  | Model                                   | Steps                         | CFG | Sampler                 |
+| ------- | --------------------------------------- | ----------------------------- | --- | ----------------------- |
+| Fast    | Base model + Turbo LoRA at strength 1.0 | 8                             | 1   | KSampler, Euler, simple |
+| Quality | Base model                              | **Quality steps**, default 30 | 1   | KSampler, Euler, simple |
+
+At CFG 1 the negative prompt has no effect, so the templates leave it empty. The five settings are in **Settings > Integrations > Generative fill**, and in `.env` as `COMFY_FILL_DIFFUSION_MODEL`, `COMFY_FILL_TEXT_ENCODER`, `COMFY_FILL_VAE`, `COMFY_FILL_TURBO_LORA` and `COMFY_FILL_QUALITY_STEPS`. The former `COMFY_FILL_LANPAINT_STEPS` setting is no longer used.
+
+Both presets have been checked on a masked door-removal example using ComfyUI 0.42.0 and the default model files. This is a focused regression check, not a broad quality benchmark. Complex textures and boundaries can still need a more specific instruction or another generation.
+
+### What ComfyUI receives
+
+For each generation DataForge uploads two PNGs to `input/dataforge/`: a crop around the selection, with enough surrounding scene to continue it, scaled to about one megapixel on a 32-pixel grid; and a separate black-and-white mask, white where ComfyUI regenerates. The mask is the painted selection grown by a small border. A crop with transparency is uploaded with its alpha, which the Qwen-Image 2.1 VAE edits along with the color.
+
+The workflow marks that selection in solid magenta on a separate reference for Qwen's instruction encoder. This identifies the requested edit and hides the object being removed from the reference. The sampler receives the original image's latent with a noise mask; the marked reference is never used as the source latent or pasted into the saved image.
+
+DataForge scales the result back, blends it into the original through a feathered version of the selection, and stores it losslessly. Pixels outside that blend never change. Generating again uses a new random seed, so each run is a variation rather than a repeat.
 
 ## Inspect embedded workflows
 
@@ -127,4 +169,8 @@ A filename match is marked as a **Likely output**. This is a hint: the embedded 
 
 **Ambiguous workflow or refused prompt.** Set `DataForge Input` and `DataForge Output` titles. Optional prompt/FPS nodes must own their values, not receive them through a connection. Export again.
 
-**Timeout or failed output.** Inspect ComfyUI's queue/history and DataForge's per-file result. Increase `COMFY_IMAGE_TIMEOUT` or `COMFY_VIDEO_TIMEOUT` for slow renders. GIFs use the video timeout; video validation needs ffmpeg.
+**Timeout or failed output.** Inspect ComfyUI's queue/history and DataForge's per-file result. Increase `COMFY_IMAGE_TIMEOUT` or `COMFY_VIDEO_TIMEOUT` for slow renders. GIFs use the video timeout; video validation needs ffmpeg. A fill uses the image timeout.
+
+**Fill unavailable.** The Fill tool's status line names the missing ComfyUI node or model file. Update ComfyUI or download the file, then reopen the tool.
+
+**A kept fill cannot be applied.** The original changed outside DataForge, or a fill's stored pixels are gone. Undo the fills it names and generate them again.

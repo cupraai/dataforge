@@ -157,6 +157,8 @@ export const SHORTCUTS = {
     chords: [{ key: "Arrows", shift: true }],
   },
   removeMask: { group: "editors", label: "Remove the focused mask", chords: [{ key: "Delete" }] },
+  fillBrush: { group: "editors", label: "Fill: paint the selection", chords: [{ key: "b" }] },
+  fillEraser: { group: "editors", label: "Fill: erase the selection", chords: [{ key: "e" }] },
 
   editorPlayPause: { group: "videoEditor", label: "Play or pause", chords: [{ key: " " }] },
   editorStepBack: {

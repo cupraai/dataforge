@@ -157,7 +157,7 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 
 | Media | Formats | Tools |
 | --- | --- | --- |
-| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, masks |
+| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, masks, [generative fill](#generative-fill) |
 | Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, volume, mute, Adjust, masks. Rendering shows progress and can be cancelled |
 | Audio | WAV, MP3, FLAC | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
 
@@ -173,6 +173,21 @@ Adjust has Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Blac
 The **Auto** wand analyzes the original inside the crop, ignoring masks; for videos, it samples the trimmed range. It corrects exposure, contrast, color intensity, and color casts toward a natural look. Its slider sets the amount; click the wand again to turn it off.
 
 Hold the compare button to see the original. Click the preview to inspect at output resolution when that is larger than the display, then move the pointer to pan. Live preview needs WebGL 2; saving works without it.
+
+### Generative fill
+
+**Fill** removes or replaces part of an image with Qwen-Image 2.1 running in your own ComfyUI. It needs the models described in [Generative fill setup](comfyui.md#generative-fill); the tool says what is missing.
+
+1. Paint over what to change. **Erase** takes paint away, the slider sets the brush size, and the buttons beside it undo the last stroke or clear the selection. Cover the whole object, including its edge and shadow. Press `B` for the brush and `E` for the eraser; the mouse wheel zooms around the pointer, dragging with the middle button pans, and `Alt` + wheel changes the brush size.
+2. Leave **Instruction** blank to remove what you painted and continue the background, or describe what should appear there, such as "a wooden bench".
+3. Choose **Fast** (Turbo LoRA, 8 steps) or **Quality** (base model), then **Generate**. Progress shows in the tool's status line; **Cancel** stops only this generation in ComfyUI.
+4. Compare with **Before**, then **Keep fill** or **Discard**. **Regenerate** tries again with a new seed; the previous result stays until the new one arrives.
+
+A kept fill joins the edit like any other change: crop, masks, turns, size and Adjust all work on the filled picture, and **Apply** writes it without generating again. Fills stack, each generated on top of the ones before it. **Undo last fill** removes the newest; an earlier fill cannot go without the ones built on it. **Reset** returns to the saved edit, and **Revert original** removes every fill with the rest of the edit.
+
+Fills are always made from the original, before any other edit, and only the painted area and a feathered border change. The model sees a crop around the selection, scaled to about one megapixel, so a fill on a very large image is generated at lower detail than the image itself. A transparent image keeps transparency the model generates in the filled area; an opaque one stays opaque.
+
+Generations run one at a time on ComfyUI, after any queued **Process with ComfyUI** file. A result you have not kept is unsaved work: leaving the file asks first. Restarting DataForge interrupts a generation in progress, and unkept results are deleted after a day.
 
 ### Edit audio
 
@@ -274,17 +289,19 @@ Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption
 | `<name>.issue.json` | Beside media | Verify or Lint captions | Findings are resolved or cleared |
 | `<name>.duplicate.json` | Beside media | Find duplicates | The group is resolved, dismissed, or cleared |
 | `<name>.bak`, `<name>.edit.json` | Beside media | The editor or Auto-adjust: original and edit settings | **Revert original**, or accepting a ComfyUI result |
+| `<name>.fills` | Beside media | Applying an edit with [generative fills](#generative-fill): their pixels | **Revert original**, or accepting a ComfyUI result |
 | `<stem>-edit.video-project.json` | Beside the first video | Video editor draft | **Delete project**; its media and exports stay |
 | `<name>.video-project.json` | Beside an exported video | The edit that export came from | It moves, copies, and deletes with the video |
 | `<stem>.txt` | `.backup/` | Caption backup | You delete it; restoring keeps it |
 | Watermarked media | `watermarked/` | Watermark | You delete it |
 | Result, `<result-name>.comfy.json` | `staging/` | Process with ComfyUI | It is accepted, rejected, or deleted |
 | Database, thumbnails | `backend/data/` | The app: settings, jobs, notifications, tags | Pruned by [retention](configuration.md#server-storage-and-logging) |
+| Unkept fill results | `backend/data/fill_results/` | Generative fill, until you keep or discard a result | Discard, or a day later |
 | `watermark.png` | `backend/data/` | The PNG chosen in the Watermark dialog | Choosing another PNG replaces it |
 | `tag_vocabulary.txt` | `backend/data/` | You: extra tag terms | You delete it |
 | Tagging model | `backend/data/models/` | The first tagging run; `DATAFORGE_MODELS_DIR` moves it | You delete it |
 
-For example, `scene.jpg` can have `scene.txt`, `scene.jpg.issue.json`, `scene.jpg.duplicate.json`, `scene.jpg.bak`, and `scene.jpg.edit.json`.
+For example, `scene.jpg` can have `scene.txt`, `scene.jpg.issue.json`, `scene.jpg.duplicate.json`, `scene.jpg.bak`, `scene.jpg.edit.json`, and `scene.jpg.fills`.
 
 The gallery hides `.backup/` and common repository, environment, system, and cache folders, such as `.git`, `node_modules`, `.venv`, `__pycache__`, `_latent_cache`, and `_t_e_cache`.
 
@@ -332,6 +349,8 @@ Press `?` outside a text field to see the shortcut list in the app. On macOS, us
 | `Ctrl+Space` | Show caption word completions; `Escape` closes them first |
 | Arrow keys | Nudge a focused crop, mask, or trim handle, or Adjust slider; `Shift` for larger steps |
 | `Delete` | Remove the focused mask |
+| `B` / `E` | Fill: paint or erase the selection |
+| Wheel / middle-drag | Fill: zoom around the pointer / pan; `Alt` + wheel sizes the brush |
 | `Home` / `End` | Move a video trim handle to the start / end |
 
 A video trim handle moves one frame per arrow press, or one second with Shift. For the video editor, see its [shortcuts](video-editor.md#keyboard-shortcuts).

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import threading
-import time
 import uuid
-from collections.abc import Generator, Mapping
-from contextlib import contextmanager, suppress
+from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -41,23 +39,15 @@ from constants import (
     STAGING_DIR_NAME,
 )
 from external.comfy_client import (
-    COMFY_POLL_INTERVAL_SECONDS,
     COMFY_TRANSFER_TIMEOUT_SECONDS,
     ComfyError,
-    ComfyPromptError,
     ComfyUnavailableError,
-    delete_queued,
     download_view_to,
-    fetch_history,
-    fetch_queue,
-    history_error_text,
-    history_is_finished,
-    history_outputs,
-    interrupt,
     open_comfy_client,
     submit_prompt,
     upload_media,
 )
+from external.comfy_execution import ComfyRunCancelled, await_output, gpu_slot
 from external.comfy_workflows import (
     PROMPT_NODE_TITLE,
     ComfyWorkflow,
@@ -88,37 +78,13 @@ PROCESSED_STAT_KEYS = (
     "write_error",
 )
 
-NO_OUTPUT_MESSAGE = "The workflow produced no output"
-
 #: Container rounding and a re-encode move the last frame; inside this, two clips match.
 CANDIDATE_DURATION_TOLERANCE_SECONDS = 0.25
 CANDIDATE_DURATION_TOLERANCE_FRACTION = 0.02
 
 
-class ComfyProcessCancelled(Exception):
-    """Raised when a cancel arrives while a file is in ComfyUI's queue."""
-
-
 class CandidateConflictError(Exception):
     """The name this candidate would take is claimed by another source in the folder."""
-
-
-# One file in ComfyUI at a time so interrupt can only target our own prompt.
-_gpu_lock = threading.Lock()
-
-
-@contextmanager
-def _gpu_slot(should_cancel: ShouldCancel | None) -> Generator[None]:
-    """Wait for the slot in polls, not one blocking acquire: a whole video file can hold it for an
-    hour, and a thread parked in ``acquire`` never looks at ``should_cancel`` again."""
-    while not _gpu_lock.acquire(timeout=COMFY_POLL_INTERVAL_SECONDS):
-        if should_cancel and should_cancel():
-            raise ComfyProcessCancelled
-
-    try:
-        yield
-    finally:
-        _gpu_lock.release()
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,59 +151,6 @@ def validate_comfy_process_folder(
 
     if not filter_media_list(list_comfy_process_files(folder), selected_paths):
         raise ValueError("No media to process in this folder")
-
-
-def _request_stop(client: httpx.Client, prompt_id: str) -> None:
-    try:
-        running, pending = fetch_queue(client)
-    except ComfyError:
-        return
-
-    if prompt_id in running:
-        with suppress(ComfyError):
-            interrupt(client, prompt_id)
-        return
-
-    if prompt_id in pending:
-        with suppress(ComfyError):
-            delete_queued(client, prompt_id)
-
-
-def _await_output(
-    client: httpx.Client,
-    prompt_id: str,
-    *,
-    output_node: str,
-    timeout: float,
-    should_cancel: ShouldCancel | None,
-) -> dict[str, str]:
-    """Poll until the prompt finishes; cancel is checked here because one file can take an hour."""
-    deadline = time.monotonic() + timeout
-    stop_requested = False
-
-    while True:
-        entry = fetch_history(client, prompt_id)
-        if entry is not None and history_is_finished(entry):
-            error = history_error_text(entry)
-            if error:
-                raise ComfyPromptError(error)
-
-            # This node only: a graph that also wrote a preview would otherwise stage the preview.
-            refs = history_outputs(entry, node_id=output_node)
-            if not refs:
-                raise ComfyPromptError(NO_OUTPUT_MESSAGE)
-            return refs[-1]
-
-        if not stop_requested and should_cancel and should_cancel():
-            stop_requested = True
-            _request_stop(client, prompt_id)
-            raise ComfyProcessCancelled
-
-        if time.monotonic() > deadline:
-            _request_stop(client, prompt_id)
-            raise ComfyError(f"ComfyUI did not finish this file within {timeout:.0f}s")
-
-        time.sleep(COMFY_POLL_INTERVAL_SECONDS)
 
 
 def _stage_image_candidate(source: Path, temp_path: Path, destination: Path) -> CandidateFacts:
@@ -359,9 +272,9 @@ def _process_one(
         custom_values=custom_values,
     )
 
-    with _gpu_slot(should_cancel):
+    with gpu_slot(should_cancel):
         prompt_id = submit_prompt(client, prompt, client_id=client_id)
-        ref = _await_output(
+        ref = await_output(
             client,
             prompt_id,
             output_node=workflow.output_node,
@@ -468,7 +381,7 @@ def run_comfy_process_job(
                 client_id=client_id,
                 should_cancel=should_cancel,
             )
-        except ComfyProcessCancelled:
+        except ComfyRunCancelled:
             return FileOutcome.cancelled()
         except CandidateConflictError as exc:
             return FileOutcome.counted("write_error", exc)

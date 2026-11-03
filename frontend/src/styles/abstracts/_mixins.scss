@@ -637,6 +637,8 @@
 }
 
 @mixin dialog-option-tile {
+  // Anchors the visually hidden radio, like `.dialog__checkbox`.
+  position: relative;
   flex: 1;
   display: flex;
   align-items: flex-start;

@@ -8,6 +8,7 @@
   "width": 1920,
   "height": 1080,
   "frame_rate": 24.0,
+  "background": "#000000",
   "initial_source_id": "ec2fddfb3d86",
   "sources": [
     {
@@ -130,6 +131,14 @@
       "fade_in": 0.0,
       "fade_out": 0.0,
       "fade_curve": "equal_power",
+      "audio_effects": {
+        "low_cut": 0.0,
+        "high_cut": 0.0,
+        "bass": 0.0,
+        "mid": 0.0,
+        "treble": 0.0,
+        "noise_reduction": 0.0
+      },
       "title": {
         "text": "This is a sample project",
         "size": 0.08,
@@ -147,7 +156,10 @@
         "scale": [],
         "rotation": [],
         "opacity": [],
-        "gain": []
+        "gain": [],
+        "bass": [],
+        "mid": [],
+        "treble": []
       }
     },
     {
@@ -191,6 +203,14 @@
       "fade_in": 0.0,
       "fade_out": 0.0,
       "fade_curve": "equal_power",
+      "audio_effects": {
+        "low_cut": 0.0,
+        "high_cut": 0.0,
+        "bass": 0.0,
+        "mid": 0.0,
+        "treble": 0.0,
+        "noise_reduction": 0.0
+      },
       "title": null,
       "keyframes": {
         "x": [],
@@ -198,7 +218,10 @@
         "scale": [],
         "rotation": [],
         "opacity": [],
-        "gain": []
+        "gain": [],
+        "bass": [],
+        "mid": [],
+        "treble": []
       }
     },
     {
@@ -242,6 +265,14 @@
       "fade_in": 0.0,
       "fade_out": 0.0,
       "fade_curve": "equal_power",
+      "audio_effects": {
+        "low_cut": 0.0,
+        "high_cut": 0.0,
+        "bass": 0.0,
+        "mid": 0.0,
+        "treble": 0.0,
+        "noise_reduction": 0.0
+      },
       "title": null,
       "keyframes": {
         "x": [],
@@ -249,7 +280,10 @@
         "scale": [],
         "rotation": [],
         "opacity": [],
-        "gain": []
+        "gain": [],
+        "bass": [],
+        "mid": [],
+        "treble": []
       }
     },
     {
@@ -293,6 +327,14 @@
       "fade_in": 0.0,
       "fade_out": 0.0,
       "fade_curve": "equal_power",
+      "audio_effects": {
+        "low_cut": 0.0,
+        "high_cut": 0.0,
+        "bass": 0.0,
+        "mid": 0.0,
+        "treble": 0.0,
+        "noise_reduction": 0.0
+      },
       "title": null,
       "keyframes": {
         "x": [],
@@ -300,7 +342,10 @@
         "scale": [],
         "rotation": [],
         "opacity": [],
-        "gain": []
+        "gain": [],
+        "bass": [],
+        "mid": [],
+        "treble": []
       }
     }
   ],

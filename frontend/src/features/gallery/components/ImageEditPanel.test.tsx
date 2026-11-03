@@ -15,6 +15,7 @@ import {
 } from "@/features/gallery/lib/mask";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 import { makeAdjustControls } from "@/test/colorAdjustControls";
+import { makeFillControls, makeImageFill } from "@/test/fillControls";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
 import type { CropRect } from "@/features/gallery/lib/crop";
 import type { MaskMode } from "@/features/gallery/lib/mask";
@@ -65,6 +66,11 @@ function makeEdit(overrides: Partial<ImageEdit> = {}): ImageEdit {
     toggleMirrorV: vi.fn<() => void>(),
     setScale: vi.fn<(scale: number) => void>(),
     adjust: makeAdjustControls({ values: draft.adjust }),
+    fill: makeFillControls(),
+    fillActive: false,
+    setFillActive: vi.fn<(active: boolean) => void>(),
+    undoFill: vi.fn<() => void>(),
+    pending: false,
     resetDraft: vi.fn<() => void>(),
     apply: vi.fn<() => void>(),
     revert: vi.fn<() => void>(),
@@ -181,6 +187,137 @@ describe("ImageEditPanel", () => {
       renderPanel(makeEdit());
 
       expect(tools().queryByRole("button", { name: /, changed$/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("fill", () => {
+    async function openFill(edit: ImageEdit) {
+      const user = userEvent.setup();
+      renderPanel(edit);
+      await user.click(tools().getByRole("button", { name: /^Fill/ }));
+      return user;
+    }
+
+    it("arms the brush only while the fill tool is open", async () => {
+      const edit = makeEdit();
+      const user = await openFill(edit);
+
+      expect(edit.setFillActive).toHaveBeenLastCalledWith(true);
+      await user.click(tools().getByRole("button", { name: "Crop" }));
+      expect(edit.setFillActive).toHaveBeenLastCalledWith(false);
+    });
+
+    it("offers brush, eraser, size and the request with accessible names", async () => {
+      const fill = makeFillControls({ strokes: [{ mode: "paint", radius: 4, points: [] }] });
+      const user = await openFill(makeEdit({ fill }));
+
+      await user.click(screen.getByRole("button", { name: "Erase" }));
+      expect(fill.setBrushMode).toHaveBeenCalledWith("erase");
+      fireEvent.change(screen.getByRole("slider", { name: "Size" }), { target: { value: "0.05" } });
+      expect(fill.setBrushFraction).toHaveBeenCalledWith(0.05);
+      await user.click(screen.getByRole("button", { name: "Undo stroke" }));
+      expect(fill.undoStroke).toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Clear selection" }));
+      expect(fill.clearStrokes).toHaveBeenCalled();
+      await user.type(screen.getByRole("textbox", { name: "Instruction" }), "a");
+      expect(fill.setInstruction).toHaveBeenCalledWith("a");
+      await user.click(screen.getByRole("button", { name: "Fast" }));
+      expect(fill.setPreset).toHaveBeenCalledWith("fast");
+      // One instruction serves both: blank removes, words say what goes there.
+      expect(screen.queryByRole("button", { name: "Replace" })).not.toBeInTheDocument();
+    });
+
+    it("switches brush and eraser with B and E, but not while typing the instruction", async () => {
+      const fill = makeFillControls();
+      const user = await openFill(makeEdit({ fill }));
+      expect(screen.getByRole("button", { name: "Paint" })).toHaveAttribute(
+        "aria-keyshortcuts",
+        "B",
+      );
+      expect(screen.getByRole("button", { name: "Erase" })).toHaveAttribute(
+        "aria-keyshortcuts",
+        "E",
+      );
+
+      await user.keyboard("e");
+      expect(fill.setBrushMode).toHaveBeenLastCalledWith("erase");
+      await user.keyboard("b");
+      expect(fill.setBrushMode).toHaveBeenLastCalledWith("paint");
+
+      vi.mocked(fill.setBrushMode).mockClear();
+      await user.type(screen.getByRole("textbox", { name: "Instruction" }), "be");
+      expect(fill.setBrushMode).not.toHaveBeenCalled();
+    });
+
+    it("leaves B and E alone while painting is locked", async () => {
+      const fill = makeFillControls({ canPaint: false, generating: true, progress: "running" });
+      const user = await openFill(makeEdit({ fill }));
+
+      await user.keyboard("e");
+
+      expect(fill.setBrushMode).not.toHaveBeenCalled();
+    });
+
+    it("says why Generate is off in the status line", async () => {
+      const fill = makeFillControls({ generateBlocker: "Update ComfyUI for Qwen-Image 2.1." });
+      await openFill(makeEdit({ fill }));
+
+      expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
+      expect(screen.getByRole("status")).toHaveTextContent("Update ComfyUI for Qwen-Image 2.1.");
+    });
+
+    it("swaps Generate for Cancel while a run is in progress", async () => {
+      const fill = makeFillControls({ generating: true, progress: "running", canPaint: false });
+      const user = await openFill(makeEdit({ fill }));
+
+      expect(screen.queryByRole("button", { name: "Generate" })).not.toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Generating...");
+      expect(screen.getByRole("button", { name: "Paint" })).toBeDisabled();
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(fill.cancel).toHaveBeenCalled();
+    });
+
+    it("offers keep, discard, comparison and regenerate for a result", async () => {
+      const fill = makeFillControls({
+        candidate: makeImageFill(),
+        canGenerate: true,
+        canPaint: false,
+        pending: true,
+      });
+      const user = await openFill(makeEdit({ fill, pending: true, dirty: true }));
+
+      // The request is settled; only the result's own controls take the row.
+      expect(screen.queryByRole("button", { name: "Paint" })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Before" }));
+      expect(fill.setShowBefore).toHaveBeenCalledWith(true);
+      await user.click(screen.getByRole("button", { name: "Regenerate" }));
+      expect(fill.generate).toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Discard" }));
+      expect(fill.discard).toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Keep fill" }));
+      expect(fill.keep).toHaveBeenCalled();
+      // Apply never takes an undecided result; Reset drops it.
+      expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Reset" })).toBeEnabled();
+    });
+
+    it("will not keep a result whose parent fill was undone", async () => {
+      const fill = makeFillControls({ candidate: makeImageFill(), candidateStale: true });
+      await openFill(makeEdit({ fill }));
+
+      expect(screen.getByRole("button", { name: "Keep fill" })).toBeDisabled();
+      expect(screen.getByRole("status")).toHaveTextContent("generate again");
+    });
+
+    it("undoes the newest kept fill and counts them in the output line", async () => {
+      const draft = draftWith({ fills: [makeImageFill(), makeImageFill({ id: "b".repeat(32) })] });
+      const edit = makeEdit({ draft });
+      const user = await openFill(edit);
+
+      expect(tools().getByRole("button", { name: "Fill, changed" })).toBeInTheDocument();
+      expect(screen.getByText("2 fills")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Undo last fill" }));
+      expect(edit.undoFill).toHaveBeenCalled();
     });
   });
 

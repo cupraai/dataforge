@@ -228,7 +228,10 @@
     margin: 0.75rem 0 0;
   }
 
+  // Positioned so the hidden input scrolls with its label; anchored to an ancestor outside the
+  // scroller, its focus would scroll that ancestor instead.
   &__checkbox {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -1262,39 +1265,63 @@
 }
 
 .shortcuts-dialog {
+  // Columns, not a grid: groups differ in length, and grid rows would wait for the tallest.
   &__groups {
     @include app-scrollbar;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-    gap: 1rem 1.75rem;
     flex: 1;
     min-height: 0;
+    margin-top: 0.75rem;
     overflow-y: auto;
+    columns: 17rem 3;
+    column-gap: 0.875rem;
   }
 
   &__group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
     min-width: 0;
+    margin-bottom: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    break-inside: avoid;
   }
 
   &__group-label {
-    @include section-label;
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    margin: 0;
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    line-height: var(--leading-snug);
+    color: var(--text);
+  }
+
+  &__group-icon {
+    @include icon-size(var(--icon-size-base));
+    color: var(--accent);
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
     margin: 0;
+    padding: 0.125rem 0;
   }
 
   &__row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 1rem;
+    padding: 0.3125rem 0.875rem;
+
+    & + & {
+      border-top: 1px solid var(--border);
+    }
   }
 
   &__label {
@@ -1310,5 +1337,10 @@
     flex-shrink: 0;
     margin: 0;
     color: var(--text-muted);
+
+    // A step up from inline hints: here the keys are the content.
+    .shortcut-keys {
+      font-size: var(--text-xs);
+    }
   }
 }

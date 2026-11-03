@@ -364,7 +364,10 @@ export function GalleryItemDialog({
       : item && isEditableAudio(item)
         ? audioEdit
         : imageEdit;
-  const unsavedEdits = editMode && (activeEdit.dirty || activeEdit.adjust.autoPending);
+  // A fill run or an undecided result is work too, though Apply would not write it.
+  const fillPending = activeEdit === imageEdit && imageEdit.pending;
+  const unsavedEdits =
+    editMode && (activeEdit.dirty || activeEdit.adjust.autoPending || fillPending);
   useDialogNavigationDraft({
     unsavedChanges: captionDirty,
     blocked: busy,
@@ -1316,6 +1319,7 @@ export function GalleryItemDialog({
           ) : editMode && canEditImageItem ? (
             <ImageEditStage
               edit={imageEdit}
+              path={item.path}
               src={imageOriginalUrl(item.path)}
               alt={item.name}
               disabled={busy}

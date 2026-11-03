@@ -19,13 +19,15 @@ import {
   specCropsEqual,
 } from "./editSpec";
 import { fittedSize } from "@/shared/lib/sizeFit";
-import type { AutoAdjust, ColorAdjust, ImageEditSpec, SizeFit } from "@/shared/types";
+import type { AutoAdjust, ColorAdjust, ImageEditSpec, ImageFill, SizeFit } from "@/shared/types";
 
-// Order matches backend/image_edit.py: mask, crop, mirror, rotate, scale, adjust. Sizes round.
+// Order as in backend/image_edit.py: fill, mask, crop, mirror, rotate, scale, adjust. Sizes round.
 
 const QUARTER_TURNS: readonly RotationDegrees[] = [0, 90, 180, 270];
 
 export interface ImageEditDraft {
+  /** Kept generative fills, oldest first; each was generated on top of the one before. */
+  fills: ImageFill[];
   masks: MaskDraft[];
   crop: CropRect;
   mirrorH: boolean;
@@ -41,6 +43,7 @@ export interface ImageEditDraft {
 
 export function emptyDraft(): ImageEditDraft {
   return {
+    fills: [],
     masks: [],
     crop: IDENTITY_CROP,
     mirrorH: false,
@@ -55,6 +58,7 @@ export function emptyDraft(): ImageEditDraft {
 
 export function isIdentityEdit(draft: ImageEditDraft): boolean {
   return (
+    draft.fills.length === 0 &&
     draft.masks.length === 0 &&
     isIdentityCrop(draft.crop) &&
     !draft.mirrorH &&
@@ -136,6 +140,7 @@ export function scaleForTargetHeight(
 
 export function toImageEditSpec(draft: ImageEditDraft): ImageEditSpec {
   return {
+    fills: [...draft.fills],
     masks: toMaskRegions(draft.masks),
     crop: isIdentityCrop(draft.crop) ? null : { ...draft.crop },
     mirror_h: draft.mirrorH,
@@ -153,6 +158,7 @@ export function draftFromSpec(spec: ImageEditSpec | null): ImageEditDraft {
   if (!spec) return draft;
 
   return {
+    fills: [...spec.fills],
     masks: maskDraftsFromSpec(spec.masks),
     crop: cropFromSpec(spec.crop),
     mirrorH: spec.mirror_h,
@@ -168,6 +174,7 @@ export function draftFromSpec(spec: ImageEditSpec | null): ImageEditDraft {
 /** Compared as specs, not drafts, because toImageEditSpec already normalizes a whole-frame crop. */
 export function specsEqual(a: ImageEditSpec, b: ImageEditSpec): boolean {
   return (
+    fillsEqual(a.fills, b.fills) &&
     masksEqual(a.masks, b.masks) &&
     specCropsEqual(a.crop, b.crop) &&
     a.mirror_h === b.mirror_h &&
@@ -178,6 +185,11 @@ export function specsEqual(a: ImageEditSpec, b: ImageEditSpec): boolean {
     adjustEqual(a.adjust, b.adjust) &&
     autoAdjustEqual(a.auto_adjust ?? null, b.auto_adjust ?? null)
   );
+}
+
+/** By id: a fill's pixels are fixed at generation, so the same id is the same fill. */
+export function fillsEqual(a: readonly ImageFill[], b: readonly ImageFill[]): boolean {
+  return a.length === b.length && a.every((fill, index) => fill.id === b[index].id);
 }
 
 export function formatRotation(rotate: RotationDegrees): string {

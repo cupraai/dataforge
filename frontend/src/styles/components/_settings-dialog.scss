@@ -16,14 +16,15 @@
     @include dialog-backdrop;
   }
 
-  // Fixed size, so switching sections never resizes the panel.
+  // Fixed size, so switching sections never resizes the panel. `clip`, not `hidden`: a hidden
+  // panel is still a scroll container, which focusing a control can scroll out of view.
   &__panel {
     position: relative;
     display: grid;
     grid-template-columns: 14.5rem minmax(0, 1fr);
     width: min(58rem, 100%);
     height: min(90vh, 40rem);
-    overflow: hidden;
+    overflow: clip;
     @include dialog-panel-surface;
   }
 
@@ -673,7 +674,9 @@
   gap: 0.75rem;
 }
 
+// Anchors the visually hidden radio, like `.dialog__checkbox`.
 .theme-option {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.625rem;

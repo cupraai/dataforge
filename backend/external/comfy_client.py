@@ -6,6 +6,7 @@ import json
 import mimetypes
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -321,6 +322,23 @@ def delete_queued(client: httpx.Client, prompt_id: str) -> None:
         response.raise_for_status()
     except httpx.HTTPError as error:
         raise ComfyUnavailableError(str(error)) from error
+
+
+def fetch_node_info(client: httpx.Client, class_type: str) -> dict[str, Any] | None:
+    """ComfyUI's description of one node class, or None when it has no such node installed."""
+    try:
+        response = client.get(
+            f"/object_info/{quote(class_type, safe='')}", timeout=COMFY_REQUEST_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except httpx.HTTPError as error:
+        raise ComfyUnavailableError(str(error)) from error
+    except json.JSONDecodeError as error:
+        raise ComfyError("ComfyUI returned an unreadable node description") from error
+
+    info = payload.get(class_type) if isinstance(payload, dict) else None
+    return info if isinstance(info, dict) else None
 
 
 def fetch_raw_log_entries(client: httpx.Client) -> list[dict[str, Any]]:

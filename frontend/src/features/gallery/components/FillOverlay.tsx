@@ -1,0 +1,160 @@
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type RefObject,
+} from "react";
+import type { Orientation } from "@/features/gallery/lib/crop";
+import {
+  clientPointToFraction,
+  drawStrokes,
+  fractionToSource,
+  type FillPoint,
+  type FillStroke,
+} from "@/features/gallery/lib/fillMask";
+import { usePaintedBox } from "@/features/gallery/hooks/usePaintedBox";
+import { classNames } from "@/shared/lib/classNames";
+
+/** A backing store past this many pixels a side buys nothing a screen can show. */
+const MAX_BACKING_SIDE = 2048;
+
+/** Pointer moves closer than this fraction of the radius add nothing but points. */
+const MIN_POINT_SPACING = 0.2;
+
+interface FillOverlayProps {
+  mediaRef: RefObject<HTMLImageElement | null>;
+  sourceWidth: number;
+  sourceHeight: number;
+  orientation: Orientation;
+  strokes: readonly FillStroke[];
+  /** In original pixels. */
+  brushRadius: number;
+  erasing: boolean;
+  interactive: boolean;
+  /** Off while a result is shown, so the picture is what Keep would add. */
+  showStrokes: boolean;
+  onBegin: (point: FillPoint) => void;
+  onExtend: (point: FillPoint) => void;
+}
+
+/** The Fill tool's brush. Drawn in the upright frame inside the stage's turned canvas. */
+export function FillOverlay({
+  mediaRef,
+  sourceWidth,
+  sourceHeight,
+  orientation,
+  strokes,
+  brushRadius,
+  erasing,
+  interactive,
+  showStrokes,
+  onBegin,
+  onExtend,
+}: FillOverlayProps) {
+  const box = usePaintedBox(mediaRef, sourceWidth, sourceHeight);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastPointRef = useRef<FillPoint | null>(null);
+  const [cursor, setCursor] = useState<FillPoint | null>(null);
+
+  const scale = Math.min(1, MAX_BACKING_SIDE / Math.max(1, sourceWidth, sourceHeight));
+  const backingWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const backingHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, backingWidth, backingHeight);
+    // The stylesheet's token, drawn opaque: the element's opacity tints it, so overlapping
+    // strokes do not darken where they cross.
+    if (showStrokes) drawStrokes(context, strokes, scale, getComputedStyle(canvas).color);
+  }, [backingHeight, backingWidth, scale, showStrokes, strokes]);
+
+  const toSource = (event: PointerEvent<HTMLDivElement>): FillPoint | null => {
+    const surface = surfaceRef.current;
+    if (!surface) return null;
+    const fraction = clientPointToFraction(
+      event.clientX,
+      event.clientY,
+      surface.getBoundingClientRect(),
+      orientation,
+    );
+    setCursor(fraction);
+    return fractionToSource(fraction, { width: sourceWidth, height: sourceHeight });
+  };
+
+  const style = useMemo(
+    () =>
+      ({
+        left: box.left,
+        top: box.top,
+        width: box.width,
+        height: box.height,
+      }) as CSSProperties,
+    [box],
+  );
+
+  const ringSize = sourceWidth > 0 ? (2 * brushRadius * box.width) / sourceWidth : 0;
+
+  return (
+    <div
+      ref={surfaceRef}
+      className={classNames("fill-overlay", interactive && "fill-overlay--interactive")}
+      style={style}
+      data-testid="fill-overlay"
+      aria-hidden="true"
+      onPointerDown={(event) => {
+        if (!interactive || event.button !== 0) return;
+        const point = toSource(event);
+        if (!point) return;
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        lastPointRef.current = point;
+        onBegin(point);
+      }}
+      onPointerMove={(event) => {
+        const point = toSource(event);
+        const last = lastPointRef.current;
+        if (!point || !last || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        const spacing = Math.max(1, brushRadius * MIN_POINT_SPACING);
+        if (Math.hypot(point.x - last.x, point.y - last.y) < spacing) return;
+        lastPointRef.current = point;
+        onExtend(point);
+      }}
+      onPointerUp={(event) => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        lastPointRef.current = null;
+      }}
+      onPointerCancel={() => {
+        lastPointRef.current = null;
+      }}
+      onPointerLeave={() => setCursor(null)}
+    >
+      <canvas
+        ref={canvasRef}
+        className="fill-overlay__paint"
+        width={backingWidth}
+        height={backingHeight}
+      />
+      {interactive && cursor && (
+        <span
+          className={classNames("fill-overlay__cursor", erasing && "fill-overlay__cursor--erase")}
+          style={
+            {
+              left: `${cursor.x * 100}%`,
+              top: `${cursor.y * 100}%`,
+              width: ringSize,
+              height: ringSize,
+            } as CSSProperties
+          }
+        />
+      )}
+    </div>
+  );
+}

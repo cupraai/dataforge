@@ -34,6 +34,7 @@ type ClaimActivity = Literal[
     "stage",
     "caption",
     "export",
+    "fill",
 ]
 
 _ACTIVITY_PHRASES: dict[ClaimActivity, str] = {
@@ -48,6 +49,7 @@ _ACTIVITY_PHRASES: dict[ClaimActivity, str] = {
     "stage": "being processed by ComfyUI",
     "caption": "having its caption saved",
     "export": "being exported",
+    "fill": "being read for a generative fill",
 }
 
 

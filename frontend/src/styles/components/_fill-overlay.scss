@@ -1,0 +1,40 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+// The Fill tool's brush, positioned against the painted image box like the blur regions.
+.fill-overlay {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  touch-action: none;
+
+  &--interactive {
+    pointer-events: auto;
+    // The ring is the cursor; a pointer arrow on top of it hides the edge being painted.
+    cursor: none;
+  }
+
+  // Drawn opaque in its own `color`, then tinted here, so crossing strokes do not darken.
+  &__paint {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: var(--accent);
+    opacity: 0.45;
+  }
+
+  &__cursor {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1.5px solid var(--media-outline);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--accent);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  &__cursor--erase {
+    border-style: dashed;
+  }
+}

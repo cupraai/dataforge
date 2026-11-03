@@ -185,6 +185,7 @@ Settings marked **env** can only be set in the environment and need a restart.
 | `DATAFORGE_SERVE_UI` | off | env | Serve `frontend/dist`; the production launcher sets it. Leave unset in development |
 | `DATAFORGE_DB_PATH` | `backend/data/app.db` | env | SQLite file for settings, jobs, and notifications |
 | `DATAFORGE_THUMBNAIL_CACHE` | `backend/data/thumbnails/` | env | Thumbnail folder |
+| `DATAFORGE_FILL_RESULTS` | `backend/data/fill_results/` | env | Generative fill results not yet kept and applied; deleted a day after they were made |
 | `DATAFORGE_THUMBNAIL_CACHE_MAX_MB` | `2048` | Settings > Storage | Cache limit in MiB; least recently used thumbnails go first. `0` means no limit |
 | `DATAFORGE_JOB_HISTORY_DAYS` | `30` | Settings > Data & history | Days to keep finished jobs; running jobs are never removed. `0` keeps them forever |
 | `DATAFORGE_NOTIFICATION_HISTORY_DAYS` | `3` | Settings > Data & history | Days to keep notifications; the feed holds at most 50 either way. `0` turns off age pruning |
@@ -236,6 +237,7 @@ The default endpoints are local. Using a remote endpoint sends the following dat
 | Verify captions      | Downscaled image/video frames, caption, additional context; no audio                                     | `OPENAI_API_BASE_URL` |
 | Edit captions        | Caption and edit instruction; with **Send media**, also downscaled image/video frames                    | `OPENAI_API_BASE_URL` |
 | Process with ComfyUI | Source media and workflow inputs                                                                         | `COMFY_BASE_URL`      |
+| Generative fill      | A crop around the painted area, its mask, and the instruction                                            | `COMFY_BASE_URL`      |
 | Quick LoRA training  | Dataset folder path and training configuration, including prompts; no media upload                       | `OSTRIS_BASE_URL`     |
 
 AI-Toolkit must be able to read the supplied dataset path. Its configuration controls output locations; DataForge also needs filesystem access to its state and samples to display them.

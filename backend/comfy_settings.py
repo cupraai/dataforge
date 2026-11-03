@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from app_settings import effective_settings
 from env_file import env_str
 
 DEFAULT_WORKFLOWS_DIR = Path(__file__).resolve().parents[1] / "comfy_workflows"
+
+#: Tracked with the code, unlike the presets: the editor's fill depends on their exact roles.
+FILL_TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "comfy_fill_templates"
 
 # Generous: waiting too little discards a result ComfyUI has already paid for.
 DEFAULT_COMFY_IMAGE_TIMEOUT_SECONDS = 900.0
@@ -62,3 +66,25 @@ def get_comfy_media_timeout(media_type: str | None) -> float:
     if media_type in {"video", "gif"}:
         return get_comfy_video_timeout()
     return get_comfy_image_timeout()
+
+
+@dataclass(frozen=True)
+class FillSettings:
+    """What the fill templates load and how long they sample, from Settings > Integrations."""
+
+    diffusion_model: str
+    text_encoder: str
+    vae: str
+    turbo_lora: str
+    quality_steps: int
+
+
+def get_fill_settings() -> FillSettings:
+    settings = effective_settings()
+    return FillSettings(
+        diffusion_model=settings.fill_diffusion_model,
+        text_encoder=settings.fill_text_encoder,
+        vae=settings.fill_vae,
+        turbo_lora=settings.fill_turbo_lora,
+        quality_steps=int(settings.fill_quality_steps),
+    )

@@ -16,6 +16,8 @@ from constants import (
     DEFAULT_GALLERY_SORT,
     DEFAULT_RESIZE_MEGAPIXELS,
     DEFAULT_RESIZE_MULTIPLE,
+    MAX_FILL_INSTRUCTION_LENGTH,
+    MAX_IMAGE_FILLS,
     MAX_RESIZE_MEGAPIXELS,
     MAX_RESIZE_MULTIPLE,
     VIDEO_PROJECT_MAX_KEYFRAMES,
@@ -467,6 +469,11 @@ type AppSettingKey = Literal[
     "video_frame_max_pixels",
     "video_frame_min_pixels",
     "comfy_base_url",
+    "fill_diffusion_model",
+    "fill_text_encoder",
+    "fill_vae",
+    "fill_turbo_lora",
+    "fill_quality_steps",
     "ai_toolkit_base_url",
     "thumbnail_cache_max_mb",
     "job_history_days",
@@ -528,6 +535,11 @@ class AppSettingsResponse(BaseModel):
     video_frame_max_pixels: NumberSettingState
     video_frame_min_pixels: NumberSettingState
     comfy_base_url: TextSettingState
+    fill_diffusion_model: TextSettingState
+    fill_text_encoder: TextSettingState
+    fill_vae: TextSettingState
+    fill_turbo_lora: TextSettingState
+    fill_quality_steps: NumberSettingState
     ai_toolkit_base_url: TextSettingState
     thumbnail_cache_max_mb: NumberSettingState
     job_history_days: NumberSettingState
@@ -560,6 +572,11 @@ class AppSettingsOverrides(BaseModel):
     video_frame_max_pixels: int | None = None
     video_frame_min_pixels: int | None = None
     comfy_base_url: str | None = None
+    fill_diffusion_model: str | None = None
+    fill_text_encoder: str | None = None
+    fill_vae: str | None = None
+    fill_turbo_lora: str | None = None
+    fill_quality_steps: int | None = None
     ai_toolkit_base_url: str | None = None
     thumbnail_cache_max_mb: int | None = None
     job_history_days: int | None = None
@@ -1632,9 +1649,61 @@ class VideoEditResponse(BaseModel):
     replaced_externally: bool = False
 
 
-class ImageEditSpec(BaseModel):
-    """Order is mask, crop, mirror, rotate, scale, adjust — shared with the frontend overlay."""
+#: Opaque server-issued ids; a browser never names a file path for fill pixels.
+FILL_ID_PATTERN = r"^[0-9a-f]{32}$"
 
+#: ``fast`` is the Turbo LoRA on the base model; ``quality`` is the base model alone.
+type FillPreset = Literal["fast", "quality"]
+type FillOperationStatus = Literal[
+    "waiting", "queued", "running", "succeeded", "failed", "cancelled"
+]
+
+
+class FillBox(BaseModel):
+    """The context crop a fill was generated in, in pixels of the EXIF-oriented original."""
+
+    left: int = Field(ge=0)
+    top: int = Field(ge=0)
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+
+
+class ImageFill(BaseModel):
+    """One kept generative fill. Its stored pixels are authoritative; the rest is provenance."""
+
+    id: str = Field(pattern=FILL_ID_PATTERN)
+    #: The fill it was generated on top of; ``None`` for one made from the bare original.
+    parent_id: str | None = Field(None, pattern=FILL_ID_PATTERN)
+    #: SHA-256 of the original file the chain was generated from.
+    source_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    box: FillBox
+    #: The size the model saw, which a large crop is scaled down to.
+    inference_width: int = Field(gt=0)
+    inference_height: int = Field(gt=0)
+    #: What the user asked for; empty means the default background continuation.
+    instruction: str = Field(max_length=MAX_FILL_INSTRUCTION_LENGTH)
+    preset: FillPreset
+    seed: int = Field(ge=0)
+    #: Template name and content digest, for provenance only.
+    workflow: str
+    created_at: str
+
+
+def validated_fills(fills: list[ImageFill]) -> list[ImageFill]:
+    """Each fill must sit on the one before it: removing an earlier fill drops every later one."""
+    parent: str | None = None
+    for fill in fills:
+        if fill.parent_id != parent:
+            raise ValueError("The fills do not form one chain; remove the later fills first")
+        parent = fill.id
+    return fills
+
+
+class ImageEditSpec(BaseModel):
+    """Order is fill, mask, crop, mirror, rotate, scale, adjust — shared with the frontend overlay."""
+
+    #: Generated before everything else, so later edits never get baked into fill pixels.
+    fills: list[ImageFill] = Field(default_factory=list, max_length=MAX_IMAGE_FILLS)
     masks: list[MaskRegion] = Field(default_factory=list, max_length=MAX_MASK_REGIONS)
     crop: EditCropRect | None = None
     mirror_h: bool = False
@@ -1649,6 +1718,7 @@ class ImageEditSpec(BaseModel):
 
     @model_validator(mode="after")
     def _check(self) -> "ImageEditSpec":
+        self.fills = validated_fills(self.fills)
         self.crop = validated_crop(self.crop)
         self.masks = validated_masks(self.masks)
 
@@ -1670,6 +1740,52 @@ class ImageEditResponse(BaseModel):
     has_backup: bool
     #: The live file had been replaced outside DataForge and was adopted as the original.
     replaced_externally: bool = False
+
+
+#: A base64 PNG of a mask the size of the 24-megapixel frames the editor opens stays far below.
+MAX_FILL_MASK_BASE64_LENGTH = 16 * 1024 * 1024
+
+
+class ImageFillRequest(BaseModel):
+    """Generate one fill on top of the draft's current chain."""
+
+    #: The draft's kept fills, oldest first; the new fill is generated on top of the last one.
+    fills: list[ImageFill] = Field(default_factory=list, max_length=MAX_IMAGE_FILLS - 1)
+    #: Base64 PNG the size of the oriented original: white regenerates, black keeps.
+    mask_png: str = Field(min_length=1, max_length=MAX_FILL_MASK_BASE64_LENGTH)
+    #: What goes in the selection; empty continues the background, removing what was there.
+    instruction: str = Field("", max_length=MAX_FILL_INSTRUCTION_LENGTH)
+    preset: FillPreset
+    #: Omitted for a random one; the result records the seed it used.
+    seed: int | None = Field(None, ge=0, le=2**53 - 1)
+
+    @model_validator(mode="after")
+    def _check(self) -> "ImageFillRequest":
+        self.fills = validated_fills(self.fills)
+        return self
+
+
+class ImageFillOperationResponse(BaseModel):
+    """One generation. Operations live in memory: after a restart the id answers 404."""
+
+    id: str
+    path: str
+    status: FillOperationStatus
+    preset: FillPreset
+    error: str | None = None
+    #: Set once it succeeded; keep it by adding it to the draft's fills.
+    fill: ImageFill | None = None
+
+
+class FillPresetState(BaseModel):
+    preset: FillPreset
+    available: bool
+    #: Why it cannot run, naming what to install or configure.
+    reason: str | None = None
+
+
+class FillPresetsResponse(BaseModel):
+    presets: list[FillPresetState]
 
 
 class ComfyCandidateSidecar(BaseModel):
@@ -2528,7 +2644,11 @@ class NotificationEvent(BaseModel):
 
 #: Machine-readable reasons the client branches on; every other error carries ``detail`` only.
 type ApiErrorCode = Literal[
-    "folder_not_found", "media_busy", "caption_conflict", "job_undo_unavailable"
+    "folder_not_found",
+    "media_busy",
+    "caption_conflict",
+    "job_undo_unavailable",
+    "fill_unavailable",
 ]
 
 

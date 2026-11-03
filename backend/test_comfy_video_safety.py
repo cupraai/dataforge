@@ -5,10 +5,11 @@ from pathlib import Path
 
 import httpx
 
-from automation.comfy_process import _await_output, _measure_video_candidate
+from automation.comfy_process import _measure_video_candidate
 from automation.test_comfy_process import VideoWorkspace, run_with, video_handler
 from comfy_candidates import accept_candidate, read_candidate_sidecar
 from external.comfy_client import ComfyError
+from external.comfy_execution import await_output
 from external.comfy_workflows import ComfyWorkflowError, parse_comfy_workflow
 from testing_fixtures import mock_comfy_client, playable_video_bytes, write_gif
 
@@ -65,7 +66,7 @@ class VideoSafetyTests(unittest.TestCase):
         }
         with mock_comfy_client(lambda _: httpx.Response(200, json={"p": entry})) as client:
             with self.assertRaises(ComfyError):
-                _await_output(client, "p", output_node="11", timeout=30, should_cancel=None)
+                await_output(client, "p", output_node="11", timeout=30, should_cancel=None)
 
     def test_audio_loss_is_detected_for_mkv_and_gif(self):
         with tempfile.TemporaryDirectory() as raw:

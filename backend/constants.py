@@ -134,6 +134,14 @@ EDIT_SIDECAR_SUFFIX = ".edit.json"
 EDIT_TEMP_SUFFIX = ".edit-tmp"
 EDIT_STALE_SUFFIX = ".edit-stale"
 
+# The pixels of an edit's generative fills, one archive per whole filename like the backup.
+FILL_ASSETS_SUFFIX = ".fills"
+
+#: A spec's fills form one chain: each was generated from the original plus every fill before it.
+MAX_IMAGE_FILLS = 16
+
+MAX_FILL_INSTRUCTION_LENGTH = 1000
+
 # Explicit types: Windows `mimetypes.guess_type` can fall through to `text/plain`.
 MEDIA_MIME_TYPES = {
     ".jpg": "image/jpeg",
@@ -354,6 +362,8 @@ SHARED_CONSTANTS: dict[str, object] = {
     "VIDEO_PROJECT_DUCK_RAMP_SECONDS": VIDEO_PROJECT_DUCK_RAMP_SECONDS,
     "VIDEO_PROJECT_MAX_KEYFRAMES": VIDEO_PROJECT_MAX_KEYFRAMES,
     "IMAGE_EDIT_EXTENSIONS": sorted(IMAGE_EDIT_EXTENSIONS),
+    "MAX_IMAGE_FILLS": MAX_IMAGE_FILLS,
+    "MAX_FILL_INSTRUCTION_LENGTH": MAX_FILL_INSTRUCTION_LENGTH,
     "GIF_EXTENSION": GIF_EXTENSION,
     "GIF_MP4_FRAME_RATE": GIF_MP4_FRAME_RATE,
     "COMFY_WORKFLOW_EXTENSIONS": sorted(COMFY_WORKFLOW_EXTENSIONS),

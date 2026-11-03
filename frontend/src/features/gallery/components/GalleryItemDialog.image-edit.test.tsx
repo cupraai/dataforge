@@ -439,6 +439,7 @@ describe("GalleryItemDialog", () => {
         await waitFor(() => expect(applyMock).toHaveBeenCalled());
         expect(applyMock.mock.calls[0][0]).toBe(PHOTO);
         expect(applyMock.mock.calls[0][1]).toEqual({
+          fills: [],
           masks: [],
           crop: null,
           mirror_h: false,
@@ -504,6 +505,7 @@ describe("GalleryItemDialog", () => {
           path: PHOTO,
           has_backup: true,
           spec: {
+            fills: [],
             masks: [],
             crop: null,
             mirror_h: false,
@@ -530,6 +532,7 @@ describe("GalleryItemDialog", () => {
           path: PHOTO,
           has_backup: true,
           spec: {
+            fills: [],
             masks: [],
             crop: null,
             mirror_h: false,

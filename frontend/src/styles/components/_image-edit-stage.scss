@@ -15,7 +15,9 @@
     left: 50%;
     top: 50%;
     display: block;
-    transform: translate(-50%, -50%) rotate(var(--edit-rotate, 0deg)) scaleX(var(--edit-flip-x, 1))
+    // Zoom and pan come first, in screen space, so they never turn or mirror with the picture.
+    transform: translate(calc(-50% + var(--edit-pan-x, 0px)), calc(-50% + var(--edit-pan-y, 0px)))
+      scale(var(--edit-zoom, 1)) rotate(var(--edit-rotate, 0deg)) scaleX(var(--edit-flip-x, 1))
       scaleY(var(--edit-flip-y, 1));
     transform-origin: center;
   }
@@ -29,6 +31,15 @@
     object-fit: contain;
     pointer-events: none;
     user-select: none;
+  }
+
+  // Clipping only, never layout: the overlays measure the unzoomed boxes.
+  &--zoomed {
+    overflow: hidden;
+  }
+
+  &--panning {
+    cursor: grabbing;
   }
 
   &__img--covered {

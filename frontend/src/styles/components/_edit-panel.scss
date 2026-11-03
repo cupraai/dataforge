@@ -246,7 +246,8 @@
     font-weight: var(--font-semibold);
     color: var(--text-subtle);
 
-    input {
+    // Number boxes only: a slider in a field keeps its own size, or it outgrows the row.
+    input:not([type="range"]) {
       @include dialog-form-input(var(--control-height-sm));
       @include tabular-nums;
       width: 4.25rem;
@@ -254,6 +255,24 @@
       font-size: var(--text-xs);
       text-align: right;
     }
+  }
+
+  &__range {
+    width: 6.5rem;
+    margin: 0;
+    accent-color: var(--accent);
+
+    &:disabled {
+      @include disabled-state;
+    }
+  }
+
+  // One line: the panel holds one row, so a longer instruction scrolls within the field.
+  &__text {
+    @include dialog-form-input(var(--control-height-sm));
+    width: 13rem;
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-xs);
   }
 
   // Set against the controls' baseline row, on the far side so it never crowds them. One line
@@ -276,6 +295,10 @@
     }
   }
 
+  &__hint--wide {
+    min-width: 16rem;
+  }
+
   // The row keeps the buttons' height while the shorter saving status replaces them.
   &__actions {
     display: flex;
@@ -290,6 +313,11 @@
     @include pill-btn-compact(default);
     @include icon-scope-sm;
     height: var(--control-height-sm);
+  }
+
+  &__control--icon {
+    width: var(--control-height-sm);
+    padding: 0;
   }
 
   &__control--revert {

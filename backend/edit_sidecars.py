@@ -1,10 +1,11 @@
 """The edit state an in-place media edit keeps beside the file it rewrites.
 
-A file's edit state is its ``<name>.bak`` original and its ``<name>.edit.json`` record, both keyed
-by the whole filename so same-stem siblings never share one. The record holds the spec the live
-file was rendered from and the fingerprint of the file that render published. A live file that no
-longer matches that fingerprint was replaced outside DataForge: the next apply or revert adopts it
-as the new original instead of rendering over it from the old backup.
+A file's edit state is its ``<name>.bak`` original, its ``<name>.edit.json`` record and, once it
+has generative fills, the ``<name>.fills`` archive of their pixels, all keyed by the whole filename
+so same-stem siblings never share one. The record holds the spec the live file was rendered from
+and the fingerprint of the file that render published. A live file that no longer matches that
+fingerprint was replaced outside DataForge: the next apply or revert adopts it as the new original
+instead of rendering over it from the old backup.
 
 Every writer here must hold a :mod:`media_claims` claim on the media file.
 """
@@ -27,6 +28,7 @@ from constants import (
     EDIT_SIDECAR_SUFFIX,
     EDIT_STALE_SUFFIX,
     EDIT_TEMP_SUFFIX,
+    FILL_ASSETS_SUFFIX,
 )
 from file_publish import publish_replacing, sweep_publish_leftovers
 from file_trash import delete_path
@@ -56,6 +58,10 @@ def backup_path_for(media: Path) -> Path:
 
 def edit_spec_path(media: Path) -> Path:
     return media.with_name(f"{media.name}{EDIT_SIDECAR_SUFFIX}")
+
+
+def fill_assets_path(media: Path) -> Path:
+    return media.with_name(f"{media.name}{FILL_ASSETS_SUFFIX}")
 
 
 def temp_path_for(media: Path) -> Path:
@@ -131,8 +137,9 @@ def _require_claim(media: Path) -> None:
 
 
 def discard_edit_state(media: Path) -> None:
-    """Send the backup and record to the bin; what an adopt or an accept over an edit wants."""
-    for path in (backup_path_for(media), edit_spec_path(media)):
+    """Send the backup, record and fill pixels to the bin; what an adopt or an accept over an edit
+    wants."""
+    for path in (backup_path_for(media), edit_spec_path(media), fill_assets_path(media)):
         if path.is_file():
             delete_path(path)
 
@@ -246,4 +253,6 @@ def restore_backup(media: Path) -> bool:
         backup.unlink(missing_ok=True)
     with suppress(OSError):
         edit_spec_path(media).unlink(missing_ok=True)
+    with suppress(OSError):
+        fill_assets_path(media).unlink(missing_ok=True)
     return True

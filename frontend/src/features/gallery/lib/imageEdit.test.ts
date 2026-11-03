@@ -28,6 +28,7 @@ function draft(overrides: Partial<ImageEditDraft> = {}): ImageEditDraft {
 
 function spec(overrides: Partial<ImageEditSpec> = {}): ImageEditSpec {
   return {
+    fills: [],
     masks: [],
     crop: null,
     mirror_h: false,

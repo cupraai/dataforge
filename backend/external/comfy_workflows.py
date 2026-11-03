@@ -20,14 +20,19 @@ INPUT_NODE_TITLE = "DataForge Input"
 OUTPUT_NODE_TITLE = "DataForge Output"
 SEED_NODE_TITLE = "DataForge Seed"
 PROMPT_NODE_TITLE = "DataForge Prompt"
+#: A second uploaded image, kept apart from the source: white regenerates, black keeps.
+MASK_NODE_TITLE = "DataForge Mask"
 
 #: Any other node titled with this prefix is a custom input, named by the rest of its title.
 CUSTOM_INPUT_TITLE_PREFIX = "DataForge "
-_ROLE_TITLES = frozenset({INPUT_NODE_TITLE, OUTPUT_NODE_TITLE, SEED_NODE_TITLE, PROMPT_NODE_TITLE})
+_ROLE_TITLES = frozenset(
+    {INPUT_NODE_TITLE, OUTPUT_NODE_TITLE, SEED_NODE_TITLE, PROMPT_NODE_TITLE, MASK_NODE_TITLE}
+)
 
 #: The filename widget each known loader takes; the keys are also the inferrable input classes.
-INPUT_KEYS = {"LoadImage": "image", "VHS_LoadVideo": "video"}
-INPUT_CLASSES = frozenset(INPUT_KEYS)
+INPUT_KEYS = {"LoadImage": "image", "LoadImageMask": "image", "VHS_LoadVideo": "video"}
+#: A mask loader is only ever the mask role, so it never stands in for an untitled source.
+INPUT_CLASSES = frozenset(INPUT_KEYS) - {"LoadImageMask"}
 
 #: These read a path off the filesystem, and DataForge only ever has an uploaded name to give them.
 PATH_LOADERS = frozenset({"VHS_LoadVideoPath", "VHS_LoadImagePath"})
@@ -113,6 +118,9 @@ class ComfyWorkflow:
     prompt_node: str | None
     prompt_key: str | None = None
     custom_inputs: tuple[ComfyCustomInput, ...] = ()
+    #: The loader for an uploaded mask; None when the workflow takes none.
+    mask_node: str | None = None
+    mask_key: str | None = None
 
 
 def _node_title(node: dict[str, Any]) -> str:
@@ -376,6 +384,14 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
             f"CLIPTextEncode or Text (Multiline)."
         )
 
+    mask_node = _optional_titled_node(payload, MASK_NODE_TITLE)
+    mask_key = _input_widget_key(payload[mask_node]) if mask_node else None
+    if mask_node is not None and mask_key is None:
+        raise ComfyWorkflowError(
+            f'The node titled "{MASK_NODE_TITLE}" in preset "{source}" takes no filename. '
+            "Title an image loader such as LoadImageMask instead."
+        )
+
     return ComfyWorkflow(
         preset=source,
         prompt=payload,
@@ -387,6 +403,8 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
         prompt_node=prompt_node,
         prompt_key=prompt_key,
         custom_inputs=_custom_inputs(payload, source),
+        mask_node=mask_node,
+        mask_key=mask_key,
     )
 
 
@@ -484,15 +502,24 @@ def build_comfy_prompt(
     seed: int | None = None,
     prompt_text: str | None = None,
     custom_values: Mapping[str, ComfyInputValue] | None = None,
+    mask_ref: str | None = None,
 ) -> dict[str, Any]:
     """A run-ready copy of the graph with this file's values filled in.
 
     ``custom_values`` must come from :func:`resolve_custom_inputs`; names missing from it run as
-    saved.
+    saved. ``mask_ref`` is refused by a workflow without a mask node rather than dropped.
     """
     prompt = deepcopy(workflow.prompt)
 
     prompt[workflow.input_node]["inputs"][workflow.input_key] = media_ref
+
+    if mask_ref is not None:
+        if workflow.mask_node is None or workflow.mask_key is None:
+            raise ComfyWorkflowError(
+                f'The preset "{workflow.preset}" has no node titled "{MASK_NODE_TITLE}" to load '
+                "the mask into."
+            )
+        prompt[workflow.mask_node]["inputs"][workflow.mask_key] = mask_ref
 
     output_inputs = prompt[workflow.output_node].get("inputs")
     if isinstance(output_inputs, dict) and workflow.output_key is not None:

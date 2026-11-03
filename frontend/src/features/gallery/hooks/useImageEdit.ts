@@ -17,6 +17,7 @@ import {
   type AdjustDraft,
   type ColorAdjustControls,
 } from "@/features/gallery/hooks/useColorAdjust";
+import { useImageFill, type ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import { useMaskRegions, type MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
 import type { MaskDraft } from "@/features/gallery/lib/mask";
 import {
@@ -33,7 +34,7 @@ import {
 import { formatApiError } from "@/shared/api/http";
 import { useNotify } from "@/shared/notifications/notifications";
 import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
-import type { GalleryItem, ImageEditSpec } from "@/shared/types";
+import type { GalleryItem, ImageEditSpec, ImageFill } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -71,6 +72,13 @@ export interface ImageEdit extends MaskRegionControls {
   toggleMirrorV: () => void;
   setScale: (scale: number) => void;
   adjust: ColorAdjustControls;
+  fill: ImageFillControls;
+  fillActive: boolean;
+  setFillActive: (active: boolean) => void;
+  /** Drops the newest kept fill; earlier ones cannot go without the ones built on them. */
+  undoFill: () => void;
+  /** A fill run or an undecided result: unsaved, but nothing Apply would write. */
+  pending: boolean;
   resetDraft: () => void;
   apply: () => void;
   revert: () => void;
@@ -96,6 +104,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
   const [aspectId, setAspectId] = useState("free");
   const [applying, setApplying] = useState(false);
   const [cropActive, setCropActive] = useState(false);
+  const [fillActive, setFillActive] = useState(false);
   // The saved spec has been read; editing before then would apply a draft missing it.
   const [stateLoaded, setStateLoaded] = useState(false);
 
@@ -246,17 +255,38 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
   });
   const { cancelAuto } = adjust;
 
+  const keepFill = useCallback((kept: ImageFill) => {
+    setDraft((current) => ({ ...current, fills: [...current.fills, kept] }));
+  }, []);
+
+  const undoFill = useCallback(() => {
+    setDraft((current) => ({ ...current, fills: current.fills.slice(0, -1) }));
+  }, []);
+
+  const fill = useImageFill({
+    path,
+    source: { width: sourceWidth, height: sourceHeight },
+    fills: draft.fills,
+    open: editMode && fillActive && stateLoaded,
+    onKeep: keepFill,
+  });
+  const { reset: resetFill } = fill;
+  const fillPendingRef = useLatestRef(fill.pending);
+
   const resetDraft = useCallback(() => {
     cancelAuto();
+    resetFill();
     seedDraft(savedSpecRef.current);
-  }, [cancelAuto, savedSpecRef, seedDraft]);
+  }, [cancelAuto, resetFill, savedSpecRef, seedDraft]);
 
   const exitEditMode = useCallback(() => {
     cancelAuto();
+    resetFill();
     setCropActive(false);
+    setFillActive(false);
     deactivateMasks();
     setEditMode(false);
-  }, [cancelAuto, deactivateMasks, setEditMode]);
+  }, [cancelAuto, deactivateMasks, resetFill, setEditMode]);
 
   const toggleEditMode = useCallback(() => {
     if (applyingRef.current) return;
@@ -315,6 +345,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
 
   const revert = useCallback(() => {
     cancelAuto();
+    resetFill();
     runEdit(
       revertImageEdit,
       (name) => `Restored the original ${name}.`,
@@ -323,9 +354,11 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
         seedDraft(null);
       },
     );
-  }, [cancelAuto, runEdit, seedDraft]);
+  }, [cancelAuto, resetFill, runEdit, seedDraft]);
 
   const apply = useCallback(() => {
+    // Keep or discard the result first: Apply never generates, and never drops one unasked.
+    if (fillPendingRef.current) return;
     cancelAuto();
     const currentDraft = draftRef.current;
 
@@ -349,7 +382,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
       (name) => `Edited ${name} - ${size.width} x ${size.height}.`,
       () => setSavedSpec(spec),
     );
-  }, [cancelAuto, draftRef, revert, runEdit, sourceRef]);
+  }, [cancelAuto, draftRef, fillPendingRef, revert, runEdit, sourceRef]);
 
   // Dirty vs disk, not an untouched source: an identity draft after a write means Revert.
   const dirty =
@@ -391,6 +424,11 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     toggleMirrorV,
     setScale,
     adjust,
+    fill,
+    fillActive,
+    setFillActive,
+    undoFill,
+    pending: fill.pending,
     resetDraft,
     apply,
     revert,

@@ -6,6 +6,9 @@ import type { MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { iconPlus, iconTrash2, iconUndo2, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
+import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
+import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
+import { Tooltip } from "@/shared/ui/Tooltip";
 import { formatSizeFit } from "@/shared/lib/sizeFit";
 import type { SizeFit } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
@@ -102,32 +105,59 @@ export function ToolPresets({ label, children }: { label: string; children: Reac
   );
 }
 
-/** How the open tool is used, mostly the gesture on the picture the buttons do not show. */
-export function ToolHint({ children }: { children: ReactNode }) {
-  return <p className="edit-panel__hint">{children}</p>;
+/** How the open tool is used, mostly the gesture on the picture the buttons do not show.
+ * `status` announces changes, for a tool whose hint reports progress; `wide` keeps a longer
+ * message to a few lines rather than a narrow column. */
+export function ToolHint({
+  children,
+  status,
+  wide,
+}: {
+  children: ReactNode;
+  status?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    <p
+      className={classNames("edit-panel__hint", wide && "edit-panel__hint--wide")}
+      role={status ? "status" : undefined}
+    >
+      {children}
+    </p>
+  );
 }
 
 export function PresetButton({
   active,
   disabled,
   onClick,
+  shortcut,
   children,
 }: {
   active?: boolean;
   disabled: boolean;
   onClick: () => void;
+  /** Shown in a tooltip and announced; the caller binds the key itself. */
+  shortcut?: { definition: ShortcutDefinition; label: string };
   children: ReactNode;
 }) {
-  return (
+  const button = (
     <button
       type="button"
       className={classNames("edit-panel__preset", active && "edit-panel__preset--active")}
       aria-pressed={active}
+      aria-keyshortcuts={shortcut ? ariaKeyShortcuts(shortcut.definition) : undefined}
       disabled={disabled}
       onClick={onClick}
     >
       {children}
     </button>
+  );
+  if (!shortcut) return button;
+  return (
+    <Tooltip content={<ShortcutHint shortcut={shortcut.definition}>{shortcut.label}</ShortcutHint>}>
+      {button}
+    </Tooltip>
   );
 }
 
@@ -323,14 +353,17 @@ interface DraftActions {
   apply: () => void;
 }
 
-/** Revert, Reset and Apply; the panels swap this row for their own progress while rendering. */
+/** Revert, Reset and Apply; the panels swap this row for their own progress while rendering.
+ * `pending` is unsaved work Apply does not take, such as an undecided fill: Reset drops it. */
 export function EditActions({
   edit,
   disabled,
+  pending = false,
   onRevertRequested,
 }: {
   edit: DraftActions;
   disabled: boolean;
+  pending?: boolean;
   onRevertRequested: () => void;
 }) {
   return (
@@ -349,7 +382,7 @@ export function EditActions({
       <button
         type="button"
         className="edit-panel__control"
-        disabled={disabled || (!edit.dirty && !edit.adjust.autoPending)}
+        disabled={disabled || (!edit.dirty && !edit.adjust.autoPending && !pending)}
         onClick={edit.resetDraft}
       >
         Reset
@@ -357,7 +390,7 @@ export function EditActions({
       <button
         type="button"
         className="edit-panel__apply"
-        disabled={disabled || !edit.dirty || edit.adjust.autoPending}
+        disabled={disabled || !edit.dirty || edit.adjust.autoPending || pending}
         onClick={edit.apply}
       >
         Apply

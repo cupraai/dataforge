@@ -63,6 +63,13 @@ class EffectiveSettings(BaseModel):
     # Qwen's 512 x 512 floor: below it both sides floor and a 16:9 frame comes out square.
     video_frame_min_pixels: int = 512 * 512
     comfy_base_url: str = "http://127.0.0.1:9000"
+    # The ComfyUI file names in the Qwen-Image 2.1 release; the int8 ones fit a 24 GB card.
+    fill_diffusion_model: str = "qwen_image_2.1_int8_convrot.safetensors"
+    fill_text_encoder: str = "qwen3vl_8b_int8_convrot.safetensors"
+    fill_vae: str = "qwen_image_2.1_vae_bf16.safetensors"
+    fill_turbo_lora: str = "qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors"
+    # Within the 25-40 the base model is documented for; Fast keeps the LoRA's own 8.
+    fill_quality_steps: int = 30
     ai_toolkit_base_url: str = "http://127.0.0.1:8675"
     thumbnail_cache_max_mb: int = 2048
     job_history_days: int = 30
@@ -164,6 +171,11 @@ _RULES: dict[str, _Rule] = {
         "Frame pixel budget, long clips", "VIDEO_FRAME_MIN_PIXELS", _Range(1)
     ),
     "comfy_base_url": _Rule("ComfyUI URL", "COMFY_BASE_URL", validate_url),
+    "fill_diffusion_model": _Rule("Fill diffusion model", "COMFY_FILL_DIFFUSION_MODEL", _model_id),
+    "fill_text_encoder": _Rule("Fill text encoder", "COMFY_FILL_TEXT_ENCODER", _model_id),
+    "fill_vae": _Rule("Fill VAE", "COMFY_FILL_VAE", _model_id),
+    "fill_turbo_lora": _Rule("Fill Turbo LoRA", "COMFY_FILL_TURBO_LORA", _model_id),
+    "fill_quality_steps": _Rule("Fill Quality steps", "COMFY_FILL_QUALITY_STEPS", _Range(1, 100)),
     "ai_toolkit_base_url": _Rule("AI-Toolkit URL", "OSTRIS_BASE_URL", validate_url),
     "thumbnail_cache_max_mb": _Rule(
         "Thumbnail cache limit", "DATAFORGE_THUMBNAIL_CACHE_MAX_MB", _Range(0)

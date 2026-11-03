@@ -1,4 +1,4 @@
-"""Obscure, crop, mirror, rotate and rescale one image in place from its untouched original. Odd dimensions are kept: a still has no yuv420p chroma plane."""
+"""Fill, obscure, crop, mirror, rotate and rescale one image in place from its untouched original. Odd dimensions are kept: a still has no yuv420p chroma plane."""
 
 from __future__ import annotations
 
@@ -19,6 +19,13 @@ from edit_sidecars import (
     read_spec,
     restore_backup,
     temp_path_for,
+)
+from image_fill import (
+    apply_fill_chain,
+    archived_assets,
+    file_digest,
+    resolve_fill_chain,
+    write_archive,
 )
 from image_io import load_image_for_edit, save_image_preserving_format
 from media_claims import claim
@@ -45,7 +52,8 @@ def read_image_edit_spec(media: Path) -> ImageEditSpec | None:
 
 def is_identity_spec(spec: ImageEditSpec) -> bool:
     return (
-        not spec.masks
+        not spec.fills
+        and not spec.masks
         and spec.crop is None
         and not spec.mirror_h
         and not spec.mirror_v
@@ -217,11 +225,26 @@ def _apply_claimed(media: Path, spec: ImageEditSpec) -> ImageEditResponse:
     suffix = resolve_image_format(media)
     start = begin_edit(media)
     temp_path = temp_path_for(media)
+    # Read after begin_edit: an adopted replacement has no saved fills left to keep.
+    saved = read_image_edit_spec(media)
 
     try:
         image, source_mode, exif = load_image_for_edit(start.source)
+        fills = (
+            resolve_fill_chain(media, spec.fills, file_digest(start.source)) if spec.fills else []
+        )
+        if fills or saved is not None:
+            # The saved spec's fills stay in the archive until this publish has succeeded, so a
+            # failure below leaves that edit reopenable; the next apply drops them.
+            kept = {asset.fill.id for asset in fills}
+            previous = [
+                asset
+                for asset in archived_assets(media, saved.fills if saved else [])
+                if asset.fill.id not in kept
+            ]
+            write_archive(media, [*fills, *previous])
         save_image_preserving_format(
-            render_image_edit(image, spec),
+            render_image_edit(apply_fill_chain(image, fills), spec),
             temp_path,
             suffix=suffix,
             source_mode=source_mode,

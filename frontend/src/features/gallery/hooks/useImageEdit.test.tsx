@@ -12,6 +12,7 @@ import { makeItem } from "@/test/galleryItemDialog";
 import { HOME_PATH } from "@/test/fixtures";
 import type { GalleryItem, ImageEditResponse, ImageEditSpec } from "@/shared/types";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
+import { makeImageFill } from "@/test/fillControls";
 
 vi.mock("@/features/gallery/api/imageEdit", () => ({
   imageOriginalUrl: (path: string) => `/api/media?path=${path}&original=1`,
@@ -44,6 +45,7 @@ const wrapper = AppProviders;
 
 function spec(overrides: Partial<ImageEditSpec> = {}): ImageEditSpec {
   return {
+    fills: [],
     masks: [],
     crop: null,
     mirror_h: false,
@@ -117,6 +119,7 @@ describe("useImageEdit", () => {
       const { result } = await renderReady();
 
       expect(result.current.draft).toEqual({
+        fills: [],
         masks: [],
         crop: { x: 0, y: 0, width: 1, height: 1 },
         mirrorH: false,
@@ -408,6 +411,46 @@ describe("useImageEdit", () => {
       expect(result.current.hasBackup).toBe(true);
       // Already on disk, so there is nothing left to apply.
       expect(result.current.dirty).toBe(false);
+    });
+
+    it("re-opens on the kept fills, which undo and reset like any other change", async () => {
+      const first = makeImageFill({ id: "1".repeat(32) });
+      const second = makeImageFill({ id: "2".repeat(32), parent_id: first.id });
+      fetchStateMock.mockResolvedValue({
+        path: PHOTO,
+        has_backup: true,
+        spec: spec({ fills: [first, second], rotate: 90 }),
+      });
+      const { result } = await renderReady();
+      await waitFor(() => expect(result.current.draft.fills).toHaveLength(2));
+      expect(result.current.dirty).toBe(false);
+      // The stage composites the saved fills: Adjust, crop and blur work on the filled picture.
+      expect(result.current.fill.previewIds).toEqual([first.id, second.id]);
+
+      act(() => result.current.undoFill());
+
+      expect(result.current.draft.fills).toEqual([first]);
+      expect(result.current.dirty).toBe(true);
+      act(() => result.current.resetDraft());
+      expect(result.current.draft.fills).toEqual([first, second]);
+      expect(result.current.dirty).toBe(false);
+    });
+
+    it("applies a later turn with the saved fills, so no fill is generated again", async () => {
+      const fill = makeImageFill();
+      fetchStateMock.mockResolvedValue({
+        path: PHOTO,
+        has_backup: true,
+        spec: spec({ fills: [fill] }),
+      });
+      const { result } = await renderReady();
+      await waitFor(() => expect(result.current.draft.fills).toHaveLength(1));
+
+      act(() => result.current.rotateClockwise());
+      act(() => result.current.apply());
+
+      await waitFor(() => expect(applyMock).toHaveBeenCalled());
+      expect(applyMock.mock.calls[0][1]).toMatchObject({ fills: [fill], rotate: 90 });
     });
 
     it("lets a scale replace a fit the Resize job stored", async () => {

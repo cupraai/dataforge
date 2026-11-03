@@ -6,6 +6,8 @@ import {
   scaleForTargetWidth,
 } from "@/features/gallery/lib/imageEdit";
 import { describeMasks } from "@/features/gallery/lib/mask";
+import { describeFills } from "@/features/gallery/lib/fillMask";
+import { fillStatusText } from "@/features/gallery/lib/fillStatus";
 import { isAdjustIdentity } from "@/features/gallery/lib/colorAdjust";
 import {
   iconCrop,
@@ -17,10 +19,12 @@ import {
   iconRotateCcw,
   iconRotateCw,
   iconSliders,
+  iconSparkles,
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
 import { AdjustTools } from "./AdjustTools";
+import { FillTools } from "./FillTools";
 import {
   AspectTools,
   BlurTools,
@@ -35,7 +39,7 @@ import {
   type EditTool,
 } from "./EditPanelParts";
 
-type ToolId = "crop" | "blur" | "rotate" | "size" | "adjust";
+type ToolId = "crop" | "blur" | "rotate" | "size" | "adjust" | "fill";
 
 const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "crop", label: "Crop", icon: iconCrop },
@@ -43,6 +47,7 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "rotate", label: "Rotate", icon: iconRotateCw },
   { id: "adjust", label: "Adjust", icon: iconSliders },
   { id: "blur", label: "Blur", icon: iconDroplets },
+  { id: "fill", label: "Fill", icon: iconSparkles },
 ];
 
 // Adjust has none: its strip and dial take the whole row and label themselves.
@@ -73,9 +78,10 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
     rotate: edit.draft.rotate !== 0 || edit.draft.mirrorH || edit.draft.mirrorV,
     size: edit.draft.scale !== 1 || edit.draft.fit !== null,
     adjust: !isAdjustIdentity(edit.draft.adjust),
+    fill: edit.draft.fills.length > 0,
   };
 
-  const { setCropActive, setMaskActive } = edit;
+  const { setCropActive, setMaskActive, setFillActive } = edit;
   const { setActive: setAdjustActive } = edit.adjust;
 
   // Keyed on the tool rather than on the click, or the one the panel opens on is never armed.
@@ -83,7 +89,8 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
     setCropActive(activeTool === "crop");
     setMaskActive(activeTool === "blur");
     setAdjustActive(activeTool === "adjust");
-  }, [activeTool, setAdjustActive, setCropActive, setMaskActive]);
+    setFillActive(activeTool === "fill");
+  }, [activeTool, setAdjustActive, setCropActive, setFillActive, setMaskActive]);
 
   return (
     <div className="edit-panel" role="group" aria-label="Image editing">
@@ -163,9 +170,24 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
           {activeTool === "blur" && (
             <BlurTools masks={edit} hasRegions={modified.blur} disabled={locked} />
           )}
+
+          {activeTool === "fill" && (
+            <FillTools
+              fill={edit.fill}
+              keptFills={edit.draft.fills.length}
+              disabled={locked}
+              onUndoFill={edit.undoFill}
+            />
+          )}
         </div>
 
-        {HINTS[activeTool] && <ToolHint>{HINTS[activeTool]}</ToolHint>}
+        {activeTool === "fill" ? (
+          <ToolHint status wide>
+            {fillStatusText(edit.fill)}
+          </ToolHint>
+        ) : (
+          HINTS[activeTool] && <ToolHint>{HINTS[activeTool]}</ToolHint>
+        )}
       </div>
 
       <div className="edit-panel__footer">
@@ -176,6 +198,7 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
                 from={`${edit.sourceWidth} x ${edit.sourceHeight}`}
                 to={`${edit.outputWidth} x ${edit.outputHeight}`}
               />
+              {modified.fill && <OutputPart>{describeFills(edit.draft.fills.length)}</OutputPart>}
               {modified.blur && <OutputPart>{describeMasks(edit.draft.masks.length)}</OutputPart>}
               {modified.rotate && (
                 <OutputPart>
@@ -205,7 +228,12 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
             </span>
           </div>
         ) : (
-          <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />
+          <EditActions
+            edit={edit}
+            disabled={locked}
+            pending={edit.pending}
+            onRevertRequested={onRevertRequested}
+          />
         )}
       </div>
     </div>

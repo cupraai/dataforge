@@ -1,4 +1,4 @@
-"""Backend for the browser E2E suite: a throwaway workspace, a stand-in model, no real services.
+"""Backend for the browser E2E suite: a throwaway workspace, stand-in services, no real ones.
 
 Started by frontend/playwright.config.ts, never by hand. Reads DATAFORGE_E2E_RUN_DIR, the run's
 own folder that frontend/e2e/runDirectory.ts made, and DATAFORGE_API_PORT for where to serve.
@@ -6,12 +6,16 @@ own folder that frontend/e2e/runDirectory.ts made, and DATAFORGE_API_PORT for wh
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
 import threading
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import ClassVar
+from urllib.parse import parse_qs, unquote, urlsplit
 
 import uvicorn
 
@@ -38,6 +42,20 @@ SYSPROMPT = "Describe the scene plainly, in one paragraph."
 DRAFT = "A parked car."
 
 REQUEST_LOG = "model-requests.json"
+
+#: Every interrupt and queue removal the stand-in ComfyUI received, for the fill spec to read.
+COMFY_STOP_LOG = "comfy-stops.json"
+
+#: A fill whose prompt says this never finishes on its own, so the spec can cancel it.
+SLOW_FILL_MARKER = "slow"
+
+#: History reads before a fill reports its output, so the editor shows a run in progress.
+FILL_POLLS_BEFORE_DONE = 2
+
+#: What the stand-in paints into every fill: unmistakable against any fixture.
+FILL_COLOR = (255, 0, 255)
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 #: Written by frontend/e2e/runDirectory.ts; a folder without it is not this suite's to fill.
 OWNER_MARKER = ".dataforge-e2e-owner"
@@ -91,6 +109,141 @@ class UnavailableHandler(BaseHTTPRequestHandler):
         return
 
 
+class FillComfyHandler(UnavailableHandler):
+    """ComfyUI as far as the editor's fill uses it; everything else stays a stopped service.
+
+    The probe and the prep job's endpoints still answer 503, so only the fill sees a ComfyUI. Every
+    node and the default model files exist, and a fill paints its whole crop in ``FILL_COLOR``.
+    """
+
+    workspace: Path
+    lock = threading.Lock()
+    uploads: ClassVar[dict[str, tuple[int, int]]] = {}
+    prompts: ClassVar[dict[str, dict[str, object]]] = {}
+
+    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler's spelling
+        url = urlsplit(self.path)
+        if url.path.startswith("/object_info/"):
+            class_type = unquote(url.path.removeprefix("/object_info/"))
+            self._json({class_type: {"input": {"required": self._loader_options(class_type)}}})
+        elif url.path == "/queue":
+            with self.lock:
+                running = [[0, key, {}] for key, run in self.prompts.items() if not run["done"]]
+            self._json({"queue_running": running, "queue_pending": []})
+        elif url.path.startswith("/history/"):
+            self._json(self._history(url.path.removeprefix("/history/")))
+        elif url.path == "/view":
+            name = parse_qs(url.query).get("filename", [""])[0]
+            self._view(name.removesuffix(".png"))
+        else:
+            self._refuse()
+
+    def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler's spelling
+        body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        path = urlsplit(self.path).path
+        if path == "/upload/image":
+            self._upload(body)
+        elif path == "/prompt":
+            self._prompt(json.loads(body))
+        elif path in {"/interrupt", "/queue"}:
+            self._stop(path, json.loads(body or b"{}"))
+        else:
+            self._refuse()
+
+    def _json(self, payload: object) -> None:
+        data = json.dumps(payload).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    @staticmethod
+    def _loader_options(class_type: str) -> dict[str, object]:
+        from app_settings import SETTING_DEFAULTS
+
+        loaders = {
+            "UNETLoader": ("unet_name", SETTING_DEFAULTS.fill_diffusion_model),
+            "CLIPLoader": ("clip_name", SETTING_DEFAULTS.fill_text_encoder),
+            "VAELoader": ("vae_name", SETTING_DEFAULTS.fill_vae),
+            "LoraLoaderModelOnly": ("lora_name", SETTING_DEFAULTS.fill_turbo_lora),
+        }
+        if class_type not in loaders:
+            return {}
+        key, name = loaders[class_type]
+        return {key: [[name], {}]}
+
+    def _upload(self, body: bytes) -> None:
+        from PIL import Image
+
+        with Image.open(io.BytesIO(body[body.index(PNG_SIGNATURE) :])) as image:
+            size = image.size
+        with self.lock:
+            name = f"upload_{len(self.uploads) + 1}.png"
+            self.uploads[name] = size
+        self._json({"name": name, "subfolder": ""})
+
+    def _prompt(self, payload: dict[str, object]) -> None:
+        graph = payload["prompt"]
+        assert isinstance(graph, dict)
+        nodes = {key: node for key, node in graph.items() if isinstance(node, dict)}
+        source = next(n for n in nodes.values() if n["class_type"] == "LoadImage")
+        text = next(n for n in nodes.values() if n["class_type"] == "TextEncodeQwenImage21")
+        output = next(key for key, n in nodes.items() if n["class_type"] == "SaveImage")
+        prompt_id = uuid.uuid4().hex
+        with self.lock:
+            self.prompts[prompt_id] = {
+                "size": self.uploads[source["inputs"]["image"]],
+                "slow": SLOW_FILL_MARKER in str(text["inputs"]["prompt"]),
+                "output": output,
+                "polls": 0,
+                "done": False,
+            }
+        self._json({"prompt_id": prompt_id})
+
+    def _history(self, prompt_id: str) -> dict[str, object]:
+        with self.lock:
+            run = self.prompts.get(prompt_id)
+            if run is None or run["slow"] or run["done"]:
+                return {}
+            run["polls"] = int(run["polls"]) + 1  # type: ignore[call-overload]
+            if run["polls"] <= FILL_POLLS_BEFORE_DONE:  # type: ignore[operator]
+                return {}
+            run["done"] = True
+        image = {"filename": f"{prompt_id}.png", "subfolder": "", "type": "output"}
+        outputs = {run["output"]: {"images": [image]}}
+        return {prompt_id: {"status": {"completed": True}, "outputs": outputs}}
+
+    def _view(self, prompt_id: str) -> None:
+        from PIL import Image
+
+        with self.lock:
+            run = self.prompts.get(prompt_id)
+        if run is None:
+            self._refuse()
+            return
+        buffer = io.BytesIO()
+        Image.new("RGB", run["size"], FILL_COLOR).save(buffer, format="PNG")  # type: ignore[arg-type]
+        data = buffer.getvalue()
+        self.send_response(200)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _stop(self, path: str, payload: dict[str, object]) -> None:
+        with self.lock:
+            stopped = payload.get("prompt_id") or payload.get("delete")
+            for key in stopped if isinstance(stopped, list) else [stopped]:
+                if key in self.prompts:
+                    self.prompts[key]["done"] = True
+            log = self.workspace / COMFY_STOP_LOG
+            recorded = json.loads(log.read_text(encoding="utf-8")) if log.is_file() else []
+            recorded.append({"path": path, **payload})
+            log.write_text(json.dumps(recorded), encoding="utf-8")
+        self._json({})
+
+
 def serve(handler: type[BaseHTTPRequestHandler]) -> str:
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -107,8 +260,11 @@ def isolate_environment(workspace: Path, run_dir: Path) -> None:
     os.environ["OPENAI_API_BASE_URL"] = f"{serve(model)}/v1"
     os.environ["OPENAI_MODEL"] = "e2e-stand-in"
     unavailable = serve(UnavailableHandler)
-    os.environ["COMFY_BASE_URL"] = unavailable
+    fill_comfy = type("BoundFillComfyHandler", (FillComfyHandler,), {"workspace": workspace})
+    os.environ["COMFY_BASE_URL"] = serve(fill_comfy)
     os.environ["OSTRIS_BASE_URL"] = unavailable
+    # Inside the run's folder, not backend/data: unkept results belong to this run alone.
+    os.environ["DATAFORGE_FILL_RESULTS"] = str(run_dir / "fill-results")
     os.environ["DATAFORGE_THUMBNAIL_CACHE"] = str(run_dir / "thumbnails")
     # The fresh database's default favorite is the real home folder; never tag that.
     os.environ["DATAFORGE_DISABLE_TAGGING"] = "1"

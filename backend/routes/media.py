@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping
 from functools import partial
 from pathlib import Path
@@ -19,8 +20,15 @@ from comfy_candidates import (
     describe_candidate_state,
     reject_candidate,
 )
-from constants import AUDIO_PITCH_MAX_SEMITONES, GALLERY_EXTENSIONS, MEDIA_MIME_TYPES
+from constants import (
+    AUDIO_PITCH_MAX_SEMITONES,
+    GALLERY_EXTENSIONS,
+    MAX_IMAGE_FILLS,
+    MEDIA_MIME_TYPES,
+)
 from edit_sidecars import has_backup, original_path_for
+from external.comfy_client import COMFY_REQUEST_TIMEOUT_SECONDS, open_comfy_client
+from external.comfy_workflows import ComfyWorkflowError
 from ffmpeg_bin import ffmpeg_path
 from ffmpeg_run import FfmpegCancelled
 from filesystem import MediaPreviewError, normalize_user_path, open_file_in_default_viewer
@@ -40,7 +48,17 @@ from gif_to_mp4 import (
 )
 from image_edit import apply_image_edit, read_image_edit_spec, revert_image_edit
 from image_edit import is_identity_spec as is_identity_image_spec
-from image_io import ImageReadError
+from image_fill import (
+    FillMaskError,
+    apply_fill_chain,
+    discard_result,
+    file_digest,
+    preview_png_bytes,
+    resolve_fill_ids,
+)
+from image_fill_jobs import cancel_fill_operation, get_fill_operation, start_fill
+from image_fill_workflow import describe_fill_presets
+from image_io import ImageReadError, load_image_for_edit
 from media_claims import MediaBusyError, cancel
 from media_delete import (
     MediaReappearedError,
@@ -77,12 +95,15 @@ from schemas import (
     ComfyCandidateFailure,
     ComfyCandidateResponse,
     ComfyCandidateStateResponse,
+    FillPresetsResponse,
     GifInfoResponse,
     GifToMp4Response,
     GifToMp4StateResponse,
     ImageEditResponse,
     ImageEditSpec,
     ImageEditStateResponse,
+    ImageFillOperationResponse,
+    ImageFillRequest,
     MediaCleanupRequest,
     MediaDeleteResponse,
     MediaOpenResponse,
@@ -176,6 +197,11 @@ _RENDER_EDIT_ERRORS: dict[type[Exception], ErrorStatus] = {
     ValueError: 400,
 }
 _IMAGE_EDIT_ERRORS: dict[type[Exception], ErrorStatus] = {ValueError: 400}
+_IMAGE_FILL_ERRORS: dict[type[Exception], ErrorStatus] = {
+    FillMaskError: 400,
+    ImageReadError: 400,
+    ComfyWorkflowError: 503,
+}
 _CANDIDATE_ERRORS: dict[type[Exception], ErrorStatus] = {
     NoCandidateError: 404,
     ValueError: 409,
@@ -774,6 +800,104 @@ def revert_image(
         return revert_image_edit(media)
     except (ValueError, OSError) as exc:
         raise _http_error(exc, _IMAGE_EDIT_ERRORS) from exc
+
+
+_FILL_ID = re.compile(r"^[0-9a-f]{32}$")
+
+_FILL_OPERATION_ID = Query(..., description="The id the start request returned")
+
+
+def _fill_operation_gone() -> HTTPException:
+    return HTTPException(
+        status_code=404,
+        detail="This generation is no longer known; the server may have restarted.",
+    )
+
+
+@router.get("/media/image-fill/presets", response_model=FillPresetsResponse)
+def read_fill_presets() -> FillPresetsResponse:
+    """Whether Fast and Quality can run on the configured ComfyUI, and what each one lacks."""
+    with open_comfy_client(COMFY_REQUEST_TIMEOUT_SECONDS) as client:
+        return FillPresetsResponse(presets=describe_fill_presets(client))
+
+
+@router.post("/media/image-fill", response_model=ImageFillOperationResponse)
+def start_image_fill(
+    path: str = Query(..., description="Absolute path to an image file"),
+    body: ImageFillRequest = ...,
+) -> ImageFillOperationResponse:
+    """Queue one generation on top of the draft's fills; poll the operation for its result."""
+    media = resolve_editable_image(path)
+
+    try:
+        return start_fill(media, body).describe()
+    except (FillMaskError, ImageReadError, ComfyWorkflowError, OSError) as exc:
+        raise _http_error(exc, _IMAGE_FILL_ERRORS) from exc
+
+
+@router.get("/media/image-fill/operation", response_model=ImageFillOperationResponse)
+def read_image_fill(id: str = _FILL_OPERATION_ID) -> ImageFillOperationResponse:
+    operation = get_fill_operation(id)
+    if operation is None:
+        raise _fill_operation_gone()
+    return operation.describe()
+
+
+@router.post("/media/image-fill/operation/cancel", response_model=ImageFillOperationResponse)
+def cancel_image_fill(id: str = _FILL_OPERATION_ID) -> ImageFillOperationResponse:
+    """Stop a generation. Only its own ComfyUI prompt is interrupted or dropped from the queue."""
+    operation = cancel_fill_operation(id)
+    if operation is None:
+        raise _fill_operation_gone()
+    return operation.describe()
+
+
+@router.post("/media/image-fill/discard", status_code=204)
+def discard_image_fill(
+    path: str = Query(..., description="Absolute path to the image the result was made for"),
+    id: str = Query(..., description="The unkept result to drop"),
+) -> Response:
+    """Drop a result the user discarded. Kept fills live in the edit's own archive once applied."""
+    media = resolve_editable_image(path)
+    if not _FILL_ID.fullmatch(id):
+        raise HTTPException(status_code=400, detail="Not a fill id")
+    discard_result(media, id)
+    return Response(status_code=204)
+
+
+def _fill_ids(raw: str) -> list[str]:
+    ids = [part for part in raw.split(",") if part]
+    if len(ids) > MAX_IMAGE_FILLS or not all(_FILL_ID.fullmatch(part) for part in ids):
+        raise HTTPException(status_code=400, detail="Not a list of fill ids")
+    return ids
+
+
+@router.get("/media/image-fill/preview")
+def serve_image_fill_preview(
+    path: str = Query(..., description="Absolute path to an image file"),
+    fills: str = Query("", description="Comma-separated fill ids, oldest first"),
+) -> Response:
+    """The original with these fills composited, losslessly: the picture the editor works on.
+
+    Ids are unique per generation and bound to the original's digest, so the bytes behind one URL
+    never change and the browser may keep them.
+    """
+    media = resolve_editable_image(path)
+    fill_ids = _fill_ids(fills)
+
+    try:
+        source = original_path_for(media)
+        image, _, _ = load_image_for_edit(source)
+        assets = resolve_fill_ids(media, fill_ids, file_digest(source))
+        data = preview_png_bytes(apply_fill_chain(image, assets))
+    except (ImageReadError, OSError) as exc:
+        raise _http_error(exc, _IMAGE_FILL_ERRORS) from exc
+
+    return Response(
+        content=data,
+        media_type="image/png",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
 
 
 # Keyed by the source path, never the staging path.

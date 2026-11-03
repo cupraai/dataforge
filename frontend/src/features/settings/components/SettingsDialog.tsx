@@ -231,6 +231,16 @@ const SECTIONS: Section[] = [
         groups: [
           { title: "ComfyUI", icon: iconComfyUi, rows: [["comfy_base_url"]], probe: "comfy" },
           {
+            title: "Generative fill",
+            icon: iconComfyUi,
+            hint: "File names as ComfyUI lists them, for the editor's Fill tool on Qwen-Image 2.1. Fast runs the Turbo LoRA at its own 8 steps.",
+            rows: [
+              ["fill_diffusion_model", "fill_text_encoder"],
+              ["fill_vae", "fill_turbo_lora"],
+              ["fill_quality_steps"],
+            ],
+          },
+          {
             title: "Ostris AI-Toolkit",
             icon: iconAiToolkit,
             rows: [["ai_toolkit_base_url"]],
