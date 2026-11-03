@@ -56,9 +56,8 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
-  type ToolHintEntry,
 } from "./EditPanelParts";
-import { TRIM_GESTURES } from "@/features/gallery/lib/stageGestures";
+import { TRIM_HINT, type ToolHintEntry } from "@/features/gallery/lib/toolHints";
 import { VideoEditTimeline } from "./VideoEditTimeline";
 
 type ToolId = "trim" | "fades" | "volume" | "speed" | "eq" | "clean";
@@ -73,10 +72,7 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
 ];
 
 const HINTS: Record<ToolId, ToolHintEntry> = {
-  trim: {
-    message: "Both follow the playhead. Drag a handle, or focus it and use the keys.",
-    gestures: TRIM_GESTURES,
-  },
+  trim: TRIM_HINT,
   fades: { message: "Equal power sounds even; linear dips in the middle." },
   volume: { message: "Peaks are limited in the file, not in the preview." },
   speed: { message: "Speed changes the length and keeps the pitch; pitch keeps the length." },

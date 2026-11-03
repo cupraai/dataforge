@@ -68,6 +68,14 @@ describe("matchesChord", () => {
     expect(matchesChord(keydown({ ...altGr, key: "q" }), { key: "q" })).toBe(false);
   });
 
+  it("takes a symbol typed with a Mac's Option as unmodified, but not a letter", () => {
+    // German Mac layout: Option+5 types [.
+    expect(matchesShortcut(keydown({ key: "[", altKey: true }), SHORTCUTS.fillBrushSize)).toBe(
+      true,
+    );
+    expect(matchesChord(keydown({ key: "b", altKey: true }), { key: "b" })).toBe(false);
+  });
+
   it("still holds Shift to account for named keys", () => {
     expect(
       matchesChord(keydown({ key: "ArrowUp", altKey: true, shiftKey: true }), {

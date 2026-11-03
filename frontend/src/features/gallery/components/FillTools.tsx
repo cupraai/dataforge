@@ -25,6 +25,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { PresetButton, ToolGroup, ToolPresets } from "./EditPanelParts";
+import { FillStatusBar } from "./FillStatusBar";
 
 const PRESETS: ReadonlyArray<{ id: FillPreset; label: string; tip: string }> = [
   { id: "fast", label: "Fast", tip: "Fewer steps: quicker, a little less detail" },
@@ -43,35 +44,32 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
   const paintLocked = disabled || !fill.canPaint;
   const requestLocked = disabled || fill.generating;
   const canUndoStroke = !paintLocked && fill.strokes.length > 0;
-  const { setBrushMode, stepBrush, undoStroke, generate } = fill;
 
   // Mounted only while the Fill tool is open, so the keys mean nothing elsewhere. The editor
   // sits in a modal, hence whenLocked; typing in the instruction still types.
-  useGlobalShortcut(SHORTCUTS.fillBrush, () => setBrushMode("paint"), {
-    enabled: !paintLocked,
-    whenLocked: true,
-  });
-  useGlobalShortcut(SHORTCUTS.fillEraser, () => setBrushMode("erase"), {
-    enabled: !paintLocked,
-    whenLocked: true,
-  });
-  useGlobalShortcut(SHORTCUTS.fillBrushSize, (event) => stepBrush(event.key === "]" ? 1 : -1), {
-    enabled: !paintLocked,
-    whenLocked: true,
-  });
-  useGlobalShortcut(SHORTCUTS.fillUndoStroke, undoStroke, {
+  const paintKeys = { enabled: !paintLocked, whenLocked: true };
+  useGlobalShortcut(SHORTCUTS.fillBrush, () => fill.setBrushMode("paint"), paintKeys);
+  useGlobalShortcut(SHORTCUTS.fillEraser, () => fill.setBrushMode("erase"), paintKeys);
+  useGlobalShortcut(
+    SHORTCUTS.fillBrushSize,
+    (event) => fill.stepBrush(event.key === "]" ? 1 : -1),
+    paintKeys,
+  );
+  useGlobalShortcut(SHORTCUTS.fillUndoStroke, () => fill.undoStroke(), {
+    ...paintKeys,
     enabled: canUndoStroke,
-    whenLocked: true,
   });
 
   const onInstructionKey = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (fill.canGenerate) generate();
+    if (fill.canGenerate) fill.generate();
   };
 
   return (
     <>
+      <FillStatusBar fill={fill} />
+
       {/* While a result waits, painting is settled; the request stays, to tweak and regenerate. */}
       {!deciding && (
         <>

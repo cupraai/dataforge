@@ -1,4 +1,5 @@
 import { screenDeltaToSource, type Orientation, type Size } from "./crop";
+import { swapsAxes } from "./imageEdit";
 
 /**
  * The Fill tool's selection: brush strokes in pixels of the EXIF-oriented original, the frame the
@@ -50,7 +51,7 @@ export function clientPointToFraction(
   rect: ScreenRect,
   orientation: Orientation,
 ): FillPoint {
-  const turned = orientation.rotate === 90 || orientation.rotate === 270;
+  const turned = swapsAxes(orientation.rotate);
   const across = turned ? rect.height : rect.width;
   const down = turned ? rect.width : rect.height;
   const { dx, dy } = screenDeltaToSource(

@@ -8,6 +8,7 @@ import {
   startImageFill,
 } from "@/features/gallery/api/imageFill";
 import type { Size } from "@/features/gallery/lib/crop";
+import { clamp } from "@/features/gallery/lib/editSpec";
 import {
   BRUSH_DEFAULT_FRACTION,
   BRUSH_FRACTION_STEP,
@@ -17,13 +18,13 @@ import {
   hasPaint,
   rasterizeFillMask,
   type BrushMode,
-  type FillPoint,
   type FillStroke,
 } from "@/features/gallery/lib/fillMask";
 import { ApiError, formatApiError } from "@/shared/api/http";
 import { MAX_IMAGE_FILLS } from "@/shared/constants";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
+import { useStaleRequest } from "@/shared/hooks/useStaleRequest";
 import type { FillOperationStatus, FillPreset, FillPresetState, ImageFill } from "@/shared/types";
 
 /** Generations take seconds to minutes; a status read a second costs the server nothing. */
@@ -66,8 +67,8 @@ export interface ImageFillControls {
   stepBrush: (direction: 1 | -1) => void;
   /** In original pixels. */
   brushRadius: number;
-  beginStroke: (point: FillPoint) => void;
-  extendStroke: (point: FillPoint) => void;
+  /** A finished stroke; the overlay draws the one in progress itself. */
+  addStroke: (stroke: FillStroke) => void;
   undoStroke: () => void;
   clearStrokes: () => void;
   /** False while a generation runs or a result waits for Keep or Discard. */
@@ -80,9 +81,7 @@ export interface ImageFillControls {
   preset: FillPreset;
   setPreset: (preset: FillPreset) => void;
   presets: readonly FillPresetState[] | null;
-  presetsLoading: boolean;
   presetsError: string | null;
-  refreshPresets: () => void;
 
   progress: FillProgress;
   generating: boolean;
@@ -125,7 +124,6 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
   const [candidate, setCandidate] = useState<ImageFill | null>(null);
   const [showBefore, setShowBefore] = useState(false);
 
-  const mountedRef = useRef(true);
   const pathRef = useLatestRef(path);
   const operationRef = useLatestRef(operation);
   const candidateRef = useLatestRef(candidate);
@@ -136,15 +134,10 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     operation: null,
     candidate: null,
   });
-  // Bumped by every reset, so a start still in flight knows its answer is no longer wanted.
-  const generationRef = useRef(0);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Invalidated by every reset and on unmount, so a start still in flight knows its answer is no
+  // longer wanted and cancels the run it began.
+  const generation = useStaleRequest();
+  const { invalidate } = generation;
 
   const generating =
     starting || (operation !== null && !TERMINAL.has(operation.status) && operation.path === path);
@@ -169,9 +162,8 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     setOperation(next);
   }, []);
 
-  const clearLocal = useCallback(() => {
-    generationRef.current += 1;
-    startingRef.current = false;
+  /** Forget the run, the result and the selection; the request settings stay. */
+  const clearState = useCallback(() => {
     setStarting(false);
     setOperation(null);
     setCandidate(null);
@@ -182,24 +174,25 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
 
   const reset = useCallback(() => {
     release();
-    clearLocal();
-  }, [clearLocal, release]);
+    invalidate();
+    startingRef.current = false;
+    clearState();
+  }, [clearState, invalidate, release]);
 
   // Another file: reset in this render, so its picture never shows the last file's result.
-  if (useChanged(path)) {
-    setStarting(false);
-    setOperation(null);
-    setCandidate(null);
-    setShowBefore(false);
-    setError(null);
-    setStrokes([]);
-  }
+  if (useChanged(path)) clearState();
   useEffect(() => {
-    generationRef.current += 1;
+    invalidate();
     startingRef.current = false;
     release(path);
-  }, [path, release]);
-  useEffect(() => () => release(), [release]);
+  }, [invalidate, path, release]);
+  useEffect(
+    () => () => {
+      invalidate();
+      release();
+    },
+    [invalidate, release],
+  );
 
   // Asked each time the tool opens: installing a node or a model is what fixes a refusal.
   const presetsQuery = useQuery({
@@ -210,8 +203,6 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     staleTime: 0,
   });
   const presets = presetsQuery.data?.presets ?? null;
-  const { refetch: refetchPresets } = presetsQuery;
-  const refreshPresets = useCallback(() => void refetchPresets(), [refetchPresets]);
 
   useEffect(() => {
     if (!operation || TERMINAL.has(operation.status)) return;
@@ -220,7 +211,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
       void (async () => {
         try {
           const next = await fetchFillOperation(operation.id);
-          if (cancelled || !mountedRef.current) return;
+          if (cancelled) return;
           // A late answer for a run since replaced, or for another file, changes nothing here.
           if (operationRef.current?.id !== next.id || next.path !== pathRef.current) return;
           if (next.status === "succeeded" && next.fill) {
@@ -234,7 +225,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
           if (next.status === "failed") setError(next.error ?? "The generation failed.");
           track({ id: next.id, path: next.path, status: next.status });
         } catch (failure) {
-          if (cancelled || !mountedRef.current) return;
+          if (cancelled) return;
           setError(
             failure instanceof ApiError && failure.status === 404
               ? FILL_INTERRUPTED_MESSAGE
@@ -252,29 +243,15 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
 
   const canPaint = !generating && candidate === null;
 
-  const beginStroke = useCallback(
-    (point: FillPoint) => {
-      const radius = brushRadiusPx(brushFraction, source);
-      setStrokes((current) => [...current, { mode: brushMode, radius, points: [point] }]);
-    },
-    [brushFraction, brushMode, source],
+  const addStroke = useCallback(
+    (stroke: FillStroke) => setStrokes((current) => [...current, stroke]),
+    [],
   );
-
-  const extendStroke = useCallback((point: FillPoint) => {
-    setStrokes((current) => {
-      const last = current.at(-1);
-      if (!last) return current;
-      return [...current.slice(0, -1), { ...last, points: [...last.points, point] }];
-    });
-  }, []);
 
   const stepBrush = useCallback((direction: 1 | -1) => {
     setBrushFraction((current) => {
       const steps = Math.round(current / BRUSH_FRACTION_STEP) + direction;
-      return Math.min(
-        BRUSH_MAX_FRACTION,
-        Math.max(BRUSH_MIN_FRACTION, steps * BRUSH_FRACTION_STEP),
-      );
+      return clamp(steps * BRUSH_FRACTION_STEP, BRUSH_MIN_FRACTION, BRUSH_MAX_FRACTION);
     });
   }, []);
 
@@ -308,7 +285,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     if (!state.canGenerate || !mediaPath || startingRef.current) return;
 
     startingRef.current = true;
-    const generation = generationRef.current;
+    const request = generation.next();
     setStarting(true);
     setError(null);
 
@@ -321,61 +298,59 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
           instruction: state.instruction,
           preset: state.preset,
         });
-        if (generation !== generationRef.current || pathRef.current !== mediaPath) {
+        if (!generation.isCurrent(request) || pathRef.current !== mediaPath) {
           void cancelFillOperation(started.id).catch(() => undefined);
           return;
         }
-        if (mountedRef.current)
-          track({ id: started.id, path: started.path, status: started.status });
+        track({ id: started.id, path: started.path, status: started.status });
       } catch (failure) {
-        if (generation === generationRef.current && mountedRef.current) {
-          setError(formatApiError(failure));
-        }
+        if (generation.isCurrent(request)) setError(formatApiError(failure));
       } finally {
-        if (generation === generationRef.current) {
+        if (generation.isCurrent(request)) {
           startingRef.current = false;
-          if (mountedRef.current) setStarting(false);
+          setStarting(false);
         }
       }
     })();
-  }, [pathRef, stateRef, track]);
+  }, [generation, pathRef, stateRef, track]);
 
   const cancel = useCallback(() => {
     const running = operationRef.current;
     if (!running || TERMINAL.has(running.status)) return;
     void cancelFillOperation(running.id)
       .then((answer) => {
-        if (!mountedRef.current || operationRef.current?.id !== answer.id) return;
+        if (operationRef.current?.id !== answer.id) return;
         track({ id: answer.id, path: answer.path, status: answer.status });
       })
-      .catch((failure: unknown) => {
-        if (mountedRef.current) setError(formatApiError(failure));
-      });
+      .catch((failure: unknown) => setError(formatApiError(failure)));
   }, [operationRef, track]);
 
   const tail = fills.at(-1)?.id ?? null;
   const candidateStale = candidate !== null && (candidate.parent_id ?? null) !== tail;
+
+  /** The result is decided: this editor no longer holds it on the server. */
+  const dropCandidate = useCallback(() => {
+    ownedRef.current.candidate = null;
+    setCandidate(null);
+    setShowBefore(false);
+  }, []);
 
   const keep = useCallback(() => {
     const result = candidateRef.current;
     const lastKept = stateRef.current.fills.at(-1)?.id ?? null;
     if (!result || (result.parent_id ?? null) !== lastKept) return;
     onKeep(result);
-    ownedRef.current.candidate = null;
-    setCandidate(null);
-    setShowBefore(false);
+    dropCandidate();
     setStrokes([]);
-  }, [candidateRef, onKeep, stateRef]);
+  }, [candidateRef, dropCandidate, onKeep, stateRef]);
 
   const discard = useCallback(() => {
     const result = candidateRef.current;
     const mediaPath = pathRef.current;
     if (!result) return;
     if (mediaPath) void discardFillResult(mediaPath, result.id).catch(() => undefined);
-    ownedRef.current.candidate = null;
-    setCandidate(null);
-    setShowBefore(false);
-  }, [candidateRef, pathRef]);
+    dropCandidate();
+  }, [candidateRef, dropCandidate, pathRef]);
 
   const previewIds = fills.map((fill) => fill.id);
   if (candidate && !candidateStale && !showBefore) previewIds.push(candidate.id);
@@ -399,8 +374,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     setBrushFraction,
     stepBrush,
     brushRadius: sized ? brushRadiusPx(brushFraction, source) : 0,
-    beginStroke,
-    extendStroke,
+    addStroke,
     undoStroke,
     clearStrokes,
     canPaint,
@@ -409,9 +383,7 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
     preset,
     setPreset,
     presets,
-    presetsLoading: presetsQuery.isFetching,
     presetsError: presetsQuery.error ? formatApiError(presetsQuery.error) : null,
-    refreshPresets,
     progress,
     generating,
     error,

@@ -43,7 +43,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { RulerDial } from "@/shared/ui/RulerDial";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
-import { ADJUST_GESTURES } from "@/features/gallery/lib/stageGestures";
+import { ADJUST_GESTURES } from "@/features/gallery/lib/toolHints";
 import { StageHint } from "./StageHint";
 
 type StripId = "auto" | AdjustTool;
@@ -172,6 +172,7 @@ export function AdjustTools({ controls, disabled }: AdjustToolsProps) {
 
   return (
     <div className="adjust-tools">
+      <AdjustHint controls={controls} />
       <div
         ref={stripRef}
         className={classNames(
@@ -346,27 +347,30 @@ function ToolRing() {
   );
 }
 
-/** The Adjust tool's hint, which follows the wand: off, measuring, or on. One status region,
- * so the change to measuring and back is read out. */
-export function AdjustHint({ controls }: { controls: ColorAdjustControls }) {
-  if (controls.autoPending) {
-    return <StageHint icon={iconLoader2} tone="busy" message="Measuring for Auto..." status />;
-  }
-  if (controls.auto) {
-    return (
-      <StageHint
-        icon={iconWandSparkles}
-        message="Auto fixed levels and cast; its ruler sets how much. Adjust the rest on top, or click the wand to turn it off."
-        gestures={ADJUST_GESTURES}
-        status
-      />
-    );
-  }
+/** The tool's hint follows the wand: off, measuring, or on. One status region, so the change
+ * to measuring and back is read out. */
+function AdjustHint({ controls }: { controls: ColorAdjustControls }) {
+  const measuring = controls.autoPending;
+  const look = measuring
+    ? { icon: iconLoader2, message: "Measuring for Auto..." }
+    : controls.auto
+      ? {
+          icon: iconWandSparkles,
+          message:
+            "Auto fixed levels and cast; its ruler sets how much. Adjust the rest on top, or " +
+            "click the wand to turn it off.",
+        }
+      : {
+          icon: iconSliders,
+          message:
+            "Pick a setting and turn its ruler, or let the wand fix levels and cast. Hold the " +
+            "split button to see the original.",
+        };
   return (
     <StageHint
-      icon={iconSliders}
-      message="Pick a setting and turn its ruler, or let the wand fix levels and cast. Hold the split button to see the original."
-      gestures={ADJUST_GESTURES}
+      {...look}
+      tone={measuring ? "busy" : "info"}
+      gestures={measuring ? undefined : ADJUST_GESTURES}
       status
     />
   );

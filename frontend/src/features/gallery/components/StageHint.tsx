@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { StageHintSlot } from "@/features/gallery/lib/stageHintSlot";
 import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import type { ShortcutDefinition } from "@/shared/lib/shortcuts";
+import { formatChord } from "@/shared/lib/shortcuts";
+import type { StageGesture } from "@/features/gallery/lib/toolHints";
 import { Icon } from "@/shared/ui/Icon";
 import { KeyCap, ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 
@@ -11,11 +12,6 @@ import { KeyCap, ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 const CLEAR_MARGIN = 12;
 
 export type StageHintTone = "info" | "busy" | "done" | "warning" | "error";
-
-/** A registered shortcut, bare key labels, or a mouse gesture written out, and what it does. */
-export type StageGesture = { does: string } & (
-  { shortcut: ShortcutDefinition } | { keys: readonly string[] } | { gesture: string }
-);
 
 interface StageHintProps {
   icon: AppIcon;
@@ -92,7 +88,10 @@ export function StageHint({
               {"shortcut" in entry ? (
                 <ShortcutKeys shortcut={entry.shortcut} />
               ) : "keys" in entry ? (
-                entry.keys.map((key) => <KeyCap key={key} label={key} />)
+                // Labelled as the registered shortcuts are, so Enter reads the same everywhere.
+                entry.keys
+                  .flatMap((key) => formatChord({ key }))
+                  .map((label) => <KeyCap key={label} label={label} />)
               ) : (
                 <span className="stage-hint__gesture">{entry.gesture}</span>
               )}

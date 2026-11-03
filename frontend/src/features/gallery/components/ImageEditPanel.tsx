@@ -22,7 +22,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
-import { AdjustHint, AdjustTools } from "./AdjustTools";
+import { AdjustTools } from "./AdjustTools";
 import { FillTools } from "./FillTools";
 import {
   AspectTools,
@@ -36,10 +36,13 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
-  type ToolHintEntry,
 } from "./EditPanelParts";
-import { HANDLE_GESTURES, MASK_GESTURES } from "@/features/gallery/lib/stageGestures";
-import { FillStatusBar } from "./FillStatusBar";
+import {
+  BLUR_HINT,
+  CROP_HINT,
+  SIZE_HINT,
+  type ToolHintEntry,
+} from "@/features/gallery/lib/toolHints";
 
 type ToolId = "crop" | "blur" | "rotate" | "size" | "adjust" | "fill";
 
@@ -54,13 +57,10 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
 
 // Adjust and Fill have their own, which follow the wand and the generation.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
-  crop: {
-    message: "Drag the frame or its handles on the picture, or pick a ratio.",
-    gestures: HANDLE_GESTURES,
-  },
-  size: { message: "Pick a scale, or type a width or height; the other follows." },
+  crop: CROP_HINT,
+  size: SIZE_HINT,
   rotate: { message: "Turns go in quarter steps; flips mirror the picture." },
-  blur: { message: "Add a region, then drag it over what to hide.", gestures: MASK_GESTURES },
+  blur: BLUR_HINT,
 };
 
 interface ImageEditPanelProps {
@@ -186,13 +186,7 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
           )}
         </div>
 
-        {activeTool === "fill" ? (
-          edit.ready && <FillStatusBar fill={edit.fill} />
-        ) : activeTool === "adjust" ? (
-          edit.ready && <AdjustHint controls={edit.adjust} />
-        ) : (
-          <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
-        )}
+        <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
       </div>
 
       <div className="edit-panel__footer">
@@ -233,12 +227,7 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
             </span>
           </div>
         ) : (
-          <EditActions
-            edit={edit}
-            disabled={locked}
-            pending={edit.pending}
-            onRevertRequested={onRevertRequested}
-          />
+          <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />
         )}
       </div>
     </div>

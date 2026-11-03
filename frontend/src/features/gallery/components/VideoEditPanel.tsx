@@ -26,7 +26,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
-import { AdjustHint, AdjustTools } from "./AdjustTools";
+import { AdjustTools } from "./AdjustTools";
 import {
   AspectTools,
   BlurTools,
@@ -41,13 +41,14 @@ import {
   ToolPresets,
   ToolTabs,
   type EditTool,
-  type ToolHintEntry,
 } from "./EditPanelParts";
 import {
-  HANDLE_GESTURES,
-  MASK_GESTURES,
-  TRIM_GESTURES,
-} from "@/features/gallery/lib/stageGestures";
+  BLUR_HINT,
+  CROP_HINT,
+  SIZE_HINT,
+  TRIM_HINT,
+  type ToolHintEntry,
+} from "@/features/gallery/lib/toolHints";
 import { VideoEditTimeline } from "./VideoEditTimeline";
 
 type ToolId = "trim" | "crop" | "blur" | "speed" | "size" | "volume" | "adjust";
@@ -63,19 +64,14 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
 ];
 
 // Adjust has none: its strip and dial take the whole row and label themselves.
+// Adjust has its own, which follows the wand.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
-  trim: {
-    message: "Both follow the playhead. Drag a handle, or focus it and use the keys.",
-    gestures: TRIM_GESTURES,
-  },
+  trim: TRIM_HINT,
   speed: { message: "Changes the length too; the audio keeps its pitch." },
   volume: { message: "Applies to the whole clip; Mute removes the sound." },
-  crop: {
-    message: "Drag the frame or its handles on the picture, or pick a ratio.",
-    gestures: HANDLE_GESTURES,
-  },
-  size: { message: "Pick a scale, or type a width or height; the other follows." },
-  blur: { message: "Add a region, then drag it over what to hide.", gestures: MASK_GESTURES },
+  crop: CROP_HINT,
+  size: SIZE_HINT,
+  blur: BLUR_HINT,
 };
 
 interface VideoEditPanelProps {
@@ -234,11 +230,7 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
           )}
         </div>
 
-        {activeTool === "adjust" ? (
-          edit.ready && <AdjustHint controls={edit.adjust} />
-        ) : (
-          <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
-        )}
+        <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
       </div>
 
       <div className="edit-panel__footer">

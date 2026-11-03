@@ -3,6 +3,7 @@ import { swapsAxes } from "@/features/gallery/lib/imageEdit";
 import { classNames } from "@/shared/lib/classNames";
 import { iconMinimize2 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
+import { imageOriginalUrl } from "@/features/gallery/api/imageEdit";
 import { fillPreviewUrl } from "@/features/gallery/api/imageFill";
 import { useStageZoom } from "@/features/gallery/hooks/useStageZoom";
 import { AdjustCanvas } from "./AdjustCanvas";
@@ -14,16 +15,15 @@ import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
 
 interface ImageEditStageProps {
   edit: ImageEdit;
-  /** The file being edited; the server composites its fills onto its original. */
+  /** The file being edited: its original shows until the draft has fills, which the server
+   * composites onto it. */
   path: string;
-  /** The untouched original, shown while the draft has no fills. */
-  src: string;
   alt: string;
   disabled: boolean;
 }
 
 /** Measures nothing: a rotated img lays out upright. __canvas must be absolute for the overlays. */
-export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStageProps) {
+export function ImageEditStage({ edit, path, alt, disabled }: ImageEditStageProps) {
   const imageRef = useRef<HTMLImageElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -31,16 +31,16 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
   const [covered, setCovered] = useState(false);
   const { fill } = edit;
   // Every tool works on the filled picture, so crop, blur and Adjust show what Apply writes.
+  const src = imageOriginalUrl(path);
   const shown = fill.previewIds.length > 0 ? fillPreviewUrl(path, fill.previewIds) : src;
 
   const turned = swapsAxes(edit.draft.rotate);
-  const fillShown = edit.fillActive && !edit.adjust.zoomed;
   const comparable = !disabled && fill.candidate !== null && !fill.candidateStale;
   // The Fill tool's own: a brush wants close-up work, and the wheel means nothing to the others.
   const zoom = useStageZoom({
     stageRef,
     canvasRef,
-    active: fillShown,
+    active: edit.fillActive,
     turned,
     resetKey: path,
     onAltWheel: fill.stepBrush,
@@ -65,14 +65,7 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
         zoomed && "image-edit-stage--zoomed",
         zoom.panning && "image-edit-stage--panning",
       )}
-      onPointerDown={zoom.onPointerDown}
-      onPointerMove={zoom.onPointerMove}
-      onPointerUp={zoom.onPointerUp}
-      onPointerCancel={zoom.onPointerUp}
-      onMouseDown={(event) => {
-        // Chrome starts its autoscroll on the middle button's mousedown.
-        if (edit.fillActive && event.button === 1) event.preventDefault();
-      }}
+      {...zoom.handlers}
     >
       <div ref={canvasRef} className="image-edit-stage__canvas" style={canvasStyle}>
         <img
@@ -118,7 +111,7 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
             onRemove={edit.removeMask}
           />
         )}
-        {fillShown && (
+        {edit.fillActive && (
           <FillOverlay
             mediaRef={imageRef}
             sourceWidth={edit.sourceWidth}
@@ -131,8 +124,7 @@ export function ImageEditStage({ edit, path, src, alt, disabled }: ImageEditStag
             showStrokes={fill.candidate === null}
             working={fill.generating}
             onCompare={comparable ? fill.setShowBefore : undefined}
-            onBegin={fill.beginStroke}
-            onExtend={fill.extendStroke}
+            onStroke={fill.addStroke}
           />
         )}
         {edit.cropActive && (

@@ -126,7 +126,6 @@ import { VideoEditPanel } from "./VideoEditPanel";
 import { AudioEditPanel } from "./AudioEditPanel";
 import { ZoomableImage } from "./ZoomableImage";
 import { AudioWaveform } from "./AudioWaveform";
-import { imageOriginalUrl } from "@/features/gallery/api/imageEdit";
 import { transcodeVideo, videoOriginalUrl } from "@/features/gallery/api/videoEdit";
 import { useMediaPlaybackProblem } from "@/shared/hooks/useMediaPlaybackProblem";
 import { canTranscodeAway } from "@/shared/lib/mediaProblems";
@@ -366,10 +365,8 @@ export function GalleryItemDialog({
       : item && isEditableAudio(item)
         ? audioEdit
         : imageEdit;
-  // A fill run or an undecided result is work too, though Apply would not write it.
-  const fillPending = activeEdit === imageEdit && imageEdit.pending;
-  const unsavedEdits =
-    editMode && (activeEdit.dirty || activeEdit.adjust.autoPending || fillPending);
+  // Pending work is unsaved too, though Apply would not write it.
+  const unsavedEdits = editMode && (activeEdit.dirty || activeEdit.pending);
   useDialogNavigationDraft({
     unsavedChanges: captionDirty,
     blocked: busy,
@@ -1319,13 +1316,7 @@ export function GalleryItemDialog({
               />
             </div>
           ) : editMode && canEditImageItem ? (
-            <ImageEditStage
-              edit={imageEdit}
-              path={item.path}
-              src={imageOriginalUrl(item.path)}
-              alt={item.name}
-              disabled={busy}
-            />
+            <ImageEditStage edit={imageEdit} path={item.path} alt={item.name} disabled={busy} />
           ) : (
             <ZoomableImage
               // Frame mode swaps in a still; a leftover GIF zoom would apply to a differently decoded image.

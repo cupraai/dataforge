@@ -15,13 +15,13 @@
   width: max-content;
   max-width: calc(100% - 2rem);
   padding: 0.5625rem 1rem;
-  border: 1px solid var(--media-guide);
   border-radius: var(--radius-md);
-  background: var(--media-panel);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  @include media-glass;
   box-shadow: var(--elevation-3);
-  color: var(--media-text);
+  // Key caps on the glass rather than on the page.
+  --kbd-border: var(--media-key-border);
+  --kbd-bg: var(--media-key-bg);
+  --kbd-edge: transparent;
   transform: translateX(-50%);
   pointer-events: none;
   transition: opacity var(--transition);
@@ -105,9 +105,6 @@
     gap: 0.25rem;
 
     .kbd {
-      border-color: var(--media-key-border);
-      background: var(--media-key-bg);
-      box-shadow: none;
       color: var(--media-text);
     }
 

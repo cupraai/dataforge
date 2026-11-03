@@ -52,12 +52,8 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.1875rem 0.1875rem 0.1875rem 0.625rem;
-    border: 1px solid var(--media-guide);
     border-radius: var(--radius-pill);
-    background: var(--media-panel);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: var(--media-text);
+    @include media-glass;
     font-size: var(--text-xs);
     font-weight: var(--font-semibold);
     @include tabular-nums;

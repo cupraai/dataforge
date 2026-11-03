@@ -68,8 +68,8 @@ export interface AudioEdit {
   measuring: boolean;
   /** No Web Audio: the preview can neither boost nor shape the sound. */
   previewLimited: boolean;
-  /** EditActions reads it; the audio edit has no wand. */
-  adjust: { autoPending: false };
+  /** Unsaved work Apply would not take; the audio edit has none. */
+  pending: false;
   toggleEditMode: () => void;
   exitEditMode: () => void;
   setTrimStart: (seconds: number) => void;
@@ -599,7 +599,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     previewError,
     measuring: measuredKey !== null && loudness?.key !== measuredKey && previewError === null,
     previewLimited,
-    adjust: { autoPending: false },
+    pending: false,
     toggleEditMode,
     exitEditMode,
     setTrimStart,

@@ -1,12 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent,
-  type RefObject,
-} from "react";
+import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import type { Orientation } from "@/features/gallery/lib/crop";
 import {
   clientPointToFraction,
@@ -40,8 +32,9 @@ interface FillOverlayProps {
   working: boolean;
   /** Set while a result can be compared: holding the picture shows it before. */
   onCompare?: (holding: boolean) => void;
-  onBegin: (point: FillPoint) => void;
-  onExtend: (point: FillPoint) => void;
+  /** A finished stroke. The one in progress is drawn here alone, so a drag re-renders nothing
+   * above the overlay. */
+  onStroke: (stroke: FillStroke) => void;
 }
 
 /** The Fill tool's brush. Drawn in the upright frame inside the stage's turned canvas. */
@@ -57,13 +50,14 @@ export function FillOverlay({
   showStrokes,
   working,
   onCompare,
-  onBegin,
-  onExtend,
+  onStroke,
 }: FillOverlayProps) {
   const box = usePaintedBox(mediaRef, sourceWidth, sourceHeight);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const lastPointRef = useRef<FillPoint | null>(null);
+  const liveRef = useRef<FillStroke | null>(null);
+  // The paint token, read once per full redraw rather than per point of a live stroke.
+  const colorRef = useRef("");
   const [cursor, setCursor] = useState<FillPoint | null>(null);
 
   const scale = Math.min(1, MAX_BACKING_SIDE / Math.max(1, sourceWidth, sourceHeight));
@@ -77,8 +71,24 @@ export function FillOverlay({
     context.clearRect(0, 0, backingWidth, backingHeight);
     // The stylesheet's token, drawn opaque: the element's opacity tints it, so overlapping
     // strokes do not darken where they cross.
-    if (showStrokes) drawStrokes(context, strokes, scale, getComputedStyle(canvas).color);
+    colorRef.current = getComputedStyle(canvas).color;
+    if (showStrokes) drawStrokes(context, strokes, scale, colorRef.current);
   }, [backingHeight, backingWidth, scale, showStrokes, strokes]);
+
+  /** Draws the live stroke's newest piece: a dot to start, then a segment from the last point.
+   * Paint is opaque and erase clears, so the pieces add up to what the full redraw draws. */
+  const drawLive = (points: FillPoint[]) => {
+    const context = canvasRef.current?.getContext("2d");
+    const live = liveRef.current;
+    if (!context || !live) return;
+    drawStrokes(context, [{ ...live, points }], scale, colorRef.current);
+  };
+
+  const finishStroke = () => {
+    const live = liveRef.current;
+    liveRef.current = null;
+    if (live) onStroke(live);
+  };
 
   const toSource = (event: PointerEvent<HTMLDivElement>): FillPoint | null => {
     const surface = surfaceRef.current;
@@ -93,17 +103,6 @@ export function FillOverlay({
     return fractionToSource(fraction, { width: sourceWidth, height: sourceHeight });
   };
 
-  const style = useMemo(
-    () =>
-      ({
-        left: box.left,
-        top: box.top,
-        width: box.width,
-        height: box.height,
-      }) as CSSProperties,
-    [box],
-  );
-
   const ringSize = sourceWidth > 0 ? (2 * brushRadius * box.width) / sourceWidth : 0;
 
   return (
@@ -115,7 +114,7 @@ export function FillOverlay({
         onCompare && "fill-overlay--compare",
         working && "fill-overlay--working",
       )}
-      style={style}
+      style={box}
       data-testid="fill-overlay"
       aria-hidden="true"
       onPointerDown={(event) => {
@@ -131,27 +130,32 @@ export function FillOverlay({
         if (!point) return;
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        lastPointRef.current = point;
-        onBegin(point);
+        liveRef.current = {
+          mode: erasing ? "erase" : "paint",
+          radius: brushRadius,
+          points: [point],
+        };
+        drawLive([point]);
       }}
       onPointerMove={(event) => {
         const point = toSource(event);
-        const last = lastPointRef.current;
-        if (!point || !last || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        const live = liveRef.current;
+        if (!point || !live || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        const last = live.points[live.points.length - 1];
         const spacing = Math.max(1, brushRadius * MIN_POINT_SPACING);
         if (Math.hypot(point.x - last.x, point.y - last.y) < spacing) return;
-        lastPointRef.current = point;
-        onExtend(point);
+        live.points.push(point);
+        drawLive([last, point]);
       }}
       onPointerUp={(event) => {
         if (event.currentTarget.hasPointerCapture(event.pointerId)) {
           event.currentTarget.releasePointerCapture(event.pointerId);
         }
-        lastPointRef.current = null;
+        finishStroke();
         onCompare?.(false);
       }}
       onPointerCancel={() => {
-        lastPointRef.current = null;
+        finishStroke();
         onCompare?.(false);
       }}
       onPointerLeave={() => setCursor(null)}
@@ -165,14 +169,12 @@ export function FillOverlay({
       {interactive && cursor && (
         <span
           className={classNames("fill-overlay__cursor", erasing && "fill-overlay__cursor--erase")}
-          style={
-            {
-              left: `${cursor.x * 100}%`,
-              top: `${cursor.y * 100}%`,
-              width: ringSize,
-              height: ringSize,
-            } as CSSProperties
-          }
+          style={{
+            left: `${cursor.x * 100}%`,
+            top: `${cursor.y * 100}%`,
+            width: ringSize,
+            height: ringSize,
+          }}
         />
       )}
     </div>

@@ -77,7 +77,7 @@ export interface ImageEdit extends MaskRegionControls {
   setFillActive: (active: boolean) => void;
   /** Drops the newest kept fill; earlier ones cannot go without the ones built on them. */
   undoFill: () => void;
-  /** A fill run or an undecided result: unsaved, but nothing Apply would write. */
+  /** Unsaved work Apply would not take: an Auto measurement, a fill run or an undecided result. */
   pending: boolean;
   resetDraft: () => void;
   apply: () => void;
@@ -428,7 +428,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     fillActive,
     setFillActive,
     undoFill,
-    pending: fill.pending,
+    pending: adjust.autoPending || fill.pending,
     resetDraft,
     apply,
     revert,

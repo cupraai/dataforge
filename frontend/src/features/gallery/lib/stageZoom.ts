@@ -1,3 +1,6 @@
+import type { Size } from "./crop";
+import { clamp } from "./editSpec";
+
 /**
  * Zoom and pan for the edit stage, applied as one transform in screen space ahead of the turn and
  * mirrors, so a stroke lands where the pointer is whatever the frame's orientation.
@@ -10,11 +13,6 @@ export interface StageView {
   scale: number;
   x: number;
   y: number;
-}
-
-export interface FrameSize {
-  width: number;
-  height: number;
 }
 
 export const UNZOOMED: StageView = { scale: 1, x: 0, y: 0 };
@@ -38,14 +36,14 @@ export function wheelZoomFactor(pixels: number): number {
 }
 
 /** Keeps the zoomed frame covering the stage's middle: no panning the picture out of sight. */
-function clamped(view: StageView, frame: FrameSize): StageView {
+function clamped(view: StageView, frame: Size): StageView {
   if (view.scale <= 1) return UNZOOMED;
   const limitX = ((view.scale - 1) * frame.width) / 2;
   const limitY = ((view.scale - 1) * frame.height) / 2;
   return {
     scale: view.scale,
-    x: Math.min(limitX, Math.max(-limitX, view.x)),
-    y: Math.min(limitY, Math.max(-limitY, view.y)),
+    x: clamp(view.x, -limitX, limitX),
+    y: clamp(view.y, -limitY, limitY),
   };
 }
 
@@ -54,9 +52,9 @@ export function zoomAt(
   view: StageView,
   factor: number,
   point: { x: number; y: number },
-  frame: FrameSize,
+  frame: Size,
 ): StageView {
-  const scale = Math.min(MAX_STAGE_ZOOM, Math.max(1, view.scale * factor));
+  const scale = clamp(view.scale * factor, 1, MAX_STAGE_ZOOM);
   const ratio = scale / view.scale;
   return clamped(
     {
@@ -68,6 +66,6 @@ export function zoomAt(
   );
 }
 
-export function panBy(view: StageView, dx: number, dy: number, frame: FrameSize): StageView {
+export function panBy(view: StageView, dx: number, dy: number, frame: Size): StageView {
   return clamped({ ...view, x: view.x + dx, y: view.y + dy }, frame);
 }

@@ -57,6 +57,8 @@ export interface UseVideoEditOptions {
 
 export interface VideoEdit extends MaskRegionControls {
   activeMediaRef: RefObject<HTMLVideoElement | null>;
+  /** Unsaved work Apply would not take: an Auto measurement. */
+  pending: boolean;
   editMode: boolean;
   ready: boolean;
   applying: boolean;
@@ -583,6 +585,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     setScale,
     setVolume,
     adjust,
+    pending: adjust.autoPending,
     seekTo,
     togglePlay,
     resetDraft,

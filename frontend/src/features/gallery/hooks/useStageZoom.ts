@@ -1,15 +1,23 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+  type RefObject,
+} from "react";
 import {
   UNZOOMED,
   panBy,
   wheelPixels,
   wheelZoomFactor,
   zoomAt,
-  type FrameSize,
   type StageView,
 } from "@/features/gallery/lib/stageZoom";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
+import type { Size } from "@/features/gallery/lib/crop";
 
 /** The middle button, as `PointerEvent.button` numbers it. */
 const MIDDLE_BUTTON = 1;
@@ -27,14 +35,27 @@ interface UseStageZoomOptions {
   onAltWheel?: (direction: 1 | -1) => void;
 }
 
-export interface StageZoom {
+interface StageZoom {
   view: StageView;
   panning: boolean;
-  onPointerDown: (event: PointerEvent<HTMLElement>) => void;
-  onPointerMove: (event: PointerEvent<HTMLElement>) => void;
-  onPointerUp: (event: PointerEvent<HTMLElement>) => void;
+  /** Spread on the stage element. */
+  handlers: {
+    onPointerDown: (event: PointerEvent<HTMLElement>) => void;
+    onPointerMove: (event: PointerEvent<HTMLElement>) => void;
+    onPointerUp: (event: PointerEvent<HTMLElement>) => void;
+    onPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+    onMouseDown: (event: MouseEvent<HTMLElement>) => void;
+  };
   /** Back to the whole picture. */
   reset: () => void;
+}
+
+/** Where a pan started, measured once: the frame cannot change size mid-drag. */
+interface Pan {
+  x: number;
+  y: number;
+  frame: Size;
+  ratio: number;
 }
 
 /** Wheel zooms around the pointer, a middle-button drag pans, and Alt+wheel is handed back. */
@@ -48,7 +69,7 @@ export function useStageZoom({
 }: UseStageZoomOptions): StageZoom {
   const [view, setView] = useState<StageView>(UNZOOMED);
   const [panning, setPanning] = useState(false);
-  const panRef = useRef<{ x: number; y: number } | null>(null);
+  const panRef = useRef<Pan | null>(null);
   const onAltWheelRef = useLatestRef(onAltWheel);
 
   const activeChanged = useChanged(active);
@@ -58,8 +79,8 @@ export function useStageZoom({
     setPanning(false);
   }
 
-  /** The canvas's unzoomed size on screen, and the client-to-CSS pixel ratio. */
-  const measure = useCallback((): { frame: FrameSize; ratio: number } | null => {
+  /** The canvas's unzoomed size on screen, the stage's box, and the client-to-CSS pixel ratio. */
+  const measure = useCallback((): { frame: Size; rect: DOMRect; ratio: number } | null => {
     const stage = stageRef.current;
     const canvas = canvasRef.current;
     if (!stage || !canvas) return null;
@@ -69,7 +90,7 @@ export function useStageZoom({
     const frame = turned
       ? { width: canvas.offsetHeight, height: canvas.offsetWidth }
       : { width: canvas.offsetWidth, height: canvas.offsetHeight };
-    return { frame, ratio };
+    return { frame, rect, ratio };
   }, [canvasRef, stageRef, turned]);
 
   // Native and non-passive: React's wheel listener is passive, so it could not stop the page
@@ -87,7 +108,7 @@ export function useStageZoom({
       }
       const measured = measure();
       if (!measured) return;
-      const rect = stage.getBoundingClientRect();
+      const { rect } = measured;
       const point = {
         x: (event.clientX - (rect.left + rect.width / 2)) * measured.ratio,
         y: (event.clientY - (rect.top + rect.height / 2)) * measured.ratio,
@@ -101,28 +122,32 @@ export function useStageZoom({
   const onPointerDown = useCallback(
     (event: PointerEvent<HTMLElement>) => {
       if (!active || event.button !== MIDDLE_BUTTON) return;
-      // Also stops the compatibility mousedown, which would start the browser's autoscroll.
+      const measured = measure();
+      if (!measured) return;
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
-      panRef.current = { x: event.clientX, y: event.clientY };
+      panRef.current = { x: event.clientX, y: event.clientY, ...measured };
       setPanning(true);
+    },
+    [active, measure],
+  );
+
+  // Chrome starts its autoscroll on the middle button's mousedown, whatever the pointerdown did.
+  const onMouseDown = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (active && event.button === MIDDLE_BUTTON) event.preventDefault();
     },
     [active],
   );
 
-  const onPointerMove = useCallback(
-    (event: PointerEvent<HTMLElement>) => {
-      const last = panRef.current;
-      if (!last) return;
-      const measured = measure();
-      if (!measured) return;
-      const dx = (event.clientX - last.x) * measured.ratio;
-      const dy = (event.clientY - last.y) * measured.ratio;
-      panRef.current = { x: event.clientX, y: event.clientY };
-      setView((current) => panBy(current, dx, dy, measured.frame));
-    },
-    [measure],
-  );
+  const onPointerMove = useCallback((event: PointerEvent<HTMLElement>) => {
+    const pan = panRef.current;
+    if (!pan) return;
+    const dx = (event.clientX - pan.x) * pan.ratio;
+    const dy = (event.clientY - pan.y) * pan.ratio;
+    panRef.current = { ...pan, x: event.clientX, y: event.clientY };
+    setView((current) => panBy(current, dx, dy, pan.frame));
+  }, []);
 
   const onPointerUp = useCallback((event: PointerEvent<HTMLElement>) => {
     if (!panRef.current) return;
@@ -135,5 +160,16 @@ export function useStageZoom({
 
   const reset = useCallback(() => setView(UNZOOMED), []);
 
-  return { view, panning, onPointerDown, onPointerMove, onPointerUp, reset };
+  return {
+    view,
+    panning,
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel: onPointerUp,
+      onMouseDown,
+    },
+    reset,
+  };
 }

@@ -2,7 +2,7 @@ import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FillOverlay } from "./FillOverlay";
-import type { FillPoint } from "@/features/gallery/lib/fillMask";
+import type { FillStroke } from "@/features/gallery/lib/fillMask";
 import type { Orientation } from "@/features/gallery/lib/crop";
 
 const SOURCE = { width: 4000, height: 2000 };
@@ -84,8 +84,7 @@ function renderOverlay(overrides: Partial<Props> = {}) {
     interactive: true,
     showStrokes: true,
     working: false,
-    onBegin: vi.fn<(point: FillPoint) => void>(),
-    onExtend: vi.fn<(point: FillPoint) => void>(),
+    onStroke: vi.fn<(stroke: FillStroke) => void>(),
     ...overrides,
   };
   render(<FillOverlay {...props} />);
@@ -94,60 +93,79 @@ function renderOverlay(overrides: Partial<Props> = {}) {
 
 describe("FillOverlay", () => {
   it("paints in original pixels wherever the stage draws the frame", () => {
-    const { surface, onBegin, onExtend } = renderOverlay();
+    const { surface, onStroke } = renderOverlay();
 
     fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 100, clientY: 50 });
     fireEvent.pointerMove(surface, { pointerId: 1, clientX: 500, clientY: 250 });
+    // The stroke in progress stays here; it goes up once, whole, on release.
+    expect(onStroke).not.toHaveBeenCalled();
     fireEvent.pointerUp(surface, { pointerId: 1 });
 
-    expect(onBegin).toHaveBeenCalledWith({ x: 0, y: 0 });
-    expect(onExtend).toHaveBeenCalledWith({ x: 2000, y: 1000 });
+    expect(onStroke).toHaveBeenCalledExactlyOnceWith({
+      mode: "paint",
+      radius: 40,
+      points: [
+        { x: 0, y: 0 },
+        { x: 2000, y: 1000 },
+      ],
+    });
+  });
+
+  it("strokes with the eraser while erasing", () => {
+    const { surface, onStroke } = renderOverlay({ erasing: true });
+
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 100, clientY: 50 });
+    fireEvent.pointerCancel(surface, { pointerId: 1 });
+
+    expect(vi.mocked(onStroke).mock.calls[0][0].mode).toBe("erase");
   });
 
   it("follows the frame through a quarter turn and a mirror", () => {
     // Turned clockwise and then seen in a mirror: the frame's origin lands bottom right.
     const orientation: Orientation = { rotate: 90, mirrorH: true, mirrorV: false };
     screenRect = { left: 300, top: -150, width: BOX.height, height: BOX.width };
-    const { surface, onBegin } = renderOverlay({ orientation });
+    const { surface, onStroke } = renderOverlay({ orientation });
 
     fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 700, clientY: 650 });
+    fireEvent.pointerUp(surface, { pointerId: 1 });
 
-    const [point] = vi.mocked(onBegin).mock.calls[0];
+    const [point] = vi.mocked(onStroke).mock.calls[0][0].points;
     expect(point.x).toBeCloseTo(0);
     expect(point.y).toBeCloseTo(0);
   });
 
   it("skips moves too small to change the stroke", () => {
-    const { surface, onExtend } = renderOverlay({ brushRadius: 200 });
+    const { surface, onStroke } = renderOverlay({ brushRadius: 200 });
 
     fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(surface, { pointerId: 1, clientX: 302, clientY: 150 });
     fireEvent.pointerMove(surface, { pointerId: 1, clientX: 400, clientY: 150 });
+    fireEvent.pointerUp(surface, { pointerId: 1 });
 
-    expect(onExtend).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(onStroke).mock.calls[0][0].points).toHaveLength(2);
   });
 
   it("ignores the pointer while painting is locked, and moves without a press", () => {
-    const { surface, onBegin, onExtend } = renderOverlay({ interactive: false });
+    const { surface, onStroke } = renderOverlay({ interactive: false });
 
     fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(surface, { pointerId: 1, clientX: 400, clientY: 150 });
+    fireEvent.pointerUp(surface, { pointerId: 1 });
 
-    expect(onBegin).not.toHaveBeenCalled();
-    expect(onExtend).not.toHaveBeenCalled();
+    expect(onStroke).not.toHaveBeenCalled();
     expect(surface).not.toHaveClass("fill-overlay--interactive");
   });
 
   it("holds a result's comparison for as long as the button is down, and paints nothing", () => {
     const onCompare = vi.fn<(holding: boolean) => void>();
-    const { surface, onBegin } = renderOverlay({ interactive: false, onCompare });
+    const { surface, onStroke } = renderOverlay({ interactive: false, onCompare });
 
     fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 300, clientY: 150 });
     expect(onCompare).toHaveBeenLastCalledWith(true);
     fireEvent.pointerUp(surface, { pointerId: 1 });
 
     expect(onCompare).toHaveBeenLastCalledWith(false);
-    expect(onBegin).not.toHaveBeenCalled();
+    expect(onStroke).not.toHaveBeenCalled();
     expect(surface).toHaveClass("fill-overlay--compare");
   });
 

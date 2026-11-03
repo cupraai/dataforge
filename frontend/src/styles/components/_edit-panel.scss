@@ -267,8 +267,7 @@
   &__text {
     @include dialog-form-input(var(--control-height-sm));
     width: 100%;
-    // Held to the buttons' height: the mixin's relaxed line height would outgrow it.
-    height: var(--control-height-sm);
+    // No block padding: the mixin's minimum height already makes it a button's height.
     padding: 0 0.625rem;
     font-size: var(--text-sm);
   }

@@ -3,7 +3,6 @@ import { CROP_ASPECTS } from "@/features/gallery/lib/crop";
 import { SCALE_PRESETS, formatScale } from "@/features/gallery/lib/editSpec";
 import { MASK_MODES, MASK_STRENGTHS } from "@/features/gallery/lib/mask";
 import type { MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
-import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { iconPlus, iconTrash2, iconUndo2, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
@@ -13,7 +12,8 @@ import { formatSizeFit } from "@/shared/lib/sizeFit";
 import type { SizeFit } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
 import { SizeNumberField } from "./SizeNumberField";
-import { StageHint, type StageGesture } from "./StageHint";
+import type { ToolHintEntry } from "@/features/gallery/lib/toolHints";
+import { StageHint } from "./StageHint";
 
 /** Pieces the image and video edit panels share; both render inside `.edit-panel`. */
 
@@ -107,11 +107,6 @@ export function ToolPresets({ label, children }: { label: string; children: Reac
       {children}
     </ToolGroup>
   );
-}
-
-export interface ToolHintEntry {
-  message: string;
-  gestures?: readonly StageGesture[];
 }
 
 /** How the open tool is used, over the media under the tool's own icon. */
@@ -350,22 +345,21 @@ export function BlurTools({
 interface DraftActions {
   hasBackup: boolean;
   dirty: boolean;
-  adjust: Pick<ColorAdjustControls, "autoPending">;
+  /** Unsaved work Apply does not take, such as an Auto measurement or an undecided fill: Reset
+   * drops it. */
+  pending: boolean;
   resetDraft: () => void;
   apply: () => void;
 }
 
-/** Revert, Reset and Apply; the panels swap this row for their own progress while rendering.
- * `pending` is unsaved work Apply does not take, such as an undecided fill: Reset drops it. */
+/** Revert, Reset and Apply; the panels swap this row for their own progress while rendering. */
 export function EditActions({
   edit,
   disabled,
-  pending = false,
   onRevertRequested,
 }: {
   edit: DraftActions;
   disabled: boolean;
-  pending?: boolean;
   onRevertRequested: () => void;
 }) {
   return (
@@ -384,7 +378,7 @@ export function EditActions({
       <button
         type="button"
         className="edit-panel__control"
-        disabled={disabled || (!edit.dirty && !edit.adjust.autoPending && !pending)}
+        disabled={disabled || (!edit.dirty && !edit.pending)}
         onClick={edit.resetDraft}
       >
         Reset
@@ -392,7 +386,7 @@ export function EditActions({
       <button
         type="button"
         className="edit-panel__apply"
-        disabled={disabled || !edit.dirty || edit.adjust.autoPending || pending}
+        disabled={disabled || !edit.dirty || edit.pending}
         onClick={edit.apply}
       >
         Apply

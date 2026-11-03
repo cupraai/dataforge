@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import type { ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import { BRUSH_DEFAULT_FRACTION } from "@/features/gallery/lib/fillMask";
-import type { BrushMode, FillPoint } from "@/features/gallery/lib/fillMask";
+import type { BrushMode, FillStroke } from "@/features/gallery/lib/fillMask";
 import type { FillPreset, ImageFill } from "@/shared/types";
 
 export function makeFillControls(overrides: Partial<ImageFillControls> = {}): ImageFillControls {
@@ -13,8 +13,7 @@ export function makeFillControls(overrides: Partial<ImageFillControls> = {}): Im
     setBrushFraction: vi.fn<(fraction: number) => void>(),
     stepBrush: vi.fn<(direction: 1 | -1) => void>(),
     brushRadius: 32,
-    beginStroke: vi.fn<(point: FillPoint) => void>(),
-    extendStroke: vi.fn<(point: FillPoint) => void>(),
+    addStroke: vi.fn<(stroke: FillStroke) => void>(),
     undoStroke: vi.fn<() => void>(),
     clearStrokes: vi.fn<() => void>(),
     canPaint: true,
@@ -23,9 +22,7 @@ export function makeFillControls(overrides: Partial<ImageFillControls> = {}): Im
     preset: "quality",
     setPreset: vi.fn<(preset: FillPreset) => void>(),
     presets: null,
-    presetsLoading: false,
     presetsError: null,
-    refreshPresets: vi.fn<() => void>(),
     progress: "idle",
     generating: false,
     error: null,

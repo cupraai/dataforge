@@ -19,6 +19,7 @@ function makeEdit(overrides: Partial<VideoEdit> = {}): VideoEdit {
 
   return {
     activeMediaRef: { current: null },
+    pending: false,
     editMode: true,
     ready: true,
     applying: false,

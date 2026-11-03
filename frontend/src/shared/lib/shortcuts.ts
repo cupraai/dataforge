@@ -390,11 +390,13 @@ function keyMatches(event: KeyboardEvent, key: string): boolean {
 
 export function matchesChord(event: KeyboardEvent, chord: KeyChord): boolean {
   if (!keyMatches(event, chord.key)) return false;
-  // Windows reports AltGr as Ctrl+Alt, and QWERTZ types [ and ] with it: the symbol is the key.
-  const altGraph = isLayoutSymbol(chord.key) && event.getModifierState("AltGraph");
+  // A symbol is whatever the layout typed, so the keys that typed it are the layout's: Shift, a
+  // Mac's Option (German [ is Option+5), and AltGr, which Windows reports as Ctrl+Alt.
+  const symbol = isLayoutSymbol(chord.key);
+  const altGraph = symbol && event.getModifierState("AltGraph");
   if ((!altGraph && (event.ctrlKey || event.metaKey)) !== Boolean(chord.mod)) return false;
-  if ((!altGraph && event.altKey) !== Boolean(chord.alt)) return false;
-  if (isLayoutSymbol(chord.key)) return true;
+  if (!(symbol && !chord.alt) && event.altKey !== Boolean(chord.alt)) return false;
+  if (symbol) return true;
   return event.shiftKey === Boolean(chord.shift);
 }
 

@@ -79,8 +79,14 @@ function renderFill(overrides: Partial<UseImageFillOptions> = {}) {
 
 function paint(result: { current: ReturnType<typeof useImageFill> }) {
   act(() => {
-    result.current.beginStroke({ x: 100, y: 100 });
-    result.current.extendStroke({ x: 140, y: 120 });
+    result.current.addStroke({
+      mode: "paint",
+      radius: result.current.brushRadius,
+      points: [
+        { x: 100, y: 100 },
+        { x: 140, y: 120 },
+      ],
+    });
   });
 }
 
@@ -205,7 +211,7 @@ describe("useImageFill", () => {
   it("undoes strokes one at a time", () => {
     const { result } = renderFill();
     paint(result);
-    act(() => result.current.beginStroke({ x: 5, y: 5 }));
+    act(() => result.current.addStroke({ mode: "paint", radius: 4, points: [{ x: 5, y: 5 }] }));
 
     act(() => result.current.undoStroke());
 
