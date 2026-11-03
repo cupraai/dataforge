@@ -44,6 +44,7 @@ import { RulerDial } from "@/shared/ui/RulerDial";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { ADJUST_GESTURES } from "@/features/gallery/lib/toolHints";
+import { holdToCompareProps } from "@/features/gallery/lib/holdToCompare";
 import { StageHint } from "./StageHint";
 
 type StripId = "auto" | AdjustTool;
@@ -281,20 +282,7 @@ export function AdjustTools({ controls, disabled }: AdjustToolsProps) {
             aria-label="Hold to see the original"
             aria-pressed={controls.comparing}
             disabled={disabled || isAdjustIdentity(controls.values)}
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              controls.setComparing(true);
-            }}
-            onPointerUp={() => controls.setComparing(false)}
-            onPointerCancel={() => controls.setComparing(false)}
-            onLostPointerCapture={() => controls.setComparing(false)}
-            onKeyDown={(event) => {
-              if (event.key !== " " && event.key !== "Enter") return;
-              event.preventDefault();
-              controls.setComparing(true);
-            }}
-            onKeyUp={() => controls.setComparing(false)}
-            onBlur={() => controls.setComparing(false)}
+            {...holdToCompareProps(controls.setComparing)}
           >
             <Icon icon={iconSquareSplitHorizontal} />
           </button>

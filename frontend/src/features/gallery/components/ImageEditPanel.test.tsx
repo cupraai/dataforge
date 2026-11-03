@@ -364,8 +364,13 @@ describe("ImageEditPanel", () => {
       // Painting is settled, but the request stays to reword and regenerate.
       expect(screen.queryByRole("button", { name: "Paint" })).not.toBeInTheDocument();
       expect(screen.getByRole("textbox", { name: "Instruction" })).toBeEnabled();
-      await user.click(screen.getByRole("button", { name: "Before" }));
-      expect(fill.setShowBefore).toHaveBeenCalledWith(true);
+      // Before is held like Adjust's compare, not toggled.
+      const before = screen.getByRole("button", { name: "Before" });
+      before.setPointerCapture = () => {};
+      fireEvent.pointerDown(before);
+      expect(fill.setShowBefore).toHaveBeenLastCalledWith(true);
+      fireEvent.pointerUp(before);
+      expect(fill.setShowBefore).toHaveBeenLastCalledWith(false);
       await user.click(screen.getByRole("button", { name: "Regenerate" }));
       expect(fill.generate).toHaveBeenCalled();
       await user.click(screen.getByRole("button", { name: "Discard" }));

@@ -181,10 +181,12 @@ describe("GalleryItemDialog", () => {
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeDisabled();
 
       const before = within(dialog).getByRole("button", { name: "Before" });
-      await user.click(before);
+      before.setPointerCapture = () => {};
+      fireEvent.pointerDown(before);
       expect(before).toHaveAttribute("aria-pressed", "true");
       expect(stage().getAttribute("src")).not.toContain("image-fill");
-      await user.click(before);
+      fireEvent.pointerUp(before);
+      expect(before).toHaveAttribute("aria-pressed", "false");
       expect(stage().getAttribute("src")).toContain(`fills=${FILL.id}`);
 
       // Holding the picture compares too, only while the button is down.

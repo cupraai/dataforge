@@ -9,10 +9,10 @@ import { MAX_FILL_INSTRUCTION_LENGTH } from "@/shared/constants";
 import {
   iconCheck,
   iconEraser,
-  iconEye,
   iconLoader2,
   iconPencilLine,
   iconRefresh,
+  iconSquareSplitHorizontal,
   iconTrash2,
   iconUndo2,
   iconWandSparkles,
@@ -24,6 +24,7 @@ import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
+import { holdToCompareProps } from "@/features/gallery/lib/holdToCompare";
 import { PresetButton, ToolGroup, ToolPresets } from "./EditPanelParts";
 import { FillStatusBar } from "./FillStatusBar";
 
@@ -212,15 +213,15 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
               <Icon icon={iconX} />
               Discard
             </button>
-            <Tooltip content="Or hold the picture">
+            <Tooltip content="Hold to see the original">
               <button
                 type="button"
                 className="edit-panel__control"
                 aria-pressed={fill.showBefore}
                 disabled={disabled || fill.candidateStale}
-                onClick={() => fill.setShowBefore(!fill.showBefore)}
+                {...holdToCompareProps(fill.setShowBefore)}
               >
-                <Icon icon={iconEye} />
+                <Icon icon={iconSquareSplitHorizontal} />
                 Before
               </button>
             </Tooltip>
