@@ -9,7 +9,6 @@ $map-chip-font-size: 0.59375rem;
 .dialog__panel.comfy-workflow-dialog {
   display: flex;
   flex-direction: column;
-  width: min(54rem, 100%);
   max-height: min(88vh, 50rem);
   overflow: hidden;
 }

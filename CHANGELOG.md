@@ -15,6 +15,9 @@ version heading when a minor or major version is cut.
   System prompts must start with a `#` heading; deeper headings are allowed after it.
 - Folders with many PNG files, such as a ComfyUI output folder, open several times faster the
   first time after a restart or when new images arrive.
+- Dialogs come in three consistent widths: narrow for confirmations, medium for forms and wide
+  for editors such as Settings, Watermark and the ComfyUI workflow. Full-screen viewers keep
+  their size.
 
 ## 0.11.0 - 2026-11-04
 

@@ -12,7 +12,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: min(760px, 100%);
+    width: min($dialog-width-lg, 100%);
     // A fixed height, so switching tabs or loading never moves the centred panel; the editor
     // (or the empty state) absorbs whatever the source strip leaves.
     height: min(46rem, 88vh);

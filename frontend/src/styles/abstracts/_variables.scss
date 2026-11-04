@@ -17,6 +17,11 @@ $job-panel-gutter: 0.625rem;
 // A docked sticky header's own inset around its frosted surface.
 $sticky-dock-padding: 0.5rem;
 $dialog-gutter: 1.5rem;
+// Centred dialogs take one of three widths; only full-screen media dialogs and drawers differ.
+// sm: confirmations and short notices. md: forms. lg: editors and two-pane layouts.
+$dialog-width-sm: 28rem;
+$dialog-width-md: 38rem;
+$dialog-width-lg: 60rem;
 $dialog-media-max-height: min(36vh, 500px);
 $dialog-stage-padding-block: 1.25rem;
 // A media stage held at this height fits every aspect ratio, so paging never resizes its panel.

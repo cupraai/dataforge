@@ -12,7 +12,7 @@
   }
 
   .empty-state {
-    width: min(32rem, 100%);
+    width: min($dialog-width-md, 100%);
     background: var(--bg-elevated);
     border-style: solid;
     box-shadow: var(--elevation-4);

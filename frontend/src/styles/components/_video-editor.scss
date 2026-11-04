@@ -3698,10 +3698,6 @@ $lane-inset: 4px;
 
 // Each choice's label sits beside its tiles, not above them: a line saved per group keeps the
 // whole dialog on screen without scrolling.
-.dialog__panel.video-export-dialog {
-  width: min(34rem, 100%);
-}
-
 .video-export-dialog__choices {
   display: grid;
   grid-template-columns: 4.5rem minmax(0, 1fr);
@@ -3729,7 +3725,6 @@ $lane-inset: 4px;
 .dialog__panel.video-versions-dialog {
   display: flex;
   flex-direction: column;
-  width: min(36rem, 100%);
   max-height: min(88vh, 44rem);
   overflow: hidden;
 }

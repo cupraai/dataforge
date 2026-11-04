@@ -15,7 +15,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: min(40rem, 100%);
+    width: min($dialog-width-md, 100%);
     // Sizes to content (list capped at MAX_RESULT_ROWS). 100% is the flex content box and only bites on a window too short for 8 rows.
     max-height: 100%;
     overflow: hidden;

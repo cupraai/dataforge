@@ -53,7 +53,7 @@
     @include app-scrollbar;
     position: relative;
     z-index: 1;
-    width: min(28rem, 100%);
+    width: min($dialog-width-sm, 100%);
     // Must not run off the viewport; dialogs that bound themselves override this below.
     max-height: min(88vh, 44rem);
     overflow-y: auto;
@@ -338,23 +338,35 @@
   }
 }
 
-.auto-adjust-dialog,
-.backup-captions-dialog,
-.batch-rename-dialog,
-.create-folder-dialog,
-.set-captions-dialog,
-.find-duplicates-dialog,
-.folder-note-dialog,
-.rename-dialog,
-.resize-dialog {
-  width: min(32rem, 100%);
+// Every form shares one width, so it is listed here rather than beside its other rules. At 38rem
+// the auto caption reasoning-effort sentences wrap to three lines instead of four.
+.dialog__panel:is(
+  .auto-adjust-dialog,
+  .auto-caption-dialog,
+  .backup-captions-dialog,
+  .batch-rename-dialog,
+  .comfy-process-dialog,
+  .create-folder-dialog,
+  .edit-captions-dialog,
+  .filter-ranges-dialog,
+  .find-duplicates-dialog,
+  .folder-note-dialog,
+  .rename-dialog,
+  .replace-captions-dialog,
+  .resize-dialog,
+  .set-captions-dialog,
+  .train-lora-dialog,
+  .transfer-media-dialog,
+  .verify-captions-dialog,
+  .video-export-dialog,
+  .video-settings-dialog,
+  .video-versions-dialog
+) {
+  width: min($dialog-width-md, 100%);
 }
 
-// 38rem is the width at which the three reasoning-effort sentences wrap to three lines instead of four.
-.verify-captions-dialog,
-.edit-captions-dialog,
-.auto-caption-dialog {
-  width: min(38rem, 100%);
+.dialog__panel:is(.comfy-workflow-dialog, .shortcuts-dialog, .watermark-dialog) {
+  width: min($dialog-width-lg, 100%);
 }
 
 .dialog__panel.edit-captions-dialog {
@@ -465,7 +477,6 @@
 .dialog__panel.replace-captions-dialog {
   display: flex;
   flex-direction: column;
-  width: min(36rem, 100%);
   max-height: min(88vh, 46rem);
   // `__body` owns the layout; the panel's default overflow would add a second scrollbar.
   overflow: hidden;
@@ -643,7 +654,6 @@
 .dialog__panel.transfer-media-dialog {
   display: flex;
   flex-direction: column;
-  width: min(36rem, 100%);
   max-height: min(85vh, 720px);
   overflow: hidden;
 }
@@ -652,8 +662,6 @@
 .dialog__panel.train-lora-dialog {
   display: flex;
   flex-direction: column;
-  // Wider so name and trigger fit side by side at a readable width.
-  width: min(36rem, 100%);
   // 90vh: at 88vh a 720px window left the prompt list 6px short of three rows, so the default view opened with a scrollbar.
   max-height: min(90vh, 50rem);
   // The prompt list is the scroller; the panel's default overflow would add a second one.
@@ -1023,11 +1031,9 @@
   }
 }
 
+// Text and PNG side by side: stacked, the two marks' fields would not clear a 720px viewport, and
+// this panel must never scroll.
 .watermark-dialog {
-  // Text and PNG side by side: stacked, the two marks' fields would not clear a 720px viewport,
-  // and this panel must never scroll. 50rem fits a column of four opacity tiles.
-  width: min(50rem, 100%);
-
   // 0.875rem, not the shared 1.125rem: four fields per column plus the metadata checkbox only
   // clear a 720px viewport at the tighter rhythm.
   .dialog__field,
@@ -1259,7 +1265,6 @@
 .dialog__panel.shortcuts-dialog {
   display: flex;
   flex-direction: column;
-  width: min(60rem, 100%);
   max-height: min(92vh, 48rem);
   overflow: hidden;
 }

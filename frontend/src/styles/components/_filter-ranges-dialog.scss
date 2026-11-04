@@ -2,8 +2,6 @@
 @use "../abstracts/mixins" as *;
 
 .filter-ranges-dialog {
-  width: min(34rem, 100%);
-
   &__axes {
     display: flex;
     flex-direction: column;

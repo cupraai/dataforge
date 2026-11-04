@@ -22,7 +22,7 @@
     position: relative;
     display: grid;
     grid-template-columns: 14.5rem minmax(0, 1fr);
-    width: min(58rem, 100%);
+    width: min($dialog-width-lg, 100%);
     height: min(90vh, 40rem);
     overflow: clip;
     @include dialog-panel-surface;
