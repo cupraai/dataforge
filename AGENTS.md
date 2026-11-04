@@ -12,7 +12,8 @@
 - Reproduce reported bugs when feasible and prefer behavioral regression tests. Record verification limits when reproduction or automation is impractical.
 - Use comments for non-obvious contracts or rationale; remove obsolete explanations in touched code. `scripts/check_comments.py` limits comment lines to 100 characters.
 - Use neutral fixtures and examples. Do not add personal data, machine-specific paths, private project/dataset names, or secrets to source.
-- Never manually modify CHANGELOG.md, TODO.md, or generated files. `backend/schemas.py` owns the wire format; `backend/constants.py` owns shared values. Regenerate frontend API files with `scripts/generate_types.py` or the checks runner.
+- Never manually modify TODO.md or generated files. `backend/schemas.py` owns the wire format; `backend/constants.py` owns shared values. Regenerate frontend API files with `scripts/generate_types.py` or the checks runner.
+- When a change introduces a user-facing feature or fixes a critical bug, add one entry under `## Unreleased` in CHANGELOG.md (`### Added`, `### Changed`, `### Fixed`, or `### Removed`). Describe the effect for the user, not the implementation; skip refactors, tests, tooling, and minor fixes. Never edit released sections.
 - Follow existing lint and formatting rules. Import directly instead of adding re-export barrels. Use `@/shared/lib/classNames` for conditional classes.
 - Format names: lowercase wire values (`"yaml"`), dotted lowercase suffixes (`".txt"`), uppercase user-facing formats (`YAML`). Keep displayed filename suffixes dotted lowercase. Use `CAPTION_SIDECAR_EXTENSION_LIST` to list caption sidecars.
 - Use `...` for UI labels, messages, logs, and console output; reserve `…` for truncated text. Preserve syntax such as spreads and `tuple[str, ...]`.

@@ -37,7 +37,6 @@ frontend/src/test/colorAdjustCases.ts
 
 # Local-only notes (not shared via git)
 TODO.md
-CHANGELOG.md
 
 # OS / IDE
 .DS_Store
