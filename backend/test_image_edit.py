@@ -232,19 +232,33 @@ class RenderMaskTests(unittest.TestCase):
             graded(),
             ImageEditSpec(
                 masks=[
-                    MaskRegion(x=0.0, y=0.0, width=1.0, height=1.0, mode="pixelate", strength=0.25)
+                    MaskRegion(x=0.0, y=0.0, width=1.0, height=1.0, mode="pixelate", strength=0.2)
                 ]
             ),
         )
 
-        # A quarter of the 20px height is a 5px block, so five columns share one value.
-        self.assertEqual(len(set(columns(result)[:5])), 1)
-        self.assertNotEqual(columns(result)[4], columns(result)[5])
+        # A fifth of the 20px height is a 4px block, so four columns share one value.
+        self.assertEqual(len(set(columns(result)[:4])), 1)
+        self.assertNotEqual(columns(result)[3], columns(result)[4])
+
+    def test_a_smaller_region_keeps_the_block_size_of_the_frame(self) -> None:
+        result = image_edit.render_image_edit(
+            graded(),
+            ImageEditSpec(
+                masks=[
+                    MaskRegion(x=0.0, y=0.0, width=0.5, height=0.5, mode="pixelate", strength=0.2)
+                ]
+            ),
+        )
+
+        # Still 4px: measured on the region's 10px side the same strength would give 2px blocks.
+        self.assertEqual(len(set(columns(result)[:4])), 1)
+        self.assertNotEqual(columns(result)[3], columns(result)[4])
 
     def test_a_blur_leaves_no_flat_blocks(self) -> None:
         result = image_edit.render_image_edit(
             graded(),
-            ImageEditSpec(masks=[MaskRegion(x=0.0, y=0.0, width=1.0, height=1.0, strength=0.25)]),
+            ImageEditSpec(masks=[MaskRegion(x=0.0, y=0.0, width=1.0, height=1.0, strength=0.2)]),
         )
 
         self.assertNotEqual(columns(result)[0], columns(result)[1])
@@ -263,13 +277,13 @@ class RenderMaskTests(unittest.TestCase):
     def test_the_region_is_measured_against_the_source_and_not_the_crop(self) -> None:
         """Read against the cropped frame the same fractions would leave the crop's left half sharp."""
         spec = ImageEditSpec(
-            masks=[MaskRegion(x=0.5, y=0.0, width=0.5, height=1.0, mode="pixelate", strength=0.5)],
+            masks=[MaskRegion(x=0.5, y=0.0, width=0.5, height=1.0, mode="pixelate", strength=0.2)],
             crop=EditCropRect(x=0.5, y=0.0, width=0.5, height=1.0),
         )
 
         result = image_edit.render_image_edit(graded(), spec)
 
-        self.assertEqual(len(set(columns(result)[:10])), 1)
+        self.assertEqual(len(set(columns(result)[:4])), 1)
 
     def test_every_region_in_the_list_is_applied(self) -> None:
         source = graded()

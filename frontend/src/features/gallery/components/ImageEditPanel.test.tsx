@@ -531,13 +531,13 @@ describe("ImageEditPanel", () => {
     });
 
     it("shows which style and strength the selected region carries", async () => {
-      const mask = { ...newMaskDraft("pixelate", 0.22, 0) };
+      const mask = { ...newMaskDraft("pixelate", 0.065, 0) };
       const edit = makeEdit({
         draft: draftWith({ masks: [mask] }),
         selectedMaskId: mask.id,
         selectedMask: mask,
         maskMode: "pixelate",
-        maskStrength: 0.22,
+        maskStrength: 0.065,
       });
       await openBlur(edit);
 
@@ -560,7 +560,7 @@ describe("ImageEditPanel", () => {
       const strengths = within(screen.getByRole("group", { name: "Strength" }));
       await user.click(strengths.getByRole("button", { name: "Max" }));
 
-      expect(edit.setMaskStrength).toHaveBeenCalledWith(0.4);
+      expect(edit.setMaskStrength).toHaveBeenCalledWith(0.12);
     });
 
     it("has nothing to clear until a region is there", async () => {

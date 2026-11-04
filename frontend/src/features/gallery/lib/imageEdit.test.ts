@@ -47,7 +47,7 @@ const REGION: MaskRegion = {
   width: 0.3,
   height: 0.3,
   mode: "blur",
-  strength: 0.12,
+  strength: 0.035,
 };
 
 describe("rotateBy", () => {
@@ -213,13 +213,13 @@ describe("wire conversion", () => {
   });
 
   it("sends every region across with its style and strength", () => {
-    const masks = [newMaskDraft("pixelate", 0.22, 0), newMaskDraft("blur", 0.06, 1)];
+    const masks = [newMaskDraft("pixelate", 0.065, 0), newMaskDraft("blur", 0.015, 1)];
 
     const sent = toImageEditSpec(draft({ masks })).masks;
 
     expect(sent).toHaveLength(2);
-    expect(sent[0]).toMatchObject({ mode: "pixelate", strength: 0.22, ...masks[0].rect });
-    expect(sent[1]).toMatchObject({ mode: "blur", strength: 0.06 });
+    expect(sent[0]).toMatchObject({ mode: "pixelate", strength: 0.065, ...masks[0].rect });
+    expect(sent[1]).toMatchObject({ mode: "blur", strength: 0.015 });
   });
 
   it("brings the regions back out of a stored spec", () => {

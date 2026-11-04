@@ -363,17 +363,25 @@ class MaskFiltergraphTests(unittest.TestCase):
     def test_a_blur_widens_its_cut_and_trims_the_padding_back_off(self) -> None:
         graph = graph_for(VideoEditSpec(masks=[self.region(mode="blur", strength=0.1)]))
 
-        # 10% of the region's 108px short side is a sigma of 2.7, so 6px of padding each way.
-        self.assertIn("crop=204:120:58:30,gblur=sigma=2.700000,crop=192:108:6:6", graph)
+        # 10% of the frame's 360px short side is a sigma of 9, so 18px of padding each way.
+        self.assertIn("crop=228:144:46:18,gblur=sigma=9.000000,crop=192:108:18:18", graph)
 
     def test_a_mosaic_averages_down_and_comes_back_up_on_hard_edges(self) -> None:
-        graph = graph_for(VideoEditSpec(masks=[self.region(mode="pixelate", strength=0.25)]))
+        graph = graph_for(VideoEditSpec(masks=[self.region(mode="pixelate", strength=0.1)]))
 
-        # A quarter of 108 rounds to an even 26, which divides the region into 7 by 4 blocks.
-        self.assertIn("crop=192:108:64:36,scale=7:4:flags=area,scale=192:108:flags=neighbor", graph)
+        # 10% of the frame's 360px is a 36px block, which divides the region into 5 by 3 blocks.
+        self.assertIn("crop=192:108:64:36,scale=5:3:flags=area,scale=192:108:flags=neighbor", graph)
+
+    def test_a_smaller_region_keeps_the_block_size_of_the_frame(self) -> None:
+        graph = graph_for(
+            VideoEditSpec(masks=[self.region(mode="pixelate", width=0.6, height=0.6, strength=0.1)])
+        )
+
+        # Twice the region, still 36px blocks: 384x216 divides into 10 by 6.
+        self.assertIn("scale=10:6:flags=area", graph)
 
     def test_a_blackout_fills_its_cut_and_measures_no_strength(self) -> None:
-        graph = graph_for(VideoEditSpec(masks=[self.region(mode="blackout", strength=0.5)]))
+        graph = graph_for(VideoEditSpec(masks=[self.region(mode="blackout", strength=0.2)]))
 
         self.assertIn("crop=192:108:64:36,drawbox=x=0:y=0:w=iw:h=ih:color=black:t=fill", graph)
         self.assertNotIn("gblur", graph)

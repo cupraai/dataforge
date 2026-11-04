@@ -126,10 +126,9 @@ def blacked_region(image: Image.Image, box: tuple[int, int, int, int]) -> Image.
     return Image.new(image.mode, size, fill)
 
 
-def mask_extent(box: tuple[int, int, int, int], strength: float) -> float:
-    """Strength is a fraction of the shorter side, so it reads the same at any region size."""
-    left, top, right, bottom = box
-    return strength * min(right - left, bottom - top)
+def mask_extent(size: tuple[int, int], strength: float) -> float:
+    """Strength is a fraction of the frame's shorter side, never the region's."""
+    return strength * min(size)
 
 
 def masked_image(image: Image.Image, regions: list[MaskRegion]) -> Image.Image:
@@ -142,7 +141,7 @@ def masked_image(image: Image.Image, regions: list[MaskRegion]) -> Image.Image:
         if region.mode == "blackout":
             patch = blacked_region(masked, box)
         else:
-            extent = mask_extent(box, region.strength)
+            extent = mask_extent(masked.size, region.strength)
             patch = (
                 pixelated_region(masked, box, max(1, round(extent)))
                 if region.mode == "pixelate"

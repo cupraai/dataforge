@@ -1503,8 +1503,8 @@ MIN_TRIM_SECONDS = 0.1
 CROP_BOUNDS_EPSILON = 1e-6
 
 MAX_MASK_REGIONS = 24
-MIN_MASK_STRENGTH = 0.02
-MAX_MASK_STRENGTH = 0.5
+MIN_MASK_STRENGTH = 0.01
+MAX_MASK_STRENGTH = 0.2
 
 
 class SizeFit(BaseModel):
@@ -1545,8 +1545,8 @@ class MaskRegion(EditCropRect):
     """One rectangle of the source frame to obscure, applied before the crop."""
 
     mode: Literal["blur", "pixelate", "blackout"] = "blur"
-    #: Fraction of the region's shorter side, so one strength reads the same at any region size.
-    strength: float = Field(0.12, ge=MIN_MASK_STRENGTH, le=MAX_MASK_STRENGTH)
+    #: Fraction of the frame's shorter side, so resizing a region never changes how hard it hides.
+    strength: float = Field(0.035, ge=MIN_MASK_STRENGTH, le=MAX_MASK_STRENGTH)
 
 
 type AdjustTone = Annotated[float, Field(ge=-1.0, le=1.0)]

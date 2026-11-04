@@ -15,12 +15,12 @@ export interface MaskStrength {
   value: number;
 }
 
-/** Fractions of the region's shorter side, so one strength reads the same at any region size. */
+/** Fractions of the frame's shorter side, so resizing a region never changes how hard it hides. */
 export const MASK_STRENGTHS: readonly MaskStrength[] = [
-  { id: "light", label: "Light", value: 0.06 },
-  { id: "medium", label: "Medium", value: 0.12 },
-  { id: "strong", label: "Strong", value: 0.22 },
-  { id: "max", label: "Max", value: 0.4 },
+  { id: "light", label: "Light", value: 0.015 },
+  { id: "medium", label: "Medium", value: 0.035 },
+  { id: "strong", label: "Strong", value: 0.065 },
+  { id: "max", label: "Max", value: 0.12 },
 ];
 
 export const MASK_MODES: readonly { id: MaskMode; label: string }[] = [
@@ -30,7 +30,7 @@ export const MASK_MODES: readonly { id: MaskMode; label: string }[] = [
 ];
 
 export const DEFAULT_MASK_MODE: MaskMode = "blur";
-export const DEFAULT_MASK_STRENGTH = 0.12;
+export const DEFAULT_MASK_STRENGTH = 0.035;
 
 const NEW_MASK_RECT: CropRect = { x: 0.35, y: 0.35, width: 0.3, height: 0.3 };
 const CASCADE_STEP = 0.05;
@@ -107,17 +107,17 @@ export function masksEqual(a: readonly MaskRegion[], b: readonly MaskRegion[]): 
   return a.length === b.length && a.every((region, index) => sameRegion(region, b[index]));
 }
 
-/** The region's shorter side in source pixels - what both sides measure a strength against. */
-export function maskExtent(rect: CropRect, source: Size): number {
-  return Math.min(rect.width * source.width, rect.height * source.height);
+/** The frame's shorter side in source pixels - what both sides measure a strength against. */
+export function maskExtent(source: Size): number {
+  return Math.min(source.width, source.height);
 }
 
 export function blurRadiusPx(mask: MaskDraft, source: Size): number {
-  return Math.max(1, (mask.strength * maskExtent(mask.rect, source)) / BLUR_RADIUS_DIVISOR);
+  return Math.max(1, (mask.strength * maskExtent(source)) / BLUR_RADIUS_DIVISOR);
 }
 
 export function pixelBlockPx(mask: MaskDraft, source: Size): number {
-  return Math.max(1, Math.round(mask.strength * maskExtent(mask.rect, source)));
+  return Math.max(1, Math.round(mask.strength * maskExtent(source)));
 }
 
 export function modeLabel(mode: MaskMode): string {

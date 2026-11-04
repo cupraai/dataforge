@@ -223,7 +223,8 @@ def mask_branch(size: tuple[int, int], region: MaskRegion) -> str:
     if region.mode == "blackout":
         return f"{cut},drawbox=x=0:y=0:w=iw:h=ih:color=black:t=fill"
 
-    extent = region.strength * min(box_width, box_height)
+    # Measured on the frame, as the image path does: resizing a region keeps its strength.
+    extent = region.strength * min(size)
 
     if region.mode == "pixelate":
         block = max(2, _even(round(extent)))

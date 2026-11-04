@@ -59,7 +59,7 @@ describe("newMaskDraft", () => {
 
   it("keeps the cascade inside the frame however many are placed", () => {
     for (let placed = 0; placed < 24; placed += 1) {
-      const { rect } = newMaskDraft("blur", 0.12, placed);
+      const { rect } = newMaskDraft("blur", 0.035, placed);
 
       expect(rect.x + rect.width).toBeLessThanOrEqual(1);
       expect(rect.y + rect.height).toBeLessThanOrEqual(1);
@@ -67,16 +67,16 @@ describe("newMaskDraft", () => {
   });
 
   it("carries the mode and strength it was given", () => {
-    const drafted = newMaskDraft("pixelate", 0.22, 0);
+    const drafted = newMaskDraft("pixelate", 0.065, 0);
 
     expect(drafted.mode).toBe("pixelate");
-    expect(drafted.strength).toBe(0.22);
+    expect(drafted.strength).toBe(0.065);
   });
 });
 
 describe("toMaskRegions", () => {
   it("flattens the rectangle and drops the client-side id", () => {
-    const [wire] = toMaskRegions([mask({ mode: "pixelate", strength: 0.22 })]);
+    const [wire] = toMaskRegions([mask({ mode: "pixelate", strength: 0.065 })]);
 
     expect(wire).toEqual({
       x: 0.25,
@@ -84,7 +84,7 @@ describe("toMaskRegions", () => {
       width: 0.5,
       height: 0.5,
       mode: "pixelate",
-      strength: 0.22,
+      strength: 0.065,
     });
   });
 });
@@ -125,7 +125,7 @@ describe("masksEqual", () => {
 
   it("fails on a different mode or strength", () => {
     expect(masksEqual([region()], [region({ mode: "pixelate" })])).toBe(false);
-    expect(masksEqual([region()], [region({ strength: 0.4 })])).toBe(false);
+    expect(masksEqual([region()], [region({ strength: 0.12 })])).toBe(false);
   });
 
   it("fails when the same regions arrive in another order", () => {
@@ -137,24 +137,32 @@ describe("masksEqual", () => {
 });
 
 describe("preview measurements", () => {
-  it("measures strength against the region's shorter side in source pixels", () => {
-    // Half of a 1920x1080 frame is 960x540, so the height is what a strength is a fraction of.
-    expect(maskExtent({ x: 0, y: 0, width: 0.5, height: 0.5 }, HD)).toBeCloseTo(540);
+  it("measures strength against the frame's shorter side in source pixels", () => {
+    expect(maskExtent(HD)).toBe(1080);
   });
 
   it("turns a strength into a whole-pixel block size", () => {
-    expect(pixelBlockPx(mask({ strength: 0.1 }), HD)).toBe(54);
+    expect(pixelBlockPx(mask({ strength: 0.05 }), HD)).toBe(54);
   });
 
   it("keeps a blur radius a quarter of that block, so one preset reads alike in both modes", () => {
-    expect(blurRadiusPx(mask({ strength: 0.1 }), HD)).toBeCloseTo(13.5);
+    expect(blurRadiusPx(mask({ strength: 0.05 }), HD)).toBeCloseTo(13.5);
   });
 
-  it("leaves at least one pixel for a region far too small to divide", () => {
-    const tiny = mask({ rect: { x: 0, y: 0, width: 0.001, height: 0.001 }, strength: 0.02 });
+  it("keeps the same block and radius however small or large the region is drawn", () => {
+    const small = mask({ rect: { x: 0, y: 0, width: 0.1, height: 0.1 }, strength: 0.05 });
+    const large = mask({ rect: { x: 0, y: 0, width: 0.9, height: 0.6 }, strength: 0.05 });
 
-    expect(blurRadiusPx(tiny, HD)).toBe(1);
-    expect(pixelBlockPx(tiny, HD)).toBe(1);
+    expect(pixelBlockPx(small, HD)).toBe(pixelBlockPx(large, HD));
+    expect(blurRadiusPx(small, HD)).toBe(blurRadiusPx(large, HD));
+  });
+
+  it("leaves at least one pixel for a frame far too small to divide", () => {
+    const tiny = mask({ strength: 0.01 });
+    const thumb = { width: 40, height: 20 };
+
+    expect(blurRadiusPx(tiny, thumb)).toBe(1);
+    expect(pixelBlockPx(tiny, thumb)).toBe(1);
   });
 });
 

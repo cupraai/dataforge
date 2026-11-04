@@ -36,7 +36,7 @@ const REGION: MaskRegion = {
   width: 0.3,
   height: 0.3,
   mode: "blur",
-  strength: 0.12,
+  strength: 0.035,
 };
 
 function draft(overrides: Partial<VideoEditDraft> = {}): VideoEditDraft {
@@ -244,12 +244,12 @@ describe("wire conversion", () => {
   });
 
   it("sends every region across with its style and strength", () => {
-    const masks = [newMaskDraft("pixelate", 0.22, 0)];
+    const masks = [newMaskDraft("pixelate", 0.065, 0)];
 
     const sent = toVideoEditSpec(draft({ masks }), 12).masks;
 
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ mode: "pixelate", strength: 0.22, ...masks[0].rect });
+    expect(sent[0]).toMatchObject({ mode: "pixelate", strength: 0.065, ...masks[0].rect });
   });
 
   it("brings the regions back out of a stored spec", () => {
@@ -278,7 +278,7 @@ describe("specsEqual", () => {
     expect(
       specsEqual(
         { ...base(), masks: [REGION] },
-        { ...base(), masks: [{ ...REGION, strength: 0.4 }] },
+        { ...base(), masks: [{ ...REGION, strength: 0.12 }] },
       ),
     ).toBe(false);
   });

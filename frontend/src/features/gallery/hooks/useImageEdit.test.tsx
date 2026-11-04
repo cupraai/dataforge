@@ -484,13 +484,13 @@ describe("useImageEdit", () => {
         path: PHOTO,
         has_backup: true,
         spec: spec({
-          masks: [{ x: 0.1, y: 0.1, width: 0.3, height: 0.3, mode: "pixelate", strength: 0.22 }],
+          masks: [{ x: 0.1, y: 0.1, width: 0.3, height: 0.3, mode: "pixelate", strength: 0.065 }],
         }),
       });
       const { result } = await renderReady();
 
       await waitFor(() => expect(result.current.draft.masks).toHaveLength(1));
-      expect(result.current.draft.masks[0]).toMatchObject({ mode: "pixelate", strength: 0.22 });
+      expect(result.current.draft.masks[0]).toMatchObject({ mode: "pixelate", strength: 0.065 });
       expect(result.current.selectedMaskId).toBeNull();
       // Already on disk, so there is nothing left to apply.
       expect(result.current.dirty).toBe(false);

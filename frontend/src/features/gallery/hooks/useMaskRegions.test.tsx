@@ -63,21 +63,21 @@ describe("useMaskRegions", () => {
 
     act(() => result.current.controls.addMask());
     act(() => result.current.controls.setMaskMode("pixelate"));
-    act(() => result.current.controls.setMaskStrength(0.4));
+    act(() => result.current.controls.setMaskStrength(0.12));
     act(() => result.current.controls.addMask());
 
-    expect(result.current.masks[1]).toMatchObject({ mode: "pixelate", strength: 0.4 });
+    expect(result.current.masks[1]).toMatchObject({ mode: "pixelate", strength: 0.12 });
   });
 
   it("reports the defaults while nothing is selected", () => {
     const { result } = renderMasks();
 
     act(() => result.current.controls.addMask());
-    act(() => result.current.controls.setMaskStrength(0.4));
+    act(() => result.current.controls.setMaskStrength(0.12));
     act(() => result.current.controls.selectMask(null));
 
     expect(result.current.controls.selectedMask).toBeNull();
-    expect(result.current.controls.maskStrength).toBe(0.4);
+    expect(result.current.controls.maskStrength).toBe(0.12);
   });
 
   it("drops the selection with the region it pointed at", () => {
