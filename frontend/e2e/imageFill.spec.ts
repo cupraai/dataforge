@@ -58,11 +58,24 @@ async function openFill(page: Page, folder: string) {
   return page;
 }
 
-/** Drags across the middle of the picture, in screen pixels of the painted frame. */
-async function paintMiddle(page: Page) {
+/** The brush surface's screen box once it covers the picture. It mounts as an empty box at the
+ * canvas's corner and takes the painted frame only when the image has loaded and been measured. */
+async function surfaceBox(page: Page) {
   const surface = page.getByTestId("fill-overlay");
+  await expect
+    .poll(async () => {
+      const box = await surface.boundingBox();
+      return box && box.height > 0 ? box.width / box.height : 0;
+    })
+    .toBeCloseTo(480 / 320, 2);
   const box = await surface.boundingBox();
   if (!box) throw new Error("The brush surface is not laid out");
+  return box;
+}
+
+/** Drags across the middle of the picture, in screen pixels of the painted frame. */
+async function paintMiddle(page: Page) {
+  const box = await surfaceBox(page);
   const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
   await page.mouse.move(x - 20, y);
   await page.mouse.down();
@@ -104,11 +117,14 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
   await expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath("fill-result.png") });
 
+  // Before shows the original only while it is held.
   const before = dialog.getByRole("button", { name: "Before" });
-  await before.click();
+  await before.hover();
+  await page.mouse.down();
   await expect(before).toHaveAttribute("aria-pressed", "true");
   await expect(stage).toHaveAttribute("src", /original=1/);
-  await before.click();
+  await page.mouse.up();
+  await expect(before).toHaveAttribute("aria-pressed", "false");
   await expect(stage).toHaveAttribute("src", /image-fill\/preview/);
 
   // Holding the picture shows it before, for as long as the button is down.
@@ -240,8 +256,7 @@ test("zooms with the wheel, pans with the middle button, and paints where the po
   const zoomVar = (name: string) =>
     canvas.evaluate((element, key) => (element as HTMLElement).style.getPropertyValue(key), name);
   const surface = page.getByTestId("fill-overlay");
-  const before = await surface.boundingBox();
-  if (!before) throw new Error("The brush surface is not laid out");
+  const before = await surfaceBox(page);
   // A point right of and below the middle: 3/4 across and 3/4 down the 480 x 320 picture.
   const target = { x: before.x + before.width * 0.75, y: before.y + before.height * 0.75 };
 
