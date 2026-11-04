@@ -599,6 +599,7 @@ function CompareStage({ entry }: { entry: CandidateReviewEntry }) {
           onClick={(event) => handleClick(event, rootRef.current)}
           onMouseMove={handleMouseMove}
           role="button"
+          tabIndex={0}
           aria-label={zoomed ? `Zoom out ${entry.name}` : `Zoom in ${entry.name}`}
           aria-pressed={zoomed}
           onKeyDown={(event) => {

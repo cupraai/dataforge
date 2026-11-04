@@ -219,11 +219,18 @@ export function Tooltip({
   });
 
   return (
+    /* oxlint-disable-next-line
+       jsx-a11y/click-events-have-key-events,
+       jsx-a11y/no-static-element-interactions
+       -- pointer-only wrapper */
     <span
       ref={wrapperRef}
       className={classNames("tooltip", childDisabled && "tooltip--disabled-wrap", className)}
       style={style}
       onMouseEnter={showOnHover}
+      /* oxlint-disable-next-line
+         jsx-a11y/mouse-events-have-key-events
+         -- focus handlers sit on the trigger */
       onMouseOver={handleMouseOver}
       onMouseLeave={handleMouseLeave}
       onPointerDown={hide}

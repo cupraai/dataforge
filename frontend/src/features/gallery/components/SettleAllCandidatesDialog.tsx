@@ -27,7 +27,7 @@ export function SettleAllCandidatesDialog({
   if (!action) return null;
 
   const confirm = () => {
-    void onConfirm();
+    onConfirm();
   };
 
   if (action === "delete") {

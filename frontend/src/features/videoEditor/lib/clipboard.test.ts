@@ -32,7 +32,7 @@ describe("copy and paste", () => {
     const result = pasteClips(project, content, 10);
 
     const pasted = result.project!.clips.filter((clip) => result.placed!.includes(clip.id));
-    expect(pasted.map((clip) => clip.start).sort()).toEqual([10, 10, 11.5, 11.5]);
+    expect(pasted.map((clip) => clip.start).sort((a, b) => a - b)).toEqual([10, 10, 11.5, 11.5]);
     expect(pasted.every((clip) => !["a", "b", "a-sound", "b-sound"].includes(clip.id))).toBe(true);
     const links = new Set(pasted.map((clip) => clip.link_id));
     expect(links.size).toBe(2);

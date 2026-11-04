@@ -5,6 +5,12 @@ import { useFolderScrollPosition } from "./useFolderScrollPosition";
 
 const HOME_PATH = "C:\\Users\\dev\\Photos";
 const VACATION_PATH = "C:\\Users\\dev\\Photos\\Vacation";
+const HOME_AT_REST: Parameters<typeof useFolderScrollPosition>[0] = {
+  intent: null,
+  folderPath: HOME_PATH,
+  loading: false,
+  hasError: false,
+};
 
 /** jsdom has no layout, so `.main` needs a writable `scrollTop` to observe. */
 function mountScrollElement(initialScrollTop = 0): HTMLElement {
@@ -57,14 +63,7 @@ describe("useFolderScrollPosition", () => {
   it("resets to the top once the destination has painted", () => {
     const element = mountScrollElement(900);
 
-    const { rerender } = renderHook(useFolderScrollPosition, {
-      initialProps: {
-        intent: null,
-        folderPath: HOME_PATH,
-        loading: false,
-        hasError: false,
-      } as Parameters<typeof useFolderScrollPosition>[0],
-    });
+    const { rerender } = renderHook(useFolderScrollPosition, { initialProps: HOME_AT_REST });
 
     rerender({
       intent: intentOf({ id: 1, path: VACATION_PATH }),
@@ -131,14 +130,7 @@ describe("useFolderScrollPosition", () => {
   it("does not re-apply when the folder object churns without a new intent", () => {
     const element = mountScrollElement(900);
 
-    const { rerender } = renderHook(useFolderScrollPosition, {
-      initialProps: {
-        intent: null,
-        folderPath: HOME_PATH,
-        loading: false,
-        hasError: false,
-      } as Parameters<typeof useFolderScrollPosition>[0],
-    });
+    const { rerender } = renderHook(useFolderScrollPosition, { initialProps: HOME_AT_REST });
 
     const intent = intentOf({ id: 1, mode: "restore", path: HOME_PATH, target: 500 });
     rerender({ intent, folderPath: HOME_PATH, loading: false, hasError: false });
@@ -155,14 +147,7 @@ describe("useFolderScrollPosition", () => {
   it("lets a newer intent take over from the previous one", () => {
     const element = mountScrollElement(900);
 
-    const { rerender } = renderHook(useFolderScrollPosition, {
-      initialProps: {
-        intent: null,
-        folderPath: HOME_PATH,
-        loading: false,
-        hasError: false,
-      } as Parameters<typeof useFolderScrollPosition>[0],
-    });
+    const { rerender } = renderHook(useFolderScrollPosition, { initialProps: HOME_AT_REST });
 
     rerender({
       intent: intentOf({ id: 1, mode: "restore", path: HOME_PATH, target: 500 }),

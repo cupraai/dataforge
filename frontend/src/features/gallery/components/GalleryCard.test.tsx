@@ -409,10 +409,14 @@ describe("GalleryCard", () => {
       );
 
       hover(screen.getByRole("button", { name: /^View / }));
-      act(() => vi.advanceTimersByTime(399));
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
       expect(preview(container)).toBeNull();
 
-      act(() => vi.advanceTimersByTime(1));
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
       const video = preview(container);
       expect(video).not.toBeNull();
       expect(video?.getAttribute("src")).toBe(galleryItemMediaUrl(uncaptionedItem));
@@ -426,7 +430,9 @@ describe("GalleryCard", () => {
       );
 
       hover(screen.getByRole("button", { name: /^View / }));
-      act(() => vi.advanceTimersByTime(400));
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       const video = preview(container)!;
       expect(video.defaultPlaybackRate).toBe(2);
@@ -442,7 +448,9 @@ describe("GalleryCard", () => {
       );
 
       hover(screen.getByRole("button", { name: /^View / }));
-      act(() => vi.advanceTimersByTime(400));
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       expect(preview(container)?.getAttribute("src")).toBe(galleryItemMediaUrl(uncaptionedItem));
     });
@@ -454,9 +462,13 @@ describe("GalleryCard", () => {
       const card = screen.getByRole("button", { name: /^View / });
 
       hover(card);
-      act(() => vi.advanceTimersByTime(300));
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
       fireEvent.pointerLeave(card);
-      act(() => vi.advanceTimersByTime(1000));
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
 
       expect(preview(container)).toBeNull();
     });
@@ -469,7 +481,9 @@ describe("GalleryCard", () => {
       const card = screen.getByRole("button", { name: /^View / });
 
       hover(card);
-      act(() => vi.advanceTimersByTime(400));
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
       expect(preview(container)).not.toBeNull();
 
       fireEvent.pointerLeave(card);
@@ -491,7 +505,9 @@ describe("GalleryCard", () => {
       );
 
       hover(screen.getByRole("button", { name: /^View / }));
-      act(() => vi.advanceTimersByTime(1000));
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
 
       expect(container.querySelector("video")).toBeNull();
     });
@@ -502,7 +518,9 @@ describe("GalleryCard", () => {
       );
 
       hover(screen.getByRole("button", { name: /^View / }), "touch");
-      act(() => vi.advanceTimersByTime(1000));
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
 
       expect(preview(container)).toBeNull();
     });
@@ -528,10 +546,14 @@ describe("GalleryCard", () => {
       );
 
       fireEvent.mouseEnter(screen.getByRole("button", { name: `View ${longName}` }));
-      act(() => vi.advanceTimersByTime(399));
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
       expect(screen.queryByRole("tooltip")).toBeNull();
 
-      act(() => vi.advanceTimersByTime(1));
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
       expect(screen.getByRole("tooltip")).toHaveTextContent(longName);
     });
 
@@ -544,7 +566,9 @@ describe("GalleryCard", () => {
       );
 
       act(() => screen.getByRole("button", { name: `View ${longName}` }).focus());
-      act(() => vi.advanceTimersByTime(400));
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
 
       expect(screen.getByRole("tooltip")).toHaveTextContent(longName);
       expect(container.querySelector("[title]")).toBeNull();
@@ -629,7 +653,9 @@ describe("GalleryCard", () => {
       expect(copied.querySelector(".lucide-check")).not.toBeNull();
       expect(onCopyCaptionFailed).not.toHaveBeenCalled();
 
-      act(() => vi.advanceTimersByTime(2000));
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
 
       const idle = screen.getByRole("button", { name: "Copy caption" });
       expect(idle).not.toHaveClass("card-actions__button--copied");

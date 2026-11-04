@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent,
   type RefObject,
 } from "react";
@@ -263,13 +262,12 @@ export function AdjustCanvas({
   };
 
   const style = useMemo(
-    () =>
-      ({
-        left: box.left,
-        top: box.top,
-        width: box.width,
-        height: box.height,
-      }) as CSSProperties,
+    () => ({
+      left: box.left,
+      top: box.top,
+      width: box.width,
+      height: box.height,
+    }),
     [box],
   );
 

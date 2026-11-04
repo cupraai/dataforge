@@ -13,7 +13,6 @@ import {
   type CropRect,
   readoutTransform,
   type Orientation,
-  type RotationDegrees,
 } from "./crop";
 
 const HD = { width: 1920, height: 1080 };
@@ -203,9 +202,7 @@ describe("screenDeltaToSource", () => {
     [180, { dx: -10, dy: -4 }],
     [270, { dx: -4, dy: 10 }],
   ] as const)("undoes a %s degree turn", (rotate, expected) => {
-    expect(screenDeltaToSource(10, 4, upright({ rotate: rotate as RotationDegrees }))).toEqual(
-      expected,
-    );
+    expect(screenDeltaToSource(10, 4, upright({ rotate }))).toEqual(expected);
   });
 
   it.each([

@@ -20,7 +20,7 @@ function stubMainScroll(scrollTop = 0): HTMLElement {
 describe("App: folder navigation", () => {
   it("shows folder not found when the current folder is deleted in the background", async () => {
     const { removeFolder } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("App: folder navigation", () => {
 
   it("recovers on its own when a missing folder comes back", async () => {
     const { removeFolder } = installMockBackend();
-    await renderApp();
+    renderApp();
     await screen.findByRole("button", { name: /Vacation/ });
 
     const restore = removeFolder(HOME_PATH);
@@ -63,7 +63,7 @@ describe("App: folder navigation", () => {
   it("drops a selected file from the selection when it is renamed in the background", async () => {
     const user = userEvent.setup();
     const { renameItem } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -83,7 +83,7 @@ describe("App: folder navigation", () => {
 
   it("shows an initial loading state before the home folder renders", async () => {
     installMockBackend({ folderDelayMs: 50 });
-    await renderApp();
+    renderApp();
 
     expect(screen.getByRole("status")).toHaveTextContent(/loading/i);
 
@@ -94,7 +94,7 @@ describe("App: folder navigation", () => {
 
   it("renders subfolders, media, and toolbar stats for the home folder", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe("App: folder navigation", () => {
   it("navigates into a subfolder when a folder card is opened", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("App: folder navigation", () => {
   it("shows a revisited folder from cache without refetching it or wiping the grid", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe("App: folder navigation", () => {
 
   it("fills in subfolder counts after the folder cards have rendered", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe("App: folder navigation", () => {
   it("shows an empty-folder message when a folder has no content", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /^Empty/ })).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe("App: folder navigation", () => {
   it("shows an error message when folder requests fail", async () => {
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(HOME_PATH)}`);
     installMockBackend({ failFolder: true });
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getAllByRole("alert")).toHaveLength(1);
@@ -242,7 +242,7 @@ describe("App: folder navigation", () => {
     const missingPath = `${HOME_PATH}\\Missing`;
     installMockBackend();
     touchRecentFolder(missingPath);
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -269,7 +269,7 @@ describe("App: folder navigation", () => {
   it("loads a folder from the URL path on startup", async () => {
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(EMPTY_PATH)}`);
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByText("Empty folder")).toBeInTheDocument();
@@ -283,7 +283,7 @@ describe("App: folder navigation", () => {
   it("opens a subfolder at the top rather than where the last folder was left", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -301,7 +301,7 @@ describe("App: folder navigation", () => {
   it("returns each history entry to the offset it was left at", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -331,7 +331,7 @@ describe("App: folder navigation", () => {
 
   it("leaves the scroll position alone when a folder refreshes in place", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -350,7 +350,7 @@ describe("App: folder navigation", () => {
     const user = userEvent.setup();
     installMockBackend();
     touchRecentFolder(VACATION_PATH);
-    await renderApp();
+    renderApp();
 
     await screen.findByRole("button", { name: "View sunset.png" });
 
@@ -368,7 +368,7 @@ describe("App: folder navigation", () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(EMPTY_PATH)}`);
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Delete folder" }));
     const dialog = await screen.findByRole("alertdialog", { name: "Delete this folder?" });
@@ -386,7 +386,7 @@ describe("App: folder navigation", () => {
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(EMPTY_PATH)}`);
     installMockBackend();
     touchRecentFolder(EMPTY_PATH);
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Rename folder" }));
     const dialog = await screen.findByRole("dialog", { name: "Rename folder" });
@@ -410,7 +410,7 @@ describe("App: folder navigation", () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(EMPTY_PATH)}`);
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Rename folder" }));
     const dialog = await screen.findByRole("dialog", { name: "Rename folder" });
@@ -425,7 +425,7 @@ describe("App: folder navigation", () => {
 
   it("offers renaming only for an empty folder", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await screen.findByRole("button", { name: "View sunset.png" });
     expect(screen.queryByRole("button", { name: "Rename folder" })).not.toBeInTheDocument();

@@ -31,7 +31,9 @@ describe("useMediaPlaybackProblem", () => {
   it("calls a video that never loads stuck rather than loading", () => {
     const { result } = renderHook(() => useMediaPlaybackProblem("/clip.mp4"));
 
-    act(() => vi.advanceTimersByTime(MEDIA_STALL_MS));
+    act(() => {
+      vi.advanceTimersByTime(MEDIA_STALL_MS);
+    });
 
     expect(result.current.problem).toBe("stalled");
   });
@@ -40,7 +42,9 @@ describe("useMediaPlaybackProblem", () => {
     const { result } = renderHook(() => useMediaPlaybackProblem("/clip.mp4"));
 
     act(() => result.current.noteMetadata({ videoWidth: 64 } as HTMLVideoElement));
-    act(() => vi.advanceTimersByTime(MEDIA_STALL_MS));
+    act(() => {
+      vi.advanceTimersByTime(MEDIA_STALL_MS);
+    });
 
     expect(result.current.problem).toBeNull();
   });

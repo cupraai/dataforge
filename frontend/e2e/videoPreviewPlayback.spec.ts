@@ -102,7 +102,7 @@ for (const overlays of [false, true]) {
       ) {
         record("adjust", args.at(-1));
         return (texImage2D as (...values: unknown[]) => void).apply(this, args);
-      } as typeof texImage2D;
+      };
       const drawImage = CanvasRenderingContext2D.prototype.drawImage;
       CanvasRenderingContext2D.prototype.drawImage = function (
         this: CanvasRenderingContext2D,
@@ -110,7 +110,7 @@ for (const overlays of [false, true]) {
       ) {
         record("blur", args[0]);
         return (drawImage as (...values: unknown[]) => void).apply(this, args);
-      } as typeof drawImage;
+      };
       Object.assign(window, { previewDrawn: drawn });
     });
 

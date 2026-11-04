@@ -126,7 +126,7 @@ function toStyle(widths: ColumnWidths): CSSProperties {
 
   return Object.fromEntries(
     WIDTH_COLUMNS.map((column) => [`--gallery-list-col-${column}`, track(widths[column])]),
-  ) as CSSProperties;
+  );
 }
 
 export function useGalleryListColumns(

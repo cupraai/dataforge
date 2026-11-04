@@ -9,7 +9,7 @@ async function renderAt(path?: string) {
   const user = userEvent.setup();
   installMockBackend();
   if (path) window.history.replaceState(null, "", `/?path=${encodeURIComponent(path)}`);
-  await renderApp();
+  renderApp();
   await screen.findByRole("button", {
     name: path === VACATION_PATH ? "View lake.png" : "View sunset.png",
   });

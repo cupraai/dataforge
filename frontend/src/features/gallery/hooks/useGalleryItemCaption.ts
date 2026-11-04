@@ -143,7 +143,7 @@ export function useGalleryItemCaption({
     if (!itemPath || !item) return;
 
     if (autoSave) {
-      flushPendingSave();
+      void flushPendingSave();
     }
     invalidateInFlight();
     shownRevisionsRef.current.clear();

@@ -73,6 +73,9 @@ export function DialogSelect<T extends string>({
       <label htmlFor={selectId} className="dialog__label">
         {label}
       </label>
+      {/* oxlint-disable-next-line
+          jsx-a11y/no-static-element-interactions
+          -- forwards gutter clicks; the select takes keys */}
       <div className="dialog__select-wrap" onMouseDown={handleWrapMouseDown}>
         <select
           id={selectId}

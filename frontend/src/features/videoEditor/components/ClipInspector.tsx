@@ -24,7 +24,7 @@ import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
 import { ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 import { AUTO_ADJUST_DEFAULT_AMOUNT } from "@/shared/constants";
-import type { ColorAdjust, VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
+import type { VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
 import { adjustRange, isAdjustIdentity, type AdjustTool } from "@/features/gallery/lib/colorAdjust";
 import { rescaleAuto, withoutAuto } from "@/features/gallery/lib/autoAdjust";
 import { SPEED_PRESETS } from "@/features/gallery/lib/videoEdit";
@@ -823,7 +823,7 @@ function ColorPanel({
   const resting = restingAdjust();
   const auto = clip.auto_adjust ?? null;
   const set = (tool: AdjustTool, value: number, final: boolean) =>
-    onEdit({ adjust: { ...clip.adjust, [tool]: value } as ColorAdjust }, final);
+    onEdit({ adjust: { ...clip.adjust, [tool]: value } }, final);
   return (
     <Panel
       title="Color"

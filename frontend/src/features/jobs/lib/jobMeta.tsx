@@ -200,7 +200,7 @@ export type ConfirmableJobType = JobTypeWithStartUi<"confirm">;
 const JOB_TYPES = Object.keys(JOB_TYPE_META) as JobType[];
 
 function jobTypeMeta(type: JobType): JobTypeMeta {
-  return JOB_TYPE_META[type] as JobTypeMeta;
+  return JOB_TYPE_META[type];
 }
 
 export const PRIMARY_JOB_TYPE: JobType =
@@ -287,5 +287,5 @@ export function isJobAvailable(type: JobType, availability: JobAvailability): bo
 }
 
 export const JOB_START_CONFIRM: Record<ConfirmableJobType, NonNullable<JobTypeMeta["confirm"]>> = {
-  strip_metadata: JOB_TYPE_META.strip_metadata.confirm!,
+  strip_metadata: JOB_TYPE_META.strip_metadata.confirm,
 };

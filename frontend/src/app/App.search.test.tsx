@@ -9,7 +9,7 @@ describe("App: search and filters", () => {
   it("filters gallery items with the search box", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -29,7 +29,7 @@ describe("App: search and filters", () => {
   it("filters subfolders with the search box", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("App: search and filters", () => {
   it("keeps the folder section header when a search matches no folder", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("App: search and filters", () => {
   it("searches captions only and leaves subfolders unfiltered when name matching is off", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("App: search and filters", () => {
   it("clears search with the clear button", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe("App: search and filters", () => {
   it("filters gallery items with media type buttons", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View waves.mp4" })).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe("App: search and filters", () => {
   it("filters gallery items with caption status buttons", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View beach.jpg" })).toBeInTheDocument();
@@ -170,7 +170,7 @@ describe("App: search and filters", () => {
         [HOME_PATH]: pendingHome,
       },
     });
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View beach.jpg" })).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe("App: search and filters", () => {
   it("shows caption filter empty state when subfolders are present", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -218,7 +218,7 @@ describe("App: search and filters", () => {
         [HOME_PATH]: videoOnlyHome,
       },
     });
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe("App: search and filters", () => {
   it("scopes the selection count to what the search leaves visible", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -265,7 +265,7 @@ describe("App: search and filters", () => {
   it("keeps the selection when a media type filter is applied", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select waves.mp4" }));
@@ -283,7 +283,7 @@ describe("App: search and filters", () => {
   it("keeps the selection when the gallery switches to list view", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -301,7 +301,7 @@ describe("App: search and filters", () => {
   it("inverts the selection from the section header", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -318,7 +318,7 @@ describe("App: search and filters", () => {
   it("takes two Escape presses to leave selection mode while items are selected", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -339,7 +339,7 @@ describe("App: search and filters", () => {
   it("leaves selection mode on a single Escape when nothing is selected", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     expect(screen.getByRole("button", { name: "Exit selection mode" })).toBeInTheDocument();
@@ -354,7 +354,7 @@ describe("App: search and filters", () => {
   it("drops the selection when another folder is opened", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -388,7 +388,7 @@ describe("App: search and filters", () => {
         [HOME_PATH]: foldersOnlyHome,
       },
     });
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByText("Empty folder")).toBeInTheDocument();
@@ -419,7 +419,7 @@ describe("App: search and filters", () => {
       ],
     };
     installMockBackend({ folderByPath: { undefined: clipsHome, [HOME_PATH]: clipsHome } });
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Open dataset statistics" }));
     const chart = await screen.findByRole("figure", {
@@ -445,7 +445,7 @@ describe("App: search and filters", () => {
   it("searches captions for a word picked from the statistics drawer", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Open dataset statistics" }));
 

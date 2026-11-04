@@ -13,7 +13,7 @@ describe("createQueryClient retries", () => {
     const client = createQueryClient();
     const queryFn = vi.fn<() => Promise<unknown>>().mockRejectedValue(new NetworkError());
 
-    const result = client.fetchQuery({ queryKey: ["down"], queryFn }).catch((error) => error);
+    const result = client.query({ queryKey: ["down"], queryFn }).catch((error) => error);
     for (const delay of LOAD_RETRY_DELAYS_MS) await vi.advanceTimersByTimeAsync(delay);
 
     expect(await result).toBeInstanceOf(NetworkError);
@@ -26,9 +26,7 @@ describe("createQueryClient retries", () => {
       .fn<() => Promise<unknown>>()
       .mockRejectedValue(new ApiError(404, "Folder not found"));
 
-    await expect(client.fetchQuery({ queryKey: ["gone"], queryFn })).rejects.toThrow(
-      "Folder not found",
-    );
+    await expect(client.query({ queryKey: ["gone"], queryFn })).rejects.toThrow("Folder not found");
     expect(queryFn).toHaveBeenCalledTimes(1);
   });
 });
@@ -63,7 +61,7 @@ describe("createQueryClient inactive limit", () => {
     vi.useFakeTimers();
     const client = createQueryClient();
     let finishPending!: (value: string) => void;
-    const pending = client.prefetchQuery({
+    const pending = client.query({
       queryKey: ["folder", "pending"],
       queryFn: () =>
         new Promise<string>((resolve) => {
@@ -73,7 +71,7 @@ describe("createQueryClient inactive limit", () => {
     });
     for (const key of ["a", "b", "c"]) {
       vi.advanceTimersByTime(1000);
-      await client.prefetchQuery({
+      await client.query({
         queryKey: ["folder", key],
         queryFn: async () => key,
         meta: { inactiveLimit: 2 },
@@ -120,7 +118,7 @@ describe("mergedRead", () => {
     let answer: (value: string) => void = () => {};
     const read = () => new Promise<string>((resolve) => (answer = resolve));
 
-    const result = client.fetchQuery({
+    const result = client.query({
       queryKey: ["merged"],
       queryFn: mergedRead<string[], string>(read, (cached, fresh) => [...(cached ?? []), fresh]),
     });

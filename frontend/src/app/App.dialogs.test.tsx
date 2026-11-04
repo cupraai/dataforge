@@ -15,7 +15,7 @@ describe("App: dialogs", () => {
   it("lists a folder opened from the gallery under recent folders in the sidebar", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /Vacation/ }));
 
@@ -34,7 +34,7 @@ describe("App: dialogs", () => {
   it("scopes a job dialog to the selection when one is active", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
@@ -50,7 +50,7 @@ describe("App: dialogs", () => {
   it("keeps linting disabled while no caption rules apply to the folder", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     const dialog = await openLintDialog(user);
     expect(dialog.querySelector(".dialog-scope__line")).toHaveTextContent(
@@ -63,7 +63,7 @@ describe("App: dialogs", () => {
   it("lints once caption rules were written in the folder instructions", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Edit instructions" }));
     const editor = await screen.findByRole("dialog", { name: "Folder instructions" });
@@ -97,7 +97,7 @@ describe("App: dialogs", () => {
     installMockBackend({
       folderByPath: { undefined: withoutSysprompt, [HOME_PATH]: withoutSysprompt },
     });
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Create instructions" }));
     const editor = await screen.findByRole("dialog", { name: "Folder instructions" });
@@ -111,7 +111,7 @@ describe("App: dialogs", () => {
   it("asks for confirmation before starting an auto-caption job", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Auto-caption/ })).toBeInTheDocument();

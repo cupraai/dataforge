@@ -184,6 +184,9 @@ function FamilyMenu({
             const name = family?.family ?? null;
             const chosen = (name ?? "").toLowerCase() === (value ?? "").toLowerCase();
             return (
+              /* oxlint-disable-next-line
+                 jsx-a11y/click-events-have-key-events
+                 -- activedescendant option; the input keeps focus */
               <li
                 key={name ?? ""}
                 id={`${listId}-${index}`}

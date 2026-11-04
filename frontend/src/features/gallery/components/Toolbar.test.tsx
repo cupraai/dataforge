@@ -320,7 +320,7 @@ describe("Toolbar", () => {
     expect(duplicates).not.toBeChecked();
     const inOrder = [all, edited, duplicates, candidates];
     for (const [index, option] of inOrder.slice(0, -1).entries()) {
-      const next = inOrder[index + 1]!;
+      const next = inOrder[index + 1];
       expect(option.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
   });

@@ -64,7 +64,9 @@ describe("useRegexSearch", () => {
   it("gives up on a pattern that runs past its budget, and stops the worker", () => {
     const { result } = renderHook(() => useRegexSearch("^(a|aa)+$", TEXTS));
 
-    act(() => vi.advanceTimersByTime(REGEX_SEARCH_BUDGET_MS));
+    act(() => {
+      vi.advanceTimersByTime(REGEX_SEARCH_BUDGET_MS);
+    });
 
     expect(result.current).toEqual({ status: "too-expensive", matches: new Set() });
     expect(FakeWorker.instances[0].terminated).toBe(true);

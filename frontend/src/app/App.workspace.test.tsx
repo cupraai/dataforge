@@ -51,7 +51,7 @@ describe("App workspace", () => {
     const moved = screen.getByRole("complementary", { name: /^Viewing / });
     await user.click(within(moved).getByRole("button", { name: "Previous item" }));
     const back = await screen.findByRole("complementary", { name: "Viewing sunset.png" });
-    expect(back.querySelector(".gallery-item-dialog__counter")).toHaveTextContent(start!);
+    expect(back.querySelector(".gallery-item-dialog__counter")).toHaveTextContent(start);
   });
 
   it("remembers the media presentation when reopening files and remounting the app", async () => {

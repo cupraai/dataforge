@@ -199,7 +199,7 @@ describe("useDebouncedSave", () => {
     act(() => {
       result.current.setBaseline({ path: "a.png", text: "" });
       result.current.scheduleSave({ path: "a.png", text: "Pending" });
-      result.current.flushPendingSave();
+      void result.current.flushPendingSave();
     });
 
     await act(async () => {
@@ -229,7 +229,7 @@ describe("useDebouncedSave", () => {
       act(() => {
         result.current.setBaseline({ path: "photo.png", text: "" });
         result.current.scheduleSave({ path: "photo.png", text: "A mountain lake" });
-        if (state === "saving") result.current.flushPendingSave();
+        if (state === "saving") void result.current.flushPendingSave();
       });
       unmount();
       expect(save).toHaveBeenCalledExactlyOnceWith({ path: "photo.png", text: "A mountain lake" });
@@ -382,7 +382,7 @@ describe("useDebouncedSave", () => {
     expect(result.current.saveState).toBe("error");
 
     await act(async () => {
-      result.current.retrySave();
+      void result.current.retrySave();
       await Promise.resolve();
     });
 
@@ -395,7 +395,7 @@ describe("useDebouncedSave", () => {
     const { result, save } = setupHook();
 
     await act(async () => {
-      result.current.retrySave();
+      void result.current.retrySave();
       await Promise.resolve();
     });
 

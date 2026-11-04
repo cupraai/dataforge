@@ -84,7 +84,7 @@ describe("App: gallery item dialog", () => {
   it("opens and closes the gallery item dialog", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("App: gallery item dialog", () => {
   it("shows a delete confirmation when deleting from the gallery item dialog", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe("App: gallery item dialog", () => {
   it("moves a file to another folder from the gallery item dialog", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -149,7 +149,7 @@ describe("App: gallery item dialog", () => {
   it("renames a file from the gallery item dialog and keeps viewing it under the new name", async () => {
     const user = userEvent.setup();
     const { requestsTo } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
     const dialog = await screen.findByRole("complementary", { name: "Viewing sunset.png" });
@@ -185,7 +185,7 @@ describe("App: gallery item dialog", () => {
       item_count: homeFolder.items.length + 1,
     };
     installMockBackend({ folderByPath: { undefined: taken, [HOME_PATH]: taken } });
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
     const dialog = await screen.findByRole("complementary", { name: "Viewing sunset.png" });
@@ -210,7 +210,7 @@ describe("App: gallery item dialog", () => {
   it("counts the selection against the visible media while selecting", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe("App: gallery item dialog", () => {
   it("returns to the gallery item dialog after resolving that file's issue", async () => {
     const user = userEvent.setup();
     installIssueBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
 
@@ -263,7 +263,7 @@ describe("App: gallery item dialog", () => {
   it("resolves a file's own duplicate group and returns to the file it kept", async () => {
     const user = userEvent.setup();
     const backend = installDuplicateBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
     const dialog = await screen.findByRole("complementary", { name: "Viewing sunset.png" });
@@ -291,7 +291,7 @@ describe("App: gallery item dialog", () => {
   it("offers no duplicate button for a file without a finding", async () => {
     const user = userEvent.setup();
     installDuplicateBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View waves.mp4" }));
 
@@ -302,7 +302,7 @@ describe("App: gallery item dialog", () => {
   it("returns to the gallery item dialog when the resolver is dismissed unresolved", async () => {
     const user = userEvent.setup();
     installIssueBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
 
@@ -325,7 +325,7 @@ describe("App: gallery item dialog", () => {
   it("closes to the gallery when the issue queue was started from the Review menu", async () => {
     const user = userEvent.setup();
     installIssueBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /^Review / }));
     await user.click(await screen.findByRole("menuitem", { name: /Caption issues/ }));
@@ -360,7 +360,7 @@ describe("App: gallery item dialog", () => {
     installMockBackend({
       folderByPath: { undefined: twoIssueFolder, [HOME_PATH]: twoIssueFolder },
     });
-    await renderApp();
+    renderApp();
 
     expect(await screen.findByRole("button", { name: /^Review 2/ })).toBeInTheDocument();
 
@@ -396,7 +396,7 @@ describe("App: gallery item dialog", () => {
     installMockBackend({
       folderByPath: { undefined: twoIssueFolder, [HOME_PATH]: twoIssueFolder },
     });
-    await renderApp();
+    renderApp();
     expect(await screen.findByRole("button", { name: /^Review 2/ })).toBeInTheDocument();
 
     await user.type(
@@ -418,7 +418,7 @@ describe("App: gallery item dialog", () => {
   it("reviews only the open file's candidate, then returns to that file", async () => {
     const user = userEvent.setup();
     installCandidateBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View sunset.png" }));
 
@@ -443,7 +443,7 @@ describe("App: gallery item dialog", () => {
   it("offers no candidate review for a file without one", async () => {
     const user = userEvent.setup();
     installCandidateBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "View waves.mp4" }));
 

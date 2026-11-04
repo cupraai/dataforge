@@ -31,7 +31,7 @@ describe("App: quick action bar", () => {
     const user = userEvent.setup();
     installMockBackend();
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(VACATION_PATH)}`);
-    await renderApp();
+    renderApp();
     await screen.findByRole("button", { name: "View lake.png" });
     const roots = vi.spyOn(foldersApi, "fetchFolderRoots");
 
@@ -65,7 +65,7 @@ describe("App: quick action bar", () => {
       if (path) {
         window.history.replaceState(null, "", `/?path=${encodeURIComponent(path)}`);
       }
-      await renderApp();
+      renderApp();
       await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
       if (path) await screen.findByText("Folder not found");
 
@@ -87,7 +87,7 @@ describe("App: quick action bar", () => {
     installMockBackend();
     const missingPath = "C:\\Missing";
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(missingPath)}`);
-    await renderApp();
+    renderApp();
     await screen.findByText("Folder not found");
     vi.spyOn(foldersApi, "fetchFolderRoots").mockRejectedValue(new Error("Home unavailable"));
     const historyLength = window.history.length;
@@ -108,7 +108,7 @@ describe("App: quick action bar", () => {
     installMockBackend({
       folderByPath: { undefined: { ...homeFolder, home: "c:/photos/" } },
     });
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
     const roots = vi.spyOn(foldersApi, "fetchFolderRoots");
     await openQuickAction(user);
@@ -129,7 +129,7 @@ describe("App: quick action bar", () => {
       failFolder: state === "unloaded",
       folderByPath: { undefined: { ...homeFolder, path: "C:\\", parent: null } },
     });
-    await renderApp();
+    renderApp();
     await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
     await openQuickAction(user);
     const palette = await screen.findByRole("dialog", { name: "Quick actions" });
@@ -148,7 +148,7 @@ describe("App: quick action bar", () => {
     const user = userEvent.setup();
     installMockBackend();
     window.history.replaceState(null, "", `/?path=${encodeURIComponent(VACATION_PATH)}`);
-    await renderApp();
+    renderApp();
     await screen.findByRole("button", { name: "View lake.png" });
     await openQuickAction(user);
     const palette = await screen.findByRole("dialog", { name: "Quick actions" });
@@ -165,7 +165,7 @@ describe("App: quick action bar", () => {
   it("opens on Ctrl+P and navigates into a subfolder on Enter", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -188,7 +188,7 @@ describe("App: quick action bar", () => {
   it("opens a job's dialog, the same one the automation menu opens", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -204,7 +204,7 @@ describe("App: quick action bar", () => {
   it("routes a confirm-only job type to its confirmation instead of a dialog", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -221,7 +221,7 @@ describe("App: quick action bar", () => {
   it("remembers what was run and offers it first the next time", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -243,7 +243,7 @@ describe("App: quick action bar", () => {
   it("offers a job started from the automation menu in the empty palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: /^Tools$/ }));
@@ -265,7 +265,7 @@ describe("App: quick action bar", () => {
   it("stays shut while a dialog is open, and opens again once it is dismissed", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "New folder" }));
@@ -286,7 +286,7 @@ describe("App: quick action bar", () => {
   it("toggles closed on a second Ctrl+P", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -301,7 +301,7 @@ describe("App: quick action bar", () => {
   it("lists selection actions disabled until files are selected", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -319,7 +319,7 @@ describe("App: quick action bar", () => {
   it("lists delete, move and copy once a file is selected", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "Select" }));
@@ -348,7 +348,7 @@ describe("App: quick action bar", () => {
   it("copies the selection to another folder from the palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "Select" }));
@@ -372,7 +372,7 @@ describe("App: quick action bar", () => {
         ),
       };
       installMockBackend({ folderByPath: { undefined: pendingHome, [HOME_PATH]: pendingHome } });
-      await renderApp();
+      renderApp();
       await waitForHomeFolder();
 
       await openQuickAction(user);
@@ -391,7 +391,7 @@ describe("App: quick action bar", () => {
   it("selects every visible file and enters selection mode", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -409,7 +409,7 @@ describe("App: quick action bar", () => {
   it("leaves invert selection disabled until selection mode is on", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -425,7 +425,7 @@ describe("App: quick action bar", () => {
   it("inverts the visible selection from the palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "Select" }));
@@ -449,7 +449,7 @@ describe("App: quick action bar", () => {
   it("opens the delete confirmation for the selection from the palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "Select" }));
@@ -467,7 +467,7 @@ describe("App: quick action bar", () => {
   it("opens the destination picker for a move from the palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(screen.getByRole("button", { name: "Select" }));
@@ -484,7 +484,7 @@ describe("App: quick action bar", () => {
   it("narrows the gallery to one media type from the palette", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await openQuickAction(user);
@@ -502,7 +502,7 @@ describe("App: quick action bar", () => {
   it("offers the reset only once a filter is on, then restores every file", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     // Nothing filtered yet, so the reset is present but inert.

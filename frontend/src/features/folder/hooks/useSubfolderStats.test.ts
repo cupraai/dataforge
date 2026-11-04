@@ -237,7 +237,7 @@ describe("useSubfolderStats", () => {
       makeFolder([makeSubfolder()], "fp-v2"),
     );
     await act(async () => {
-      await client.fetchQuery({ ...folderQueryOptions(FOLDER), staleTime: 0 });
+      await client.query({ ...folderQueryOptions(FOLDER), staleTime: 0 });
     });
 
     await waitFor(() => expect(view.result.current?.subfolders[0].file_count).toBe(4));

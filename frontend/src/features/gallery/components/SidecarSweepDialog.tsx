@@ -31,7 +31,7 @@ export function SidecarSweepDialog({
       confirmVariant="danger"
       busy={busy}
       onConfirm={() => {
-        void onConfirm();
+        onConfirm();
       }}
       onCancel={onCancel}
     />

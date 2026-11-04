@@ -153,7 +153,7 @@ describe("ExportDialog", () => {
     await user.click(screen.getByRole("radio", { name: "Portrait" }));
     expect(screen.getByText(/MP4 · 1080 × 1920/)).toBeInTheDocument();
     const estimate = () =>
-      /about [\d.]+ [KMG]?B/.exec(screen.getByText(/MP4 · 1080 × 1920/).textContent!)?.[0];
+      /about [\d.]+ [KMG]?B/.exec(screen.getByText(/MP4 · 1080 × 1920/).textContent)?.[0];
     const standard = estimate();
     expect(standard).toBeDefined();
     await user.click(screen.getByRole("radio", { name: "Smaller file" }));

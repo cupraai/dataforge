@@ -186,6 +186,7 @@ describe("PreviewEngine drawing and media", () => {
   it("holds the clock while a shown video has no frames, then runs it", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
     const videos: HTMLVideoElement[] = [];
+    // oxlint-disable-next-line typescript/no-deprecated -- bind() reports the deprecated overload
     const create = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
       const element = create(tag);
@@ -239,6 +240,7 @@ describe("PreviewEngine media problems and fidelity", () => {
   beforeEach(() => {
     engine = new PreviewEngine();
     videos.length = 0;
+    // oxlint-disable-next-line typescript/no-deprecated -- bind() reports the deprecated overload
     const create = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
       const element = create(tag);

@@ -16,7 +16,7 @@ function fakeRect(partial: Partial<DOMRect>): DOMRect {
     x: left,
     y: top,
     toJSON: () => ({}),
-  } as DOMRect;
+  };
 }
 
 /** jsdom has no layout; supply the anchor rect and surface size. */

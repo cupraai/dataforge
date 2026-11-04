@@ -29,7 +29,7 @@ export function useTrainingTemplateDraft(model: TrainingModel) {
     setLoadError(null);
     setLoading(true);
     try {
-      await queryClient.fetchQuery(stockTemplateQuery(model));
+      await queryClient.query(stockTemplateQuery(model));
       // A model picked while the template loaded opens nothing; its own click will.
       if (modelRef.current === model) setEditorOpen(true);
     } catch (cause) {

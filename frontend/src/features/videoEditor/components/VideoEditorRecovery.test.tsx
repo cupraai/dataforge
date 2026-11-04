@@ -83,6 +83,7 @@ describe("VideoEditorWorkspace recovery", () => {
 
   it("names a video the browser cannot decode and relinks it to an H.264 copy", async () => {
     const videos: HTMLVideoElement[] = [];
+    // oxlint-disable-next-line typescript/no-deprecated -- bind() reports the deprecated overload
     const create = globalThis.document.createElement.bind(globalThis.document);
     vi.spyOn(globalThis.document, "createElement").mockImplementation((tag: string) => {
       const element = create(tag);

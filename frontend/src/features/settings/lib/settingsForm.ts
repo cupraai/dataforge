@@ -179,5 +179,5 @@ export function buildSettingsUpdate(
   }
 
   if (reset.length) update.reset = reset;
-  return { update: update as AppSettingsUpdate };
+  return { update };
 }

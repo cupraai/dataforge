@@ -32,7 +32,7 @@ function item(
 ): QuickActionItem {
   return {
     id,
-    section: "commands" as QuickActionSection,
+    section: "commands",
     label,
     icon: iconFolder,
     run: vi.fn<() => void>(),

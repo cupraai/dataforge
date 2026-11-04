@@ -6,7 +6,7 @@ import { renderApp } from "@/test/renderApp";
 
 async function renderHome() {
   const user = userEvent.setup();
-  await renderApp();
+  renderApp();
   await screen.findByRole("button", { name: "View sunset.png" });
   return user;
 }

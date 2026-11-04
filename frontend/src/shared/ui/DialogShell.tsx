@@ -135,6 +135,9 @@ export function DialogShell({
   }, [closing, exitedRef]);
 
   return createPortal(
+    /* oxlint-disable-next-line
+       jsx-a11y/no-noninteractive-element-interactions
+       -- a dialog handles its own keys */
     <dialog
       ref={dialogRef}
       id={panelId}

@@ -14,7 +14,7 @@ function mockRect(element: HTMLElement, top: number, bottom: number) {
     x: 0,
     y: top,
     toJSON: () => ({}),
-  } as DOMRect);
+  });
 }
 
 function setup(sentinelTop: number, elementTop: number, inScrollRoot = true) {

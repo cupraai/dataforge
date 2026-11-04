@@ -58,6 +58,9 @@ export function JobTypeFilterMenu({ value, onChange }: JobTypeFilterMenuProps) {
   };
 
   return (
+    /* oxlint-disable-next-line
+       jsx-a11y/no-static-element-interactions
+       -- catches Escape from the trigger and menu */
     <div ref={rootRef} className="jobs-dialog__type" onKeyDown={handleKeyDown}>
       <button
         type="button"

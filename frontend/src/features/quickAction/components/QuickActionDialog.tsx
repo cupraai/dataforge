@@ -201,6 +201,10 @@ export function QuickActionDialog({ items, recentItems, onClose }: QuickActionDi
               const isActive = item === active;
 
               return (
+                /* oxlint-disable-next-line
+                   jsx-a11y/click-events-have-key-events,
+                   jsx-a11y/interactive-supports-focus
+                   -- activedescendant option; the input keeps focus */
                 <div
                   key={item.id}
                   ref={isActive ? activeRowRef : undefined}

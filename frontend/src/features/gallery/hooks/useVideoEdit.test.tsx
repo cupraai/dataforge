@@ -36,7 +36,7 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-function videoMeta(duration: number): HTMLVideoElement {
+function videoMetaFields(duration: number) {
   return {
     duration,
     videoWidth: 1920,
@@ -44,14 +44,18 @@ function videoMeta(duration: number): HTMLVideoElement {
     pause() {},
     currentTime: 0,
     muted: true,
-  } as HTMLVideoElement;
+  };
+}
+
+function videoMeta(duration: number): HTMLVideoElement {
+  return videoMetaFields(duration) as HTMLVideoElement;
 }
 
 /** Enough of an element for the seeks: the metadata stub has no listeners to attach to. */
 function fakeVideo() {
   const listeners = new Map<string, () => void>();
   const video = {
-    ...videoMeta(0),
+    ...videoMetaFields(0),
     paused: true,
     volume: 1,
     transcode: false,

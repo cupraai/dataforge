@@ -94,7 +94,7 @@ for (const viewport of [
     const boxes = await map.locator(".comfy-workflow-dialog__map-node").evaluateAll((nodes) =>
       nodes.map((node) => {
         const rect = node.getBoundingClientRect();
-        return { label: node.textContent!, x: rect.x, y: rect.y, width: rect.width };
+        return { label: node.textContent, x: rect.x, y: rect.y, width: rect.width };
       }),
     );
     const find = (label: string) => boxes.find((box) => box.label.includes(label))!;

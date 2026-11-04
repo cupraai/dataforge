@@ -193,13 +193,15 @@ describe("insertSource", () => {
     ]);
     // The shot is cut at 2 s; its second half and its sound move to 3 s, the still to 4 s.
     const shots = project.clips.filter((clip) => clip.source_id === "film");
-    expect(shots.map((clip) => [clip.kind, clip.start, clip.duration]).sort()).toEqual(
-      [
+    const shotSpans = shots.map((clip) => [clip.kind, clip.start, clip.duration]);
+    expect(shotSpans).toHaveLength(4);
+    expect(shotSpans).toEqual(
+      expect.arrayContaining([
         ["audio", 1, 1],
         ["audio", 3, 1],
         ["video", 1, 1],
         ["video", 3, 1],
-      ].sort(),
+      ]),
     );
     expect(byId(project, "next")?.start).toBe(4);
   });

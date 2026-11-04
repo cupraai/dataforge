@@ -82,48 +82,45 @@ describe("isElementInGalleryLoadZone", () => {
     const root = document.createElement("main");
     const element = document.createElement("div");
     root.style.height = "200px";
-    element.getBoundingClientRect = () =>
-      ({
-        top: 150,
-        bottom: 250,
-        left: 0,
-        right: 100,
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 150,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    root.getBoundingClientRect = () =>
-      ({
-        top: 100,
-        bottom: 300,
-        left: 0,
-        right: 400,
-        width: 400,
-        height: 200,
-        x: 0,
-        y: 100,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    element.getBoundingClientRect = () => ({
+      top: 150,
+      bottom: 250,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+      x: 0,
+      y: 150,
+      toJSON: () => ({}),
+    });
+    root.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 300,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 200,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    });
 
     root.appendChild(element);
     document.body.appendChild(root);
 
     expect(isElementInGalleryLoadZone(element, root, 0)).toBe(true);
 
-    element.getBoundingClientRect = () =>
-      ({
-        top: 420,
-        bottom: 520,
-        left: 0,
-        right: 100,
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 420,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    element.getBoundingClientRect = () => ({
+      top: 420,
+      bottom: 520,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+      x: 0,
+      y: 420,
+      toJSON: () => ({}),
+    });
 
     expect(isElementInGalleryLoadZone(element, root, 0)).toBe(false);
     expect(isElementInGalleryLoadZone(element, root, 150)).toBe(true);
@@ -138,30 +135,28 @@ describe("getGalleryMediaZones", () => {
   it("marks in-viewport elements as visible and keeps them loaded longer", () => {
     const root = document.createElement("main");
     const element = document.createElement("div");
-    element.getBoundingClientRect = () =>
-      ({
-        top: 150,
-        bottom: 250,
-        left: 0,
-        right: 100,
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 150,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    root.getBoundingClientRect = () =>
-      ({
-        top: 100,
-        bottom: 300,
-        left: 0,
-        right: 400,
-        width: 400,
-        height: 200,
-        x: 0,
-        y: 100,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    element.getBoundingClientRect = () => ({
+      top: 150,
+      bottom: 250,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+      x: 0,
+      y: 150,
+      toJSON: () => ({}),
+    });
+    root.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 300,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 200,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    });
 
     root.appendChild(element);
     document.body.appendChild(root);
@@ -176,30 +171,28 @@ describe("getGalleryMediaZones", () => {
   it("keeps prefetch items in the keep zone after they leave the load zone", () => {
     const root = document.createElement("main");
     const element = document.createElement("div");
-    element.getBoundingClientRect = () =>
-      ({
-        top: 20,
-        bottom: 80,
-        left: 0,
-        right: 100,
-        width: 100,
-        height: 60,
-        x: 0,
-        y: 20,
-        toJSON: () => ({}),
-      }) as DOMRect;
-    root.getBoundingClientRect = () =>
-      ({
-        top: 100,
-        bottom: 300,
-        left: 0,
-        right: 400,
-        width: 400,
-        height: 200,
-        x: 0,
-        y: 100,
-        toJSON: () => ({}),
-      }) as DOMRect;
+    element.getBoundingClientRect = () => ({
+      top: 20,
+      bottom: 80,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 60,
+      x: 0,
+      y: 20,
+      toJSON: () => ({}),
+    });
+    root.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 300,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 200,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    });
 
     root.appendChild(element);
     document.body.appendChild(root);

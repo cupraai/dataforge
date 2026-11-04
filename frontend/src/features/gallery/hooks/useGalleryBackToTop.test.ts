@@ -62,9 +62,10 @@ describe("useGalleryBackToTop", () => {
     });
     document.body.appendChild(scrollElement);
 
+    const initialProps: { element: HTMLElement | null } = { element: scrollElement };
     const { result, rerender } = renderHook(
       ({ element }: { element: HTMLElement | null }) => useGalleryBackToTop(element),
-      { initialProps: { element: scrollElement as HTMLElement | null } },
+      { initialProps },
     );
 
     act(() => {

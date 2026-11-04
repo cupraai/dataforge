@@ -99,6 +99,8 @@ export function CreationTimelineChart({
                         >
                           <span
                             className="stats-dialog__timeline-fill"
+                            /* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex --
+                               focusable so keyboard users get the bar's tooltip */
                             tabIndex={0}
                             role="img"
                             aria-label={countLabel}

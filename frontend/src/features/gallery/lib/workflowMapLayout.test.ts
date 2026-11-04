@@ -34,7 +34,7 @@ function sample(path: string): [number, number][] {
             level[i][1] + (y - level[i][1]) * t,
           ]);
       }
-      points.push(level[0] as [number, number]);
+      points.push(level[0]);
     }
     at = rest[rest.length - 1];
   }

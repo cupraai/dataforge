@@ -25,7 +25,6 @@ function mountEditor(withGuard: boolean): EditorView {
 function pressModEnter(view: EditorView): KeyboardEvent {
   const event = new KeyboardEvent("keydown", {
     key: "Enter",
-    keyCode: 13,
     ctrlKey: true,
     bubbles: true,
     cancelable: true,

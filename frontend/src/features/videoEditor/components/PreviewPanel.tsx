@@ -594,7 +594,6 @@ function TransformHandles({
         dragRef.current = null;
         if (transform) onTransform(clip, transform, true);
       }}
-      aria-label="Move the selected clip in the frame"
       role="presentation"
     >
       {(["nw", "ne", "sw", "se"] as const).map((corner) => (

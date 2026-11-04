@@ -22,7 +22,7 @@ function domRect(x: number, y: number, width: number, height: number): DOMRect {
     x,
     y,
     toJSON: () => ({}),
-  } as DOMRect;
+  };
 }
 
 /** A viewport > canvas > img tree with fixed boxes, like `ZoomableImage` renders. */

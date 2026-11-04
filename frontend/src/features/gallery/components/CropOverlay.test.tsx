@@ -196,7 +196,9 @@ describe("CropOverlay", () => {
         });
         expect(readout()).toHaveClass(VISIBLE);
 
-        act(() => vi.advanceTimersByTime(CROP_READOUT_LINGER_MS));
+        act(() => {
+          vi.advanceTimersByTime(CROP_READOUT_LINGER_MS);
+        });
         expect(readout()).not.toHaveClass(VISIBLE);
       } finally {
         vi.useRealTimers();

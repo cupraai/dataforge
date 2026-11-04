@@ -179,7 +179,7 @@ describe("useVideoPreviewPlayback", () => {
   it("laps back to the in point within a frame of the out point", () => {
     const { result, video, frames } = renderPlayback();
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = 8.01;
     frames.tick();
 
@@ -190,7 +190,7 @@ describe("useVideoPreviewPlayback", () => {
   it("laps on timeupdate as well, for a tab whose frames are throttled", () => {
     const { result, video, fire } = renderPlayback();
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = 9.5;
     act(() => fire("timeupdate"));
 
@@ -201,7 +201,7 @@ describe("useVideoPreviewPlayback", () => {
   it("laps when the file ends before the out point is reached", () => {
     const { result, video, fire } = renderPlayback();
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = DURATION;
     video.paused = true;
     act(() => fire("ended"));
@@ -217,7 +217,7 @@ describe("useVideoPreviewPlayback", () => {
     const { result, video } = renderPlayback();
     video.currentTime = parked;
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
 
     expect(video.currentTime).toBe(RANGE.start);
   });
@@ -236,7 +236,7 @@ describe("useVideoPreviewPlayback", () => {
   it("keeps a seek that settles a frame short of the in point", () => {
     const { result, video, frames } = renderPlayback();
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = RANGE.start - FRAME / 2;
     frames.tick();
 
@@ -248,7 +248,7 @@ describe("useVideoPreviewPlayback", () => {
     const marker = document.createElement("div");
     result.current.playheadRef.current = marker;
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = 6;
     frames.tick();
 
@@ -262,7 +262,7 @@ describe("useVideoPreviewPlayback", () => {
     const marker = document.createElement("div");
     result.current.playheadRef.current = marker;
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     video.currentTime = 6;
     frames.tick();
     act(() => video.pause());
@@ -276,7 +276,7 @@ describe("useVideoPreviewPlayback", () => {
   it("stops ticking once the timeline is off screen", () => {
     const { result, frames, rerender } = renderPlayback();
 
-    act(() => void result.current.togglePlay());
+    act(() => result.current.togglePlay());
     expect(frames.running()).toBe(true);
 
     rerender({ active: false });

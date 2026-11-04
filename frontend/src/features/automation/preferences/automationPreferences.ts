@@ -105,7 +105,7 @@ export function loadAutomationSettings(
   queryClient: QueryClient,
 ): Promise<AutomationSettings> {
   return queryClient
-    .fetchQuery({
+    .query({
       queryKey: ["automation-settings", folderKey(folderPath)],
       queryFn: () => fetchAutomationSettings(folderPath),
       staleTime: 0,

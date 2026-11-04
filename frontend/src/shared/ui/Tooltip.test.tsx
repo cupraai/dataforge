@@ -344,7 +344,7 @@ describe("Tooltip placement", () => {
       x: left,
       y: top,
       toJSON: () => ({}),
-    } as DOMRect;
+    };
   }
 
   /** jsdom has no layout; supply the trigger rect and bubble size. */
@@ -462,7 +462,9 @@ describe("Tooltip on scroll", () => {
     vi.useFakeTimers();
     const button = renderInScroller();
     fireEvent.mouseEnter(button.parentElement!);
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
     scrollSomething();
@@ -474,10 +476,14 @@ describe("Tooltip on scroll", () => {
     vi.useFakeTimers();
     const button = renderInScroller();
     fireEvent.mouseEnter(button.parentElement!);
-    act(() => vi.advanceTimersByTime(200));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
 
     scrollSomething();
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
 
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
@@ -488,7 +494,9 @@ describe("Tooltip on scroll", () => {
     const button = renderInScroller();
     act(() => button.focus());
     scrollSomething();
-    act(() => vi.advanceTimersByTime(400));
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
 
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
   });

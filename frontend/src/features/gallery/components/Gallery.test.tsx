@@ -102,7 +102,7 @@ function captureResizeObservers() {
     disconnect(): void {}
   }
 
-  window.ResizeObserver = CapturingResizeObserver as unknown as typeof ResizeObserver;
+  window.ResizeObserver = CapturingResizeObserver;
 
   return {
     fire: () => {

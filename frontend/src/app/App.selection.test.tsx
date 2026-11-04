@@ -27,7 +27,7 @@ afterEach(() => {
 describe("App: modifier-click selection", () => {
   it("enters selection mode and selects the item on Ctrl+click", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { ctrlKey: true });
@@ -40,7 +40,7 @@ describe("App: modifier-click selection", () => {
 
   it("does not open the item it selects", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { ctrlKey: true });
@@ -53,7 +53,7 @@ describe("App: modifier-click selection", () => {
 
   it("treats Cmd+click the same, for macOS", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("beach.jpg"), { metaKey: true });
@@ -66,7 +66,7 @@ describe("App: modifier-click selection", () => {
 
   it("deselects on a second Ctrl+click, staying in selection mode", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { ctrlKey: true });
@@ -84,7 +84,7 @@ describe("App: modifier-click selection", () => {
 
   it("selects everything between the last-clicked item and a Shift+click", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("beach.jpg"), { ctrlKey: true });
@@ -101,7 +101,7 @@ describe("App: modifier-click selection", () => {
 
   it("extends upwards from the anchor just the same", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("waves.mp4"), { ctrlKey: true });
@@ -118,7 +118,7 @@ describe("App: modifier-click selection", () => {
 
   it("re-measures from the same anchor on a second Shift+click", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("beach.jpg"), { ctrlKey: true });
@@ -140,7 +140,7 @@ describe("App: modifier-click selection", () => {
 
   it("enters selection mode straight from a Shift+click, selecting just that item", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { shiftKey: true });
@@ -154,7 +154,7 @@ describe("App: modifier-click selection", () => {
   it("still opens the item on a plain click", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(card("sunset.png"));
@@ -168,7 +168,7 @@ describe("App: modifier-click selection", () => {
 describe("App: select-all shortcut", () => {
   it("enters selection mode and selects every visible file on Ctrl+A", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.keyDown(window, { key: "a", ctrlKey: true });
@@ -182,7 +182,7 @@ describe("App: select-all shortcut", () => {
 
   it("treats Cmd+A the same, for macOS", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.keyDown(window, { key: "a", metaKey: true });
@@ -195,7 +195,7 @@ describe("App: select-all shortcut", () => {
 
   it("fills in the rest of the view when some items are already selected", async () => {
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { ctrlKey: true });
@@ -213,7 +213,7 @@ describe("App: select-all shortcut", () => {
   it("leaves Ctrl+A to the search box instead of selecting the gallery", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     const search = screen.getByRole("searchbox", {
@@ -229,7 +229,7 @@ describe("App: select-all shortcut", () => {
   it("does not select gallery items while an item dialog is open", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     await user.click(card("sunset.png"));
@@ -246,7 +246,7 @@ describe("App: selection actions keep the mode", () => {
   it("stays in selection mode after deleting selected files", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
     await waitForHomeFolder();
 
     fireEvent.click(card("sunset.png"), { ctrlKey: true });

@@ -50,7 +50,7 @@ test("auto-captions a still and a clip, and shows both captions back", async ({ 
   }
 
   // The clip is sampled across its length; a still is sent as the one frame it has.
-  const frameCounts = requests.map((request) => imageParts(request).length).sort();
+  const frameCounts = requests.map((request) => imageParts(request).length).sort((a, b) => a - b);
   expect(frameCounts[0]).toBe(1);
   expect(frameCounts[1]).toBeGreaterThan(1);
 });

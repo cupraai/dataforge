@@ -54,7 +54,7 @@ describe("useFolderInstructions", () => {
       expect(result.current.instructions?.sysprompt.text).toBe("Describe the scene."),
     );
 
-    await client.fetchQuery({ ...folderQueryOptions(homeFolder.path), staleTime: 0 });
+    await client.query({ ...folderQueryOptions(homeFolder.path), staleTime: 0 });
 
     await waitFor(() =>
       expect(result.current.instructions?.sysprompt.text).toBe("Describe the morning light."),

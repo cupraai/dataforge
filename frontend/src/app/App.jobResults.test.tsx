@@ -57,7 +57,7 @@ describe("App: job results", () => {
   it("lists the files a finished job failed on", async () => {
     const user = userEvent.setup();
     installBackendWithFailedJob();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /^Open automation jobs/ }));
     await user.click(await screen.findByRole("button", { name: /1 failed/ }));
@@ -70,7 +70,7 @@ describe("App: job results", () => {
   it("scopes a retry to the failed files only", async () => {
     const user = userEvent.setup();
     installBackendWithFailedJob();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /^Open automation jobs/ }));
     await user.click(await screen.findByRole("button", { name: /1 failed/ }));
@@ -85,7 +85,7 @@ describe("App: job results", () => {
   it("opens a failed file from its result row", async () => {
     const user = userEvent.setup();
     installBackendWithFailedJob();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /^Open automation jobs/ }));
     await user.click(await screen.findByRole("button", { name: /1 failed/ }));
@@ -99,7 +99,7 @@ describe("App: job results", () => {
   it("says a file is gone instead of opening another one in its place", async () => {
     const user = userEvent.setup();
     installBackendWithFailedJob();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /^Open automation jobs/ }));
     await user.click(await screen.findByRole("button", { name: /1 failed/ }));
@@ -114,7 +114,7 @@ describe("App: job results", () => {
   it("says a file is hidden by the filters instead of closing on nothing", async () => {
     const user = userEvent.setup();
     installBackendWithFailedJob();
-    await renderApp();
+    renderApp();
 
     await user.type(
       await screen.findByRole("searchbox", {

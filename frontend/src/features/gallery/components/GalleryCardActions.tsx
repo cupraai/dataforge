@@ -89,6 +89,9 @@ export function GalleryCardActions({
 
   return (
     <div className={classNames("card-actions", `card-actions--${displayMode}`)}>
+      {/* oxlint-disable-next-line
+          jsx-a11y/interactive-supports-focus
+          -- roving tabindex; the buttons take focus */}
       <div
         className="card-actions__bar"
         role="toolbar"

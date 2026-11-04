@@ -101,7 +101,7 @@ export function layoutWorkflowMap(map: ComfyMapNode[], available = MIN_WIDTH): W
   const rowCount = Math.max(0, ...rowOf.values()) + 1;
   const top = (index: number) => PAD + index * (NODE_HEIGHT + LAYER_GAP);
 
-  const columns = [...new Set(map.flatMap((node) => columnOf(node) ?? []))].sort();
+  const columns = [...new Set(map.flatMap((node) => columnOf(node) ?? []))].sort((a, b) => a - b);
   const columnWidth = (width - 2 * PAD) / Math.max(1, columns.length);
   const boxWidth = Math.min(MAX_NODE_WIDTH, columnWidth - COLUMN_WIRE_ROOM);
   const nodes: PlacedMapNode[] = map.map((node) => {

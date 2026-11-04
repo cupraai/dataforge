@@ -75,8 +75,12 @@ export function useVideoEditorRoute(onClosed: () => void): VideoEditorRoute {
     [router],
   );
 
+  const movedRef = useLatestRef(moved);
   const relocate = useCallback(
     (request: VideoEditorRequest) => {
+      // The address is already headed there. During a switch, this replace could land after the
+      // switch's push and drop the entry's editorOverGallery, so Back would leave a folder entry.
+      if (sameRequest(movedRef.current, request)) return;
       setMoved(request);
       void router.navigate({
         to: EDITOR_ROUTE,
@@ -86,7 +90,7 @@ export function useVideoEditorRoute(onClosed: () => void): VideoEditorRoute {
         state: true,
       });
     },
-    [router],
+    [movedRef, router],
   );
 
   const switchTo = useCallback(

@@ -255,12 +255,18 @@ describe("NotificationsProvider", () => {
       </NotificationsProvider>,
     );
 
-    act(() => fireEvent.click(screen.getByRole("button", { name: "First" })));
-    act(() => fireEvent.click(screen.getByRole("button", { name: "Second" })));
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "First" }));
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Second" }));
+    });
 
     const undos = screen.getAllByRole("button", { name: "Undo" });
     expect(undos).toHaveLength(2);
-    act(() => fireEvent.click(undos[1]));
+    act(() => {
+      fireEvent.click(undos[1]);
+    });
     expect(second).toHaveBeenCalledOnce();
     expect(first).not.toHaveBeenCalled();
   });
@@ -285,8 +291,12 @@ describe("NotificationsProvider", () => {
       </NotificationsProvider>,
     );
 
-    act(() => fireEvent.click(screen.getByRole("button", { name: "Long" })));
-    act(() => vi.advanceTimersByTime(NOTIFICATION_DURATION_MS.success + 1000));
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Long" }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(NOTIFICATION_DURATION_MS.success + 1000);
+    });
 
     expect(
       screen.getByText("Deleted sunset.png.").closest(".notifications__toast"),

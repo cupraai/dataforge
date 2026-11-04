@@ -208,7 +208,7 @@ describe("Timeline", () => {
     expect(onSeek).toHaveBeenLastCalledWith(1.5);
 
     await user.click(screen.getByRole("button", { name: "Turn off sync lock on A1" }));
-    const tracks = (onTracks.mock.lastCall![0] as Project).tracks;
+    const tracks = onTracks.mock.lastCall![0].tracks;
     expect(tracks.find((item) => item.id === "a1")?.sync_lock).toBe(false);
   });
 
@@ -360,7 +360,7 @@ describe("Timeline", () => {
   it("toggles, orders, renames and removes tracks from their headers", async () => {
     const user = userEvent.setup();
     const { onTracks } = renderTimeline();
-    const lastTracks = () => (onTracks.mock.lastCall![0] as Project).tracks;
+    const lastTracks = () => onTracks.mock.lastCall![0].tracks;
 
     await user.click(screen.getByRole("button", { name: "Mute A1" }));
     expect(lastTracks().find((item) => item.id === "a1")?.muted).toBe(true);
@@ -389,7 +389,7 @@ describe("Timeline", () => {
     const { onTracks } = renderTimeline();
 
     await user.click(screen.getByRole("button", { name: "Collapse V1" }));
-    expect((onTracks.mock.lastCall![0] as Project).tracks.find((item) => item.id === "v1")).toEqual(
+    expect(onTracks.mock.lastCall![0].tracks.find((item) => item.id === "v1")).toEqual(
       expect.objectContaining({ collapsed: true }),
     );
   });

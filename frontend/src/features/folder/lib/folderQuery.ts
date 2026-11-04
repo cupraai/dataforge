@@ -94,7 +94,7 @@ export function openFolderQuery(queryClient: QueryClient, path: string | undefin
     exact: true,
     refetchType: "none",
   });
-  return queryClient.fetchQuery({
+  return queryClient.query({
     ...options,
     queryFn: ({ signal }) => readFolder(queryClient, path, signal, true),
   });
@@ -108,10 +108,13 @@ export async function prefetchFolder(queryClient: QueryClient, path: string): Pr
   const options = folderQueryOptions(path);
   if (queryClient.getQueryData(options.queryKey)) return;
 
-  await queryClient.prefetchQuery({
-    ...options,
-    queryFn: ({ signal }) => loadFolderContents(path, { signal, prefetch: true }),
-  });
+  // A failed prefetch is not reported; opening the folder reads it again and shows the error.
+  await queryClient
+    .query({
+      ...options,
+      queryFn: ({ signal }) => loadFolderContents(path, { signal, prefetch: true }),
+    })
+    .catch(() => undefined);
 }
 
 /**

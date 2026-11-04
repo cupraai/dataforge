@@ -26,14 +26,14 @@ export function installThumbnailIntersections() {
       observers.add(this);
     }
     sync = () => {};
-    observe(target: Element) {
+    override observe(target: Element) {
       this.targets.set(target, undefined);
       this.sync();
     }
-    unobserve(target: Element) {
+    override unobserve(target: Element) {
       this.targets.delete(target);
     }
-    disconnect() {
+    override disconnect() {
       this.targets.clear();
       observers.delete(this);
     }

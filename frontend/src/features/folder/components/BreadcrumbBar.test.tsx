@@ -113,7 +113,7 @@ describe("BreadcrumbBar", () => {
         x: box.left,
         y: box.top,
         toJSON: () => ({}),
-      } as DOMRect;
+      };
     });
 
     renderBar();

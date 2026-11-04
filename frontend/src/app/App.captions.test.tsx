@@ -9,7 +9,7 @@ describe("App: captions", () => {
   it("lets a subfolder start its own system prompt from the one it inherits", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: /Vacation/ }));
     await user.click(await screen.findByRole("button", { name: "Create instructions" }));
@@ -34,7 +34,7 @@ describe("App: captions", () => {
   it("opens the folder instructions and edits the system prompt", async () => {
     const user = userEvent.setup();
     installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Edit instructions" })).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe("App: captions", () => {
   it("keeps the gallery dialog open after captioning on the missing-caption filter", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "View beach.jpg" })).toBeInTheDocument();

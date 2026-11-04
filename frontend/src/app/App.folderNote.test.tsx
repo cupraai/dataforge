@@ -26,7 +26,7 @@ describe("App: folder note", () => {
   it("adds a note from the sidebar and shows it above the gallery", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
-    await renderApp();
+    renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Add note" }));
     const dialog = await screen.findByRole("dialog", { name: "Add note" });
@@ -43,7 +43,7 @@ describe("App: folder note", () => {
   it("deletes the note only after confirmation", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend(homeWithNote("Check the crops."));
-    await renderApp();
+    renderApp();
 
     const banner = await screen.findByRole("complementary", { name: "Folder note" });
     await user.click(within(banner).getByRole("button", { name: "Delete note" }));
@@ -70,7 +70,7 @@ describe("App: folder note", () => {
   it("does not show a parent's note in a subfolder", async () => {
     const user = userEvent.setup();
     installMockBackend(homeWithNote("Parent only."));
-    await renderApp();
+    renderApp();
 
     await screen.findByRole("complementary", { name: "Folder note" });
     await user.click(await screen.findByRole("button", { name: /Vacation/ }));
