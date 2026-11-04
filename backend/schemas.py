@@ -296,7 +296,7 @@ class FolderResponse(BaseModel):
     items: list[GalleryItem]
     #: The folder's own .sysprompt; a parent's file does not count.
     has_sysprompt: bool = False
-    #: A non-empty .sysprompt reaches this folder, its own or a parent's.
+    #: A valid Markdown .sysprompt reaches this folder, its own or a parent's.
     sysprompt_applies: bool = False
     has_caption_backup: bool = False
     #: The folder's own .captionrules; a parent's file does not count.
@@ -695,6 +695,17 @@ class CaptionBackupResponse(BaseModel):
     description: str | None = None
 
 
+class InstructionFileState(BaseModel):
+    """The effective source and usability of one folder instruction file."""
+
+    origin: Literal["local", "inherited", "missing"]
+    status: Literal["ready", "missing", "empty", "invalid", "unreadable"]
+    source_path: str | None
+    relative_path: str | None
+    text: str
+    message: str | None
+
+
 class InstructionFileResponse(BaseModel):
     """A .sysprompt or .captionrules as one folder sees it."""
 
@@ -706,6 +717,9 @@ class InstructionFileResponse(BaseModel):
     #: The parent's file as seen from the folder, e.g. ``../.captionrules``.
     parent_relative_path: str | None
     parent_text: str
+    state: InstructionFileState
+    #: Report a broken parent independently so a usable local override still opens.
+    parent_state: InstructionFileState | None
     #: A queued or running job that reads this file; saves are refused until it finishes.
     locked_by_job_id: str | None
 

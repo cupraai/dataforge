@@ -34,7 +34,7 @@ class JobManagerQueueTests(unittest.TestCase):
 
     def test_queue_auto_caption_persists_queued_job(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -56,7 +56,7 @@ class JobManagerQueueTests(unittest.TestCase):
 
     def test_rejects_second_active_job_for_same_folder(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
             folder = str(root.resolve())
@@ -173,7 +173,7 @@ class JobManagerExecutionTests(unittest.TestCase):
 
     def test_auto_caption_api_errors_mark_job_failed(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -262,7 +262,7 @@ class JobManagerLifecycleTests(unittest.TestCase):
 
     def test_delete_job_removes_memory_and_store(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 

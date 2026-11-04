@@ -32,7 +32,7 @@ class JobsEndpointTests(unittest.TestCase):
 
     def test_lists_jobs_globally(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -64,7 +64,7 @@ class JobsEndpointTests(unittest.TestCase):
     def test_job_list_omits_per_file_results(self) -> None:
         """Results ride ``/jobs/{id}/results``, never the polled list."""
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with patch("automation.auto_caption.complete_caption", return_value=CAPTION):
@@ -81,7 +81,7 @@ class JobsEndpointTests(unittest.TestCase):
 
     def test_job_results_endpoint_serves_the_per_file_detail(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with patch("automation.auto_caption.complete_caption", return_value=CAPTION):
@@ -122,7 +122,7 @@ class JobsEndpointTests(unittest.TestCase):
 
     def test_delete_single_job(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -142,7 +142,7 @@ class JobsEndpointTests(unittest.TestCase):
 
     def test_delete_all_jobs(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -199,7 +199,7 @@ class JobHistoryTests(unittest.TestCase):
 
     def test_a_second_run_for_the_same_folder_and_type_keeps_the_first(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             job_ids = []

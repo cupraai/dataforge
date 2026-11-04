@@ -90,7 +90,7 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
 
     def test_build_video_system_prompt_mentions_sequence(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             prompt = build_system_prompt(root, media_kind="video")
 
@@ -101,7 +101,7 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
     def test_video_prompt_licenses_reading_motion_across_frames(self) -> None:
         # Without this a walking subject is captioned as standing.
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             self.assertIn(MOTION_OBJECTIVE_SENTENCE, build_system_prompt(root, media_kind="video"))
             self.assertNotIn(
@@ -110,7 +110,7 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
 
     def test_system_prompt_does_not_promise_a_fixed_frame_count(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             prompt = build_system_prompt(root, media_kind="video")
 
@@ -195,7 +195,7 @@ class AutoCaptionFolderValidationTests(unittest.TestCase):
 
     def test_validate_accepts_a_parent_folder_sysprompt(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             child = root / "portraits"
             child.mkdir()
             write_media(child, "photo.png")
@@ -204,7 +204,7 @@ class AutoCaptionFolderValidationTests(unittest.TestCase):
 
     def test_captions_with_the_parent_folder_sysprompt(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Name every animal in the frame.")
+            write_sysprompt(root, "# Name every animal in the frame.")
             child = root / "portraits"
             child.mkdir()
 
@@ -214,7 +214,7 @@ class AutoCaptionFolderValidationTests(unittest.TestCase):
 
     def test_validate_requires_supported_media(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
 
             with self.assertRaisesRegex(ValueError, "No supported images or videos"):
                 validate_auto_caption_folder(root)
@@ -223,7 +223,7 @@ class AutoCaptionFolderValidationTests(unittest.TestCase):
 class AutoCaptionJobRunTests(unittest.TestCase):
     def test_run_job_records_api_errors(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with patch(
@@ -239,7 +239,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
     def test_run_job_separates_unreadable_media_from_model_failures(self) -> None:
         # A file that never decoded never reached the model; do not count it as api_error.
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             broken = root / "broken.png"
             broken.write_bytes(b"not an image")
             write_txt_caption(broken, "Draft.")
@@ -334,7 +334,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
 
     def test_run_job_trims_surrounding_whitespace_from_completed_caption(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -353,7 +353,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
 
     def test_a_caption_saved_while_the_model_runs_is_kept(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
@@ -372,7 +372,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
 
     def test_a_file_moved_while_the_model_runs_gets_no_caption_behind(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             caption = write_txt_caption(media, "Draft.")
 
@@ -390,7 +390,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
     def test_a_file_without_a_caption_is_captioned_from_scratch(self) -> None:
         """The audit's F12: a fresh dataset used to get no model request at all."""
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
 
             with patch(
@@ -430,7 +430,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
 
     def test_run_job_reads_the_txt_draft_and_leaves_leftover_json_alone(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Text draft.")
             leftover = media.with_suffix(".json")
@@ -459,7 +459,7 @@ class AutoCaptionAudioPromptTests(unittest.TestCase):
 
     def test_video_prompt_asks_about_audio_only_when_enabled(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             without = build_system_prompt(root, media_kind="video")
             with_audio = build_system_prompt(root, media_kind="video", caption_audio=True)
@@ -472,7 +472,7 @@ class AutoCaptionAudioPromptTests(unittest.TestCase):
     def test_image_prompt_never_mentions_audio(self) -> None:
         """A still has no track, so asking about one only invites invention."""
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             prompt = build_system_prompt(root, media_kind="image", caption_audio=True)
 
@@ -480,7 +480,7 @@ class AutoCaptionAudioPromptTests(unittest.TestCase):
 
     def test_a_single_line_sysprompt_still_dedents_with_audio_on(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Focus on the subject.")
+            write_sysprompt(root, "# Focus on the subject.")
 
             prompt = build_system_prompt(root, media_kind="video", caption_audio=True)
 
@@ -582,7 +582,7 @@ class AutoCaptionAudioJobTests(unittest.TestCase):
     """How an audio run counts what it captioned."""
 
     def _folder_with_clip(self, root):
-        write_sysprompt(root, "Describe the scene.")
+        write_sysprompt(root, "# Describe the scene.")
         media = write_mp4_video(root, "clip.mp4")
         write_txt_caption(media, "Draft.")
         return media
@@ -634,7 +634,7 @@ class AutoCaptionAudioJobTests(unittest.TestCase):
 
     def test_a_still_image_never_counts_as_missing_audio(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with (

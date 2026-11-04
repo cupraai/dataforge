@@ -13,7 +13,9 @@
     display: flex;
     flex-direction: column;
     width: min(760px, 100%);
-    max-height: 88vh;
+    // A fixed height, so switching tabs or loading never moves the centred panel; the editor
+    // (or the empty state) absorbs whatever the source strip leaves.
+    height: min(46rem, 88vh);
     overflow: hidden;
     @include dialog-panel-surface;
   }
@@ -41,14 +43,10 @@
 
   &__subtitle {
     @include dialog-editor-subtitle;
-  }
-
-  &__subtitle,
-  &__source-text {
-    strong {
-      color: var(--text);
-      font-weight: var(--font-semibold);
-    }
+    overflow: hidden;
+    font-family: var(--font-mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__close {
@@ -89,6 +87,10 @@
 
   &__body {
     @include dialog-editor-body;
+    flex-direction: column;
+    // Last resort only: at normal heights the editor shrinks, and it scrolls itself.
+    overflow-y: auto;
+    overscroll-behavior: contain;
 
     // The mixin's display: flex would otherwise override the attribute.
     &[hidden] {
@@ -96,48 +98,197 @@
     }
   }
 
-  // Sits at the far end of either editor's toolbar, after any formatting buttons. As tall as
-  // those buttons, so the toolbar without them keeps the same height and the editor never moves.
   &__source {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 0.5rem;
     min-width: 0;
-    min-height: var(--control-height-xs);
-    margin-left: auto;
+    padding: 0.75rem 1.125rem 0.8125rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    font-size: var(--text-sm);
   }
 
-  // A parent folder's path can be long; it gives way first and shows in full on hover.
+  &__source-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    min-height: 2rem;
+  }
+
+  &__source-heading,
+  &__source-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  &__source-actions:empty {
+    display: none;
+  }
+
+  &__origin,
+  &__badge {
+    @include text-pill(1.25rem, 1px);
+    padding-inline: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-semibold);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  &__origin {
+    background: var(--surface-hover);
+    color: var(--text-muted);
+
+    &--local {
+      border-color: var(--accent-border);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    &--draft {
+      border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    &--missing {
+      border-style: dashed;
+      background: transparent;
+      color: var(--text-subtle);
+    }
+  }
+
+  &__badge {
+    border-color: color-mix(in srgb, var(--caption-error) 35%, transparent);
+    background: color-mix(in srgb, var(--caption-error) 10%, transparent);
+    color: var(--caption-error);
+  }
+
   &__source-text {
     min-width: 0;
-    overflow: hidden;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+  }
+
+  &__help,
+  &__locked,
+  &__problem {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    overflow-wrap: anywhere;
+  }
+
+  &__help,
+  &__locked {
     color: var(--text-muted);
-    font-size: var(--text-xs);
-    line-height: var(--leading-snug);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    strong {
+      color: var(--text);
+      font-weight: var(--font-semibold);
+    }
   }
 
-  &__source-action {
-    @include pill-btn-ghost(0.3125rem);
+  &__locked {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  &__locked-icon {
     flex-shrink: 0;
-    height: var(--control-height-xs);
-    padding: 0 0.625rem;
+    color: var(--warning);
+    @include icon-size(var(--icon-size-sm));
+  }
+
+  &__problem {
+    color: var(--caption-error);
+  }
+
+  &__empty {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 0;
+    padding: 1.5rem 1.125rem;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+
+    .folder-instructions-dialog__source-actions {
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+  }
+
+  &__empty-icon {
+    margin-bottom: 0.25rem;
+    color: var(--text-subtle);
+    @include icon-size(2rem);
+  }
+
+  &__empty-title {
+    color: var(--text);
+    font-size: var(--text-md);
+    font-weight: var(--font-semibold);
+  }
+
+  &__empty-text {
+    margin: 0;
+  }
+
+  &__example {
+    width: min(26rem, 100%);
+    margin: 0.25rem 0 0;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--code-text);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    text-align: left;
+    white-space: pre-wrap;
   }
 
-  &__source-action-icon {
-    @include icon-size-sm;
+  // The editor fills the body below the source strip instead of sizing from its text.
+  .code-editor-wrapper {
+    flex: 1;
+    min-height: 0;
   }
 
-  // Holds the editor's height so switching tabs does not resize the panel.
+  .code-editor-wrapper__toolbar {
+    flex-shrink: 0;
+  }
+
+  .code-editor {
+    flex: 1;
+    min-height: 8rem;
+    max-height: none;
+    resize: none;
+  }
+
   &__status {
     display: flex;
     flex: 1;
     align-items: center;
     justify-content: center;
     gap: 0.4375rem;
-    min-height: 22rem;
     margin: 0;
     padding: 0 1.5rem;
     color: var(--text-muted);

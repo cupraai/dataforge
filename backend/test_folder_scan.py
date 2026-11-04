@@ -132,7 +132,7 @@ class FolderScanTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_media(root, "alpha.png")
             write_txt_caption(media, "A caption.")
-            write_sysprompt(root, "Describe scenes.")
+            write_sysprompt(root, "# Describe scenes.")
             (root / "Album").mkdir()
             (root / ".git").mkdir()
             (root / "notes.md").write_text("ignore", encoding="utf-8")

@@ -30,6 +30,7 @@ export function useFolderInstructions(folderPath: string) {
   const query = useQuery({
     queryKey: folderInstructionsKey(folderPath),
     queryFn: ({ signal }) => fetchFolderInstructions(folderPath, signal),
+    enabled: folderPath !== "",
   });
 
   const state: FolderInstructionsState = query.data
@@ -47,5 +48,5 @@ export function useFolderInstructions(folderPath: string) {
     [folderPath, queryClient],
   );
 
-  return { state, instructions: query.data ?? null, setFile };
+  return { state, instructions: query.data ?? null, setFile, retry: query.refetch };
 }

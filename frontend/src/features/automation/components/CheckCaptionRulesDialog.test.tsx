@@ -1,3 +1,4 @@
+import { instructionFile } from "@/test/instructionFixtures";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,19 +16,12 @@ vi.mock("@/shared/api/folderInstructions", async (importOriginal) => ({
 
 const FOLDER = "C:\\datasets\\sample\\portraits";
 
-const NO_FILE: InstructionFileResponse = {
-  text: "",
-  has_file: false,
-  parent_folder: null,
-  parent_relative_path: null,
-  parent_text: "",
-  locked_by_job_id: null,
-};
+const NO_FILE = instructionFile();
 
 function rulesResponse(rules: Partial<InstructionFileResponse> = {}): FolderInstructionsResponse {
   return {
     sysprompt: NO_FILE,
-    caption_rules: { ...NO_FILE, ...rules },
+    caption_rules: instructionFile(rules, ".captionrules"),
     caption_rules_template: "",
   };
 }
@@ -53,6 +47,15 @@ function footer() {
 describe("CheckCaptionRulesDialog", () => {
   beforeEach(() => {
     fetchFolderInstructions.mockReset();
+  });
+
+  it("cannot start with invalid rules even when the file contains text", async () => {
+    const rules = instructionFile({ has_file: true, text: "unknown: value" }, ".captionrules");
+    rules.state = { ...rules.state, status: "invalid", message: "unknown setting" };
+    fetchFolderInstructions.mockResolvedValue(rulesResponse(rules));
+    renderDialog();
+    expect(await screen.findByRole("alert")).toHaveTextContent("unknown setting");
+    expect(screen.getByRole("button", { name: "Lint captions" })).toBeDisabled();
   });
 
   it("names the folder's own rule file at the bottom and starts the check", async () => {
@@ -84,7 +87,7 @@ describe("CheckCaptionRulesDialog", () => {
 
     expect(await within(footer()).findByText("..\\.captionrules")).toHaveAttribute(
       "title",
-      "C:\\datasets\\sample",
+      "C:\\datasets\\sample\\.captionrules",
     );
     expect(screen.getByRole("button", { name: "Lint captions" })).toBeEnabled();
   });

@@ -123,7 +123,7 @@ class CancelWhileWaitingTests(unittest.TestCase):
         from automation.auto_caption import run_auto_caption_job
 
         def folder_setup(root) -> None:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
         self._assert_drops_in_flight_request(
@@ -148,7 +148,7 @@ class CancelWhileWaitingTests(unittest.TestCase):
         from automation.auto_caption import run_auto_caption_job
 
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
             caption_path = write_txt_caption(media, "Draft.")
 
@@ -196,7 +196,7 @@ class UnreadableCaptionTests(unittest.TestCase):
                 TempMediaFolder() as root,
                 patch("automation.llm.create_openai_client"),
             ):
-                write_sysprompt(root, "Describe the scene.")
+                write_sysprompt(root, "# Describe the scene.")
                 caption = write_txt_caption(write_media(root, "photo.png"), "Draft.")
                 caption.write_bytes("Draft.".encode("utf-16"))
 
@@ -410,7 +410,7 @@ class ModelClientScopeTests(unittest.TestCase):
                 patch("automation.llm.create_openai_client", return_value=client),
                 patch(model_call, return_value=None),
             ):
-                write_sysprompt(root, "Describe the scene.")
+                write_sysprompt(root, "# Describe the scene.")
                 write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
                 run(root)

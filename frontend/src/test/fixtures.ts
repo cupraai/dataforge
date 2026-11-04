@@ -2,7 +2,7 @@ import { AUDIO_EXTENSIONS, GIF_EXTENSION, VIDEO_EXTENSIONS } from "@/shared/cons
 import type { AppSettingsResponse, FolderResponse, GalleryItem, Job } from "@/shared/types";
 
 export const HOME_PATH = "C:\\Photos";
-export const HOME_SYSPROMPT = "Caption every image with rich detail.";
+export const HOME_SYSPROMPT = "# Caption every image with rich detail.";
 
 export const VACATION_PATH = `${HOME_PATH}\\Vacation`;
 

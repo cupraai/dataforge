@@ -53,7 +53,7 @@ export function CheckCaptionRulesDialog({
         </p>
       )}
 
-      {rules !== null && !rulesApply && (
+      {rules?.state.status === "missing" && (
         <p className="dialog__hint check-caption-rules-dialog__missing">
           No caption rules apply to this folder yet. Add them in Folder instructions first; they are
           saved as <strong>{CAPTION_RULES_FILENAME}</strong> and cover every subfolder too.

@@ -53,7 +53,7 @@ def _post(endpoint: str, folder: Path, body: dict[str, object] | None = None):
 
 
 def _write_captioned_folder(folder: Path) -> Path:
-    write_sysprompt(folder, "Describe the scene.")
+    write_sysprompt(folder, "# Describe the scene.")
     media = write_media(folder, "photo.png")
     write_txt_caption(media, "A lake.")
     return media

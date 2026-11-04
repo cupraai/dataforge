@@ -7,7 +7,7 @@ import { jobTypeLabelFor } from "@/features/jobs/lib/jobMeta";
 import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
 import { useTabList } from "@/shared/hooks/useTabList";
 import { DialogShell } from "@/shared/ui/DialogShell";
-import { iconCopy, iconFilePlus, iconLoader2, iconX } from "@/shared/icons";
+import { iconFileText, iconListChecks, iconLoader2, iconLock, iconX } from "@/shared/icons";
 import type { InstructionFileResponse, JobType } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { formatCount } from "@/shared/lib/format";
@@ -17,11 +17,17 @@ import { Icon } from "@/shared/ui/Icon";
 import { MarkdownEditor } from "@/shared/ui/MarkdownEditor";
 import { TokenEstimate } from "@/shared/ui/TokenEstimate";
 import { YamlEditor } from "@/shared/ui/YamlEditor";
+import { CodeMirrorEditor } from "@/shared/ui/CodeMirrorEditor";
+import {
+  INSTRUCTION_ORIGIN_LABELS,
+  INSTRUCTION_STATUS_LABELS,
+} from "@/shared/lib/instructionFileState";
 
 interface InstructionDocument {
   label: string;
   filename: string;
   placeholder: string;
+  help: string;
   /** The job that reads the file; the backend refuses edits while one is queued or running. */
   readBy: JobType;
 }
@@ -30,20 +36,21 @@ const DOCUMENTS: Record<InstructionKind, InstructionDocument> = {
   sysprompt: {
     label: "System prompt",
     filename: SYSPROMPT_FILENAME,
-    placeholder: "Write a system prompt for this folder...",
+    placeholder: "# Caption instructions\n\nDescribe the subject, details, and caption format...",
+    help: "Used by Auto-caption. Start with a # heading; deeper headings may follow.",
     readBy: "auto_caption",
   },
   caption_rules: {
     label: "Caption rules",
     filename: CAPTION_RULES_FILENAME,
     placeholder: "No caption rules for this folder. Write YAML here, or start from the template.",
+    help: "Used by Lint captions to check captions against YAML rules without a model.",
     readBy: "check_caption_rules",
   },
 };
 
 const KINDS = Object.keys(DOCUMENTS) as InstructionKind[];
 
-/** Rules first on save: they are the document the backend can refuse. */
 const SAVE_ORDER: readonly InstructionKind[] = ["caption_rules", "sysprompt"];
 
 const NO_DRAFTS: Record<InstructionKind, string | null> = { sysprompt: null, caption_rules: null };
@@ -53,23 +60,6 @@ interface FolderInstructionsDialogProps {
   initialTab?: InstructionKind;
   onClose: () => void;
   onSaved: (kind: InstructionKind, saved: InstructionFileResponse) => void;
-}
-
-function FileSource({ file, filename }: { file: InstructionFileResponse; filename: string }) {
-  const parent = file.parent_folder !== null && (
-    <strong title={file.parent_folder}>{file.parent_relative_path}</strong>
-  );
-
-  if (file.has_file && parent) {
-    return (
-      <>
-        This folder's {filename}, replacing {parent}
-      </>
-    );
-  }
-  if (file.has_file) return <>This folder's {filename}</>;
-  if (parent) return <>Uses {parent} until this folder has its own</>;
-  return <>No {filename} yet; saving creates one here</>;
 }
 
 function lineCount(text: string): number {
@@ -83,16 +73,23 @@ export function FolderInstructionsDialog({
   onSaved,
 }: FolderInstructionsDialogProps) {
   const [tab, setTab] = useState<InstructionKind>(initialTab);
-  const { state, instructions, setFile } = useFolderInstructions(folderPath);
+  const { state, instructions, setFile, retry } = useFolderInstructions(folderPath);
   // Null until edited, so the text shown follows whatever was last loaded or saved.
   const [drafts, setDrafts] = useState(NO_DRAFTS);
+  const [inherit, setInherit] = useState<Record<InstructionKind, boolean>>({
+    sysprompt: false,
+    caption_rules: false,
+  });
   const [errors, setErrors] = useState<Record<InstructionKind, string | null>>(NO_DRAFTS);
   const [saving, setSaving] = useState(false);
   const tabs = useTabList(KINDS, tab, setTab);
 
   const textOf = (kind: InstructionKind) => drafts[kind] ?? instructions?.[kind].text ?? "";
   const editedKinds = KINDS.filter(
-    (kind) => instructions !== null && textOf(kind) !== instructions[kind].text,
+    (kind) =>
+      instructions !== null &&
+      (textOf(kind) !== instructions[kind].text ||
+        (drafts[kind] === "" && instructions[kind].has_file)),
   );
   const edited = editedKinds.length > 0;
   const unsavedNames = editedKinds.map((kind) => DOCUMENTS[kind].label.toLowerCase()).join(" and ");
@@ -105,6 +102,7 @@ export function FolderInstructionsDialog({
 
   const setDraft = useCallback((kind: InstructionKind, value: string | null) => {
     setDrafts((current) => ({ ...current, [kind]: value }));
+    setInherit((current) => ({ ...current, [kind]: false }));
     setErrors((current) => ({ ...current, [kind]: null }));
   }, []);
 
@@ -136,76 +134,210 @@ export function FolderInstructionsDialog({
     void discard.request(onClose);
   };
 
-  const text = textOf(tab);
-
-  const renderToolbarAside = (kind: InstructionKind) => {
-    if (!instructions) return null;
-
-    const file = instructions[kind];
-    if (file.locked_by_job_id !== null) {
-      return (
-        <div className="folder-instructions-dialog__source">
-          <span className="folder-instructions-dialog__source-text">
-            Locked while <strong>{jobTypeLabelFor(DOCUMENTS[kind].readBy)}</strong> runs
-          </span>
-        </div>
-      );
-    }
-
-    const fill =
-      file.parent_folder !== null
-        ? { label: "Copy from parent", icon: iconCopy, text: file.parent_text }
-        : kind === "caption_rules"
-          ? { label: "Use template", icon: iconFilePlus, text: instructions.caption_rules_template }
-          : null;
-
-    return (
-      <div className="folder-instructions-dialog__source">
-        <span className="folder-instructions-dialog__source-text">
-          <FileSource file={file} filename={DOCUMENTS[kind].filename} />
-        </span>
-        {fill && textOf(kind).trim() === "" && (
-          <button
-            type="button"
-            className="folder-instructions-dialog__source-action"
-            disabled={saving}
-            onClick={() => setDraft(kind, fill.text)}
-          >
-            <Icon icon={fill.icon} className="folder-instructions-dialog__source-action-icon" />
-            {fill.label}
-          </button>
-        )}
-      </div>
+  const viewOf = (kind: InstructionKind) => {
+    const file = instructions?.[kind];
+    const reverting = file?.has_file && inherit[kind] && file.parent_state !== null;
+    const source = reverting ? file.parent_state : file?.state;
+    const preview = Boolean(
+      reverting ||
+      (drafts[kind] === null && (!file?.has_file || file.state.status === "unreadable")),
     );
+    return {
+      file,
+      source,
+      preview,
+      reverting,
+      text: preview ? (source?.text ?? "") : textOf(kind),
+    };
   };
 
-  const renderEditor = (kind: InstructionKind) => {
-    const file = instructions?.[kind];
-    if (!file) return null;
+  const text = viewOf(tab).text;
 
+  const renderEditor = (kind: InstructionKind) => {
+    const { file, source, preview, reverting, text: visibleText } = viewOf(kind);
+    if (!file || !source || !instructions) return null;
     const details = DOCUMENTS[kind];
+    const locked = file.locked_by_job_id !== null;
+    const localDraft = drafts[kind] !== null && !reverting;
+    const sourceError = !localDraft && source.message !== null;
     const editorProps = {
       id: `${kind}-editor`,
       className: classNames("code-editor--muted", errors[kind] && "code-editor--error"),
-      value: textOf(kind),
-      placeholder:
-        file.parent_relative_path === null
-          ? details.placeholder
-          : `This folder uses ${file.parent_relative_path}. Write here to replace it for this folder only.`,
+      value: visibleText,
+      placeholder: details.placeholder,
       "aria-label": details.label,
-      "aria-invalid": errors[kind] !== null,
-      editable: !saving && file.locked_by_job_id === null,
+      "aria-invalid": errors[kind] !== null || (!localDraft && source.status === "invalid"),
+      editable: !saving && !locked && !preview,
       onChange: (value: string) => setDraft(kind, value),
     };
 
-    if (kind === "sysprompt") {
-      return <MarkdownEditor {...editorProps} toolbarAside={renderToolbarAside(kind)} />;
-    }
-    return (
-      <div className="code-editor-wrapper">
-        <div className="code-editor-wrapper__toolbar">{renderToolbarAside(kind)}</div>
-        <YamlEditor {...editorProps} />
+    const empty = preview && source.status === "missing";
+    const actions = locked ? null : (
+      <div className="folder-instructions-dialog__source-actions">
+        {preview &&
+          source.origin === "inherited" &&
+          source.status !== "unreadable" &&
+          !reverting && (
+            <DialogButton
+              label="Customize for this folder"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => setDraft(kind, source.text)}
+            />
+          )}
+        {empty && (
+          <DialogButton
+            label="Create instructions"
+            variant={kind === "sysprompt" ? "primary" : "secondary"}
+            disabled={saving}
+            onClick={() => setDraft(kind, "")}
+          />
+        )}
+        {file.has_file && file.parent_state && !reverting && (
+          <DialogButton
+            label="Use inherited instructions"
+            variant="secondary"
+            disabled={saving}
+            onClick={() => {
+              setDraft(kind, "");
+              setInherit((current) => ({ ...current, [kind]: true }));
+            }}
+          />
+        )}
+        {source.status === "unreadable" && !localDraft && (
+          <>
+            <DialogButton
+              label="Retry"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => {
+                void retry();
+              }}
+            />
+            {preview && (
+              <DialogButton
+                label={file.has_file ? "Replace unreadable file" : "Create local instructions"}
+                variant="secondary"
+                disabled={saving}
+                onClick={() => setDraft(kind, "")}
+              />
+            )}
+          </>
+        )}
+        {kind === "caption_rules" && textOf(kind).trim() === "" && !file.parent_state && (
+          <DialogButton
+            label="Use template"
+            variant={empty ? "primary" : "secondary"}
+            disabled={saving}
+            onClick={() => setDraft(kind, instructions.caption_rules_template)}
+          />
+        )}
       </div>
+    );
+    const tone = localDraft ? "draft" : source.origin;
+
+    return (
+      <>
+        <div
+          className="folder-instructions-dialog__source"
+          role="group"
+          aria-label="Instruction source"
+        >
+          <div className="folder-instructions-dialog__source-row">
+            <div className="folder-instructions-dialog__source-heading">
+              <span
+                className={`folder-instructions-dialog__origin folder-instructions-dialog__origin--${tone}`}
+              >
+                {localDraft ? "Local draft" : INSTRUCTION_ORIGIN_LABELS[source.origin]}
+              </span>
+              <span
+                className="folder-instructions-dialog__source-text"
+                title={source.source_path ?? undefined}
+              >
+                {localDraft
+                  ? details.filename
+                  : (source.relative_path ?? `No ${details.filename} found`)}
+              </span>
+              {source.status !== "ready" && source.status !== "missing" && !localDraft && (
+                <span className="folder-instructions-dialog__badge">
+                  {INSTRUCTION_STATUS_LABELS[source.status]}
+                </span>
+              )}
+            </div>
+            {!empty && actions}
+          </div>
+          <p className="folder-instructions-dialog__help">
+            {details.help}{" "}
+            {reverting
+              ? `Saving removes the local file and uses ${source.relative_path}.`
+              : localDraft
+                ? file.has_file
+                  ? "Changes apply after you save. Saving empty removes the local file."
+                  : file.state.origin === "inherited"
+                    ? "This draft replaces the inherited instructions only after you save."
+                    : "Saving creates instructions in this folder."
+                : source.origin === "missing"
+                  ? "Create instructions here, or add them to a parent folder."
+                  : "Applies here and to subfolders without their own file of this kind."}
+            {file.has_file && file.parent_relative_path && !reverting && (
+              <>
+                {" "}
+                Replaces{" "}
+                <strong title={file.parent_state?.source_path ?? undefined}>
+                  {file.parent_relative_path}
+                </strong>
+                .
+              </>
+            )}
+          </p>
+          {sourceError && (
+            <p className="folder-instructions-dialog__problem" role="alert">
+              {source.message}
+            </p>
+          )}
+          {locked && (
+            <p className="folder-instructions-dialog__locked" role="status">
+              <Icon icon={iconLock} className="folder-instructions-dialog__locked-icon" />
+              <span>
+                Locked while <strong>{jobTypeLabelFor(details.readBy)}</strong> runs
+              </span>
+            </p>
+          )}
+        </div>
+        {empty ? (
+          <div className="folder-instructions-dialog__empty">
+            <Icon
+              icon={kind === "sysprompt" ? iconFileText : iconListChecks}
+              className="folder-instructions-dialog__empty-icon"
+            />
+            <strong className="folder-instructions-dialog__empty-title">
+              No {details.label.toLowerCase()} yet
+            </strong>
+            <p className="folder-instructions-dialog__empty-text">
+              {kind === "sysprompt"
+                ? "Create a prompt to guide Auto-caption, for example:"
+                : "Create YAML rules or start from the template, for example:"}
+            </p>
+            <pre className="folder-instructions-dialog__example">
+              <code>
+                {kind === "sysprompt"
+                  ? "# Caption instructions\n\nDescribe the main subject, visible details, and setting."
+                  : "words:\n  min: 8\n  max: 120"}
+              </code>
+            </pre>
+            {actions}
+          </div>
+        ) : preview || locked ? (
+          <CodeMirrorEditor
+            {...editorProps}
+            language={kind === "sysprompt" ? "markdown" : "yaml"}
+          />
+        ) : kind === "sysprompt" ? (
+          <MarkdownEditor {...editorProps} />
+        ) : (
+          <YamlEditor {...editorProps} />
+        )}
+      </>
     );
   };
 
@@ -223,11 +355,8 @@ export function FolderInstructionsDialog({
         <div className="folder-instructions-dialog__header-text">
           <div className="folder-instructions-dialog__header-copy">
             <h2 className="folder-instructions-dialog__title">Folder instructions</h2>
-            <p className="folder-instructions-dialog__subtitle">
-              The <strong>system prompt</strong> tells the model how to caption, and markdown helps
-              it follow. <strong>Caption rules</strong> are checked without a model. Both are saved
-              to this folder only and cover subfolders without their own; saving one empty removes
-              its file.
+            <p className="folder-instructions-dialog__subtitle" title={folderPath}>
+              {folderPath}
             </p>
           </div>
         </div>
@@ -281,6 +410,13 @@ export function FolderInstructionsDialog({
               role="alert"
             >
               Could not load the folder instructions. {state.message}
+              <DialogButton
+                label="Retry"
+                variant="secondary"
+                onClick={() => {
+                  void retry();
+                }}
+              />
             </p>
           )}
 

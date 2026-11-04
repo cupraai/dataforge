@@ -571,6 +571,7 @@ test("browser Back keeps instructions and the URL until discard is confirmed", a
   await page.getByRole("button", { name: /^(Edit|Create) instructions$/ }).click();
   const editor = page.getByRole("dialog", { name: "Folder instructions" });
   const prompt = editor.getByRole("textbox", { name: "System prompt" });
+  await editor.getByRole("button", { name: "Customize for this folder" }).click();
   await prompt.fill("Unsaved instruction draft.");
   await browserBack(page);
   await expect(confirmation(page)).toBeVisible();
@@ -659,6 +660,7 @@ test("browser Forward preserves a draft when navigation is cancelled", async ({ 
   await expect.poll(() => new URL(page.url()).searchParams.get("path")).toBe(previous);
   await page.getByRole("button", { name: /^(Edit|Create) instructions$/, exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Folder instructions" });
+  await editor.getByRole("button", { name: "Customize for this folder" }).click();
   await editor.getByRole("textbox", { name: "System prompt" }).fill("Unsaved forward draft.");
   await page.evaluate(() => window.history.forward());
   await expect(confirmation(page)).toBeVisible();

@@ -71,7 +71,7 @@ class ImageDimensionTests(unittest.TestCase):
 
     def test_returns_none_for_a_type_without_pixels(self) -> None:
         with TempMediaFolder() as root:
-            sysprompt = write_sysprompt(root, "A system prompt.")
+            sysprompt = write_sysprompt(root, "# A system prompt.")
 
             self.assertIsNone(_dimensions(sysprompt, "sysprompt"))
 

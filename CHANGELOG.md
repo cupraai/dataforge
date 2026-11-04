@@ -10,6 +10,9 @@ version heading when a minor or major version is cut.
 
 ### Changed
 
+- Folder instructions show the active prompt and caption rules, their source and any file
+  problems. Inherited instructions can be previewed and customized for the current folder.
+  System prompts must start with a `#` heading; deeper headings are allowed after it.
 - Folders with many PNG files, such as a ComfyUI output folder, open several times faster the
   first time after a restart or when new images arrive.
 

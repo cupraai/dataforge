@@ -30,7 +30,7 @@ export async function saveInstructionFile(
   return putJson<InstructionFileResponse>(`${SAVE_ROUTES[kind]}?${params}`, body);
 }
 
-/** Whether the file reaches the folder with any text: its own copy, else the parent's. */
+/** Only the backend's resolved, valid file can be used by a job. */
 export function instructionApplies(file: InstructionFileResponse): boolean {
-  return (file.has_file ? file.text : file.parent_text).trim() !== "";
+  return file.state.status === "ready";
 }

@@ -42,24 +42,24 @@ class FindInstructionFileTests(unittest.TestCase):
 class LoadSyspromptTests(unittest.TestCase):
     def test_a_folder_without_its_own_uses_the_parent_prompt(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "  Describe the scene.  ")
+            write_sysprompt(root, "#   Describe the scene.  ")
             child = root / "portraits"
             child.mkdir()
 
-            self.assertEqual(load_sysprompt(child), "Describe the scene.")
+            self.assertEqual(load_sysprompt(child), "#   Describe the scene.")
 
     def test_the_folder_own_prompt_wins(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             child = root / "portraits"
             child.mkdir()
-            write_sysprompt(child, "Describe the person.")
+            write_sysprompt(child, "# Describe the person.")
 
-            self.assertEqual(load_sysprompt(child), "Describe the person.")
+            self.assertEqual(load_sysprompt(child), "# Describe the person.")
 
     def test_an_empty_nearest_file_means_no_prompt(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             child = root / "portraits"
             child.mkdir()
             (child / SYSPROMPT_FILENAME).write_text("  \n", encoding="utf-8")
@@ -68,6 +68,11 @@ class LoadSyspromptTests(unittest.TestCase):
 
     def test_no_file_anywhere_means_no_prompt(self) -> None:
         with TempMediaFolder() as root:
+            self.assertIsNone(load_sysprompt(root))
+
+    def test_a_non_utf8_prompt_is_unreadable(self) -> None:
+        with TempMediaFolder() as root:
+            (root / SYSPROMPT_FILENAME).write_bytes(b"\xff")
             self.assertIsNone(load_sysprompt(root))
 
 

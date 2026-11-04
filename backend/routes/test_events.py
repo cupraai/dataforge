@@ -66,7 +66,7 @@ class JobEventTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_job_pushes_its_progress_without_being_polled(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with (
@@ -96,7 +96,7 @@ class JobNotificationEventTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_finished_job_pushes_its_outcome_to_every_tab(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
 
             with (

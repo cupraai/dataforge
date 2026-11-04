@@ -16,10 +16,14 @@ describe("App: captions", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Folder instructions" });
     const editor = await within(dialog).findByRole("textbox", { name: "System prompt" });
-    expect(editor).toHaveValue("");
-    expect(within(dialog).getByText("..\\.sysprompt")).toHaveAttribute("title", HOME_PATH);
+    expect(editor).toHaveValue(`${HOME_SYSPROMPT}\n`);
+    expect(editor).toBeDisabled();
+    expect(within(dialog).getByText("..\\.sysprompt")).toHaveAttribute(
+      "title",
+      `${HOME_PATH}\\.sysprompt`,
+    );
 
-    await user.click(within(dialog).getByRole("button", { name: "Copy from parent" }));
+    await user.click(within(dialog).getByRole("button", { name: "Customize for this folder" }));
     await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
     expect(await screen.findByRole("button", { name: "Edit instructions" })).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { instructionFile } from "@/test/instructionFixtures";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,14 +20,7 @@ const PROMPT = "Caption every image with rich detail";
 const TEMPLATE = "words:\n  min: 8\n";
 const PARENT = "C:\\datasets";
 
-const NO_FILE: InstructionFileResponse = {
-  text: "",
-  has_file: false,
-  parent_folder: null,
-  parent_relative_path: null,
-  parent_text: "",
-  locked_by_job_id: null,
-};
+const NO_FILE = instructionFile();
 
 const LABELS: Record<InstructionKind, string> = {
   sysprompt: "System prompt",
@@ -34,7 +28,7 @@ const LABELS: Record<InstructionKind, string> = {
 };
 
 function file(overrides: Partial<InstructionFileResponse> = {}): InstructionFileResponse {
-  return { ...NO_FILE, ...overrides };
+  return instructionFile(overrides);
 }
 
 function own(text: string): InstructionFileResponse {
@@ -47,6 +41,14 @@ function inherited(kind: InstructionKind, text: string): InstructionFileResponse
     parent_folder: PARENT,
     parent_relative_path: `..\\${filename}`,
     parent_text: text,
+    state: {
+      origin: "inherited",
+      status: "ready",
+      source_path: `${PARENT}\\${filename}`,
+      relative_path: `..\\${filename}`,
+      text,
+      message: null,
+    },
   });
 }
 
@@ -55,7 +57,7 @@ function instructions(
 ): FolderInstructionsResponse {
   return {
     sysprompt: files.sysprompt ?? own(PROMPT),
-    caption_rules: files.caption_rules ?? NO_FILE,
+    caption_rules: files.caption_rules ?? own(""),
     caption_rules_template: TEMPLATE,
   };
 }
@@ -120,6 +122,9 @@ describe("FolderInstructionsDialog", () => {
     expect(stats).toHaveTextContent("~9 tokens");
     expect(stats).not.toHaveTextContent("characters");
     expect(fetchFolderInstructions).toHaveBeenCalledWith(HOME_PATH, expect.anything());
+    expect(screen.getByRole("button", { name: "Heading 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Heading 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Heading 3" })).toBeInTheDocument();
   });
 
   it("reports the rules in lines only", async () => {
@@ -302,34 +307,39 @@ describe("FolderInstructionsDialog", () => {
       expect(rulesTab).toHaveAttribute("aria-selected", "true");
     });
 
-    it("keeps the title and the explanation of both files through a tab switch", async () => {
+    it("keeps the folder path and shows help for the selected tab", async () => {
       const user = userEvent.setup();
       renderDialog();
 
       const dialog = screen.getByRole("dialog", { name: "Folder instructions" });
       const heading = within(dialog).getByRole("heading", { name: "Folder instructions" });
       const explanation = heading.nextElementSibling?.textContent;
-      expect(explanation).toMatch(/system prompt/i);
-      expect(explanation).toMatch(/caption rules/i);
+      expect(explanation).toBe(HOME_PATH);
+      expect(await screen.findByText(/Used by Auto-caption/)).toBeInTheDocument();
 
       await user.click(screen.getByRole("tab", { name: "Caption rules" }));
       await editor("caption_rules");
 
       expect(heading.nextElementSibling?.textContent).toBe(explanation);
+      expect(screen.getByText(/Used by Lint captions/)).toBeInTheDocument();
     });
   });
 
   describe.each(["sysprompt", "caption_rules"] as const)("the %s file", (kind) => {
-    it("names a parent's file without loading it into the folder's own editor", async () => {
+    it("shows the inherited content read-only without making a local draft", async () => {
       fetchFolderInstructions.mockResolvedValue(
         instructions({ [kind]: inherited(kind, "From the parent.\n") }),
       );
       renderDialog({ initialTab: kind });
 
-      expect(await editor(kind)).toHaveValue("");
+      expect(await editor(kind)).toHaveValue("From the parent.\n");
+      expect(await editor(kind)).toBeDisabled();
       const path = screen.getByText(/^\.\.\\\./);
-      expect(path).toHaveAttribute("title", PARENT);
-      expect(path.parentElement).toHaveTextContent(/until this folder has its own/);
+      expect(path).toHaveAttribute(
+        "title",
+        `${PARENT}\\${kind === "sysprompt" ? ".sysprompt" : ".captionrules"}`,
+      );
+      expect(path.parentElement).toHaveTextContent("Inherited");
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     });
 
@@ -342,8 +352,10 @@ describe("FolderInstructionsDialog", () => {
       renderDialog({ initialTab: kind, onSaved });
       await editor(kind);
 
-      await user.click(screen.getByRole("button", { name: "Copy from parent" }));
+      await user.click(screen.getByRole("button", { name: "Customize for this folder" }));
       expect(await editor(kind)).toHaveValue("From the parent.\n");
+      expect(await editor(kind)).toBeEnabled();
+      expect(saveInstructionFile).not.toHaveBeenCalled();
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       await waitFor(() =>
@@ -355,13 +367,19 @@ describe("FolderInstructionsDialog", () => {
     it("says when the folder's own file replaces a parent's", async () => {
       fetchFolderInstructions.mockResolvedValue(
         instructions({
-          [kind]: { ...inherited(kind, "From the parent.\n"), text: "Own.\n", has_file: true },
+          [kind]: file({
+            text: "Own.\n",
+            has_file: true,
+            parent_folder: PARENT,
+            parent_relative_path: `..\\${kind === "sysprompt" ? ".sysprompt" : ".captionrules"}`,
+            parent_text: "From the parent.\n",
+          }),
         }),
       );
       renderDialog({ initialTab: kind });
 
       expect(await editor(kind)).toHaveValue("Own.\n");
-      expect(screen.getByText(/^\.\.\\\./).parentElement).toHaveTextContent(/replacing/);
+      expect(screen.getByText(/^\.\.\\\./).parentElement).toHaveTextContent(/Replaces/);
     });
 
     it("sends blank text so the backend removes the file", async () => {
@@ -378,10 +396,13 @@ describe("FolderInstructionsDialog", () => {
 
   it("offers the template only for caption rules with nothing to inherit", async () => {
     const user = userEvent.setup();
-    fetchFolderInstructions.mockResolvedValue(instructions({ sysprompt: NO_FILE }));
+    fetchFolderInstructions.mockResolvedValue(
+      instructions({ sysprompt: NO_FILE, caption_rules: NO_FILE }),
+    );
     renderDialog();
 
-    expect(await editor("sysprompt")).toHaveValue("");
+    expect(await screen.findByText("No system prompt yet")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "System prompt" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Use template" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "Caption rules" }));
@@ -406,6 +427,112 @@ describe("FolderInstructionsDialog", () => {
       "caption_rules",
       "sysprompt",
     ]);
+  });
+
+  it("creates a missing prompt only after the user writes and saves", async () => {
+    const user = userEvent.setup();
+    fetchFolderInstructions.mockResolvedValue(instructions({ sysprompt: NO_FILE }));
+    renderDialog();
+    await user.click(await screen.findByRole("button", { name: "Create instructions" }));
+    await user.type(await editor("sysprompt"), "Describe the subject.");
+    expect(saveInstructionFile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(saveInstructionFile).toHaveBeenCalledWith(
+        "sysprompt",
+        HOME_PATH,
+        "Describe the subject.",
+      ),
+    );
+  });
+
+  it("resets a customized draft to the inherited read-only preview", async () => {
+    const user = userEvent.setup();
+    fetchFolderInstructions.mockResolvedValue(
+      instructions({ sysprompt: inherited("sysprompt", "Inherited prompt.") }),
+    );
+    renderDialog();
+    await user.click(await screen.findByRole("button", { name: "Customize for this folder" }));
+    await user.type(await editor("sysprompt"), " Edited.");
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+    expect(await editor("sysprompt")).toHaveValue("Inherited prompt.");
+    expect(await editor("sysprompt")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+
+  it("previews inheritance when removing even an empty local override", async () => {
+    const user = userEvent.setup();
+    fetchFolderInstructions.mockResolvedValue(
+      instructions({
+        sysprompt: file({
+          has_file: true,
+          text: "",
+          parent_folder: PARENT,
+          parent_relative_path: "..\\.sysprompt",
+          parent_text: "Inherited prompt.",
+        }),
+      }),
+    );
+    renderDialog();
+    await user.click(await screen.findByRole("button", { name: "Use inherited instructions" }));
+    expect(await editor("sysprompt")).toHaveValue("Inherited prompt.");
+    expect(await editor("sysprompt")).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(saveInstructionFile).toHaveBeenCalledWith("sysprompt", HOME_PATH, ""),
+    );
+  });
+
+  it("lets a local prompt be cleared and rewritten without switching to the parent preview", async () => {
+    const user = userEvent.setup();
+    fetchFolderInstructions.mockResolvedValue(
+      instructions({
+        sysprompt: file({
+          has_file: true,
+          text: "# Local instructions",
+          parent_folder: PARENT,
+          parent_relative_path: "..\\.sysprompt",
+          parent_text: "# Parent instructions",
+        }),
+      }),
+    );
+    renderDialog();
+    await user.clear(await editor("sysprompt"));
+    expect(await editor("sysprompt")).toBeEnabled();
+    await user.type(await editor("sysprompt"), "# Replacement instructions");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(saveInstructionFile).toHaveBeenCalledWith(
+        "sysprompt",
+        HOME_PATH,
+        "# Replacement instructions",
+      ),
+    );
+  });
+
+  it("shows invalid inherited rules and keeps their text available for repair", async () => {
+    const user = userEvent.setup();
+    const rules = inherited("caption_rules", "unknown: value");
+    rules.state = { ...rules.state, status: "invalid", message: "unknown: unknown setting" };
+    fetchFolderInstructions.mockResolvedValue(instructions({ caption_rules: rules }));
+    renderDialog({ initialTab: "caption_rules" });
+    expect(await screen.findByRole("alert")).toHaveTextContent("unknown setting");
+    expect(await editor("caption_rules")).toHaveValue("unknown: value");
+    await user.click(screen.getByRole("button", { name: "Customize for this folder" }));
+    expect(await editor("caption_rules")).toBeEnabled();
+  });
+
+  it("requires an explicit replacement before editing an unreadable local file", async () => {
+    const user = userEvent.setup();
+    const prompt = own("");
+    prompt.state = { ...prompt.state, status: "unreadable", message: "Could not read this file." };
+    fetchFolderInstructions.mockResolvedValue(instructions({ sysprompt: prompt }));
+    renderDialog();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not read");
+    expect(await editor("sysprompt")).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Replace unreadable file" }));
+    expect(await editor("sysprompt")).toBeEnabled();
+    expect(saveInstructionFile).not.toHaveBeenCalled();
   });
 
   it("stays on the rules tab and keeps the prompt unsaved when the rules are refused", async () => {

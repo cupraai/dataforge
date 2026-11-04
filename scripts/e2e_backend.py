@@ -36,7 +36,7 @@ CAPTION = (
     "a bicycle leans against the wall on the left."
 )
 
-SYSPROMPT = "Describe the scene plainly, in one paragraph."
+SYSPROMPT = "# Describe the scene plainly, in one paragraph."
 
 #: Short enough to stay under the threshold that skips a file as already written.
 DRAFT = "A parked car."

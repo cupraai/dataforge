@@ -231,10 +231,10 @@ class FolderChangesTests(unittest.TestCase):
             child = root / "album"
             child.mkdir()
             write_media(child, "photo.png")
-            (root / SYSPROMPT_FILENAME).write_text("Describe the scene.", encoding="utf-8")
+            (root / SYSPROMPT_FILENAME).write_text("# Describe the scene.", encoding="utf-8")
             (root / CAPTION_RULES_FILENAME).write_text("repeated_phrases: 4\n", encoding="utf-8")
             edits = {
-                SYSPROMPT_FILENAME: "Describe the morning light.",
+                SYSPROMPT_FILENAME: "# Describe the morning light.",
                 CAPTION_RULES_FILENAME: "repeated_phrases: 4\ncolour: blue\n",
             }
 
@@ -280,7 +280,7 @@ class FolderChangesTests(unittest.TestCase):
             write_media(album, "photo.png")
             listed = self._listing(album)
 
-            (root / SYSPROMPT_FILENAME).write_text("Describe the photo.", encoding="utf-8")
+            (root / SYSPROMPT_FILENAME).write_text("# Describe the photo.", encoding="utf-8")
 
             changes = self._changes(album, listed["fingerprint"])
             self.assertTrue(changes["full"])

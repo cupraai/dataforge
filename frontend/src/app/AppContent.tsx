@@ -19,6 +19,7 @@ import { useJobUndoNotifications } from "@/features/jobs/hooks/useJobUndoNotific
 import { VIDEO_PROJECTS_QUERY_KEY } from "@/features/videoEditor/hooks/useVideoProjectList";
 import { useVideoEditorRoute } from "@/features/videoEditor/hooks/useVideoEditorRoute";
 import { VideoEditorContext } from "@/features/videoEditor/context/VideoEditorContext";
+import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
 
 /** How long an exported video may take to show up in the listing before the open gives up. */
 const OPEN_EXPORT_TIMEOUT_MS = 15_000;
@@ -55,6 +56,7 @@ export function AppContent() {
     settleAllCandidates,
   } = useAppWorkspace();
   const taggingFolder = useTaggingFolder();
+  const { instructions } = useFolderInstructions(folder?.path ?? "");
 
   const {
     query,
@@ -191,8 +193,7 @@ export function AppContent() {
                 fileCount: items.length,
                 captionedCount: query.captionedCount,
                 issueCount: gallery.issueCount,
-                hasSysprompt: folder.has_sysprompt,
-                hasCaptionRules: folder.has_caption_rules,
+                instructions,
                 hasCaptionBackup: folder.has_caption_backup,
                 statsLoading: loading && !refreshing,
                 searchQuery: query.searchQuery,

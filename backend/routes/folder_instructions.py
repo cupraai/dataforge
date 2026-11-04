@@ -3,15 +3,15 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 
 from automation.jobs import JobType, job_manager
-from caption_rules import STARTER_CAPTION_RULES, save_caption_rules
+from caption_rules import STARTER_CAPTION_RULES, parse_caption_rules, save_caption_rules
 from constants import CAPTION_RULES_FILENAME, JOB_TYPE_LABELS, SYSPROMPT_FILENAME
 from folder_instructions import (
     describe_instruction_file,
     instruction_file_reaches,
-    save_instruction_file,
 )
 from routes._helpers import resolve_folder
 from schemas import FolderInstructionsResponse, InstructionFileResponse, InstructionFileUpdate
+from sysprompt import save_sysprompt, validate_sysprompt
 
 router = APIRouter()
 
@@ -42,10 +42,12 @@ def _refuse_while_locked(folder: Path, filename: str) -> None:
 
 
 def _describe(folder: Path, filename: str) -> InstructionFileResponse:
-    try:
-        return describe_instruction_file(folder, filename, _locking_job_id(folder, filename))
-    except OSError as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to read {filename}") from exc
+    return describe_instruction_file(
+        folder,
+        filename,
+        _locking_job_id(folder, filename),
+        validate=parse_caption_rules if filename == CAPTION_RULES_FILENAME else validate_sysprompt,
+    )
 
 
 @router.get("/folder-instructions", response_model=FolderInstructionsResponse)
@@ -67,7 +69,9 @@ def update_sysprompt(
     _refuse_while_locked(folder, SYSPROMPT_FILENAME)
 
     try:
-        save_instruction_file(folder, SYSPROMPT_FILENAME, body.text)
+        save_sysprompt(folder, body.text)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Failed to save {SYSPROMPT_FILENAME}") from exc
 

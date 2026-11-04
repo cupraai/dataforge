@@ -14,6 +14,7 @@ import {
 } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
 import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
+import { instructionApplies } from "@/shared/api/folderInstructions";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
@@ -51,7 +52,8 @@ export function AutoCaptionDialog({
     initialSettings.reasoning_effort,
   );
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
-  const { state } = useFolderInstructions(folderPath);
+  const { state, instructions } = useFolderInstructions(folderPath);
+  const promptReady = instructions !== null && instructionApplies(instructions.sysprompt);
   // What the run will do, before it starts: a fresh dataset is captioned from scratch.
   const plan = useQuery({
     queryKey: ["auto-caption-preview", folderPath, selectedPaths],
@@ -63,12 +65,13 @@ export function AutoCaptionDialog({
   const preserveThinkingId = useId();
 
   const handleConfirm = useCallback(() => {
-    if (busy) return;
+    if (busy || !promptReady) return;
     onConfirm(mode, captionAudio, reasoningEffort, preserveThinking);
-  }, [busy, captionAudio, mode, onConfirm, preserveThinking, reasoningEffort]);
+  }, [busy, captionAudio, mode, onConfirm, preserveThinking, promptReady, reasoningEffort]);
 
   return (
     <GuardedDialog
+      confirmDisabled={!promptReady}
       unsavedChanges={
         mode !== initialSettings.mode ||
         captionAudio !== initialSettings.caption_audio ||
@@ -159,6 +162,12 @@ export function AutoCaptionDialog({
       {state.status === "error" && (
         <p className="dialog__error" role="alert">
           Could not load the system prompt. {state.message}
+        </p>
+      )}
+      {instructions?.sysprompt.state.status === "missing" && (
+        <p className="dialog__hint">
+          No system prompt was found in this folder or above it. Add one in Folder instructions,
+          starting with a # heading.
         </p>
       )}
     </GuardedDialog>

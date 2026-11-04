@@ -13,7 +13,7 @@ from testing_fixtures import TempMediaFolder, write_sysprompt
 
 #: The PUT route, and a valid body, for each instruction file.
 FILES = {
-    SYSPROMPT_FILENAME: ("sysprompt", "Describe the scene."),
+    SYSPROMPT_FILENAME: ("sysprompt", "# Describe the scene."),
     CAPTION_RULES_FILENAME: ("caption-rules", "repeated_phrases: 4"),
 }
 KEYS = {SYSPROMPT_FILENAME: "sysprompt", CAPTION_RULES_FILENAME: "caption_rules"}
@@ -46,6 +46,15 @@ class FolderInstructionsEndpointTests(unittest.TestCase):
             "parent_folder": None,
             "parent_relative_path": None,
             "parent_text": "",
+            "state": {
+                "origin": "missing",
+                "status": "missing",
+                "source_path": None,
+                "relative_path": None,
+                "text": "",
+                "message": None,
+            },
+            "parent_state": None,
             "locked_by_job_id": None,
         }
         with TempMediaFolder() as root:
@@ -151,6 +160,75 @@ class FolderInstructionsEndpointTests(unittest.TestCase):
             self.assertEqual(response.json()["detail"], "colour: unknown setting")
             self.assertFalse((root / CAPTION_RULES_FILENAME).exists())
 
+    def test_invalid_prompt_is_reported_and_a_rejected_save_keeps_the_file(self) -> None:
+        with TempMediaFolder() as root:
+            path = root / SYSPROMPT_FILENAME
+            path.write_text("Plain text.\n", encoding="utf-8")
+            state = _instructions(root)["sysprompt"]["state"]
+            self.assertEqual(state["status"], "invalid")
+            self.assertIn("heading", state["message"])
+            response = _save(root, SYSPROMPT_FILENAME, "Still plain text.")
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(path.read_text(encoding="utf-8"), "Plain text.\n")
+            self.assertEqual(
+                _save(root, SYSPROMPT_FILENAME, "# Instructions\n\nDescribe it.").status_code, 200
+            )
+            self.assertEqual(_instructions(root)["sysprompt"]["state"]["status"], "ready")
+
+    def test_resolves_each_kind_independently_and_keeps_empty_overrides(self) -> None:
+        with TempMediaFolder() as root:
+            write_sysprompt(root, "# Describe the scene.")
+            (root / CAPTION_RULES_FILENAME).write_text("trigger: example\n", encoding="utf-8")
+            child = _nested(root)
+            (child / SYSPROMPT_FILENAME).write_text("  \n", encoding="utf-8")
+
+            reported = _instructions(child)
+
+            prompt = reported["sysprompt"]["state"]
+            self.assertEqual((prompt["origin"], prompt["status"]), ("local", "empty"))
+            self.assertEqual(prompt["source_path"], str(child / SYSPROMPT_FILENAME))
+            rules = reported["caption_rules"]["state"]
+            self.assertEqual((rules["origin"], rules["status"]), ("inherited", "ready"))
+            self.assertEqual(rules["text"], "trigger: example\n")
+            self.assertEqual(rules["relative_path"], str(Path("..") / CAPTION_RULES_FILENAME))
+
+    def test_reports_invalid_inherited_rules_without_skipping_them(self) -> None:
+        with TempMediaFolder() as root:
+            (root / CAPTION_RULES_FILENAME).write_text("trigger: example\n", encoding="utf-8")
+            child = _nested(root)
+            (child / CAPTION_RULES_FILENAME).write_text("unknown: setting\n", encoding="utf-8")
+            grandchild = _nested(child)
+
+            state = _instructions(grandchild)["caption_rules"]["state"]
+
+            self.assertEqual((state["origin"], state["status"]), ("inherited", "invalid"))
+            self.assertEqual(state["text"], "unknown: setting\n")
+            self.assertIn("unknown setting", state["message"])
+            self.assertEqual(state["source_path"], str(child / CAPTION_RULES_FILENAME))
+
+    def test_unreadable_parent_does_not_hide_a_local_override_or_the_other_kind(self) -> None:
+        with TempMediaFolder() as root:
+            (root / SYSPROMPT_FILENAME).write_bytes(b"\xff")
+            child = _nested(root)
+            write_sysprompt(child, "# Describe the scene.")
+            (child / CAPTION_RULES_FILENAME).write_text("trigger: example\n", encoding="utf-8")
+
+            reported = _instructions(child)
+
+            self.assertEqual(reported["sysprompt"]["state"]["status"], "ready")
+            self.assertEqual(reported["sysprompt"]["parent_state"]["status"], "unreadable")
+            self.assertEqual(reported["caption_rules"]["state"]["status"], "ready")
+
+    def test_read_errors_are_reported_per_file(self) -> None:
+        with TempMediaFolder() as root:
+            write_sysprompt(root, "# Describe the scene.")
+            with patch("folder_instructions.read_instruction_file", side_effect=PermissionError):
+                reported = _instructions(root)
+            state = reported["sysprompt"]["state"]
+            self.assertEqual((state["origin"], state["status"]), ("local", "unreadable"))
+            self.assertIn("permissions", state["message"])
+            self.assertEqual(reported["caption_rules"]["state"]["status"], "missing")
+
     def test_a_missing_folder_is_not_found(self) -> None:
         with TempMediaFolder() as root:
             missing = root / "does-not-exist"
@@ -179,13 +257,13 @@ class InstructionsLockedByJobTests(unittest.TestCase):
 
     def test_auto_caption_locks_the_prompt_it_reads_but_not_the_rules(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe the scene.")
+            write_sysprompt(root, "# Describe the scene.")
             self.run_job(root, "auto_caption", status="queued")
 
-            refused = _save(root, SYSPROMPT_FILENAME, "Describe the person.")
+            refused = _save(root, SYSPROMPT_FILENAME, "# Describe the person.")
             self.assertEqual(refused.status_code, 409, refused.text)
             self.assertIn("Auto-caption", refused.json()["detail"])
-            self.assertEqual((root / SYSPROMPT_FILENAME).read_text(), "Describe the scene.")
+            self.assertEqual((root / SYSPROMPT_FILENAME).read_text(), "# Describe the scene.")
 
             self.assertEqual(
                 _save(root, CAPTION_RULES_FILENAME, "repeated_phrases: 4").status_code, 200
@@ -210,11 +288,11 @@ class InstructionsLockedByJobTests(unittest.TestCase):
     def test_a_subfolder_with_its_own_file_leaves_the_parent_editable(self) -> None:
         with TempMediaFolder() as root:
             child = _nested(root)
-            write_sysprompt(child, "Describe the person.")
+            write_sysprompt(child, "# Describe the person.")
             self.run_job(child, "auto_caption")
 
             self.assertEqual(
-                _save(root, SYSPROMPT_FILENAME, "Describe the scene.").status_code, 200
+                _save(root, SYSPROMPT_FILENAME, "# Describe the scene.").status_code, 200
             )
             self.assertIsNone(_instructions(root)["sysprompt"]["locked_by_job_id"])
 
@@ -225,7 +303,9 @@ class InstructionsLockedByJobTests(unittest.TestCase):
             self.run_job(root / "a", "auto_caption")
             self.run_job(root, "check_caption_rules", status="completed")
 
-            self.assertEqual(_save(root / "b", SYSPROMPT_FILENAME, "Describe it.").status_code, 200)
+            self.assertEqual(
+                _save(root / "b", SYSPROMPT_FILENAME, "# Describe it.").status_code, 200
+            )
             self.assertEqual(
                 _save(root, CAPTION_RULES_FILENAME, "repeated_phrases: 4").status_code, 200
             )

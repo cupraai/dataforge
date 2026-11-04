@@ -16,6 +16,7 @@ import type {
 } from "@/shared/types";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
 import { appSettings, emptyFolder, HOME_SYSPROMPT, homeFolder, vacationFolder } from "./fixtures";
+import { instructionFile } from "./instructionFixtures";
 
 // The fixture folder's tests are written in name order; the server's default is newest first.
 const FIXTURE_SORT = "name-asc";
@@ -155,14 +156,18 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       parent = parentFolderPath(parent);
       levels += 1;
     }
-    return {
-      text: text ?? "",
-      has_file: text !== undefined,
-      parent_folder: parent,
-      parent_relative_path: parent === null ? null : `${"..\\".repeat(levels)}${filename}`,
-      parent_text: parent === null ? "" : (files.get(parent) ?? ""),
-      locked_by_job_id: null,
-    };
+    return instructionFile(
+      {
+        text: text ?? "",
+        has_file: text !== undefined,
+        parent_folder: parent,
+        parent_relative_path: parent === null ? null : `${"..\\".repeat(levels)}${filename}`,
+        parent_text: parent === null ? "" : (files.get(parent) ?? ""),
+        locked_by_job_id: null,
+      },
+      filename,
+      folderPath,
+    );
   };
 
   const saveInstructionFile = (kind: InstructionKind, url: URL, init?: RequestInit) => {

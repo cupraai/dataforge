@@ -1,3 +1,4 @@
+import { instructionFile } from "@/test/instructionFixtures";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,20 +23,13 @@ vi.mock("@/shared/api/folderInstructions", async (importOriginal) => ({
   fetchFolderInstructions: (...args: unknown[]) => fetchFolderInstructions(...args),
 }));
 
-const NO_FILE: InstructionFileResponse = {
-  text: "",
-  has_file: false,
-  parent_folder: null,
-  parent_relative_path: null,
-  parent_text: "",
-  locked_by_job_id: null,
-};
+const NO_FILE = instructionFile();
 
 function instructionsResponse(
   sysprompt: Partial<InstructionFileResponse>,
 ): FolderInstructionsResponse {
   return {
-    sysprompt: { ...NO_FILE, ...sysprompt },
+    sysprompt: instructionFile(sysprompt),
     caption_rules: NO_FILE,
     caption_rules_template: "",
   };
@@ -174,6 +168,19 @@ describe("AutoCaptionDialog saved settings", () => {
 });
 
 describe("AutoCaptionDialog system prompt source", () => {
+  it.each(["invalid", "empty", "unreadable"] as const)(
+    "cannot start with an %s prompt",
+    async (status) => {
+      const prompt = instructionFile({ has_file: true, text: "Plain text." });
+      prompt.state = { ...prompt.state, status, message: "The prompt cannot be used." };
+      fetchFolderInstructions.mockResolvedValue(instructionsResponse(prompt));
+      const onConfirm = renderDialog();
+      expect(await screen.findByRole("alert")).toHaveTextContent("The prompt cannot be used.");
+      expect(screen.getByRole("button", { name: "Start auto-caption" })).toBeDisabled();
+      expect(onConfirm).not.toHaveBeenCalled();
+    },
+  );
+
   it("names the folder's own system prompt at the bottom", async () => {
     renderDialog();
 
@@ -194,7 +201,7 @@ describe("AutoCaptionDialog system prompt source", () => {
 
     expect(await within(footer()).findByText("../.sysprompt")).toHaveAttribute(
       "title",
-      "C:/datasets",
+      "C:/datasets\\.sysprompt",
     );
   });
 
@@ -207,15 +214,13 @@ describe("AutoCaptionDialog system prompt source", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  it("still starts when the system prompt cannot be read", async () => {
-    const user = userEvent.setup();
+  it("cannot start when the system prompt cannot be read", async () => {
     fetchFolderInstructions.mockRejectedValue(new Error("Failed to read the file"));
     const onConfirm = renderDialog();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to read the file");
     expect(footer().querySelector(".instruction-file-source")).toBeNull();
-    await confirm(user);
-
-    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Start auto-caption" })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });

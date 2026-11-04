@@ -70,16 +70,23 @@ Type two characters or press `Ctrl+Space` for word completions from the folder's
 
 ### Folder instructions
 
-Choose **Create instructions** or **Edit instructions** above the gallery. There are two tabs:
+Choose **Create instructions** or **Edit instructions** in the folder sidebar. There are two tabs:
 
 | Tab | File | Used by |
 | --- | --- | --- |
 | **System prompt** | `.sysprompt` | Auto-caption, which needs one in this folder or a parent. It sets voice, required details, or format |
 | **Caption rules** | `.captionrules` | **Lint captions**. **Use template** gives a starting point |
 
-Each file applies to subfolders that have no file of their own. The nearest one wins whole; the two are never merged, and each inherits on its own. The editor marks inherited instructions, and **Copy from parent** makes a local copy.
+System prompts must be non-empty Markdown beginning with a `#` heading, such as
+`# Caption instructions`. Deeper headings such as `## Details` are allowed after the opening
+heading. Standard Markdown is accepted otherwise. A prompt without an opening `#` heading is marked
+invalid and cannot be used by Auto-caption until it is corrected.
+
+Each file applies to subfolders that have no file of their own. The nearest one wins whole; the two are never merged, and each inherits on its own. The dialog shows the current folder, the active file's source, and whether it is local, inherited, or missing. Empty, invalid, and unreadable files are identified separately. Inherited content opens read-only; **Customize for this folder** copies it into a local draft without saving it. Missing instructions offer **Create instructions**, an example, and a template for caption rules.
 
 **Save** writes the changed tabs to the current folder; **Reset** discards the open tab's changes. Tabs do not autosave, and closing with unsaved changes asks first. Saving a tab empty removes the local file so inheritance resumes. An empty file made outside the app still blocks inheritance, and invalid inherited rules are reported, not skipped.
+
+**Use inherited instructions** previews the parent's file and removes the local override when you save. **Reset** keeps the local file instead. An unreadable file offers **Retry**; replacing its contents requires choosing **Replace unreadable file** first. The gallery's instruction markers and job dialogs use the same source and validity information.
 
 ### Caption issues
 

@@ -34,6 +34,8 @@ import { StatsButton } from "./StatsButton";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { ToolbarFilterMenu, type RangeControls } from "./ToolbarFilterMenu";
 import { ToolbarSortMenu } from "./ToolbarSortMenu";
+import type { FolderInstructionsResponse } from "@/shared/types";
+import { instructionFileSummary } from "@/shared/lib/instructionFileState";
 
 interface ToolbarProps {
   /** Folder actions placed between the stats and the view controls. */
@@ -42,8 +44,7 @@ interface ToolbarProps {
   fileCount: number;
   captionedCount: number;
   issueCount?: number;
-  hasSysprompt?: boolean;
-  hasCaptionRules?: boolean;
+  instructions?: FolderInstructionsResponse | null;
   hasCaptionBackup?: boolean;
   statsLoading?: boolean;
   searchQuery: string;
@@ -227,10 +228,18 @@ function StatValue({ loading, value }: { loading?: boolean; value: number }) {
   return <strong>{value}</strong>;
 }
 
-function FolderMarker({ icon, label }: { icon: AppIcon; label: string }) {
+function FolderMarker({
+  icon,
+  label,
+  warning = false,
+}: {
+  icon: AppIcon;
+  label: string;
+  warning?: boolean;
+}) {
   return (
     <Tooltip content={label}>
-      <span className="stat" aria-label={label}>
+      <span className={classNames("stat", warning && "stat--warning")} aria-label={label}>
         <Icon icon={icon} className="stat__icon" />
       </span>
     </Tooltip>
@@ -243,8 +252,7 @@ export function Toolbar({
   fileCount,
   captionedCount,
   issueCount = 0,
-  hasSysprompt = false,
-  hasCaptionRules = false,
+  instructions,
   hasCaptionBackup = false,
   statsLoading = false,
   searchQuery,
@@ -283,6 +291,10 @@ export function Toolbar({
     active ? "click to clear the filter" : `click to show only ${only}`;
   const toolbarRef = useRef<HTMLDivElement>(null);
   const compact = useToolbarCompactMode(toolbarRef);
+  const promptState = instructions?.sysprompt.state;
+  const rulesState = instructions?.caption_rules.state;
+  const hasPrompt = promptState && promptState.origin !== "missing";
+  const hasRules = rulesState && rulesState.origin !== "missing";
   return (
     <div ref={toolbarRef} className={classNames("toolbar", compact && "toolbar--compact")}>
       <span className="toolbar__measure" aria-hidden="true" />
@@ -341,13 +353,21 @@ export function Toolbar({
             </button>
           </Tooltip>
         )}
-        {(hasSysprompt || hasCaptionRules || hasCaptionBackup) && (
+        {(hasPrompt || hasRules || hasCaptionBackup) && (
           <span className="toolbar__markers">
-            {hasSysprompt && (
-              <FolderMarker icon={iconFileText} label="This folder has its own system prompt" />
+            {hasPrompt && (
+              <FolderMarker
+                icon={iconFileText}
+                warning={promptState.status !== "ready"}
+                label={`System prompt: ${instructionFileSummary(promptState)}`}
+              />
             )}
-            {hasCaptionRules && (
-              <FolderMarker icon={iconFileBraces} label="This folder has its own caption rules" />
+            {hasRules && (
+              <FolderMarker
+                icon={iconFileBraces}
+                warning={rulesState.status !== "ready"}
+                label={`Caption rules: ${instructionFileSummary(rulesState)}`}
+              />
             )}
             {hasCaptionBackup && (
               <FolderMarker icon={iconArchive} label="This folder has backed up captions" />

@@ -8,16 +8,18 @@ import type { FolderInstructionsResponse } from "@/shared/types";
 import { homeFolder } from "@/test/fixtures";
 import { queryWrapper } from "@/test/queryClient";
 import { useFolderInstructions } from "./useFolderInstructions";
+import { instructionFile } from "@/test/instructionFixtures";
 
 function instructions(sysprompt: string): FolderInstructionsResponse {
-  const file = (text: string) => ({
-    text,
-    has_file: false,
-    parent_folder: "C:\\",
-    parent_relative_path: "..",
-    parent_text: text,
-    locked_by_job_id: null,
-  });
+  const file = (text: string) =>
+    instructionFile({
+      text,
+      has_file: false,
+      parent_folder: "C:\\",
+      parent_relative_path: "..",
+      parent_text: text,
+      locked_by_job_id: null,
+    });
   return { sysprompt: file(sysprompt), caption_rules: file(""), caption_rules_template: "" };
 }
 

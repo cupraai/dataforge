@@ -13,7 +13,8 @@ import type {
   SortOption,
 } from "@/features/gallery/lib/query";
 import type { GalleryRanges } from "@/features/gallery/lib/query";
-import type { GalleryItem } from "@/shared/types";
+import type { GalleryItem, FolderInstructionsResponse } from "@/shared/types";
+import { instructionFile } from "@/test/instructionFixtures";
 import { Toolbar } from "./Toolbar";
 
 vi.mock("@/features/jobs/components/JobsButton", () => ({
@@ -29,8 +30,7 @@ const defaultProps = {
   fileCount: 3,
   captionedCount: 2,
   issueCount: 0,
-  hasSysprompt: false,
-  hasCaptionRules: false,
+  instructions: undefined as FolderInstructionsResponse | undefined,
   hasCaptionBackup: false,
   searchQuery: "",
   searchRegex: false,
@@ -491,23 +491,48 @@ describe("Toolbar", () => {
   });
 
   it("marks the stats when the open folder has its own system prompt", () => {
-    renderToolbar({ hasSysprompt: true });
+    renderToolbar({
+      instructions: {
+        sysprompt: instructionFile({ has_file: true, text: "Describe." }),
+        caption_rules: instructionFile(),
+        caption_rules_template: "",
+      },
+    });
 
-    const marker = screen.getByLabelText("This folder has its own system prompt");
+    const marker = screen.getByLabelText("System prompt: Local: .sysprompt");
     expect(marker.closest(".toolbar__markers")).not.toBeNull();
     expect(screen.queryByLabelText(/caption rules/)).not.toBeInTheDocument();
   });
 
   it("marks the stats when the open folder has its own caption rules", () => {
-    renderToolbar({ hasCaptionRules: true });
+    renderToolbar({
+      instructions: {
+        sysprompt: instructionFile(),
+        caption_rules: instructionFile(
+          { has_file: true, text: "trigger: example" },
+          ".captionrules",
+        ),
+        caption_rules_template: "",
+      },
+    });
 
-    const marker = screen.getByLabelText("This folder has its own caption rules");
+    const marker = screen.getByLabelText("Caption rules: Local: .captionrules");
     expect(marker.closest(".toolbar__markers")).not.toBeNull();
     expect(screen.queryByLabelText(/system prompt/)).not.toBeInTheDocument();
   });
 
   it("groups every folder marker behind one divider, instructions first", () => {
-    renderToolbar({ hasSysprompt: true, hasCaptionRules: true, hasCaptionBackup: true });
+    renderToolbar({
+      instructions: {
+        sysprompt: instructionFile({ has_file: true, text: "Describe." }),
+        caption_rules: instructionFile(
+          { has_file: true, text: "trigger: example" },
+          ".captionrules",
+        ),
+        caption_rules_template: "",
+      },
+      hasCaptionBackup: true,
+    });
 
     const groups = document.querySelectorAll(".toolbar__markers");
     expect(groups).toHaveLength(1);
@@ -516,10 +541,27 @@ describe("Toolbar", () => {
         marker.getAttribute("aria-label"),
       ),
     ).toEqual([
-      "This folder has its own system prompt",
-      "This folder has its own caption rules",
+      "System prompt: Local: .sysprompt",
+      "Caption rules: Local: .captionrules",
       "This folder has backed up captions",
     ]);
+  });
+
+  it("marks inherited sources and highlights invalid instructions", () => {
+    const prompt = instructionFile({
+      parent_folder: "C:\\datasets",
+      parent_relative_path: "..\\.sysprompt",
+      parent_text: "# Instructions",
+    });
+    const rules = instructionFile({ has_file: true, text: "unknown: value" }, ".captionrules");
+    rules.state = { ...rules.state, status: "invalid", message: "unknown setting" };
+    renderToolbar({
+      instructions: { sysprompt: prompt, caption_rules: rules, caption_rules_template: "" },
+    });
+    expect(screen.getByLabelText("System prompt: Inherited: ..\\.sysprompt")).toBeInTheDocument();
+    expect(screen.getByLabelText("Caption rules: Local, Invalid: .captionrules")).toHaveClass(
+      "stat--warning",
+    );
   });
 
   it("leaves the stats unmarked without instructions or a backup", () => {

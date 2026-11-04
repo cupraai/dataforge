@@ -221,7 +221,7 @@ class FolderContentsEndpointTests(unittest.TestCase):
 
     def test_reports_the_folder_own_sysprompt_and_whether_one_applies(self) -> None:
         with TempMediaFolder() as root:
-            write_sysprompt(root, "Describe scenes in detail.")
+            write_sysprompt(root, "# Describe scenes in detail.")
             child = root / "portraits"
             child.mkdir()
 

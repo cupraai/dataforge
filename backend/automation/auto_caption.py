@@ -85,7 +85,8 @@ AUDIO_USER_SENTENCE = (
 
 
 SYSPROMPT_REQUIRED = (
-    f"Auto-captioning needs a {SYSPROMPT_FILENAME} with instructions in this folder or one above it"
+    f"Auto-captioning needs a valid Markdown {SYSPROMPT_FILENAME} starting with a # heading "
+    "in this folder or one above it"
 )
 
 
