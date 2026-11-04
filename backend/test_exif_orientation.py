@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image
+from PIL import Image, PngImagePlugin
 
 from automation.vision import load_image_rgb
 from media_dimensions import media_dimensions
@@ -62,6 +62,25 @@ class ExifOrientationReaderTests(unittest.TestCase):
             self.assertEqual(
                 media_dimensions(media, "image", stat.st_mtime_ns, stat.st_size), STORED
             )
+
+    def test_png_listing_dimensions_are_read_without_decoding_pixels(self) -> None:
+        exif = Image.Exif()
+        exif[0x0112] = 6
+        with TempMediaFolder() as root:
+            rotated = root / "rotated.png"
+            Image.new("RGB", STORED).save(rotated, exif=exif)
+            plain = root / "plain.png"
+            Image.new("RGB", STORED).save(plain)
+
+            with patch.object(
+                PngImagePlugin.PngImageFile, "load", side_effect=AssertionError("decoded")
+            ):
+                sizes = [
+                    media_dimensions(path, "image", path.stat().st_mtime_ns, path.stat().st_size)
+                    for path in (rotated, plain)
+                ]
+
+        self.assertEqual(sizes, [DISPLAYED, STORED])
 
     def test_the_thumbnail_is_the_displayed_frame(self) -> None:
         with TempMediaFolder() as root, tempfile.TemporaryDirectory() as cache:

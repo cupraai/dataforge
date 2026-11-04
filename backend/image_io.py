@@ -29,7 +29,10 @@ def displayed_image(image: Image.Image) -> Image.Image:
 def displayed_size(image: Image.Image) -> tuple[int, int]:
     """:func:`displayed_image`'s size, read from the header without decoding the pixels."""
     width, height = image.size
-    if image.getexif().get(_ORIENTATION_TAG) in QUARTER_TURN_ORIENTATIONS:
+    # PngImageFile.getexif decodes every pixel to find an eXIf chunk after IDAT, which the PNG
+    # spec forbids; the base reader uses what Image.open already parsed from the header.
+    exif = Image.Image.getexif(image) if image.format == "PNG" else image.getexif()
+    if exif.get(_ORIENTATION_TAG) in QUARTER_TURN_ORIENTATIONS:
         return height, width
     return width, height
 

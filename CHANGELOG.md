@@ -8,6 +8,11 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Changed
+
+- Folders with many PNG files, such as a ComfyUI output folder, open several times faster the
+  first time after a restart or when new images arrive.
+
 ## 0.11.0 - 2026-11-04
 
 ### Added
