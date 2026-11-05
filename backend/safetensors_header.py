@@ -18,16 +18,29 @@ import struct
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Literal
 
 from caption_cache import cached_by_stat
 from constants import SAFETENSORS_MAX_HEADER_BYTES
+from schemas import AdapterKind
 
 __all__ = ["ModelInfo", "SafetensorsHeaderError", "model_info", "read_model_info"]
 
 _NAMESPACE = "safetensors-header"
 _METADATA_KEY = "__metadata__"
-_LORA_DOWN_SUFFIXES = (".lora_down.weight", ".lora_A.weight")
+# Adapter layouts, told apart by tensor names: ``{suffix: (adapter, measure, shape axis)}``.
+# LoRA's down projection is ``(rank, in)``. LyCORIS LoKr's small Kronecker half ``lokr_w1`` (or its
+# low-rank ``lokr_w1_a``) leads with the factor, ``(factor, factor)`` when it divides the layer; the
+# large half is either a full ``lokr_w2`` or a low-rank ``lokr_w2_a`` of ``(out, rank)``. LoHa's
+# ``hada_w1_a`` is ``(out, rank)`` too.
+_ADAPTER_TENSORS: dict[str, tuple[AdapterKind, Literal["rank", "factor"], int]] = {
+    ".lora_down.weight": ("lora", "rank", 0),
+    ".lora_A.weight": ("lora", "rank", 0),
+    ".lokr_w1": ("lokr", "factor", 0),
+    ".lokr_w1_a": ("lokr", "factor", 0),
+    ".lokr_w2_a": ("lokr", "rank", 1),
+    ".hada_w1_a": ("loha", "rank", 1),
+}
 _QUANT_RECORD_SUFFIX = ".comfy_quant"
 # A record is a short JSON object; anything larger is not one and is never read.
 _MAX_QUANT_RECORD_BYTES = 4096
@@ -63,7 +76,9 @@ class ModelInfo:
     precision: str | None = None
     architecture: str | None = None
     title: str | None = None
+    adapter: AdapterKind | None = None
     rank: int | None = None
+    factor: int | None = None
     alpha: float | None = None
     step: int | None = None
     epoch: int | None = None
@@ -232,6 +247,16 @@ def _parameters(tensor: object) -> int | None:
     return math.prod(int(n) for n in shape)
 
 
+def _adapter_layout(name: str) -> tuple[AdapterKind, Literal["rank", "factor"], int] | None:
+    return next(
+        (layout for suffix, layout in _ADAPTER_TENSORS.items() if name.endswith(suffix)), None
+    )
+
+
+def _most_common(counts: Counter[int]) -> int | None:
+    return counts.most_common(1)[0][0] if counts else None
+
+
 def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
     raw_metadata = header.get(_METADATA_KEY)
     metadata = (
@@ -242,7 +267,9 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
 
     # Weighted by parameters: a quantized layer keeps a few F32 scales beside each large weight.
     parameters_by_dtype: Counter[str] = Counter()
+    adapters: Counter[AdapterKind] = Counter()
     ranks: Counter[int] = Counter()
+    factors: Counter[int] = Counter()
     tensor_count = 0
     parameter_count = 0
     for name, tensor in header.items():
@@ -257,8 +284,11 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
         if isinstance(dtype, str):
             parameters_by_dtype[dtype] += parameters
         shape = tensor["shape"]
-        if shape and name.endswith(_LORA_DOWN_SUFFIXES):
-            ranks[int(shape[0])] += 1
+        layout = _adapter_layout(name)
+        if layout is not None and len(shape) >= 2:
+            adapter, measure, axis = layout
+            adapters[adapter] += 1
+            (ranks if measure == "rank" else factors)[int(shape[axis])] += 1
 
     training = _json_value(metadata.get("training_info"))
     if not isinstance(training, dict):
@@ -274,7 +304,9 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
         title=_text(metadata.get("modelspec.title"))
         or _text(metadata.get("name"))
         or _text(metadata.get("ss_output_name")),
-        rank=ranks.most_common(1)[0][0] if ranks else None,
+        adapter=adapters.most_common(1)[0][0] if adapters else None,
+        rank=_most_common(ranks),
+        factor=_most_common(factors),
         alpha=_number(metadata.get("ss_network_alpha")),
         step=_whole_number(training.get("step")) or _whole_number(metadata.get("ss_steps")),
         epoch=_whole_number(training.get("epoch")) or _whole_number(metadata.get("ss_epoch")),

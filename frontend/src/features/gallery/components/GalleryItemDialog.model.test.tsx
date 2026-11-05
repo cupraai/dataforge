@@ -48,6 +48,7 @@ const INFO: ModelInfoResponse = {
   precision: "BF16",
   architecture: "qwen_image",
   title: "subject_lora",
+  adapter: "lora",
   rank: 16,
   alpha: null,
   step: 1500,

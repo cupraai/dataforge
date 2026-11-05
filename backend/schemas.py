@@ -40,6 +40,9 @@ type CaptionReadError = Literal["encoding", "access"]
 #: ``model`` is a weights file: listed and inspected, never captioned or shown as media.
 type MediaType = Literal["image", "video", "gif", "audio", "model"]
 
+#: How a model file's adapter is factored: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard).
+type AdapterKind = Literal["lora", "lokr", "loha"]
+
 type WatermarkSizeName = Literal["small", "medium", "large"]
 #: Shared by the text and the PNG mark.
 type WatermarkOpacity = Literal[25, 50, 75, 100]
@@ -175,8 +178,12 @@ class ModelInfoResponse(BaseModel):
     precision: str | None = None
     architecture: str | None = None
     title: str | None = None
-    #: The most common LoRA down-projection width; ``None`` for weights that are not a LoRA.
+    #: ``None`` for full weights, which are not an adapter.
+    adapter: AdapterKind | None = None
+    #: The most common low-rank width; ``None`` for full weights and a LoKr without a low-rank half.
     rank: int | None = None
+    #: The most common LoKr Kronecker factor.
+    factor: int | None = None
     alpha: float | None = None
     step: int | None = None
     epoch: int | None = None

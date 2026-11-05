@@ -35,7 +35,7 @@ class ModelInfoTests(unittest.TestCase):
         self.assertEqual((info.step, info.epoch), (1500, 3))
         self.assertEqual(info.trigger_words, ["ohwx"])
         self.assertEqual(info.software, "ai-toolkit 0.7.0")
-        self.assertEqual(info.rank, 16)
+        self.assertEqual((info.adapter, info.rank, info.factor), ("lora", 16, None))
         self.assertEqual(info.tensor_count, 5)
         self.assertEqual(info.parameter_count, 4 * 16 * 64 + 8 * 64)
         self.assertEqual(info.precision, "BF16")
@@ -59,10 +59,45 @@ class ModelInfoTests(unittest.TestCase):
         self.assertEqual(info.trigger_words, ["painting", "outdoors"])
         self.assertEqual(info.rank, 32)
 
+    def test_reads_lokr_factor_and_optional_rank(self) -> None:
+        full = {
+            "blocks.0.attn.alpha": ("BF16", []),
+            "blocks.0.attn.lokr_w1": ("BF16", [8, 8]),
+            "blocks.0.attn.lokr_w2": ("BF16", [96, 96]),
+            "blocks.1.attn.lokr_w1": ("BF16", [8, 8]),
+            "blocks.1.attn.lokr_w2": ("BF16", [24, 96]),
+            "blocks.1.mlp.lokr_w1": ("BF16", [4, 4]),
+            "blocks.1.mlp.lokr_w2": ("BF16", [96, 96]),
+        }
+        low_rank = {
+            "blocks.0.attn.lokr_w1": ("BF16", [4, 4]),
+            "blocks.0.attn.lokr_w2_a": ("BF16", [96, 16]),
+            "blocks.0.attn.lokr_w2_b": ("BF16", [16, 96]),
+        }
+        with TempMediaFolder() as root:
+            full_info = read_model_info(write_safetensors(root, "full.safetensors", full))
+            low_rank_info = read_model_info(write_safetensors(root, "low.safetensors", low_rank))
+
+        self.assertEqual((full_info.adapter, full_info.factor, full_info.rank), ("lokr", 8, None))
+        self.assertEqual(
+            (low_rank_info.adapter, low_rank_info.factor, low_rank_info.rank), ("lokr", 4, 16)
+        )
+
+    def test_reads_loha_rank(self) -> None:
+        tensors = {
+            "blocks.0.attn.hada_w1_a": ("BF16", [64, 8]),
+            "blocks.0.attn.hada_w1_b": ("BF16", [8, 64]),
+        }
+        with TempMediaFolder() as root:
+            info = read_model_info(write_safetensors(root, tensors=tensors))
+
+        self.assertEqual((info.adapter, info.rank, info.factor), ("loha", 8, None))
+
     def test_full_weights_have_no_rank_or_metadata(self) -> None:
         with TempMediaFolder() as root:
             info = read_model_info(write_safetensors(root))
 
+        self.assertIsNone(info.adapter)
         self.assertIsNone(info.rank)
         self.assertEqual(info.metadata, {})
         self.assertEqual(info.trigger_words, [])

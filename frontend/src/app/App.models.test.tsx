@@ -31,6 +31,7 @@ function info(path: string): ModelInfoResponse {
     tensor_count: 2,
     parameter_count: 1024,
     precision: "BF16",
+    adapter: "lora",
     rank: 16,
     trigger_words: [],
   };

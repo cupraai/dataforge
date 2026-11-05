@@ -33,11 +33,12 @@ describe("formatParameterCount", () => {
 
 describe("modelBadges", () => {
   it("names the kind, the architecture and the main precision", () => {
-    expect(modelBadges(info({ rank: 16, architecture: "qwen_image" }))).toEqual([
+    expect(modelBadges(info({ adapter: "lora", rank: 16, architecture: "qwen_image" }))).toEqual([
       "LoRA",
       "qwen_image",
       "BF16",
     ]);
+    expect(modelBadges(info({ adapter: "lokr", factor: 8 }))).toEqual(["LoKr", "BF16"]);
     expect(modelBadges(info({ precision: "INT8 ConvRot" }))).toEqual(["Weights", "INT8 ConvRot"]);
     expect(modelBadges(info({ precision: null }))).toEqual(["Weights"]);
   });
@@ -60,6 +61,15 @@ describe("modelFacts", () => {
       ["Trained with", "ai-toolkit"],
     ]);
     expect(facts[3].title).toBe("18,874,368 parameters");
+  });
+
+  it("shows a LoKr's factor beside its rank", () => {
+    const facts = modelFacts(info({ adapter: "lokr", factor: 8, rank: 16 }));
+
+    expect(facts.map((fact) => [fact.label, fact.value]).slice(0, 2)).toEqual([
+      ["Rank", "16"],
+      ["Factor", "8"],
+    ]);
   });
 });
 

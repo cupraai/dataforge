@@ -31,9 +31,13 @@
 }
 
 .gallery-list-row[data-inspected] {
-  box-shadow:
-    inset 2px 2px 0 var(--text),
-    inset -2px -2px 0 var(--text);
+  // The first-row form matches the row-0 border rule, which would otherwise outrank it.
+  &,
+  .gallery-row[data-row-index="0"] & {
+    box-shadow:
+      inset 2px 2px 0 var(--text),
+      inset -2px -2px 0 var(--text);
+  }
 }
 
 .card[data-inspected] {

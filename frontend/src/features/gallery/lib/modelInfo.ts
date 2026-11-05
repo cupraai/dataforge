@@ -1,5 +1,5 @@
 import { formatCount } from "@/shared/lib/format";
-import type { ModelInfoResponse } from "@/shared/types";
+import type { AdapterKind, ModelInfoResponse } from "@/shared/types";
 
 const PARAMETER_UNITS = [
   { size: 1e9, suffix: "B" },
@@ -18,9 +18,11 @@ export function formatParameterCount(count: number): string {
   return String(count);
 }
 
+const ADAPTER_LABELS: Record<AdapterKind, string> = { lora: "LoRA", lokr: "LoKr", loha: "LoHa" };
+
 /** Short badges for the header: what the file is, what it is for, and how it is stored. */
 export function modelBadges(info: ModelInfoResponse): string[] {
-  const badges = [info.rank != null ? "LoRA" : "Weights"];
+  const badges = [info.adapter ? ADAPTER_LABELS[info.adapter] : "Weights"];
   if (info.architecture) badges.push(info.architecture);
   if (info.precision) badges.push(info.precision);
   return badges;
@@ -38,6 +40,7 @@ export function modelFacts(info: ModelInfoResponse): ModelFact[] {
     info.step != null ? { label: "Step", value: formatCount(info.step) } : null,
     info.epoch != null ? { label: "Epoch", value: formatCount(info.epoch) } : null,
     info.rank != null ? { label: "Rank", value: String(info.rank) } : null,
+    info.factor != null ? { label: "Factor", value: String(info.factor) } : null,
     info.alpha != null ? { label: "Alpha", value: String(info.alpha) } : null,
     {
       label: "Parameters",

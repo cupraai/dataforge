@@ -287,7 +287,7 @@ Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's 
 
 ### Model files
 
-`.safetensors` model files, such as LoRAs from a training run, are listed in a **Models** section above the media instead. The section follows the toolbar's search, by name, and its sort; the filters apply to media only. Opening one shows what its header records: architecture, LoRA rank and alpha, training step and epoch, trigger words, parameter count, precision (including ComfyUI quantizations such as FP8 scaled, INT8 ConvRot and NVFP4), and every metadata key. The weights are never loaded. Models take no caption and no job, can be copied, moved, renamed, and deleted, and cannot be dropped into a folder to import. An image with the same stem, such as `<stem>.preview.png` or `<stem>.png`, is shown as the model's preview.
+`.safetensors` model files, such as LoRAs from a training run, are listed in a **Models** section above the media instead. The section follows the toolbar's search, by name, and its sort; the filters apply to media only. Opening one shows what its header records: architecture, adapter type (LoRA, LoKr or LoHa) with its rank, LoKr factor and alpha, training step and epoch, trigger words, parameter count, precision (including ComfyUI quantizations such as FP8 scaled, INT8 ConvRot and NVFP4), and every metadata key. The weights are never loaded. Models take no caption and no job, can be copied, moved, renamed, and deleted, and cannot be dropped into a folder to import. An image with the same stem, such as `<stem>.preview.png` or `<stem>.png`, is shown as the model's preview.
 
 ## Files DataForge creates
 
