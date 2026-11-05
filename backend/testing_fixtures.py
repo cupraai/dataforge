@@ -481,6 +481,45 @@ def write_mp3(root: Path, name: str = "tone.mp3", *, frames: int = 100) -> Path:
     return media
 
 
+SafetensorsTensor = tuple[str, list[int]] | tuple[str, list[int], bytes]
+
+
+def safetensors_bytes(
+    tensors: dict[str, SafetensorsTensor], metadata: dict[str, object] | None = None
+) -> bytes:
+    """A valid safetensors file: ``{name: (dtype, shape[, data])}``, zeroed unless data is given."""
+    widths = {"F32": 4, "F16": 2, "BF16": 2, "I64": 8, "U8": 1, "I8": 1, "F8_E4M3": 1, "F8_E5M2": 1}
+    header: dict[str, object] = {}
+    data = bytearray()
+    for name, (dtype, shape, *payload) in tensors.items():
+        count = 1
+        for dimension in shape:
+            count *= dimension
+        content = payload[0] if payload else bytes(count * widths[dtype])
+        assert len(content) == count * widths[dtype], name
+        header[name] = {
+            "dtype": dtype,
+            "shape": shape,
+            "data_offsets": [len(data), len(data) + len(content)],
+        }
+        data += content
+    if metadata is not None:
+        header["__metadata__"] = metadata
+    encoded = json.dumps(header).encode()
+    return struct.pack("<Q", len(encoded)) + encoded + bytes(data)
+
+
+def write_safetensors(
+    root: Path,
+    name: str = "adapter.safetensors",
+    tensors: dict[str, SafetensorsTensor] | None = None,
+    metadata: dict[str, object] | None = None,
+) -> Path:
+    model = root / name
+    model.write_bytes(safetensors_bytes(tensors or {"weight": ("F32", [2, 2])}, metadata))
+    return model
+
+
 def write_txt_caption(media: Path, text: str) -> Path:
     caption = media.with_suffix(".txt")
     caption.write_text(text, encoding="utf-8")

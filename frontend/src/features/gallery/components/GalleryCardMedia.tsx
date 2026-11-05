@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
 import { useGalleryCardMedia } from "@/features/gallery/hooks/useGalleryCardMedia";
-import { iconAudioLines, iconFileImage, iconImage, iconVideo, type AppIcon } from "@/shared/icons";
+import {
+  iconAudioLines,
+  iconFileImage,
+  iconImage,
+  iconModel,
+  iconVideo,
+  type AppIcon,
+} from "@/shared/icons";
 import type { GalleryItem } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
@@ -9,13 +16,15 @@ import { AudioWaveform } from "./AudioWaveform";
 
 const PREVIEW_PLAYBACK_RATE = 2;
 
-type MediaItem = Pick<GalleryItem, "path" | "modified_at" | "size" | "media_type" | "name">;
+type MediaItem = Pick<GalleryItem, "path" | "modified_at" | "size" | "media_type" | "name"> &
+  Partial<Pick<GalleryItem, "preview">>;
 
 const PLACEHOLDER_ICONS: Record<GalleryItem["media_type"], AppIcon> = {
   image: iconImage,
   gif: iconFileImage,
   video: iconVideo,
   audio: iconAudioLines,
+  model: iconModel,
 };
 
 interface GalleryCardMediaProps {

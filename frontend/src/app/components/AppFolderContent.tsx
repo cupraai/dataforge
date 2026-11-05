@@ -4,6 +4,7 @@ import { FolderLoadingState } from "@/features/folder/components/FolderLoadingSt
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
 import { Gallery } from "@/features/gallery/components/Gallery";
 import { GalleryDisplayMenu } from "@/features/gallery/components/GalleryDisplayMenu";
+import { ModelGrid } from "@/features/gallery/components/ModelGrid";
 import { GalleryFileDropOverlay } from "@/features/gallery/components/GalleryFileDropOverlay";
 import { GallerySelectionControls } from "@/features/gallery/components/GallerySelectionControls";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
@@ -31,6 +32,9 @@ type AppFolderContentProps = {
   onDeleteFolder?: () => void;
   items: GalleryItem[];
   filteredItems: GalleryItem[];
+  /** Model files, shown in their own section; opening one pages through the others. */
+  models?: GalleryItem[];
+  filteredModels?: GalleryItem[];
   filterEmptyState: FilterEmptyState;
   /** The search and filter summary, shown at the start of the Media header actions. */
   activeFilters?: ReactNode;
@@ -64,6 +68,8 @@ export function AppFolderContent({
   onDeleteFolder,
   items,
   filteredItems,
+  models = [],
+  filteredModels = models,
   filterEmptyState,
   activeFilters,
   onOpenGalleryItem,
@@ -77,7 +83,9 @@ export function AppFolderContent({
   const { galleryCards } = useUiSettings();
   const folderNotFound = error?.kind === "folder-not-found";
   const globalError = error?.kind === "other" ? error : null;
-  const showEmptyFolder = !error && items.length === 0;
+  const showEmptyFolder = !error && items.length === 0 && models.length === 0;
+  // A folder of models alone has nothing for the media section to say.
+  const showMediaSection = items.length > 0 || models.length === 0;
   const showFilterEmptyState = !error && filteredItems.length === 0 && !showEmptyFolder;
   const emptyFolderDescription =
     subfolders.length > 0
@@ -123,6 +131,9 @@ export function AppFolderContent({
                 />
               )}
               {!folderNotFound && (
+                <ModelGrid models={models} shown={filteredModels} onOpen={onOpenGalleryItem} />
+              )}
+              {!folderNotFound && showMediaSection && (
                 <section className="gallery-section" aria-label="Media">
                   <SectionHeader
                     section="gallery"

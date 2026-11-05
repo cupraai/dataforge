@@ -1,7 +1,9 @@
+import { isCaptionable } from "@/features/gallery/lib/itemKind";
 import type { GalleryItem } from "@/shared/types";
 
+/** A model file takes no caption, so the jump never stops on one. */
 export function isUncaptionedItem(item: GalleryItem): boolean {
-  return !item.has_description;
+  return !item.has_description && isCaptionable(item);
 }
 
 /**

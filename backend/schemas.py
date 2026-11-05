@@ -37,7 +37,8 @@ type CaptionStatus = Literal["none", "empty", "text", "unreadable"]
 type CaptionReadError = Literal["encoding", "access"]
 
 #: GIF is its own type so it renders as ``<img>``.
-type MediaType = Literal["image", "video", "gif", "audio"]
+#: ``model`` is a weights file: listed and inspected, never captioned or shown as media.
+type MediaType = Literal["image", "video", "gif", "audio", "model"]
 
 type WatermarkSizeName = Literal["small", "medium", "large"]
 #: Shared by the text and the PNG mark.
@@ -154,6 +155,35 @@ class MediaTag(BaseModel):
     confidence: float
 
 
+class ModelPreview(BaseModel):
+    """A same-stem image that stands in for a model file's thumbnail."""
+
+    path: str
+    modified_at: str
+    size: int
+
+
+class ModelInfoResponse(BaseModel):
+    """What a safetensors header says, read without loading the weights."""
+
+    path: str
+    #: The header's ``__metadata__`` as written; values that are not strings are dropped.
+    metadata: dict[str, str] = Field(default_factory=dict)
+    tensor_count: int
+    parameter_count: int
+    #: How the weights are stored, such as ``BF16``, ``FP8 scaled`` or ``INT8 ConvRot``.
+    precision: str | None = None
+    architecture: str | None = None
+    title: str | None = None
+    #: The most common LoRA down-projection width; ``None`` for weights that are not a LoRA.
+    rank: int | None = None
+    alpha: float | None = None
+    step: int | None = None
+    epoch: int | None = None
+    trigger_words: list[str] = Field(default_factory=list)
+    software: str | None = None
+
+
 class GalleryItem(BaseModel):
     name: str
     path: str
@@ -189,6 +219,8 @@ class GalleryItem(BaseModel):
     has_backup: bool = False
     #: Strongest first, above the confidence setting. Only favorite folders are tagged.
     tags: list[MediaTag] = Field(default_factory=list)
+    #: Models only: the image shown on the model's card.
+    preview: ModelPreview | None = None
 
 
 class DuplicateGroup(BaseModel):

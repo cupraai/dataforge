@@ -1,4 +1,9 @@
-import { AUDIO_EXTENSIONS, GIF_EXTENSION, VIDEO_EXTENSIONS } from "@/shared/constants";
+import {
+  AUDIO_EXTENSIONS,
+  GIF_EXTENSION,
+  MODEL_EXTENSIONS,
+  VIDEO_EXTENSIONS,
+} from "@/shared/constants";
 import type { AppSettingsResponse, FolderResponse, GalleryItem, Job } from "@/shared/types";
 
 export const HOME_PATH = "C:\\Photos";
@@ -11,6 +16,7 @@ export const EMPTY_PATH = `${HOME_PATH}\\Empty`;
 const MEDIA_TYPE_BY_EXTENSION: Record<string, GalleryItem["media_type"]> = {
   ...Object.fromEntries(VIDEO_EXTENSIONS.map((extension) => [extension, "video"])),
   ...Object.fromEntries(AUDIO_EXTENSIONS.map((extension) => [extension, "audio"])),
+  ...Object.fromEntries(MODEL_EXTENSIONS.map((extension) => [extension, "model"])),
   [GIF_EXTENSION]: "gif",
 };
 

@@ -8,6 +8,12 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Added
+
+- Folders list their `.safetensors` model files in a **Models** section. Open one to see its
+  architecture, rank, training step, trigger words and full metadata; models can be copied,
+  moved, renamed and deleted like media, and a same-stem image serves as the card's preview.
+
 ### Changed
 
 - Folder instructions show the active prompt and caption rules, their source and any file

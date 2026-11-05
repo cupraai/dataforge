@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchCaption, saveCaption } from "@/features/gallery/api/captions";
+import { isCaptionable } from "@/features/gallery/lib/itemKind";
 import type { CaptionReadError, CaptionSaveResponse, GalleryItem } from "@/shared/types";
 import { isApiErrorCode } from "@/shared/api/http";
 import { deferNonCriticalWork } from "@/shared/lib/defer";
@@ -150,6 +151,8 @@ export function useGalleryItemCaption({
     staleRevisionsRef.current = null;
     setReplacingUnreadable(false);
     adoptServerCaption(itemPath, item);
+    // A model file takes no caption; the server refuses to read one for it.
+    if (!isCaptionable(item)) return;
 
     const requestId = next();
 

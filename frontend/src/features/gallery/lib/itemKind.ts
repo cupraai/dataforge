@@ -3,6 +3,7 @@ import {
   AUDIO_EXTENSIONS,
   GIF_EXTENSION,
   IMAGE_EDIT_EXTENSIONS,
+  MODEL_EXTENSIONS,
   VIDEO_EDIT_EXTENSIONS,
   VIDEO_EXTENSIONS,
   VIDEO_PROJECT_VIDEO_EXTENSIONS,
@@ -11,6 +12,7 @@ import type { GalleryItem } from "@/shared/types";
 
 const VIDEO_EXTENSION_SET = new Set<string>(VIDEO_EXTENSIONS);
 const AUDIO_EXTENSION_SET = new Set<string>(AUDIO_EXTENSIONS);
+const MODEL_EXTENSION_SET = new Set<string>(MODEL_EXTENSIONS);
 const AUDIO_EDIT_EXTENSION_SET = new Set<string>(AUDIO_EDIT_EXTENSIONS);
 const VIDEO_EDIT_EXTENSION_SET = new Set<string>(VIDEO_EDIT_EXTENSIONS);
 const IMAGE_EDIT_EXTENSION_SET = new Set<string>(IMAGE_EDIT_EXTENSIONS);
@@ -52,6 +54,25 @@ export function isAudio(item: GalleryItem): boolean {
   }
 
   return isAudioName(item.name);
+}
+
+export function isModelName(name: string): boolean {
+  const extension = extensionOfName(name);
+  return extension !== null && MODEL_EXTENSION_SET.has(extension);
+}
+
+/** A weights file: listed apart from media and inspected; never captioned or given to a job. */
+export function isModel(item: Pick<GalleryItem, "media_type" | "name">): boolean {
+  if (item.media_type) {
+    return item.media_type === "model";
+  }
+
+  return isModelName(item.name);
+}
+
+/** Whether the item takes a caption: everything listed but model files. */
+export function isCaptionable(item: Pick<GalleryItem, "media_type" | "name">): boolean {
+  return !isModel(item);
 }
 
 /** The server lists only visual media for jobs; counting audio would overstate every dialog. */
@@ -112,5 +133,6 @@ export function mediaLabelFor(item: GalleryItem): string {
   if (isGif(item)) return "GIF";
   if (isVideo(item)) return "video";
   if (isAudio(item)) return "audio";
+  if (isModel(item)) return "model";
   return "image";
 }

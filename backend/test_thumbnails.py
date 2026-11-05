@@ -22,11 +22,13 @@ from testing_fixtures import (
     write_media,
     write_mp3,
     write_mp4_video,
+    write_safetensors,
     write_wav,
 )
 from thumbnails import (
     PARTIAL_SUFFIX,
     WAVEFORM_ASPECT,
+    ThumbnailUnavailableError,
     _video_thumbnail_commands,
     clear_thumbnail_cache,
     get_or_create_thumbnail,
@@ -147,6 +149,17 @@ class ThumbnailGenerationTests(CacheFolderTestCase):
 
             self.assertTrue(thumbnail.is_file())
             self.assertGreater(thumbnail.stat().st_size, 0)
+
+
+class ModelThumbnailTests(CacheFolderTestCase):
+    def test_a_model_has_no_thumbnail_and_never_reaches_ffmpeg(self) -> None:
+        with TempMediaFolder() as root:
+            model = write_safetensors(root)
+            with patch("thumbnails._render_video_thumbnail") as render:
+                with self.assertRaises(ThumbnailUnavailableError):
+                    get_or_create_thumbnail(model, 200)
+
+            render.assert_not_called()
 
 
 class AudioWaveformThumbnailTests(CacheFolderTestCase):

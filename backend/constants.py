@@ -12,8 +12,22 @@ MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | MOTION_EXTENSIONS
 
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
 
-# Listed, served, captioned by hand and moved around; jobs list MEDIA_EXTENSIONS, so skip audio.
-GALLERY_EXTENSIONS = MEDIA_EXTENSIONS | AUDIO_EXTENSIONS
+# Model weights: listed, inspected and moved around, never captioned. Pickled checkpoints stay
+# out because reading one runs code.
+MODEL_EXTENSIONS = {".safetensors"}
+
+# What a stem caption can belong to; jobs list MEDIA_EXTENSIONS, so audio is captioned by hand.
+CAPTIONED_EXTENSIONS = MEDIA_EXTENSIONS | AUDIO_EXTENSIONS
+
+# Listed, served and moved around.
+GALLERY_EXTENSIONS = CAPTIONED_EXTENSIONS | MODEL_EXTENSIONS
+
+# A same-stem image shown for a model, in the order looked for. `.preview.png` is the convention
+# of ComfyUI model managers; every entry must be a listable image.
+MODEL_PREVIEW_SUFFIXES = (".preview.png", ".png", ".jpg", ".jpeg", ".webp")
+
+# The safetensors library refuses longer headers; so does the header reader.
+SAFETENSORS_MAX_HEADER_BYTES = 100_000_000
 
 # Header/metadata readers only; ffmpeg accepts a wider set.
 ISOBMFF_EXTENSIONS = {".mp4", ".mov", ".m4v"}
@@ -160,12 +174,14 @@ MEDIA_MIME_TYPES = {
     ".wav": "audio/wav",
     ".mp3": "audio/mpeg",
     ".flac": "audio/flac",
+    ".safetensors": "application/octet-stream",
 }
 
 # Only .txt is a caption; leftover Ideogram .json next to media is not.
 CAPTION_SIDECAR_EXTENSIONS = (".txt",)
 SIDECAR_EXTENSIONS = set(CAPTION_SIDECAR_EXTENSIONS)
-IMPORT_EXTENSIONS = GALLERY_EXTENSIONS | SIDECAR_EXTENSIONS
+# Model weights run to many GB, more than one upload request should carry.
+IMPORT_EXTENSIONS = CAPTIONED_EXTENSIONS | SIDECAR_EXTENSIONS
 
 # Two suffixes deep; `Path.stem`/`Path.suffix` both mis-read it.
 ISSUE_SIDECAR_SUFFIX = ".issue.json"
@@ -335,6 +351,7 @@ SHARED_CONSTANTS: dict[str, object] = {
     "VIDEO_EDIT_EXTENSIONS": sorted(VIDEO_EDIT_EXTENSIONS),
     "AUDIO_EXTENSIONS": sorted(AUDIO_EXTENSIONS),
     "AUDIO_EDIT_EXTENSIONS": sorted(AUDIO_EDIT_MUXERS),
+    "MODEL_EXTENSIONS": sorted(MODEL_EXTENSIONS),
     "AUDIO_EQ_BASS_HZ": AUDIO_EQ_BASS_HZ,
     "AUDIO_EQ_MID_HZ": AUDIO_EQ_MID_HZ,
     "AUDIO_EQ_TREBLE_HZ": AUDIO_EQ_TREBLE_HZ,

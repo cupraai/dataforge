@@ -46,6 +46,7 @@ export {
   BookOpen as iconBookOpen,
   Bookmark as iconBookmark,
   BookmarkPlus as iconBookmarkPlus,
+  Box as iconModel,
   Bot as iconBot,
   Activity as iconActivity,
   Brain as iconBrain,

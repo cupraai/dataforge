@@ -7,10 +7,12 @@ from constants import (
     AUDIO_EDIT_MUXERS,
     AUDIO_EXTENSIONS,
     CANDIDATE_SOURCE_EXTENSIONS,
+    CAPTIONED_EXTENSIONS,
     GALLERY_EXTENSIONS,
     GIF_EXTENSION,
     IMAGE_EDIT_EXTENSIONS,
     IMAGE_EXTENSIONS,
+    MODEL_EXTENSIONS,
     VIDEO_EDIT_EXTENSIONS,
     VIDEO_EXTENSIONS,
 )
@@ -21,6 +23,7 @@ __all__ = [
     "job_response",
     "resolve_candidate_media",
     "resolve_candidate_source",
+    "resolve_captioned_file",
     "resolve_editable_audio",
     "resolve_editable_image",
     "resolve_editable_video",
@@ -28,6 +31,7 @@ __all__ = [
     "resolve_gif_file",
     "resolve_image_file",
     "resolve_media_file",
+    "resolve_model_file",
     "resolve_optional_gif_file",
     "resolve_optional_media_file",
     "resolve_sounding_file",
@@ -52,6 +56,20 @@ def resolve_media_file(path: str) -> Path:
     if file_path is None:
         raise HTTPException(status_code=404, detail="Media file not found")
 
+    return file_path
+
+
+def resolve_captioned_file(path: str) -> Path:
+    file_path = resolve_media_file(path)
+    if file_path.suffix.lower() not in CAPTIONED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="This file does not take captions")
+    return file_path
+
+
+def resolve_model_file(path: str) -> Path:
+    file_path = resolve_media_file(path)
+    if file_path.suffix.lower() not in MODEL_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Not a model file")
     return file_path
 
 

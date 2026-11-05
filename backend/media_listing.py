@@ -23,6 +23,8 @@ from folder_scan import (
     FolderScan,
     ScannedEntry,
     get_media_type,
+    is_model_path,
+    model_preview_name,
     scan_folder,
 )
 from media_dimensions import media_info
@@ -95,7 +97,9 @@ def _summarize_scan_uncached(scan: FolderScan) -> dict[str, int]:
     issue_count = 0
     duplicate_count = 0
 
-    for media in scan.media:
+    # Counts describe caption coverage, so model files are not part of them.
+    captioned_media = [media for media in scan.media if not is_model_path(media.path)]
+    for media in captioned_media:
         sidecar = _caption_sidecar(scan, media)
         if sidecar is not None:
             caption = caption_from_sidecar(sidecar.path, sidecar.mtime_ns, sidecar.size)
@@ -109,7 +113,7 @@ def _summarize_scan_uncached(scan: FolderScan) -> dict[str, int]:
             duplicate_count += 1
 
     return {
-        "file_count": len(scan.media),
+        "file_count": len(captioned_media),
         "captioned_count": captioned_count,
         "issue_count": issue_count,
         "duplicate_count": duplicate_count,
@@ -148,9 +152,42 @@ def _folder_tags(scan: FolderScan) -> _FolderTags:
     return _FolderTags(folder_tag_rows(scan.folder), get_tag_min_confidence())
 
 
+def _iso_time(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+
+
+def _build_model_item(scan: FolderScan, media: ScannedEntry) -> dict:
+    """No caption, finding or tag lookups: a same-stem caption belongs to the folder's media."""
+    preview_name = model_preview_name(media.path, lambda name: name in scan.files)
+    preview = None if preview_name is None else scan.files[preview_name]
+    return {
+        "name": media.name,
+        "path": str(media.path),
+        "description": None,
+        "has_description": False,
+        "has_caption_file": False,
+        "caption_status": "none",
+        "media_type": "model",
+        "size": media.size,
+        "created_at": None if media.birthtime is None else _iso_time(media.birthtime),
+        "modified_at": _iso_time(media.mtime),
+        "preview": (
+            None
+            if preview is None
+            else {
+                "path": str(preview.path),
+                "modified_at": _iso_time(preview.mtime),
+                "size": preview.size,
+            }
+        ),
+    }
+
+
 def _build_media_item(
     scan: FolderScan, media: ScannedEntry, media_type: str, tags: _FolderTags
 ) -> dict:
+    if media_type == "model":
+        return _build_model_item(scan, media)
     sidecar = _caption_sidecar(scan, media)
     caption = (
         NO_CAPTION_FILE

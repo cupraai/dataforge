@@ -13,6 +13,7 @@ from testing_fixtures import (
     forget_saved_settings,
     isolate_test_database,
     write_media,
+    write_safetensors,
     write_wav,
 )
 
@@ -150,8 +151,9 @@ class TaggingWorkerTests(TaggingTestCase):
         self.assertEqual(self.models, [])
         self.assertEqual(self.listed(self.root)["photo.png"], [])
 
-    def test_audio_is_skipped(self) -> None:
+    def test_audio_and_models_are_skipped(self) -> None:
         write_wav(self.root, "tone.wav")
+        write_safetensors(self.root)
         add_folder_favorite(str(self.root))
 
         self.assertEqual(self.make_worker().step(), IDLE_SECONDS)

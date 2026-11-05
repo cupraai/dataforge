@@ -1,3 +1,4 @@
+import { splitModels } from "@/features/gallery/lib/models";
 import { useCallback, useInsertionEffect, useMemo, useRef } from "react";
 import { useAutomationHost } from "@/features/automation/hooks/useAutomationHost";
 import { useComfyPresetsAvailable } from "@/features/automation/hooks/useComfyPresets";
@@ -102,7 +103,8 @@ export function useAppWorkspace() {
   });
 
   const subfolders = useMemo(() => folder?.subfolders ?? [], [folder?.subfolders]);
-  const items = useMemo(() => folder?.items ?? [], [folder?.items]);
+  // Model files leave the media grid, its filters, stats and jobs for a section of their own.
+  const { media: items, models } = useMemo(() => splitModels(folder?.items ?? []), [folder?.items]);
 
   useSubfolderStats(folder?.path, folder?.fingerprint, subfolders, !folderNotFound);
 
@@ -112,6 +114,7 @@ export function useAppWorkspace() {
     !folderNotFound &&
     !loading &&
     items.length === 0 &&
+    models.length === 0 &&
     subfolders.length === 0;
 
   const deleteFolder = useDeleteFolderDialog({
@@ -133,6 +136,7 @@ export function useAppWorkspace() {
   const gallery = useGallerySession({
     selection,
     items,
+    models,
     folderPath: folder?.path,
     setFolder,
     refreshFolder,

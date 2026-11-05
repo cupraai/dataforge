@@ -80,6 +80,7 @@ import {
   isEditableImage,
   isEditableVideo,
   isGif,
+  isModel,
   isMotion,
   isVideo,
   isVideoProjectVideo,
@@ -109,6 +110,7 @@ import { FileImportOverwriteDialog } from "@/features/folder/components/FileImpo
 import { CaptionSaveStatus } from "./CaptionSaveStatus";
 import { FileRenameDialog } from "./FileRenameDialog";
 import { MediaInfoBar } from "./MediaInfoBar";
+import { ModelInfoStage, ModelMetadataList } from "./ModelInfoPanel";
 import { MediaTagList } from "./MediaTagList";
 import { Icon } from "@/shared/ui/Icon";
 import { TokenEstimate } from "@/shared/ui/TokenEstimate";
@@ -240,7 +242,8 @@ export function GalleryItemDialog({
   } = useGalleryItemCaption({ item, onCaptionSaved });
   const notifyDeleteLeftovers = useDeleteLeftoversNotice();
   const notifyDeleteUndo = useDeleteUndoNotice();
-  const backupCaption = useCaptionBackup(item?.path, hasCaptionBackup);
+  const itemIsModel = item ? isModel(item) : false;
+  const backupCaption = useCaptionBackup(item?.path, hasCaptionBackup && !itemIsModel);
   const captionCompletions = useMemo(() => buildCaptionVocabulary(items), [items]);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -1013,7 +1016,7 @@ export function GalleryItemDialog({
                 </button>
               </Tooltip>
             )}
-            {!isMotion(item) && !itemIsAudio && (
+            {!isMotion(item) && !itemIsAudio && !itemIsModel && (
               <Tooltip content={viewerError ?? "Open in image preview"}>
                 <button
                   type="button"
@@ -1130,7 +1133,7 @@ export function GalleryItemDialog({
               </button>
             </Tooltip>
             <div className="gallery-item-dialog__presentation-actions">
-              {onFocusViewChange && (
+              {onFocusViewChange && !itemIsModel && (
                 <Tooltip
                   content={focusView ? "Minimize to caption inspector" : "Expand media view"}
                 >
@@ -1315,6 +1318,8 @@ export function GalleryItemDialog({
                 preload="metadata"
               />
             </div>
+          ) : itemIsModel ? (
+            <ModelInfoStage item={item} />
           ) : editMode && canEditImageItem ? (
             <ImageEditStage edit={imageEdit} path={item.path} alt={item.name} disabled={busy} />
           ) : (
@@ -1419,259 +1424,268 @@ export function GalleryItemDialog({
               hasComfyWorkflow={hasComfyWorkflow}
               onInspectComfyWorkflow={() => setComfyWorkflowOpen(true)}
             />
-            {!inline && <MediaTagList tags={item.tags} />}
-            <footer className="gallery-item-dialog__footer">
-              <div className="gallery-item-dialog__caption-editor">
-                <div className="gallery-item-dialog__caption-toolbar">
-                  <div className="gallery-item-dialog__caption-heading">
-                    <label
-                      htmlFor="gallery-item-caption"
-                      className="gallery-item-dialog__caption-label"
+            {!inline && !itemIsModel && <MediaTagList tags={item.tags} />}
+            {itemIsModel ? (
+              <footer className="gallery-item-dialog__footer">
+                <ModelMetadataList item={item} />
+              </footer>
+            ) : (
+              <footer className="gallery-item-dialog__footer">
+                <div className="gallery-item-dialog__caption-editor">
+                  <div className="gallery-item-dialog__caption-toolbar">
+                    <div className="gallery-item-dialog__caption-heading">
+                      <label
+                        htmlFor="gallery-item-caption"
+                        className="gallery-item-dialog__caption-label"
+                      >
+                        Caption
+                      </label>
+                      <TokenEstimate
+                        text={caption}
+                        className="gallery-item-dialog__caption-tokens"
+                      />
+                    </div>
+                    <div className="gallery-item-dialog__caption-actions">
+                      {backupCaption !== null && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action"
+                          onClick={() => setComparingBackup((current) => !current)}
+                          // The label names the action, not a state: a toggle that renames itself
+                          // would contradict aria-pressed.
+                          aria-label={
+                            showingBackupDiff
+                              ? `Back to editing the caption for ${item.name}`
+                              : `Compare the caption for ${item.name} with its backup`
+                          }
+                          title={
+                            showingBackupDiff
+                              ? "Close the comparison and edit the caption"
+                              : "Show what restoring the copy in .backup would change"
+                          }
+                        >
+                          <Icon
+                            icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          {showingBackupDiff ? "Back to editing" : "Compare backup"}
+                        </button>
+                      )}
+                      {comparedBackup !== null && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action"
+                          onClick={() => {
+                            handleCaptionChange(comparedBackup);
+                            setComparingBackup(false);
+                          }}
+                          disabled={busy || !canRestoreBackup}
+                          aria-label={`Restore the backed up caption for ${item.name}`}
+                          title="Replace this caption with the copy in .backup"
+                        >
+                          <Icon
+                            icon={iconArchiveRestore}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          Use backup
+                        </button>
+                      )}
+                      {canResolveIssue && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action gallery-item-dialog__caption-action--issue"
+                          onClick={handleResolveIssue}
+                          disabled={busy}
+                          aria-label={`Resolve caption issue for ${item.name}`}
+                        >
+                          <Icon
+                            icon={iconMessageWarning}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          Resolve issue
+                        </button>
+                      )}
+                      {canReviewCandidate && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action"
+                          onClick={handleReviewCandidate}
+                          disabled={busy}
+                          aria-label={`Review candidate for ${item.name}`}
+                          title="Compare the staged candidate against this file"
+                        >
+                          <Icon
+                            icon={iconScanSquare}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          Review candidate
+                        </button>
+                      )}
+                      {canResolveDuplicate && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action"
+                          onClick={handleResolveDuplicate}
+                          disabled={busy}
+                          aria-label={`Resolve duplicate for ${item.name}`}
+                          title="Compare this file with its duplicates and keep one"
+                        >
+                          <Icon
+                            icon={iconFiles}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          Resolve duplicate
+                        </button>
+                      )}
+                      {/* Copy acts on the editor's text, which the comparison hides. */}
+                      {!showingBackupDiff && (
+                        <button
+                          type="button"
+                          className={classNames(
+                            "gallery-item-dialog__caption-action",
+                            copyState === "copied" && "gallery-item-dialog__caption-action--copied",
+                            copyState === "error" && "gallery-item-dialog__caption-action--error",
+                          )}
+                          onClick={() => {
+                            void copyText(copyContent);
+                          }}
+                          disabled={!canCopyCaption}
+                          aria-label={copyLabel}
+                        >
+                          <Icon
+                            icon={iconCopy}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          {copyLabel}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {comparedBackup !== null && (
+                    <div
+                      className="gallery-item-dialog__caption-compare"
+                      role="region"
+                      aria-label={`Caption compared with its backup for ${item.name}`}
+                      tabIndex={0}
                     >
-                      Caption
-                    </label>
-                    <TokenEstimate text={caption} className="gallery-item-dialog__caption-tokens" />
-                  </div>
-                  <div className="gallery-item-dialog__caption-actions">
-                    {backupCaption !== null && (
-                      <button
-                        type="button"
-                        className="gallery-item-dialog__caption-action"
-                        onClick={() => setComparingBackup((current) => !current)}
-                        // The label names the action, not a state: a toggle that renames itself
-                        // would contradict aria-pressed.
-                        aria-label={
-                          showingBackupDiff
-                            ? `Back to editing the caption for ${item.name}`
-                            : `Compare the caption for ${item.name} with its backup`
-                        }
-                        title={
-                          showingBackupDiff
-                            ? "Close the comparison and edit the caption"
-                            : "Show what restoring the copy in .backup would change"
-                        }
-                      >
-                        <Icon
-                          icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        {showingBackupDiff ? "Back to editing" : "Compare backup"}
-                      </button>
-                    )}
-                    {comparedBackup !== null && (
-                      <button
-                        type="button"
-                        className="gallery-item-dialog__caption-action"
-                        onClick={() => {
-                          handleCaptionChange(comparedBackup);
-                          setComparingBackup(false);
-                        }}
-                        disabled={busy || !canRestoreBackup}
-                        aria-label={`Restore the backed up caption for ${item.name}`}
-                        title="Replace this caption with the copy in .backup"
-                      >
-                        <Icon
-                          icon={iconArchiveRestore}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        Use backup
-                      </button>
-                    )}
-                    {canResolveIssue && (
-                      <button
-                        type="button"
-                        className="gallery-item-dialog__caption-action gallery-item-dialog__caption-action--issue"
-                        onClick={handleResolveIssue}
-                        disabled={busy}
-                        aria-label={`Resolve caption issue for ${item.name}`}
-                      >
-                        <Icon
-                          icon={iconMessageWarning}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        Resolve issue
-                      </button>
-                    )}
-                    {canReviewCandidate && (
-                      <button
-                        type="button"
-                        className="gallery-item-dialog__caption-action"
-                        onClick={handleReviewCandidate}
-                        disabled={busy}
-                        aria-label={`Review candidate for ${item.name}`}
-                        title="Compare the staged candidate against this file"
-                      >
-                        <Icon
-                          icon={iconScanSquare}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        Review candidate
-                      </button>
-                    )}
-                    {canResolveDuplicate && (
-                      <button
-                        type="button"
-                        className="gallery-item-dialog__caption-action"
-                        onClick={handleResolveDuplicate}
-                        disabled={busy}
-                        aria-label={`Resolve duplicate for ${item.name}`}
-                        title="Compare this file with its duplicates and keep one"
-                      >
-                        <Icon
-                          icon={iconFiles}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        Resolve duplicate
-                      </button>
-                    )}
-                    {/* Copy acts on the editor's text, which the comparison hides. */}
-                    {!showingBackupDiff && (
-                      <button
-                        type="button"
-                        className={classNames(
-                          "gallery-item-dialog__caption-action",
-                          copyState === "copied" && "gallery-item-dialog__caption-action--copied",
-                          copyState === "error" && "gallery-item-dialog__caption-action--error",
-                        )}
-                        onClick={() => {
-                          void copyText(copyContent);
-                        }}
-                        disabled={!canCopyCaption}
-                        aria-label={copyLabel}
-                      >
-                        <Icon
-                          icon={iconCopy}
-                          className="gallery-item-dialog__caption-action-icon"
-                        />
-                        {copyLabel}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {comparedBackup !== null && (
-                  <div
-                    className="gallery-item-dialog__caption-compare"
-                    role="region"
-                    aria-label={`Caption compared with its backup for ${item.name}`}
-                    tabIndex={0}
-                  >
-                    {canRestoreBackup ? (
-                      <CaptionWordDiff before={caption.trim()} after={comparedBackup.trim()} />
-                    ) : (
-                      <p className="gallery-item-dialog__caption-compare-note">
-                        Matches the backup.
+                      {canRestoreBackup ? (
+                        <CaptionWordDiff before={caption.trim()} after={comparedBackup.trim()} />
+                      ) : (
+                        <p className="gallery-item-dialog__caption-compare-note">
+                          Matches the backup.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <CaptionEditor
+                    // Fresh editor per item: CodeMirror maps selection through a document swap.
+                    key={item.path}
+                    id="gallery-item-caption"
+                    // Hidden, not unmounted, so comparing keeps the editor's undo history.
+                    className={showingBackupDiff ? "gallery-item-dialog__hidden-editor" : undefined}
+                    completions={captionCompletions}
+                    value={caption}
+                    placeholder={placeholder}
+                    variant={captionDisplay.variant}
+                    saveState={captionConflict ? "error" : saveState}
+                    searchQuery={searchQuery}
+                    searchRegex={searchRegex}
+                    aria-label={`Caption for ${item.name}`}
+                    aria-invalid={saveState === "error" || captionConflict}
+                    onChange={handleCaptionChange}
+                    editable={!leaving && !captionLocked}
+                    autoFocus={focusCaptionOf === item.path}
+                  />
+                  {captionReadError && (
+                    <div className="workspace-save-error" role="alert">
+                      {/* The placeholder already says why; this says what the button does. */}
+                      <p>
+                        {captionReadError === "encoding"
+                          ? "Replacing it writes a new UTF-8 caption over the file."
+                          : "Close the program that has it open, then try again."}
                       </p>
-                    )}
-                  </div>
-                )}
-                <CaptionEditor
-                  // Fresh editor per item: CodeMirror maps selection through a document swap.
-                  key={item.path}
-                  id="gallery-item-caption"
-                  // Hidden, not unmounted, so comparing keeps the editor's undo history.
-                  className={showingBackupDiff ? "gallery-item-dialog__hidden-editor" : undefined}
-                  completions={captionCompletions}
-                  value={caption}
-                  placeholder={placeholder}
-                  variant={captionDisplay.variant}
-                  saveState={captionConflict ? "error" : saveState}
-                  searchQuery={searchQuery}
-                  searchRegex={searchRegex}
-                  aria-label={`Caption for ${item.name}`}
-                  aria-invalid={saveState === "error" || captionConflict}
-                  onChange={handleCaptionChange}
-                  editable={!leaving && !captionLocked}
-                  autoFocus={focusCaptionOf === item.path}
-                />
-                {captionReadError && (
-                  <div className="workspace-save-error" role="alert">
-                    {/* The placeholder already says why; this says what the button does. */}
-                    <p>
-                      {captionReadError === "encoding"
-                        ? "Replacing it writes a new UTF-8 caption over the file."
-                        : "Close the program that has it open, then try again."}
-                    </p>
-                    {captionReadError === "encoding" ? (
+                      {captionReadError === "encoding" ? (
+                        <button
+                          type="button"
+                          className="workspace-button"
+                          onClick={replaceUnreadableCaption}
+                        >
+                          Replace caption
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="workspace-button"
+                          onClick={() => void reloadCaption()}
+                        >
+                          Try again
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <CaptionSaveStatus
+                    state={saveState}
+                    error={saveError}
+                    onRetry={retrySave}
+                    onReload={() => void reloadCaption()}
+                    onOverwrite={() => void overwriteCaption()}
+                  />
+                  {leaveFailed && (
+                    <div className="workspace-save-error" role="alert">
+                      <p>
+                        {captionConflict
+                          ? "The caption changed elsewhere since it was loaded. Overwrite it with yours or discard your changes to continue."
+                          : "The caption could not be saved. Retry saving or discard the unsaved changes to continue."}
+                      </p>
                       <button
                         type="button"
                         className="workspace-button"
-                        onClick={replaceUnreadableCaption}
+                        disabled={leaving}
+                        onClick={async () => {
+                          if (leavingRef.current) return;
+                          leavingRef.current = true;
+                          setLeaving(true);
+                          const saved = await (captionConflict ? overwriteCaption() : retrySave());
+                          leavingRef.current = false;
+                          setLeaving(false);
+                          if (saved) {
+                            const action = pendingActionRef.current;
+                            if (action) await leave(action);
+                          }
+                        }}
                       >
-                        Replace caption
+                        {captionConflict ? "Overwrite and continue" : "Retry and continue"}
                       </button>
-                    ) : (
                       <button
                         type="button"
                         className="workspace-button"
-                        onClick={() => void reloadCaption()}
-                      >
-                        Try again
-                      </button>
-                    )}
-                  </div>
-                )}
-                <CaptionSaveStatus
-                  state={saveState}
-                  error={saveError}
-                  onRetry={retrySave}
-                  onReload={() => void reloadCaption()}
-                  onOverwrite={() => void overwriteCaption()}
-                />
-                {leaveFailed && (
-                  <div className="workspace-save-error" role="alert">
-                    <p>
-                      {captionConflict
-                        ? "The caption changed elsewhere since it was loaded. Overwrite it with yours or discard your changes to continue."
-                        : "The caption could not be saved. Retry saving or discard the unsaved changes to continue."}
-                    </p>
-                    <button
-                      type="button"
-                      className="workspace-button"
-                      disabled={leaving}
-                      onClick={async () => {
-                        if (leavingRef.current) return;
-                        leavingRef.current = true;
-                        setLeaving(true);
-                        const saved = await (captionConflict ? overwriteCaption() : retrySave());
-                        leavingRef.current = false;
-                        setLeaving(false);
-                        if (saved) {
+                        disabled={leaving || captionSaving}
+                        onClick={() => {
+                          if (captionSaving) return;
                           const action = pendingActionRef.current;
-                          if (action) await leave(action);
-                        }
-                      }}
-                    >
-                      {captionConflict ? "Overwrite and continue" : "Retry and continue"}
-                    </button>
-                    <button
-                      type="button"
-                      className="workspace-button"
-                      disabled={leaving || captionSaving}
-                      onClick={() => {
-                        if (captionSaving) return;
-                        const action = pendingActionRef.current;
-                        pendingActionRef.current = null;
-                        discardCaptionChanges();
-                        setLeaveFailed(false);
-                        void action?.();
-                      }}
-                    >
-                      Discard and continue
-                    </button>
-                    <button
-                      type="button"
-                      className="workspace-button"
-                      onClick={() => {
-                        pendingActionRef.current = null;
-                        setLeaveFailed(false);
-                      }}
-                    >
-                      Keep editing
-                    </button>
-                  </div>
-                )}
-              </div>
-            </footer>
+                          pendingActionRef.current = null;
+                          discardCaptionChanges();
+                          setLeaveFailed(false);
+                          void action?.();
+                        }}
+                      >
+                        Discard and continue
+                      </button>
+                      <button
+                        type="button"
+                        className="workspace-button"
+                        onClick={() => {
+                          pendingActionRef.current = null;
+                          setLeaveFailed(false);
+                        }}
+                      >
+                        Keep editing
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </footer>
+            )}
           </>
         )}
       </Surface>

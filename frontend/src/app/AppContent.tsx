@@ -243,6 +243,8 @@ export function AppContent() {
                 onDeleteFolder={deleteFolder.openDialog}
                 items={items}
                 filteredItems={query.filteredItems}
+                models={gallery.models}
+                filteredModels={gallery.filteredModels}
                 filterEmptyState={query.filterEmptyState}
                 onOpenGalleryItem={openGalleryItem}
                 onOpenVideoProject={editorLauncher.openProject}

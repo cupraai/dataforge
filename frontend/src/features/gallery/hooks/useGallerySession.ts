@@ -6,7 +6,10 @@ import { useGalleryQuery } from "@/features/gallery/hooks/useGalleryQuery";
 import type { useGallerySelection } from "@/features/gallery/hooks/useGallerySelection";
 import { useIssueResolverOverlay } from "@/features/gallery/hooks/useIssueResolverOverlay";
 import { applyFolderItemRename } from "@/features/gallery/lib/applyFolderItemRename";
-import { jobEligibleItems, jobEligiblePaths } from "@/features/gallery/lib/itemKind";
+import { isModel, jobEligibleItems, jobEligiblePaths } from "@/features/gallery/lib/itemKind";
+import { processModels } from "@/features/gallery/lib/models";
+import { searchRegexError } from "@/features/gallery/lib/query";
+import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
 import { countResolvableIssues, isResolvableIssueItem } from "@/features/gallery/lib/issues";
 import { instructionApplies, type InstructionKind } from "@/shared/api/folderInstructions";
 import type { FolderResponse, GalleryItem, InstructionFileResponse } from "@/shared/types";
@@ -15,9 +18,13 @@ import { useLatestRef } from "@/shared/hooks/useLatestRef";
 
 type GallerySelection = ReturnType<typeof useGallerySelection>;
 
+const NO_MODELS: GalleryItem[] = [];
+
 type UseGallerySessionOptions = {
   selection: GallerySelection;
   items: GalleryItem[];
+  /** Model files, listed in their own section; the item dialog pages through them apart. */
+  models?: GalleryItem[];
   folderPath: string | undefined;
   setFolder: Dispatch<SetStateAction<FolderResponse | null>>;
   refreshFolder: () => Promise<void>;
@@ -28,6 +35,7 @@ type UseGallerySessionOptions = {
 export function useGallerySession({
   selection,
   items,
+  models = NO_MODELS,
   folderPath,
   setFolder,
   refreshFolder,
@@ -62,6 +70,32 @@ export function useGallerySession({
   }, [items, removeSelectedPaths, selectedPathsList]);
 
   const query = useGalleryQuery(items);
+  const { searchQuery, searchRegex, searchNames, sort } = query;
+  const modelNames = useMemo(() => models.map((model) => model.name), [models]);
+  const trimmedSearch = searchQuery.trim();
+  const modelRegex = useRegexSearch(
+    searchRegex && searchNames && trimmedSearch && !searchRegexError(trimmedSearch)
+      ? trimmedSearch
+      : null,
+    modelNames,
+  );
+  const modelMatches = modelRegex.status === "idle" ? null : modelRegex.matches;
+  const filteredModels = useMemo(
+    () =>
+      processModels(models, {
+        searchQuery,
+        searchRegex,
+        searchNames,
+        regexMatches: modelMatches,
+        sort,
+      }),
+    [models, searchQuery, searchRegex, searchNames, modelMatches, sort],
+  );
+  const dialogImages = useMemo(() => [...items, ...models], [items, models]);
+  const dialogFilteredItems = useMemo(
+    () => [...query.filteredItems, ...filteredModels],
+    [query.filteredItems, filteredModels],
+  );
 
   // Derived, not pruned: hidden paths stay so widening restores them and no delete reaches them.
   const visibleSelectedPaths = useMemo(() => {
@@ -106,8 +140,8 @@ export function useGallerySession({
     editExpanded,
     setEditExpanded,
   } = useGalleryOverlays({
-    images: items,
-    filteredItems: query.filteredItems,
+    images: dialogImages,
+    filteredItems: dialogFilteredItems,
     folderResetToken,
     requestTransition,
   });
@@ -261,6 +295,8 @@ export function useGallerySession({
     handleInvertSelection,
     selectOnlyPaths,
     query,
+    models,
+    filteredModels,
     displayMode,
     setDisplayMode,
     issueCount,
@@ -273,7 +309,8 @@ export function useGallerySession({
     dialogItems,
     openIntent,
     closeGalleryItem,
-    focusView,
+    // A model has no media to expand, so it stays in the inspector whatever the saved layout.
+    focusView: focusView && !(selectedIndex >= 0 && isModel(dialogItems[selectedIndex])),
     setFocusView,
     editExpanded,
     setEditExpanded,

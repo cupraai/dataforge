@@ -1,5 +1,6 @@
 import re
 from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from functools import partial
 from pathlib import Path
 from time import monotonic
@@ -79,10 +80,12 @@ from routes._helpers import (
     resolve_gif_file,
     resolve_image_file,
     resolve_media_file,
+    resolve_model_file,
     resolve_optional_gif_file,
     resolve_optional_media_file,
     resolve_sounding_file,
 )
+from safetensors_header import model_info
 from schemas import (
     AudioEditEvent,
     AudioEditResponse,
@@ -113,6 +116,7 @@ from schemas import (
     MediaTransferPreviewResponse,
     MediaTransferRequest,
     MediaTransferResponse,
+    ModelInfoResponse,
     RenameResponse,
     VideoEditEvent,
     VideoEditResponse,
@@ -231,6 +235,21 @@ def serve_media(
         media_type=MEDIA_MIME_TYPES.get(file_path.suffix.lower()),
         headers={"Cache-Control": _cache_control(v)},
     )
+
+
+@router.get("/media/model-info", response_model=ModelInfoResponse)
+def read_model_info(
+    path: str = Query(..., description="Absolute path to a .safetensors file"),
+) -> ModelInfoResponse:
+    file_path = resolve_model_file(path)
+    try:
+        stat = file_path.stat()
+    except OSError as error:
+        raise HTTPException(status_code=404, detail="Media file not found") from error
+    info = model_info(file_path, stat.st_mtime_ns, stat.st_size)
+    if info is None:
+        raise HTTPException(status_code=422, detail="Could not read this file's header")
+    return ModelInfoResponse(path=str(file_path), **asdict(info))
 
 
 @router.post("/media/open", response_model=MediaOpenResponse)

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { isModel } from "@/features/gallery/lib/itemKind";
 import type { GalleryItem } from "@/shared/types";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -70,7 +71,11 @@ export function useGalleryItemDialog(
     (path: string) => {
       // A path outside the listing would read as a just-deleted item and open its neighbour.
       if (galleryItemOpenOutcome(images, filteredItems, path) !== "opened") return;
-      setDialogNavigationPaths(filteredItems.map((item) => item.path));
+      // Media and model files sit in separate sections, so paging stays within the opened one's.
+      const opensModel = isModel(filteredItems.find((item) => item.path === path)!);
+      setDialogNavigationPaths(
+        filteredItems.filter((item) => isModel(item) === opensModel).map((item) => item.path),
+      );
       setSelectedPath(path);
     },
     [images, filteredItems],

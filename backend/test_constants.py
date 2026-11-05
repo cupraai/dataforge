@@ -4,6 +4,7 @@ import unittest
 
 from constants import (
     AUDIO_EXTENSIONS,
+    CAPTIONED_EXTENSIONS,
     COMFY_WORKFLOW_EXTENSIONS,
     GALLERY_EXTENSIONS,
     GIF_EXTENSION,
@@ -12,6 +13,8 @@ from constants import (
     ISOBMFF_EXTENSIONS,
     MEDIA_EXTENSIONS,
     MEDIA_MIME_TYPES,
+    MODEL_EXTENSIONS,
+    MODEL_PREVIEW_SUFFIXES,
     MOTION_EXTENSIONS,
     PILLOW_EXTENSIONS,
     SHARED_CONSTANTS,
@@ -51,15 +54,24 @@ class MediaExtensionInvariantTests(unittest.TestCase):
     def test_jobs_never_see_audio(self) -> None:
         # Every job lists MEDIA_EXTENSIONS; audio is in the gallery but in no job yet.
         self.assertEqual(MEDIA_EXTENSIONS & AUDIO_EXTENSIONS, set())
-        self.assertEqual(GALLERY_EXTENSIONS, MEDIA_EXTENSIONS | AUDIO_EXTENSIONS)
+        self.assertEqual(CAPTIONED_EXTENSIONS, MEDIA_EXTENSIONS | AUDIO_EXTENSIONS)
+
+    def test_models_are_listed_but_never_captioned_or_given_to_jobs(self) -> None:
+        self.assertEqual(MODEL_EXTENSIONS & CAPTIONED_EXTENSIONS, set())
+        self.assertEqual(GALLERY_EXTENSIONS, CAPTIONED_EXTENSIONS | MODEL_EXTENSIONS)
+
+    def test_every_model_preview_is_a_listed_image(self) -> None:
+        for suffix in MODEL_PREVIEW_SUFFIXES:
+            self.assertIn(suffix[suffix.rfind(".") :], IMAGE_EXTENSIONS)
 
     def test_pillow_and_motion_split_the_gif_between_them(self) -> None:
         self.assertEqual(PILLOW_EXTENSIONS, IMAGE_EXTENSIONS | {GIF_EXTENSION})
         self.assertEqual(MOTION_EXTENSIONS, VIDEO_EXTENSIONS | {GIF_EXTENSION})
         self.assertEqual(MEDIA_EXTENSIONS, IMAGE_EXTENSIONS | MOTION_EXTENSIONS)
 
-    def test_import_adds_sidecars_to_media(self) -> None:
-        self.assertEqual(IMPORT_EXTENSIONS, GALLERY_EXTENSIONS | SIDECAR_EXTENSIONS)
+    def test_import_adds_sidecars_to_captioned_media(self) -> None:
+        # Model weights run to many GB, so they are not uploaded through the browser.
+        self.assertEqual(IMPORT_EXTENSIONS, CAPTIONED_EXTENSIONS | SIDECAR_EXTENSIONS)
 
     def test_unsupported_formats_stay_out(self) -> None:
         self.assertEqual(GALLERY_EXTENSIONS & UNSUPPORTED_EXTENSIONS, set())

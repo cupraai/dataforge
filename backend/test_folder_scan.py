@@ -28,7 +28,11 @@ from duplicates import (
 )
 from ffmpeg_bin import ffmpeg_path
 from folder_scan import _entry_from_dir_entry, get_media_type, scan_folder
-from media_listing import list_media_from_scan
+from media_listing import (
+    clear_folder_summary_cache_for_tests,
+    list_media_from_scan,
+    summarize_folder_contents,
+)
 from testing_fixtures import (
     TempMediaFolder,
     unreadable_files,
@@ -38,6 +42,7 @@ from testing_fixtures import (
     write_media,
     write_mp3,
     write_mp4_video,
+    write_safetensors,
     write_sysprompt,
     write_txt_caption,
     write_wav,
@@ -91,6 +96,13 @@ class MediaTypeTests(unittest.TestCase):
             for name in ("track.wav", "track.mp3", "TRACK.MP3", "track.flac", "TRACK.FLAC"):
                 with self.subTest(name=name):
                     self.assertEqual(get_media_type(root / name), "audio")
+
+    def test_classifies_safetensors_as_a_model(self) -> None:
+        with TempMediaFolder() as root:
+            for name in ("adapter.safetensors", "ADAPTER.SAFETENSORS"):
+                with self.subTest(name=name):
+                    self.assertEqual(get_media_type(root / name), "model")
+            self.assertIsNone(get_media_type(root / "adapter.ckpt"))
 
 
 class FolderScanTests(unittest.TestCase):
@@ -330,6 +342,46 @@ class ScanBackedListingTests(unittest.TestCase):
             for name in ("headerless.mp4", "truncated.png"):
                 self.assertIsNone(by_name[name]["width"])
                 self.assertIsNone(by_name[name]["height"])
+
+    def test_a_model_is_listed_without_the_same_stem_caption(self) -> None:
+        with TempMediaFolder() as root:
+            write_safetensors(root, "subject.safetensors")
+            image = write_media(root, "subject.png")
+            write_txt_caption(image, "A caption for the image.")
+
+            by_name = {item["name"]: item for item in _listing(root)}
+
+            model = by_name["subject.safetensors"]
+            self.assertEqual(model["media_type"], "model")
+            self.assertEqual(model["caption_status"], "none")
+            self.assertIsNone(model["description"])
+            self.assertEqual(model["size"], (root / "subject.safetensors").stat().st_size)
+            self.assertEqual(by_name["subject.png"]["description"], "A caption for the image.")
+
+    def test_a_model_preview_prefers_the_preview_png(self) -> None:
+        with TempMediaFolder() as root:
+            write_safetensors(root, "subject.safetensors")
+            write_safetensors(root, "bare.safetensors")
+            write_media(root, "subject.png")
+            write_media(root, "subject.preview.png")
+
+            by_name = {item["name"]: item for item in _listing(root)}
+
+            preview = by_name["subject.safetensors"]["preview"]
+            self.assertEqual(preview["path"], str(root / "subject.preview.png"))
+            self.assertEqual(preview["size"], (root / "subject.preview.png").stat().st_size)
+            self.assertIsNone(by_name["bare.safetensors"]["preview"])
+
+    def test_folder_counts_leave_models_out_of_caption_coverage(self) -> None:
+        clear_folder_summary_cache_for_tests()
+        with TempMediaFolder() as root:
+            write_safetensors(root, "adapter.safetensors")
+            write_txt_caption(write_media(root, "photo.png"), "Captioned.")
+
+            summary = summarize_folder_contents(root)
+
+            self.assertEqual(summary["file_count"], 1)
+            self.assertEqual(summary["captioned_count"], 1)
 
     def test_listing_is_empty_for_unreadable_folder(self) -> None:
         with TempMediaFolder() as root:

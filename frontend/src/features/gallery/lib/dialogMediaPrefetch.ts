@@ -1,4 +1,4 @@
-import { isAudio, isVideo } from "@/features/gallery/lib/itemKind";
+import { isAudio, isModel, isVideo } from "@/features/gallery/lib/itemKind";
 import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
 import type { GalleryItem } from "@/shared/types";
 
@@ -23,7 +23,7 @@ export function collectAdjacentDialogMediaTargets(
 
   for (const offset of offsets) {
     const item = items[index + offset];
-    if (!item || isAudio(item) || seen.has(item.path)) continue;
+    if (!item || isAudio(item) || isModel(item) || seen.has(item.path)) continue;
     seen.add(item.path);
     targets.push({
       path: item.path,

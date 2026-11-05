@@ -14,19 +14,24 @@ from captions import issue_file_path
 from constants import (
     CAPTION_BACKUP_DIR_NAME,
     CAPTION_SIDECAR_EXTENSIONS,
-    GALLERY_EXTENSIONS,
+    CAPTIONED_EXTENSIONS,
     SIDECAR_EXTENSIONS,
 )
 from duplicates import duplicate_file_path
 from edit_sidecars import backup_path_for, edit_spec_path, fill_assets_path
+from folder_scan import is_model_path
 from video_project import snapshot_path_for
 
 
 def media_group_paths(media: Path) -> list[Path]:
-    """The media file first, then each related file that exists."""
-    paths = [media]
+    """The media file first, then each related file that exists.
 
-    for extension in sorted(SIDECAR_EXTENSIONS):
+    A model file takes no caption: a same-stem caption belongs to the folder's media, so it stays.
+    """
+    paths = [media]
+    captioned = not is_model_path(media)
+
+    for extension in sorted(SIDECAR_EXTENSIONS) if captioned else ():
         sidecar = media.with_suffix(extension)
         if sidecar.is_file():
             paths.append(sidecar)
@@ -44,7 +49,7 @@ def media_group_paths(media: Path) -> list[Path]:
             paths.append(extra)
 
     backup_dir = media.parent / CAPTION_BACKUP_DIR_NAME
-    for extension in CAPTION_SIDECAR_EXTENSIONS:
+    for extension in CAPTION_SIDECAR_EXTENSIONS if captioned else ():
         backed_up = backup_dir / f"{media.stem}{extension}"
         if backed_up.is_file():
             paths.append(backed_up)
@@ -60,7 +65,7 @@ def media_group_paths(media: Path) -> list[Path]:
 
 
 def stem_siblings(media: Path) -> list[Path]:
-    """Other media files in the folder with this stem; they share its caption."""
+    """Other captioned files in the folder with this stem; they share its caption."""
     stem = os.path.normcase(media.stem)
     try:
         entries = list(media.parent.iterdir())
@@ -70,7 +75,7 @@ def stem_siblings(media: Path) -> list[Path]:
         entry
         for entry in entries
         if entry.name != media.name
-        and entry.suffix.lower() in GALLERY_EXTENSIONS
+        and entry.suffix.lower() in CAPTIONED_EXTENSIONS
         and os.path.normcase(entry.stem) == stem
         and entry.is_file()
     ]

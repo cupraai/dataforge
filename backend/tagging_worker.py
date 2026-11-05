@@ -71,7 +71,7 @@ def pending_in_folder(folder: Path, vocabulary: str) -> list[PendingFile]:
     pending: list[PendingFile] = []
     for entry in scan.media:
         media_type = get_media_type(entry.path)
-        if media_type is None or media_type == "audio":
+        if media_type is None or media_type in {"audio", "model"}:
             continue
         row = rows.get(entry.name)
         if (

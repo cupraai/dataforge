@@ -285,6 +285,10 @@ Every format below shows in the gallery and takes a `.txt` caption. AI caption j
 
 Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's first frame and sample frames across a video, including containers the browser cannot play. A watermarked GIF stays an animated GIF with its frame timing, loop count, and transparency.
 
+### Model files
+
+`.safetensors` model files, such as LoRAs from a training run, are listed in a **Models** section above the media instead. The section follows the toolbar's search, by name, and its sort; the filters apply to media only. Opening one shows what its header records: architecture, LoRA rank and alpha, training step and epoch, trigger words, parameter count, precision (including ComfyUI quantizations such as FP8 scaled, INT8 ConvRot and NVFP4), and every metadata key. The weights are never loaded. Models take no caption and no job, can be copied, moved, renamed, and deleted, and cannot be dropped into a folder to import. An image with the same stem, such as `<stem>.preview.png` or `<stem>.png`, is shown as the model's preview.
+
 ## Files DataForge creates
 
 `<stem>` is the name without its extension (`scene`); `<name>` includes it (`scene.jpg`). Related files travel with their media but are not gallery items. Media in `watermarked/` and `staging/` can be browsed like any folder.

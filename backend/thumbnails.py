@@ -12,7 +12,7 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 
 from app_settings import effective_settings
-from constants import AUDIO_EXTENSIONS, GALLERY_EXTENSIONS, PILLOW_EXTENSIONS
+from constants import AUDIO_EXTENSIONS, GALLERY_EXTENSIONS, MODEL_EXTENSIONS, PILLOW_EXTENSIONS
 from ffmpeg_bin import ffmpeg_path
 from image_io import displayed_image
 from schemas import ThumbnailCacheCleared, ThumbnailCacheStats
@@ -335,6 +335,9 @@ def get_or_create_thumbnail(source: Path, width: int) -> Path:
 
     if suffix not in GALLERY_EXTENSIONS:
         raise ThumbnailError("Unsupported media type for thumbnails")
+    if suffix in MODEL_EXTENSIONS:
+        # The card shows the model's preview image by that image's own path.
+        raise ThumbnailUnavailableError("Model files have no thumbnail")
 
     cached = thumbnail_cache_path(source, normalized_width)
     if cached.is_file():

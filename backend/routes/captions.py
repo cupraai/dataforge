@@ -14,7 +14,7 @@ from comfy_prompts import (
     read_editor_workflow,
 )
 from constants import COMFY_WORKFLOW_EXTENSIONS
-from routes._helpers import resolve_media_file
+from routes._helpers import resolve_captioned_file, resolve_media_file
 from schemas import (
     CaptionBackupResponse,
     CaptionSaveResponse,
@@ -86,7 +86,7 @@ def _sampling_stage(stage: SamplingStage) -> ComfySamplingStage:
 def read_caption(
     path: str = Query(..., description="Absolute path to image or video file"),
 ) -> CaptionSaveResponse:
-    file_path = resolve_media_file(path)
+    file_path = resolve_captioned_file(path)
     return CaptionSaveResponse.model_validate(build_caption_response(file_path))
 
 
@@ -94,7 +94,7 @@ def read_caption(
 def read_caption_backup(
     path: str = Query(..., description="Absolute path to image or video file"),
 ) -> CaptionBackupResponse:
-    file_path = resolve_media_file(path)
+    file_path = resolve_captioned_file(path)
     description = load_backup_caption(file_path)
     return CaptionBackupResponse(exists=description is not None, description=description)
 
@@ -163,7 +163,7 @@ def update_caption(
     path: str = Query(..., description="Absolute path to image or video file"),
     body: CaptionUpdate = ...,
 ) -> CaptionSaveResponse:
-    file_path = resolve_media_file(path)
+    file_path = resolve_captioned_file(path)
 
     try:
         result = save_caption(
