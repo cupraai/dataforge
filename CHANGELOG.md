@@ -8,6 +8,8 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+## 0.12.0 - 2026-11-06
+
 ### Added
 
 - Folders list their `.safetensors` model files in a **Models** section. Open one to see its

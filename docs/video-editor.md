@@ -34,7 +34,7 @@ Opening a previously exported video with its project snapshot restores the recor
 
 | Area | Purpose |
 | --- | --- |
-| Top bar | Rename the project, check save and export status, change project settings, and return to the gallery. The **Project actions** menu contains project management commands. |
+| Top bar | Rename the project, check save and export status, change project settings, and return to the gallery. The **Project actions** menu holds project management commands. |
 | Media browser | Browse the folder's media or switch to **Projects** to reopen a draft. Search filenames, filter by media type, and switch between tiles and a list. Used files are marked. |
 | Monitor | **Source** previews a file before you add it; **Timeline** previews the assembled edit. Controls below the monitor play, seek, and step through frames. |
 | Timeline | Arrange clips on video and audio tracks. The toolbar contains editing tools, track and title buttons, snapping, and zoom. |
@@ -144,7 +144,7 @@ Use these tools when a trim should also change the timing of neighboring clips:
 
 - **Ripple trim** (`T`): drag an edge to shorten or extend a clip and move later clips by the same duration change. Trimming the start changes the source in point while the clip's timeline start stays fixed. `Shift+Q` / `Shift+W` ripple trim the start / end of the clip under the playhead to it.
 - **Roll trim** (`N`): drag the cut between two touching clips to trim both together. The overall span and every other clip's timing stay fixed. An edge without a touching neighbor trims normally.
-- **Ripple delete** (`Shift+Delete`): mark a timeline range with the **Range** tool (`R`), or with `I` and `O`, then remove that interval and close the gap. This differs from deleting selected clips, which leaves a gap.
+- **Ripple delete** (`Shift+Delete` or `Shift+Backspace`): mark a timeline range with the **Range** tool (`R`), or with `I` and `O`, then remove that interval and close the gap. This differs from deleting selected clips, which leaves a gap.
 
 **Sync lock** is the chain-link button in each track header. Insert, ripple delete, and ripple trims include tracks with sync lock on. Ripple trims also move later clips on the tracks being trimmed. Linked picture and sound stay together even when one track has sync lock off.
 
@@ -319,14 +319,14 @@ Outside form controls, the editor uses its own keys; gallery shortcuts stay off 
 | --- | --- |
 | `Space` | Play or pause |
 | `←` / `→` | Step one frame back / forward |
-| `↑` / `↓` | Jump to the previous / next edit |
+| `↑` / `↓` | Jump to the previous / next clip edge |
 | `Home` / `End` | Go to the start / end |
 | `I` / `O` | Mark in / out at the playhead |
 | `Esc` | Clear the selection and timeline range, or clear source marks in Source mode |
 | `M` | Add a marker at the timeline playhead |
 | `Shift+↑` / `Shift+↓` | Jump to the previous / next marker |
 
-While **Source** shows a file, `Space`, `←` / `→`, `Home`, `End`, `I`, and `O` act on that file. Edit and marker navigation still use the timeline.
+While **Source** shows a file, `Space`, `←` / `→`, `Home`, `End`, `I`, and `O` act on that file. Clip-edge and marker navigation still use the timeline.
 
 ### Tools, selection, and view
 
@@ -348,7 +348,7 @@ While **Source** shows a file, `Space`, `←` / `→`, `Home`, `End`, `I`, and `
 | --- | --- |
 | `Ctrl+B` | Split at the playhead |
 | `Delete` or `Backspace` | Delete the selected clips |
-| `Shift+Delete` | Ripple delete the marked timeline range |
+| `Shift+Delete` or `Shift+Backspace` | Ripple delete the marked timeline range |
 | `Ctrl+D` | Duplicate the selected clips |
 | `,` / `.` | Nudge selected clips one frame earlier / later |
 | `Q` / `W` | Trim the start / end to the playhead |
