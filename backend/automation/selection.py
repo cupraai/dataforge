@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from filesystem import normalize_user_path
+from path_resolve import resolve_path
 
 MediaOrder = Literal["mtime", "name"]
 
@@ -53,7 +54,7 @@ def resolve_selected_media(folder: Path, paths: list[str] | None) -> list[Path] 
     if not paths:
         raise ValueError("Select at least one file")
 
-    folder_resolved = folder.expanduser().resolve()
+    folder_resolved = resolve_path(folder.expanduser())
     resolved: list[Path] = []
 
     for raw in paths:
@@ -73,8 +74,10 @@ def filter_media_list(media_files: list[Path], selected: list[Path] | None) -> l
     if selected is None:
         return media_files
 
-    selected_set = {path.resolve() for path in selected}
-    filtered = [media_path for media_path in media_files if media_path.resolve() in selected_set]
+    selected_set = {resolve_path(path) for path in selected}
+    filtered = [
+        media_path for media_path in media_files if resolve_path(media_path) in selected_set
+    ]
     if not filtered:
         raise ValueError("No matching media files found for the selection")
     return filtered

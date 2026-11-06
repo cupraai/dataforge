@@ -23,6 +23,7 @@ from folder_fingerprint import (
 from folder_note import read_folder_note
 from folder_scan import scan_folder
 from media_listing import list_media_from_scan, media_items_named
+from path_resolve import resolve_path
 from schemas import (
     FolderChangesResponse,
     FolderResponse,
@@ -53,7 +54,7 @@ def build_folder_response(folder: Path, *, remember_last: bool = True) -> Folder
         _remember_last_folder(folder)
 
     parent = folder.parent
-    parent_path = None if parent == folder else str(parent.resolve())
+    parent_path = None if parent == folder else str(resolve_path(parent))
 
     scan = scan_folder(folder)
     if scan is None:

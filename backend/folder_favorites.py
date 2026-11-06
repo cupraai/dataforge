@@ -8,6 +8,7 @@ from filesystem import (
     normalize_user_path,
     resolve_folder,
 )
+from path_resolve import resolve_path
 
 FOLDER_FAVORITES_KEY = "folder_favorites"
 
@@ -63,7 +64,7 @@ def list_folder_favorites() -> list[dict[str, str]]:
         if not folder.is_dir():
             continue
 
-        resolved = folder.resolve()
+        resolved = resolve_path(folder)
         name = "Home" if resolved == home else folder_display_name(resolved)
         entries.append({"path": str(resolved), "name": name})
 

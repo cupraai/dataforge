@@ -87,7 +87,7 @@ Before finishing code changes, run the checks:
 <python> scripts/run_checks.py --fix
 ```
 
-This generates API files, then runs formatting, lint, type checks, the comment, theme, and transition checks, and the backend and frontend tests. Backend tools include Ruff and ty; frontend tools include oxlint, Prettier, TypeScript, and Vitest. Tool configuration and pins live in each project's manifest. See [AGENTS.md](../AGENTS.md) for verification requirements; documentation-only changes need a content and diff review instead.
+This generates API files, then runs formatting, lint, type checks, the comment, theme, and transition checks, and the backend and frontend tests. Backend tools include Ruff and ty; off Linux, ty runs a second time for Linux, the platform CI checks on. Frontend tools include oxlint, Prettier, TypeScript, and Vitest. Tool configuration and pins live in each project's manifest. See [AGENTS.md](../AGENTS.md) for verification requirements; documentation-only changes need a content and diff review instead.
 
 | Option | Effect |
 | --- | --- |

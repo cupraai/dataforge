@@ -16,6 +16,7 @@ from media_rename import (
     check_rename_conflicts,
     rename_media_group,
 )
+from path_resolve import resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def _validate_target_names(
                 "Try again when it finishes."
             )
         for related in media_group_paths(media_path):
-            moving_sources.add(related.resolve())
+            moving_sources.add(resolve_path(related))
 
     for index, media_path in enumerate(media_files, start=start_number):
         target_media = folder / build_target_name(stem, index, padding, media_path.suffix.lower())

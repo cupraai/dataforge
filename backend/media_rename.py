@@ -17,6 +17,7 @@ from file_write import retry_while_locked
 from filesystem import sanitize_entry_name
 from media_claims import claim
 from media_group import group_target, media_group_paths, shared_stem_paths
+from path_resolve import resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def rename_media_group(source_media: Path, target_media: Path) -> None:
 def _check_target_conflict(target_path: Path, moving_sources: set[Path]) -> None:
     if not target_path.exists():
         return
-    if target_path.resolve() in moving_sources:
+    if resolve_path(target_path) in moving_sources:
         return
     raise ValueError(f'Cannot rename files: "{target_path.name}" already exists in this folder.')
 
@@ -120,7 +121,7 @@ def rename_media_file(source: Path, stem: str) -> dict[str, str]:
     try:
         # A render or accept still running would write back under the old name afterwards.
         with claim([*group, target], "rename"):
-            check_rename_conflicts(source, target, {path.resolve() for path in group})
+            check_rename_conflicts(source, target, {resolve_path(path) for path in group})
             if os.path.normcase(target) == os.path.normcase(source):
                 _rename_by_case_only(source, target)
             else:

@@ -15,6 +15,7 @@ from file_trash import delete_empty_dir
 from file_write import retry_while_locked
 from folder_scan import scan_folder
 from media_listing import summarize_folder_contents
+from path_resolve import resolve_path
 from schemas import FolderRoot
 from windows_drives import list_windows_drives
 
@@ -72,7 +73,7 @@ def normalize_user_path(path: str) -> Path:
         if drive_root:
             return Path(f"{drive_root.group(1).upper()}\\")
 
-    return Path(text).expanduser().resolve()
+    return resolve_path(Path(text).expanduser())
 
 
 def path_leaf_name(path: str | Path) -> str:
@@ -104,7 +105,7 @@ def preference_folder_key(path: str) -> str:
         win = PureWindowsPath(text)
         if os.name == "nt":
             try:
-                return str(Path(str(win)).expanduser().resolve())
+                return str(resolve_path(Path(str(win)).expanduser()))
             except OSError:
                 pass
         return str(win)
@@ -130,11 +131,11 @@ def resolve_folder(path: str) -> Path:
         raise folder_not_found()
     if not folder.is_dir():
         raise HTTPException(status_code=400, detail="Path is not a directory")
-    return folder.resolve()
+    return resolve_path(folder)
 
 
 def build_breadcrumbs(folder: Path) -> list[dict[str, str]]:
-    folder = folder.resolve()
+    folder = resolve_path(folder)
     chain: list[Path] = []
     current = folder
     while True:
@@ -196,7 +197,7 @@ def create_subfolder(parent: Path, name: str) -> dict[str, str | int]:
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Failed to create folder: {exc}") from exc
 
-    return _subfolder_with_stats(destination.resolve())
+    return _subfolder_with_stats(resolve_path(destination))
 
 
 def _empty_folder_parent(folder: Path, action: str) -> Path:
@@ -328,6 +329,6 @@ def resolve_initial_folder(path: str | None) -> Path:
         except OSError:
             saved_path = None
         if saved_path is not None and saved_path.is_dir():
-            return saved_path.resolve()
+            return resolve_path(saved_path)
 
     return get_home_folder()

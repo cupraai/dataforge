@@ -15,6 +15,11 @@ version heading when a minor or major version is cut.
   in, and skips empty card readers and disconnected network drives. A folder on an unplugged
   drive says the drive is not connected and opens again once it is back.
 
+### Fixed
+
+- Folders on a mapped network drive or a `subst` drive keep their drive letter in the path bar
+  and address bar, instead of switching to the share or folder the drive points at.
+
 ### Changed
 
 - Model cards show what each file is (checkpoint, diffusion model, LoRA, ControlNet, text

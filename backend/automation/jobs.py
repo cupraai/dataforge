@@ -85,6 +85,7 @@ from automation.watermark import (
 )
 from external.ostris_training import DEFAULT_TRAINING_MODEL
 from filesystem import normalize_user_path, path_leaf_name
+from path_resolve import resolve_path
 from revisions import next_revision
 from schemas import JobEvent, JobHistoryStatus, JobsRemovedEvent, JobStatus, JobType
 
@@ -581,7 +582,7 @@ class JobManager:
     def queue_job(self, job_type: JobType, folder: Path, **params: object) -> Job:
         """Queue a job of ``job_type``; ``params`` are forwarded to its runner."""
         spec = JOB_SPECS[job_type]
-        folder = folder.expanduser().resolve()
+        folder = resolve_path(folder.expanduser())
         spec.validate(folder, **params)
 
         job, cancel_event = self._register_job(folder, job_type, params)

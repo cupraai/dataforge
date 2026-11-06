@@ -25,6 +25,7 @@ from media_group import (
     stem_keyed_paths,
     stem_siblings,
 )
+from path_resolve import resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def colliding_sidecars(source: Path, destination_media: Path) -> list[Path]:
 
 
 def preview_media_transfer(destination: Path, source_paths: list[Path]) -> dict[str, list[str]]:
-    destination = destination.resolve()
+    destination = resolve_path(destination)
     existing_names = _existing_file_names(destination)
 
     eligible: list[str] = []
@@ -53,8 +54,8 @@ def preview_media_transfer(destination: Path, source_paths: list[Path]) -> dict[
     skipped: list[str] = []
 
     for source in source_paths:
-        source = source.resolve()
-        if source.parent.resolve() == destination:
+        source = resolve_path(source)
+        if resolve_path(source.parent) == destination:
             skipped.append(str(source))
             continue
 
@@ -166,8 +167,8 @@ def transfer_media_with_sidecars(
     mode: TransferMode,
     overwrite: bool = False,
 ) -> dict[str, object]:
-    source = source.resolve()
-    destination_folder = destination_folder.resolve()
+    source = resolve_path(source)
+    destination_folder = resolve_path(destination_folder)
     destination_media = destination_folder / source.name
 
     # The destination too: an overwrite must not land under a render publishing there.
@@ -278,7 +279,7 @@ def transfer_media_batch(
     failed: list[dict[str, str]] = []
 
     for source in source_paths:
-        source = source.resolve()
+        source = resolve_path(source)
         if source.name not in allowed_names:
             continue
 
