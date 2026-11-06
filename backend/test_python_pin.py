@@ -85,6 +85,14 @@ class PythonConfigurationPinTests(unittest.TestCase):
                 self.assertEqual(setup[0]["with"]["python-version-file"], ".python-version")
                 self.assertNotIn("python-version", setup[0]["with"])
 
+    def test_every_ci_job_runs_on_a_pinned_ubuntu_release(self) -> None:
+        # setup-python publishes each patch release only for the Ubuntu releases current
+        # at the time, so a floating `-latest` runner can outgrow the pinned interpreter.
+        workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())
+        for name, job in workflow["jobs"].items():
+            with self.subTest(job=name):
+                self.assertRegex(job["runs-on"], r"^ubuntu-\d+\.\d+$")
+
     def test_project_metadata_and_tools_match_the_shared_python_pin(self) -> None:
         pinned = (ROOT / ".python-version").read_text().strip()
         self.assertRegex(pinned, r"^3\.13\.\d+$")
