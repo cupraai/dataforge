@@ -40,6 +40,9 @@ type CaptionReadError = Literal["encoding", "access"]
 #: ``model`` is a weights file: listed and inspected, never captioned or shown as media.
 type MediaType = Literal["image", "video", "gif", "audio", "model"]
 
+#: Where a folder tree starts: ``home``, the POSIX ``root``, or a Windows drive by its type.
+type FolderRootKind = Literal["home", "root", "fixed", "removable", "network", "optical", "ram"]
+
 #: What a model file is for, read from its tensor names. An adapter is named by how it is factored:
 #: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard). A checkpoint bundles a VAE or text encoder.
 type ModelKind = Literal[
@@ -1314,6 +1317,10 @@ class OstrisTrainingSamplesResponse(BaseModel):
 class FolderRoot(BaseModel):
     name: str
     path: str
+    #: ``home`` is the home folder and ``root`` the POSIX root; the rest are drive types.
+    kind: FolderRootKind
+    #: A drive's volume label, or a network drive's share; absent when there is none.
+    label: str | None = None
 
 
 class FolderRootsResponse(BaseModel):

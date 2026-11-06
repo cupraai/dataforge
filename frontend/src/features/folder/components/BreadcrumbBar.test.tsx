@@ -1,7 +1,10 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
+import type { FolderRoot } from "@/shared/types";
+import * as foldersApi from "@/features/folder/api/folders";
+import { folderKeys } from "@/features/folder/lib/folderQuery";
 import { homeFolder, vacationFolder } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { BreadcrumbBar } from "./BreadcrumbBar";
@@ -19,6 +22,13 @@ function renderBar(props: Partial<BarProps> = {}) {
       {...props}
     />,
   );
+}
+
+function stubRoots(...drives: FolderRoot[]) {
+  vi.spyOn(foldersApi, "fetchFolderRoots").mockResolvedValue({
+    home: homeFolder.path,
+    roots: [{ name: "Home", path: homeFolder.path, kind: "home" }, ...drives],
+  });
 }
 
 describe("BreadcrumbBar", () => {
@@ -187,5 +197,76 @@ describe("BreadcrumbBar", () => {
     await user.click(screen.getByRole("button", { name: "Subfolders of Ghost" }));
 
     expect(await screen.findByText("Folder not found")).toBeInTheDocument();
+  });
+
+  it("switches to another drive from the drive menu", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn<(path: string) => void>();
+    installMockBackend();
+    stubRoots(
+      { name: "C:\\", path: "C:\\", kind: "fixed" },
+      { name: "E:\\", path: "E:\\", kind: "removable", label: "USB STICK" },
+    );
+
+    renderBar({ onNavigate });
+
+    await user.click(await screen.findByRole("button", { name: "Switch drive" }));
+
+    expect(await screen.findByRole("menuitem", { name: "C:" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    // Home is a folder, not a drive.
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+
+    const usb = screen.getByRole("menuitem", { name: "E: USB STICK" });
+    expect(usb.querySelector(".lucide-usb")).not.toBeNull();
+    await user.click(usb);
+
+    expect(onNavigate).toHaveBeenCalledWith("E:\\");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("keeps the drive menu while the open folder's drive is unplugged", async () => {
+    const user = userEvent.setup();
+    installMockBackend();
+    stubRoots({ name: "C:\\", path: "C:\\", kind: "fixed" });
+
+    renderBar({
+      breadcrumbs: [
+        { name: "E:", path: "E:\\" },
+        { name: "Photos", path: "E:\\Photos" },
+      ],
+      currentFolder: "E:\\Photos",
+      folderNotFound: true,
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Switch drive" }));
+
+    const menuItem = await screen.findByRole("menuitem", { name: "C:" });
+    expect(menuItem).not.toHaveAttribute("aria-current");
+  });
+
+  it("offers no drive menu on a machine with one drive", async () => {
+    installMockBackend();
+
+    const { client } = renderBar();
+
+    // The mock backend lists Home and C: only.
+    await waitFor(() => expect(client.getQueryData(folderKeys.roots)).toBeDefined());
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "Switch drive" })).not.toBeInTheDocument();
+  });
+
+  it("offers no drive menu for a path without a drive letter", () => {
+    renderBar({
+      breadcrumbs: [
+        { name: "home", path: "/home" },
+        { name: "photos", path: "/home/photos" },
+      ],
+      currentFolder: "/home/photos",
+    });
+
+    expect(screen.queryByRole("button", { name: "Switch drive" })).not.toBeInTheDocument();
   });
 });

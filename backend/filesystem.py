@@ -1,6 +1,5 @@
 import os
 import re
-import string
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -16,6 +15,8 @@ from file_trash import delete_empty_dir
 from file_write import retry_while_locked
 from folder_scan import scan_folder
 from media_listing import summarize_folder_contents
+from schemas import FolderRoot
+from windows_drives import list_windows_drives
 
 _INVALID_FOLDER_NAME_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _WINDOWS_DRIVE_ROOT = re.compile(r"^([A-Za-z]:)[\\/]*$")
@@ -35,16 +36,16 @@ def get_home_folder() -> Path:
     return Path.home().resolve()
 
 
-def list_folder_roots() -> list[dict[str, str]]:
-    roots: list[dict[str, str]] = [{"name": "Home", "path": str(get_home_folder())}]
+def list_folder_roots() -> list[FolderRoot]:
+    roots = [FolderRoot(name="Home", path=str(get_home_folder()), kind="home")]
 
     if os.name == "nt":
-        for letter in string.ascii_uppercase:
-            drive = f"{letter}:\\"
-            if Path(drive).exists():
-                roots.append({"name": drive, "path": drive})
+        roots.extend(
+            FolderRoot(name=drive.root, path=drive.root, kind=drive.kind, label=drive.label)
+            for drive in list_windows_drives()
+        )
     else:
-        roots.append({"name": "/", "path": "/"})
+        roots.append(FolderRoot(name="/", path="/", kind="root"))
 
     return roots
 

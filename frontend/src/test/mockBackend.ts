@@ -384,8 +384,8 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       return jsonResponse({
         home: homeFolder.home,
         roots: [
-          { name: "Home", path: homeFolder.home },
-          { name: "C:\\", path: "C:\\" },
+          { name: "Home", path: homeFolder.home, kind: "home" },
+          { name: "C:\\", path: "C:\\", kind: "fixed" },
         ],
       });
     }

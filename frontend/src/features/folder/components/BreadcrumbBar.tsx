@@ -1,12 +1,14 @@
 import { useCallback, useState } from "react";
 import { openFolderInExplorer } from "@/features/folder/api/folders";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
+import { driveRootOf } from "@/features/folder/lib/drives";
 import { formatApiError } from "@/shared/api/http";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { iconArrowUpRight, iconCheck, iconCopy, iconLoader2, iconX } from "@/shared/icons";
 import type { Breadcrumb } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { BreadcrumbCrumbMenu } from "./BreadcrumbCrumbMenu";
+import { BreadcrumbDriveMenu } from "./BreadcrumbDriveMenu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
@@ -56,8 +58,11 @@ export function BreadcrumbBar({
 
   if (breadcrumbs.length === 0) return null;
 
+  const currentDrive = driveRootOf(currentFolder);
+
   return (
     <nav className="breadcrumbs" aria-label="Folder path">
+      {currentDrive && <BreadcrumbDriveMenu currentDrive={currentDrive} onNavigate={onNavigate} />}
       <ol className="breadcrumbs__list">
         {breadcrumbs.map((crumb, index) => {
           const isLast = index === breadcrumbs.length - 1;

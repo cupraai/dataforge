@@ -206,7 +206,9 @@ export function AppFolderContent({
                 </section>
               )}
 
-              {error?.kind === "folder-not-found" && <FolderErrorState error={error} />}
+              {error?.kind === "folder-not-found" && (
+                <FolderErrorState error={error} folderPath={folder?.path} />
+              )}
             </div>
 
             {fileDrop.enabled && (

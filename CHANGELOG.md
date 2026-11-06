@@ -8,6 +8,13 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Added
+
+- On Windows, a drive button at the start of the folder path switches to another drive. It
+  shows each drive's label and type, picks up a USB stick or card within seconds of plugging it
+  in, and skips empty card readers and disconnected network drives. A folder on an unplugged
+  drive says the drive is not connected and opens again once it is back.
+
 ### Changed
 
 - Model cards show what each file is (checkpoint, diffusion model, LoRA, ControlNet, text

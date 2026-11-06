@@ -77,7 +77,8 @@ describe("App: quick action bar", () => {
       await selectHomeAction(user, palette);
 
       await waitForHomeFolder();
-      expect(roots).toHaveBeenCalledOnce();
+      // The path bar's drive query, mounted once Home shows, reads roots too, always with a signal.
+      expect(roots.mock.calls.filter(([signal]) => signal === undefined)).toHaveLength(1);
       expect(new URLSearchParams(window.location.search).get("path")).toBe(HOME_PATH);
     },
   );
