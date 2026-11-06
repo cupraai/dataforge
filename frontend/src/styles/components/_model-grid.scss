@@ -1,6 +1,13 @@
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
+// A model file's kind, in the workflow map's hue; the inspector's tile and badge read it too.
+@each $tone, $color in $map-tones {
+  .model-tone--#{$tone} {
+    --model-tone: #{$color};
+  }
+}
+
 // The Models section: cards drawn like the folder cards above it.
 .model-grid {
   display: grid;
@@ -63,7 +70,13 @@
     font-weight: var(--font-semibold);
   }
 
-  // The folder card's tile; a preview image fills it instead of the icon.
+  &__tip-kind {
+    @include section-label;
+    color: var(--model-tone);
+    font-size: var(--text-2xs);
+  }
+
+  // The folder card's tile, in the kind's hue.
   &__tile {
     display: inline-flex;
     flex-shrink: 0;
@@ -71,16 +84,9 @@
     justify-content: center;
     width: 2.25rem;
     height: 2.25rem;
-    overflow: hidden;
     border-radius: var(--radius-sm);
-    background: var(--accent-soft);
-    color: var(--accent);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    background: color-mix(in srgb, var(--model-tone) 16%, transparent);
+    color: var(--model-tone);
   }
 
   &__icon {
@@ -117,7 +123,7 @@
     border-color: var(--text);
   }
 
-  // Paints above the preview tile, which would otherwise cover the inner pixel of an outline.
+  // Drawn over the 1px border, so the 2px outline does not move the card's content.
   &::after {
     content: "";
     position: absolute;

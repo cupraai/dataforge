@@ -16,8 +16,7 @@ import { AudioWaveform } from "./AudioWaveform";
 
 const PREVIEW_PLAYBACK_RATE = 2;
 
-type MediaItem = Pick<GalleryItem, "path" | "modified_at" | "size" | "media_type" | "name"> &
-  Partial<Pick<GalleryItem, "preview">>;
+type MediaItem = Pick<GalleryItem, "path" | "modified_at" | "size" | "media_type" | "name">;
 
 const PLACEHOLDER_ICONS: Record<GalleryItem["media_type"], AppIcon> = {
   image: iconImage,

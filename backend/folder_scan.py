@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,7 +12,6 @@ from constants import (
     GIF_EXTENSION,
     IMAGE_EXTENSIONS,
     MODEL_EXTENSIONS,
-    MODEL_PREVIEW_SUFFIXES,
     NOTE_FILENAME,
     SKIP_DIR_NAMES,
     STAGING_DIR_NAME,
@@ -67,15 +65,6 @@ def get_media_type(path: Path) -> str | None:
 
 def is_model_path(path: Path) -> bool:
     return path.suffix.lower() in MODEL_EXTENSIONS
-
-
-def model_preview_name(model: Path, exists: Callable[[str], bool]) -> str | None:
-    """The same-stem image that stands in for a model's thumbnail, if there is one."""
-    for suffix in MODEL_PREVIEW_SUFFIXES:
-        name = f"{model.stem}{suffix}"
-        if exists(name):
-            return name
-    return None
 
 
 def is_listable_dir_name(name: str) -> bool:

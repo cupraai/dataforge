@@ -336,7 +336,6 @@ def get_or_create_thumbnail(source: Path, width: int) -> Path:
     if suffix not in GALLERY_EXTENSIONS:
         raise ThumbnailError("Unsupported media type for thumbnails")
     if suffix in MODEL_EXTENSIONS:
-        # The card shows the model's preview image by that image's own path.
         raise ThumbnailUnavailableError("Model files have no thumbnail")
 
     cached = thumbnail_cache_path(source, normalized_width)

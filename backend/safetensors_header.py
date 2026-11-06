@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import struct
 from collections import Counter
 from dataclasses import dataclass, field
@@ -22,12 +23,16 @@ from typing import BinaryIO, Literal
 
 from caption_cache import cached_by_stat
 from constants import SAFETENSORS_MAX_HEADER_BYTES
-from schemas import AdapterKind
+from schemas import ModelKind
 
 __all__ = ["ModelInfo", "SafetensorsHeaderError", "model_info", "read_model_info"]
 
 _NAMESPACE = "safetensors-header"
 _METADATA_KEY = "__metadata__"
+
+# How an adapter is factored: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard).
+type AdapterKind = Literal["lora", "lokr", "loha"]
+
 # Adapter layouts, told apart by tensor names: ``{suffix: (adapter, measure, shape axis)}``.
 # LoRA's down projection is ``(rank, in)``. LyCORIS LoKr's small Kronecker half ``lokr_w1`` (or its
 # low-rank ``lokr_w1_a``) leads with the factor, ``(factor, factor)`` when it divides the layer; the
@@ -41,6 +46,38 @@ _ADAPTER_TENSORS: dict[str, tuple[AdapterKind, Literal["rank", "factor"], int]] 
     ".lokr_w2_a": ("lokr", "rank", 1),
     ".hada_w1_a": ("loha", "rank", 1),
 }
+# What a file is for, told apart by tensor names since few files record it. Checked in this order:
+# an LLM text encoder may carry a vision tower, and a VAE's decoder may be timestep-conditioned.
+# Measured on a local ComfyUI models folder: every file in a typed subfolder lands in its type.
+# A checkpoint's diffusion weights sit under `model.diffusion_model.`; a bundled VAE or text encoder
+# under one of the other roots. A textual-inversion embedding holds only its vectors.
+_DIFFUSION_PREFIX = "model.diffusion_model."
+_BUNDLED_PREFIXES = (
+    "first_stage_model.",
+    "vae.",
+    "audio_vae.",
+    "cond_stage_model.",
+    "conditioner.",
+    "text_encoders.",
+)
+_EMBEDDING = re.compile(r"emb_params|clip_[lg]|t5|string_to_(param|token)(\..*)?")
+_CONTROLNET = re.compile(r"^control_|^controlnet_|\.controlnet_|input_hint_block")
+# CLIP's text tower, T5's attention, and the token embedding or post-attention norm of an LLM.
+_TEXT_ENCODER = re.compile(
+    r"^text_model\.|\.SelfAttention\.|embed_tokens|word_embeddings|post_attention_layernorm"
+    r"|^text_embedding_projection\."
+)
+_VISION_ROOTS = {"vision_model", "visual", "vision_tower"}
+_VAE_WRAPPERS = re.compile(r"^(first_stage_model|vae|audio_vae)\.")
+# A denoiser is conditioned on the timestep, usually through adaptive-norm modulation.
+_TIMESTEP = re.compile(
+    r"time|adaln|modulation|scale_shift_table|^tmlp\.|\.ada\.|^emb_in\.", re.IGNORECASE
+)
+# ESRGAN and the transformer upscalers after it open with `conv_first`; old ESRGAN with `model.0`.
+_UPSCALER = re.compile(r"^conv_first\.|^model\.1\.sub\.")
+_PEFT_ADAPTER_NAME = ".default."
+# A weight-difference patch, which ComfyUI loads as a LoRA: `<layer>.diff` and `<layer>.diff_b`.
+_DIFF_SUFFIXES = (".diff", ".diff_b")
 _QUANT_RECORD_SUFFIX = ".comfy_quant"
 # A record is a short JSON object; anything larger is not one and is never read.
 _MAX_QUANT_RECORD_BYTES = 4096
@@ -76,7 +113,7 @@ class ModelInfo:
     precision: str | None = None
     architecture: str | None = None
     title: str | None = None
-    adapter: AdapterKind | None = None
+    kind: ModelKind | None = None
     rank: int | None = None
     factor: int | None = None
     alpha: float | None = None
@@ -248,9 +285,41 @@ def _parameters(tensor: object) -> int | None:
 
 
 def _adapter_layout(name: str) -> tuple[AdapterKind, Literal["rank", "factor"], int] | None:
+    # PEFT names the adapter inside the key: `lora_A.default.weight`.
+    name = name.replace(_PEFT_ADAPTER_NAME, ".")
     return next(
         (layout for suffix, layout in _ADAPTER_TENSORS.items() if name.endswith(suffix)), None
     )
+
+
+def _model_kind(names: list[str], adapter: AdapterKind | None) -> ModelKind | None:
+    """``None`` when the tensor names match no known layout."""
+    if adapter is not None:
+        return adapter
+    if not names:
+        return None
+    if all(_EMBEDDING.fullmatch(name) for name in names):
+        return "embedding"
+    if any(name.endswith(_DIFF_SUFFIXES) for name in names):
+        return "lora"
+    if any(name.startswith(_DIFFUSION_PREFIX) for name in names):
+        bundled = any(name.startswith(_BUNDLED_PREFIXES) for name in names)
+        return "checkpoint" if bundled else "diffusion"
+    if any(_CONTROLNET.search(name) for name in names):
+        return "controlnet"
+    denoiser = any(_TIMESTEP.search(name) for name in names)
+    # A denoiser built around an LLM still takes a timestep; a text encoder never does.
+    if not denoiser and any(_TEXT_ENCODER.search(name) for name in names):
+        return "text_encoder"
+    if any(name.split(".", 1)[0] in _VISION_ROOTS for name in names):
+        return "vision_encoder"
+    if any(_VAE_WRAPPERS.sub("", name).startswith("decoder.") for name in names):
+        return "vae"
+    if denoiser:
+        return "diffusion"
+    if any(_UPSCALER.search(name) for name in names):
+        return "upscaler"
+    return None
 
 
 def _most_common(counts: Counter[int]) -> int | None:
@@ -272,6 +341,7 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
     factors: Counter[int] = Counter()
     tensor_count = 0
     parameter_count = 0
+    names = [name for name in header if name != _METADATA_KEY]
     for name, tensor in header.items():
         if name == _METADATA_KEY:
             continue
@@ -304,7 +374,7 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
         title=_text(metadata.get("modelspec.title"))
         or _text(metadata.get("name"))
         or _text(metadata.get("ss_output_name")),
-        adapter=adapters.most_common(1)[0][0] if adapters else None,
+        kind=_model_kind(names, adapters.most_common(1)[0][0] if adapters else None),
         rank=_most_common(ranks),
         factor=_most_common(factors),
         alpha=_number(metadata.get("ss_network_alpha")),

@@ -31,7 +31,7 @@ function info(path: string): ModelInfoResponse {
     tensor_count: 2,
     parameter_count: 1024,
     precision: "BF16",
-    adapter: "lora",
+    kind: "lora",
     rank: 16,
     trigger_words: [],
   };
@@ -51,6 +51,29 @@ describe("model files", () => {
     const media = screen.getByRole("region", { name: "Media" });
     expect(within(media).getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
     expect(within(media).queryByText(/\.safetensors$/)).not.toBeInTheDocument();
+  });
+
+  it("show what each file is for in the workflow map's hues", async () => {
+    const folder: FolderResponse = {
+      ...homeFolder,
+      items: [
+        { ...model("subject.safetensors"), model_kind: "lokr" },
+        { ...model("ae.safetensors"), model_kind: "vae" },
+        model("unknown.safetensors"),
+      ],
+    };
+    installMockBackend({ folderByPath: { undefined: folder, [HOME_PATH]: folder } });
+    renderApp();
+
+    const models = await screen.findByRole("region", { name: "Models" });
+    const card = (name: string) =>
+      within(models).getByRole("button", { name: `Open the model ${name}` });
+    expect(card("subject.safetensors")).toHaveClass("model-tone--loras");
+    expect(card("subject.safetensors")).toHaveTextContent(/LoKr · 150 MB/);
+    expect(card("ae.safetensors")).toHaveClass("model-tone--vae");
+    expect(card("ae.safetensors")).toHaveTextContent(/VAE · /);
+    expect(card("unknown.safetensors")).toHaveClass("model-tone--accent");
+    expect(card("unknown.safetensors")).toHaveTextContent(/Weights · /);
   });
 
   it("follow the toolbar's search and sort", async () => {

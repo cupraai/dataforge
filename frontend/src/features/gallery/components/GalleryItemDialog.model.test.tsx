@@ -48,7 +48,7 @@ const INFO: ModelInfoResponse = {
   precision: "BF16",
   architecture: "qwen_image",
   title: "subject_lora",
-  adapter: "lora",
+  kind: "lora",
   rank: 16,
   alpha: null,
   step: 1500,
@@ -144,20 +144,16 @@ describe("GalleryItemDialog for a model file", () => {
     });
   });
 
-  it("shows the preview image when the folder has one", async () => {
-    fetchModelInfoMock.mockResolvedValue(INFO);
-    const preview = {
-      path: `${HOME_PATH}\\subject_000001500.preview.png`,
-      modified_at: "2026-03-15T14:30:00.000Z",
-      size: 2048,
-    };
+  it("draws the listed kind before the header is read", async () => {
+    fetchModelInfoMock.mockReturnValue(new Promise(() => {}));
 
-    renderDialog(modelItem({ preview }));
+    renderDialog(modelItem({ model_kind: "text_encoder" }));
 
-    const image = await screen.findByRole("img", {
-      name: "Preview of subject_000001500.safetensors",
+    const facts = await screen.findByRole("group", {
+      name: "Model details for subject_000001500.safetensors",
     });
-    expect(image.getAttribute("src")).toContain(encodeURIComponent(preview.path));
+    // The workflow map's CLIP hue.
+    expect(facts).toHaveClass("model-tone--clip");
   });
 
   it("says why when the header cannot be read", async () => {

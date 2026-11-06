@@ -358,19 +358,18 @@ class ScanBackedListingTests(unittest.TestCase):
             self.assertEqual(model["size"], (root / "subject.safetensors").stat().st_size)
             self.assertEqual(by_name["subject.png"]["description"], "A caption for the image.")
 
-    def test_a_model_preview_prefers_the_preview_png(self) -> None:
+    def test_a_model_is_listed_with_its_kind(self) -> None:
+        lora = {"blocks.0.attn.lora_A.weight": ("BF16", [16, 64])}
         with TempMediaFolder() as root:
-            write_safetensors(root, "subject.safetensors")
-            write_safetensors(root, "bare.safetensors")
-            write_media(root, "subject.png")
-            write_media(root, "subject.preview.png")
+            write_safetensors(root, "subject.safetensors", lora)
+            write_safetensors(root, "unknown.safetensors")
+            (root / "broken.safetensors").write_bytes(bytes(8))
 
             by_name = {item["name"]: item for item in _listing(root)}
 
-            preview = by_name["subject.safetensors"]["preview"]
-            self.assertEqual(preview["path"], str(root / "subject.preview.png"))
-            self.assertEqual(preview["size"], (root / "subject.preview.png").stat().st_size)
-            self.assertIsNone(by_name["bare.safetensors"]["preview"])
+            self.assertEqual(by_name["subject.safetensors"]["model_kind"], "lora")
+            self.assertIsNone(by_name["unknown.safetensors"]["model_kind"])
+            self.assertIsNone(by_name["broken.safetensors"]["model_kind"])
 
     def test_folder_counts_leave_models_out_of_caption_coverage(self) -> None:
         clear_folder_summary_cache_for_tests()

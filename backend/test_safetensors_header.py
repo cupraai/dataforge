@@ -35,7 +35,7 @@ class ModelInfoTests(unittest.TestCase):
         self.assertEqual((info.step, info.epoch), (1500, 3))
         self.assertEqual(info.trigger_words, ["ohwx"])
         self.assertEqual(info.software, "ai-toolkit 0.7.0")
-        self.assertEqual((info.adapter, info.rank, info.factor), ("lora", 16, None))
+        self.assertEqual((info.kind, info.rank, info.factor), ("lora", 16, None))
         self.assertEqual(info.tensor_count, 5)
         self.assertEqual(info.parameter_count, 4 * 16 * 64 + 8 * 64)
         self.assertEqual(info.precision, "BF16")
@@ -78,9 +78,9 @@ class ModelInfoTests(unittest.TestCase):
             full_info = read_model_info(write_safetensors(root, "full.safetensors", full))
             low_rank_info = read_model_info(write_safetensors(root, "low.safetensors", low_rank))
 
-        self.assertEqual((full_info.adapter, full_info.factor, full_info.rank), ("lokr", 8, None))
+        self.assertEqual((full_info.kind, full_info.factor, full_info.rank), ("lokr", 8, None))
         self.assertEqual(
-            (low_rank_info.adapter, low_rank_info.factor, low_rank_info.rank), ("lokr", 4, 16)
+            (low_rank_info.kind, low_rank_info.factor, low_rank_info.rank), ("lokr", 4, 16)
         )
 
     def test_reads_loha_rank(self) -> None:
@@ -91,13 +91,24 @@ class ModelInfoTests(unittest.TestCase):
         with TempMediaFolder() as root:
             info = read_model_info(write_safetensors(root, tensors=tensors))
 
-        self.assertEqual((info.adapter, info.rank, info.factor), ("loha", 8, None))
+        self.assertEqual((info.kind, info.rank, info.factor), ("loha", 8, None))
+
+    def test_reads_the_rank_of_a_peft_lora(self) -> None:
+        # PEFT puts the adapter's name in the key, before `.weight`.
+        tensors = {
+            "blocks.0.attn.lora_A.default.weight": ("BF16", [16, 64]),
+            "blocks.0.attn.lora_B.default.weight": ("BF16", [64, 16]),
+        }
+        with TempMediaFolder() as root:
+            info = read_model_info(write_safetensors(root, tensors=tensors))
+
+        self.assertEqual((info.kind, info.rank), ("lora", 16))
 
     def test_full_weights_have_no_rank_or_metadata(self) -> None:
         with TempMediaFolder() as root:
             info = read_model_info(write_safetensors(root))
 
-        self.assertIsNone(info.adapter)
+        self.assertIsNone(info.kind)
         self.assertIsNone(info.rank)
         self.assertEqual(info.metadata, {})
         self.assertEqual(info.trigger_words, [])
@@ -134,6 +145,90 @@ class ModelInfoTests(unittest.TestCase):
             stat = path.stat()
 
             self.assertIsNone(model_info(path, stat.st_mtime_ns, stat.st_size))
+
+
+# Tensor names taken from real files of each kind; shapes do not matter to the kind.
+KIND_LAYOUTS: dict[str, tuple[str | None, list[str]]] = {
+    "single-file checkpoint": (
+        "checkpoint",
+        [
+            "model.diffusion_model.input_blocks.0.0.weight",
+            "first_stage_model.decoder.conv_in.weight",
+            "cond_stage_model.transformer.text_model.embeddings.token_embedding.weight",
+        ],
+    ),
+    "ComfyUI-prefixed diffusion model": (
+        "diffusion",
+        ["model.diffusion_model.double_blocks.0.img_attn.qkv.weight"],
+    ),
+    "bare DiT": ("diffusion", ["double_blocks.0.img_attn.qkv.weight", "time_in.in_layer.weight"]),
+    "diffusers transformer": (
+        "diffusion",
+        ["blocks.0.attn1.to_q.weight", "condition_embedder.time_embedder.linear_1.weight"],
+    ),
+    "denoiser built around an LLM": (
+        "diffusion",
+        [
+            "llm.embed_tokens.weight",
+            "llm.layers.0.post_attention_layernorm.weight",
+            "time_token.mlp.weight",
+        ],
+    ),
+    "ControlNet": (
+        "controlnet",
+        ["control_model.input_hint_block.0.weight", "control_model.time_embed.0.weight"],
+    ),
+    "diffusers ControlNet": (
+        "controlnet",
+        ["controlnet_cond_embedding.conv_in.weight", "time_embedding.linear_1.weight"],
+    ),
+    "textual inversion": ("embedding", ["emb_params"]),
+    "SDXL textual inversion": ("embedding", ["clip_l", "clip_g"]),
+    "CLIP text": (
+        "text_encoder",
+        ["text_model.encoder.layers.0.mlp.fc1.weight", "text_projection.weight"],
+    ),
+    # The decoder half of a full T5 must not read as a VAE's decoder.
+    "T5": (
+        "text_encoder",
+        [
+            "encoder.block.0.layer.0.SelfAttention.q.weight",
+            "decoder.block.0.layer.0.SelfAttention.q.weight",
+            "shared.weight",
+        ],
+    ),
+    "LLM with a vision tower": (
+        "text_encoder",
+        [
+            "model.embed_tokens.weight",
+            "model.layers.0.post_attention_layernorm.weight",
+            "visual.blocks.0.attn.qkv.weight",
+        ],
+    ),
+    "CLIP vision": ("vision_encoder", ["vision_model.encoder.layers.0.mlp.fc1.weight"]),
+    "VAE": ("vae", ["encoder.down.0.block.0.conv1.weight", "decoder.up.0.block.0.conv1.weight"]),
+    "timestep-conditioned VAE": (
+        "vae",
+        ["encoder.down_blocks.0.conv.weight", "decoder.timestep_scale_multiplier"],
+    ),
+    "audio VAE with its vocoder": (
+        "vae",
+        ["audio_vae.decoder.up.0.weight", "vocoder.vocoder.resblocks.0.weight"],
+    ),
+    "ESRGAN": ("upscaler", ["conv_first.weight", "body.0.rdb1.conv1.weight"]),
+    "weight-difference patch": ("lora", ["diffusion_model.txtfusion.projector.diff"]),
+    "unknown layout": (None, ["detector.backbone.trunk.weight"]),
+}
+
+
+class ModelKindTests(unittest.TestCase):
+    def test_tells_kinds_apart_by_tensor_names(self) -> None:
+        with TempMediaFolder() as root:
+            for layout, (kind, names) in KIND_LAYOUTS.items():
+                with self.subTest(layout=layout):
+                    tensors = {name: ("BF16", [2, 2]) for name in names}
+                    path = write_safetensors(root, tensors=tensors)
+                    self.assertEqual(read_model_info(path).kind, kind)
 
 
 def quantized_layer(name: str, dtype: str, record: dict[str, object]) -> dict:

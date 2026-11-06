@@ -6,14 +6,14 @@ import {
   modelFacts,
   modelStem,
 } from "@/features/gallery/lib/modelInfo";
-import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
+import { modelKindStyle } from "@/features/gallery/lib/modelKind";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
-import { iconCheck, iconCopy, iconModel } from "@/shared/icons";
+import { iconCheck, iconCopy } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
 import type { GalleryItem } from "@/shared/types";
 
-type ModelItem = Pick<GalleryItem, "path" | "name" | "modified_at" | "size" | "preview">;
+type ModelItem = Pick<GalleryItem, "path" | "name" | "modified_at" | "size" | "model_kind">;
 
 const SKELETON_FACTS = 4;
 
@@ -53,25 +53,19 @@ export function ModelInfoStage({ item }: { item: ModelItem }) {
   const state = useModelInfo(item);
   const info = state.status === "ready" ? state.info : null;
   const title = info?.title ?? modelStem(item.name);
+  // The listing already knows the kind, so the tile is drawn before the header is read.
+  const kind = modelKindStyle(info ? info.kind : item.model_kind);
 
   return (
     <div
-      className="model-overview"
+      className={classNames("model-overview", `model-tone--${kind.tone}`)}
       aria-label={`Model details for ${item.name}`}
       role="group"
       aria-busy={state.status === "loading" || undefined}
     >
       <div className="model-overview__hero">
-        <span className="model-overview__tile">
-          {item.preview ? (
-            <img
-              src={galleryItemMediaUrl(item.preview)}
-              alt={`Preview of ${item.name}`}
-              draggable={false}
-            />
-          ) : (
-            <Icon icon={iconModel} className="model-overview__tile-icon" />
-          )}
+        <span className="model-overview__tile" aria-hidden="true">
+          <Icon icon={kind.icon} className="model-overview__tile-icon" />
         </span>
         <div className="model-overview__heading">
           <p className="model-overview__title" title={title}>

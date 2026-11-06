@@ -1,5 +1,6 @@
 import { formatCount } from "@/shared/lib/format";
-import type { AdapterKind, ModelInfoResponse } from "@/shared/types";
+import { modelKindStyle } from "@/features/gallery/lib/modelKind";
+import type { ModelInfoResponse } from "@/shared/types";
 
 const PARAMETER_UNITS = [
   { size: 1e9, suffix: "B" },
@@ -18,11 +19,9 @@ export function formatParameterCount(count: number): string {
   return String(count);
 }
 
-const ADAPTER_LABELS: Record<AdapterKind, string> = { lora: "LoRA", lokr: "LoKr", loha: "LoHa" };
-
 /** Short badges for the header: what the file is, what it is for, and how it is stored. */
 export function modelBadges(info: ModelInfoResponse): string[] {
-  const badges = [info.adapter ? ADAPTER_LABELS[info.adapter] : "Weights"];
+  const badges = [modelKindStyle(info.kind).label];
   if (info.architecture) badges.push(info.architecture);
   if (info.precision) badges.push(info.precision);
   return badges;

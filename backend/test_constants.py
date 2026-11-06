@@ -14,7 +14,6 @@ from constants import (
     MEDIA_EXTENSIONS,
     MEDIA_MIME_TYPES,
     MODEL_EXTENSIONS,
-    MODEL_PREVIEW_SUFFIXES,
     MOTION_EXTENSIONS,
     PILLOW_EXTENSIONS,
     SHARED_CONSTANTS,
@@ -59,10 +58,6 @@ class MediaExtensionInvariantTests(unittest.TestCase):
     def test_models_are_listed_but_never_captioned_or_given_to_jobs(self) -> None:
         self.assertEqual(MODEL_EXTENSIONS & CAPTIONED_EXTENSIONS, set())
         self.assertEqual(GALLERY_EXTENSIONS, CAPTIONED_EXTENSIONS | MODEL_EXTENSIONS)
-
-    def test_every_model_preview_is_a_listed_image(self) -> None:
-        for suffix in MODEL_PREVIEW_SUFFIXES:
-            self.assertIn(suffix[suffix.rfind(".") :], IMAGE_EXTENSIONS)
 
     def test_pillow_and_motion_split_the_gif_between_them(self) -> None:
         self.assertEqual(PILLOW_EXTENSIONS, IMAGE_EXTENSIONS | {GIF_EXTENSION})

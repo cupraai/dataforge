@@ -22,10 +22,6 @@ CAPTIONED_EXTENSIONS = MEDIA_EXTENSIONS | AUDIO_EXTENSIONS
 # Listed, served and moved around.
 GALLERY_EXTENSIONS = CAPTIONED_EXTENSIONS | MODEL_EXTENSIONS
 
-# A same-stem image shown for a model, in the order looked for. `.preview.png` is the convention
-# of ComfyUI model managers; every entry must be a listable image.
-MODEL_PREVIEW_SUFFIXES = (".preview.png", ".png", ".jpg", ".jpeg", ".webp")
-
 # The safetensors library refuses longer headers; so does the header reader.
 SAFETENSORS_MAX_HEADER_BYTES = 100_000_000
 

@@ -40,8 +40,21 @@ type CaptionReadError = Literal["encoding", "access"]
 #: ``model`` is a weights file: listed and inspected, never captioned or shown as media.
 type MediaType = Literal["image", "video", "gif", "audio", "model"]
 
-#: How a model file's adapter is factored: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard).
-type AdapterKind = Literal["lora", "lokr", "loha"]
+#: What a model file is for, read from its tensor names. An adapter is named by how it is factored:
+#: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard). A checkpoint bundles a VAE or text encoder.
+type ModelKind = Literal[
+    "checkpoint",
+    "diffusion",
+    "lora",
+    "lokr",
+    "loha",
+    "controlnet",
+    "embedding",
+    "text_encoder",
+    "vision_encoder",
+    "vae",
+    "upscaler",
+]
 
 type WatermarkSizeName = Literal["small", "medium", "large"]
 #: Shared by the text and the PNG mark.
@@ -158,14 +171,6 @@ class MediaTag(BaseModel):
     confidence: float
 
 
-class ModelPreview(BaseModel):
-    """A same-stem image that stands in for a model file's thumbnail."""
-
-    path: str
-    modified_at: str
-    size: int
-
-
 class ModelInfoResponse(BaseModel):
     """What a safetensors header says, read without loading the weights."""
 
@@ -178,8 +183,8 @@ class ModelInfoResponse(BaseModel):
     precision: str | None = None
     architecture: str | None = None
     title: str | None = None
-    #: ``None`` for full weights, which are not an adapter.
-    adapter: AdapterKind | None = None
+    #: ``None`` when the tensor names match no known layout.
+    kind: ModelKind | None = None
     #: The most common low-rank width; ``None`` for full weights and a LoKr without a low-rank half.
     rank: int | None = None
     #: The most common LoKr Kronecker factor.
@@ -226,8 +231,8 @@ class GalleryItem(BaseModel):
     has_backup: bool = False
     #: Strongest first, above the confidence setting. Only favorite folders are tagged.
     tags: list[MediaTag] = Field(default_factory=list)
-    #: Models only: the image shown on the model's card.
-    preview: ModelPreview | None = None
+    #: Models only, read from the header; ``None`` for an unreadable header or unknown layout.
+    model_kind: ModelKind | None = None
 
 
 class DuplicateGroup(BaseModel):

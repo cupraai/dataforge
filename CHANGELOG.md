@@ -8,6 +8,12 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Changed
+
+- Model cards show what each file is (checkpoint, diffusion model, LoRA, ControlNet, text
+  encoder, VAE and more) in the ComfyUI workflow map's colors and icons, instead of a same-stem
+  preview image.
+
 ## 0.12.0 - 2026-11-06
 
 ### Added

@@ -21,7 +21,7 @@
     min-width: 0;
   }
 
-  // The folder card's accent tile, grown; a preview image fills it instead of the icon.
+  // The model card's tile, grown.
   &__tile {
     display: inline-flex;
     flex-shrink: 0;
@@ -29,16 +29,9 @@
     justify-content: center;
     width: 4.5rem;
     height: 4.5rem;
-    overflow: hidden;
     border-radius: var(--radius);
-    background: var(--accent-soft);
-    color: var(--accent);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    background: color-mix(in srgb, var(--model-tone) 16%, transparent);
+    color: var(--model-tone);
   }
 
   &__tile-icon {
@@ -70,7 +63,7 @@
     list-style: none;
   }
 
-  // The first badge says what the file is, so it carries the accent the tile does.
+  // The first badge says what the file is, so it carries the tile's hue.
   &__badge {
     @include text-pill(1.375rem, 1px);
     padding-inline: 0.5rem;
@@ -82,9 +75,9 @@
     font-weight: var(--font-semibold);
 
     &:first-child {
-      border-color: var(--accent-border);
-      background: var(--accent-soft);
-      color: var(--accent);
+      border-color: color-mix(in srgb, var(--model-tone) 40%, transparent);
+      background: color-mix(in srgb, var(--model-tone) 16%, transparent);
+      color: var(--model-tone);
     }
   }
 

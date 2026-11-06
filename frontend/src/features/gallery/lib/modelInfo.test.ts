@@ -33,12 +33,16 @@ describe("formatParameterCount", () => {
 
 describe("modelBadges", () => {
   it("names the kind, the architecture and the main precision", () => {
-    expect(modelBadges(info({ adapter: "lora", rank: 16, architecture: "qwen_image" }))).toEqual([
+    expect(modelBadges(info({ kind: "lora", rank: 16, architecture: "qwen_image" }))).toEqual([
       "LoRA",
       "qwen_image",
       "BF16",
     ]);
-    expect(modelBadges(info({ adapter: "lokr", factor: 8 }))).toEqual(["LoKr", "BF16"]);
+    expect(modelBadges(info({ kind: "lokr", factor: 8 }))).toEqual(["LoKr", "BF16"]);
+    expect(modelBadges(info({ kind: "text_encoder", precision: "INT8 ConvRot" }))).toEqual([
+      "Text encoder",
+      "INT8 ConvRot",
+    ]);
     expect(modelBadges(info({ precision: "INT8 ConvRot" }))).toEqual(["Weights", "INT8 ConvRot"]);
     expect(modelBadges(info({ precision: null }))).toEqual(["Weights"]);
   });
@@ -64,7 +68,7 @@ describe("modelFacts", () => {
   });
 
   it("shows a LoKr's factor beside its rank", () => {
-    const facts = modelFacts(info({ adapter: "lokr", factor: 8, rank: 16 }));
+    const facts = modelFacts(info({ kind: "lokr", factor: 8, rank: 16 }));
 
     expect(facts.map((fact) => [fact.label, fact.value]).slice(0, 2)).toEqual([
       ["Rank", "16"],

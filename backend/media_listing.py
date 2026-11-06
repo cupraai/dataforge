@@ -24,11 +24,11 @@ from folder_scan import (
     ScannedEntry,
     get_media_type,
     is_model_path,
-    model_preview_name,
     scan_folder,
 )
 from media_dimensions import media_info
 from media_tags import TagRow, folder_tag_rows, get_tag_min_confidence, listed_tags
+from safetensors_header import model_info
 
 _EMPTY_SUMMARY = {
     "file_count": 0,
@@ -156,10 +156,12 @@ def _iso_time(timestamp: float) -> str:
     return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
 
 
-def _build_model_item(scan: FolderScan, media: ScannedEntry) -> dict:
-    """No caption, finding or tag lookups: a same-stem caption belongs to the folder's media."""
-    preview_name = model_preview_name(media.path, lambda name: name in scan.files)
-    preview = None if preview_name is None else scan.files[preview_name]
+def _build_model_item(media: ScannedEntry) -> dict:
+    """No caption, finding or tag lookups: a same-stem caption belongs to the folder's media.
+
+    The kind reads the header, which is cached by stat and shared with the inspector's read.
+    """
+    info = model_info(media.path, media.mtime_ns, media.size)
     return {
         "name": media.name,
         "path": str(media.path),
@@ -171,15 +173,7 @@ def _build_model_item(scan: FolderScan, media: ScannedEntry) -> dict:
         "size": media.size,
         "created_at": None if media.birthtime is None else _iso_time(media.birthtime),
         "modified_at": _iso_time(media.mtime),
-        "preview": (
-            None
-            if preview is None
-            else {
-                "path": str(preview.path),
-                "modified_at": _iso_time(preview.mtime),
-                "size": preview.size,
-            }
-        ),
+        "model_kind": None if info is None else info.kind,
     }
 
 
@@ -187,7 +181,7 @@ def _build_media_item(
     scan: FolderScan, media: ScannedEntry, media_type: str, tags: _FolderTags
 ) -> dict:
     if media_type == "model":
-        return _build_model_item(scan, media)
+        return _build_model_item(media)
     sidecar = _caption_sidecar(scan, media)
     caption = (
         NO_CAPTION_FILE

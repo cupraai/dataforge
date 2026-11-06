@@ -309,14 +309,16 @@ Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's 
 
 `.safetensors` model files, such as LoRAs from a training run, are listed in their own **Models** section above the media. It follows the toolbar's search (by name) and sort; filters apply to media only.
 
+Each card says what the file is, read from its tensor names: checkpoint, diffusion model, LoRA (or LoKr, LoHa), ControlNet, embedding, text encoder, vision encoder, VAE, or upscaler. Cards take the colors and icons of the [workflow map](comfyui.md#inspect-embedded-workflows): purple for diffusion models and adapters, yellow for encoders, red for VAEs. A file whose layout is not recognized shows as **Weights**.
+
 Opening a model shows what its header records, without loading the weights:
 
-- architecture, adapter type (LoRA, LoKr, or LoHa) with its rank, LoKr factor, and alpha;
+- its kind, architecture, adapter rank, LoKr factor, and alpha;
 - training step and epoch, and trigger words;
 - parameter count and precision, including ComfyUI quantizations such as FP8 scaled, INT8 ConvRot, and NVFP4;
 - every metadata key.
 
-Models take no caption and no job. They can be copied, moved, renamed, and deleted, but not dropped into a folder to import. An image with the same stem, such as `<stem>.preview.png` or `<stem>.png`, is shown as the model's preview.
+Models take no caption and no job. They can be copied, moved, renamed, and deleted, but not dropped into a folder to import.
 
 ## Files DataForge creates
 
