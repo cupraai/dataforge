@@ -9,6 +9,7 @@ import {
   iconAiToolkit,
   iconBrain,
   iconComfyUi,
+  iconFolder,
   iconGauge,
   iconHardDrive,
   iconHistory,
@@ -56,6 +57,7 @@ import { GalleryCardSettings } from "./GalleryCardSettings";
 import { RememberedDataGroup } from "./RememberedDataGroup";
 import { SettingInput } from "./SettingInput";
 import { SettingsActionButton } from "./SettingsActionButton";
+import { SettingsCheckbox } from "./SettingsCheckbox";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsPageTabs } from "./SettingsPageTabs";
 import { StorageSection } from "./StorageSection";
@@ -128,7 +130,8 @@ const SECTIONS: Section[] = [
       {
         id: "gallery",
         label: "Gallery",
-        description: "How much of each caption the gallery shows, and what large cards list.",
+        description:
+          "How much of each caption the gallery shows, what cards list, and which folders.",
         groups: [],
       },
       {
@@ -382,8 +385,13 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const saving = save.isPending;
   const savedTheme = useThemePreference();
   const [theme, setTheme] = useState(savedTheme);
-  const { galleryCards: savedCards, editor: savedEditor } = useUiSettings();
+  const {
+    galleryCards: savedCards,
+    editor: savedEditor,
+    hideHiddenFolders: savedHideHidden,
+  } = useUiSettings();
   const [cards, setCards] = useState(savedCards);
+  const [hideHidden, setHideHidden] = useState(savedHideHidden);
   const [editor, setEditor] = useState(savedEditor);
   const updateUiSettings = useUpdateUiSettings();
   const [section, setSection] = useState<SectionId>("appearance");
@@ -399,6 +407,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
   const themeEdited = theme !== savedTheme;
   const cardsEdited = !sameCardOptions(cards, savedCards);
+  const hideHiddenEdited = hideHidden !== savedHideHidden;
   const editorEdited = !sameEditorOptions(editor, savedEditor);
 
   useEffect(() => {
@@ -408,7 +417,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
   const editedKeys = state.status === "ready" ? editedSettingKeys(state.settings, state.draft) : [];
   const editedCount =
-    editedKeys.length + [themeEdited, cardsEdited, editorEdited].filter(Boolean).length;
+    editedKeys.length +
+    [themeEdited, cardsEdited, hideHiddenEdited, editorEdited].filter(Boolean).length;
   const discard = useDiscardChanges({
     unsavedChanges: editedCount > 0,
     busy: saving,
@@ -419,7 +429,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   };
   const isPageEdited = (page: Page) => {
     if (page.id === "appearance") return themeEdited;
-    if (page.id === "gallery") return cardsEdited;
+    if (page.id === "gallery") return cardsEdited || hideHiddenEdited;
     if (page.id === "editor") return editorEdited;
     return keysOf(page).some((key) => editedKeys.includes(key));
   };
@@ -477,9 +487,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     try {
       if (Object.keys(built.update).length > 0) await save.mutateAsync(built.update);
       if (themeEdited) setThemePreference(theme);
-      if (cardsEdited || editorEdited) {
+      if (cardsEdited || hideHiddenEdited || editorEdited) {
         updateUiSettings({
           ...(cardsEdited && { galleryCards: cards }),
+          ...(hideHiddenEdited && { hideHiddenFolders: hideHidden }),
           ...(editorEdited && { editor }),
         });
       }
@@ -560,7 +571,20 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       );
     }
     if (page.id === "gallery") {
-      return <GalleryCardSettings value={cards} disabled={saving} onChange={setCards} />;
+      return (
+        <>
+          <GalleryCardSettings value={cards} disabled={saving} onChange={setCards} />
+          <SettingsGroup title="Folders" icon={iconFolder}>
+            <SettingsCheckbox
+              label="Hide hidden folders"
+              hint="Folders named with a leading dot, or marked hidden in Windows."
+              checked={hideHidden}
+              disabled={saving}
+              onChange={setHideHidden}
+            />
+          </SettingsGroup>
+        </>
+      );
     }
     if (page.id === "editor") {
       return <EditorPreferenceSettings value={editor} disabled={saving} onChange={setEditor} />;

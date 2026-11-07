@@ -36,6 +36,8 @@ import {
   iconCode,
   iconCopy,
   iconCopyPlus,
+  iconEye,
+  iconEyeOff,
   iconFiles,
   iconFolder,
   iconFilter,
@@ -654,6 +656,9 @@ export interface AppCommandOptions {
   onOpenSettings: () => void;
   onOpenShortcuts: () => void;
   onSetTheme: (theme: ResolvedTheme) => void;
+  /** Whether hidden folders are left out of folder lists now, which picks the row's wording. */
+  hideHiddenFolders: boolean;
+  onToggleHiddenFolders: () => void;
 }
 
 export function buildAppCommandItems({
@@ -661,6 +666,8 @@ export function buildAppCommandItems({
   onOpenSettings,
   onOpenShortcuts,
   onSetTheme,
+  hideHiddenFolders,
+  onToggleHiddenFolders,
 }: AppCommandOptions): QuickActionItem[] {
   const other = theme === "dark" ? "light" : "dark";
   return [
@@ -682,6 +689,16 @@ export function buildAppCommandItems({
       icon: other === "light" ? iconSun : iconMoon,
       keywords: "appearance color scheme dark mode light mode night mode day mode toggle",
       run: () => onSetTheme(other),
+    },
+    {
+      id: "cmd:toggle-hidden-folders",
+      section: "commands",
+      label: hideHiddenFolders ? "Show hidden folders" : "Hide hidden folders",
+      detail: "Folders named with a leading dot, or marked hidden in Windows",
+      icon: hideHiddenFolders ? iconEye : iconEyeOff,
+      keywords: "dot dotfiles hidden attribute system visible invisible toggle directories",
+      shortcut: "toggleHiddenFolders",
+      run: onToggleHiddenFolders,
     },
     {
       id: "cmd:keyboard-shortcuts",

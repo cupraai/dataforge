@@ -33,11 +33,14 @@ export interface UiSettings {
   jobsDrawerFilters: JobFilters;
   galleryCards: GalleryCardOptions;
   editor: EditorOptions;
+  /** Leaves dot folders and folders Windows marks hidden out of folder lists. */
+  hideHiddenFolders: boolean;
 }
 
 const SORT_CACHE_KEY = "gallery-sort";
 const AUTOMATION_SPECS_CACHE_KEY = "automation-specs-visible";
 const KEEP_CANDIDATE_METADATA_CACHE_KEY = "keep-candidate-metadata";
+const HIDE_HIDDEN_FOLDERS_CACHE_KEY = "hide-hidden-folders";
 /** `index.html` reads this key before first paint; rename both together. */
 export const THEME_CACHE_KEY = "ui-theme";
 
@@ -63,6 +66,7 @@ function readCachedUiSettings(): UiSettings {
     jobsDrawerFilters: readJobFilters(),
     galleryCards: readCardOptions(),
     editor: readEditorOptions(),
+    hideHiddenFolders: readStored(HIDE_HIDDEN_FOLDERS_CACHE_KEY) === "true",
   };
 }
 
@@ -73,6 +77,7 @@ function cacheUiSettings({
   jobsDrawerFilters,
   galleryCards,
   editor,
+  hideHiddenFolders,
 }: Partial<UiSettings>): void {
   if (sort !== undefined) writeStored(SORT_CACHE_KEY, sort);
   if (showAutomationSpecs !== undefined) {
@@ -84,6 +89,9 @@ function cacheUiSettings({
   if (jobsDrawerFilters !== undefined) cacheJobFilters(jobsDrawerFilters);
   if (galleryCards !== undefined) cacheCardOptions(galleryCards);
   if (editor !== undefined) cacheEditorOptions(editor);
+  if (hideHiddenFolders !== undefined) {
+    writeStored(HIDE_HIDDEN_FOLDERS_CACHE_KEY, String(hideHiddenFolders));
+  }
 }
 
 function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
@@ -95,6 +103,7 @@ function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
     jobsDrawerFilters: jobFiltersFromWire(data.jobs_drawer_filters),
     galleryCards: cardOptionsFromWire(data.gallery_cards),
     editor: editorOptionsFromWire(data.editor),
+    hideHiddenFolders: data.hide_hidden_folders,
   };
 }
 
@@ -131,6 +140,9 @@ export function updateUiSettings(partial: Partial<UiSettings>): Promise<UiSettin
     body.gallery_cards = cardOptionsToWire(partial.galleryCards);
   }
   if (partial.editor !== undefined) body.editor = editorOptionsToWire(partial.editor);
+  if (partial.hideHiddenFolders !== undefined) {
+    body.hide_hidden_folders = partial.hideHiddenFolders;
+  }
 
   const save = pendingUiSave.then(async () =>
     parseUiSettingsResponse(await putJson<UiSettingsResponse>("/api/preferences/ui", body)),

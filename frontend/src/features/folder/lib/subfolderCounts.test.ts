@@ -6,6 +6,7 @@ function subfolder(name: string, fileCount: number | null): Subfolder {
   return {
     name,
     path: `C:\\datasets\\${name}`,
+    hidden: false,
     file_count: fileCount,
     captioned_count: fileCount === null ? null : 1,
     issue_count: fileCount === null ? null : 0,

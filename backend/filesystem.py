@@ -167,8 +167,13 @@ def _iter_child_directories(folder: Path) -> list[Path]:
     return [entry.path for entry in scan.dirs]
 
 
-def list_child_folders(folder: Path) -> list[dict[str, str]]:
-    return [{"name": entry.name, "path": str(entry)} for entry in _iter_child_directories(folder)]
+def list_child_folders(folder: Path) -> list[dict[str, str | bool]]:
+    scan = scan_folder(folder)
+    if scan is None:
+        return []
+    return [
+        {"name": entry.name, "path": str(entry.path), "hidden": entry.hidden} for entry in scan.dirs
+    ]
 
 
 def sanitize_entry_name(name: str) -> str | None:

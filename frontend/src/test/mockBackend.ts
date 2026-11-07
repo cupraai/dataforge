@@ -284,6 +284,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       const createdSubfolder = {
         name: folderName,
         path: createdPath,
+        hidden: false,
         file_count: 0,
         captioned_count: 0,
         issue_count: 0,
@@ -401,6 +402,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       const children = (data?.subfolders ?? []).map((entry) => ({
         name: entry.name,
         path: entry.path,
+        hidden: entry.hidden,
       }));
       return jsonResponse({ folder: pathKey, children });
     }

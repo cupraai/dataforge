@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { HOME_PATH, VACATION_PATH } from "@/test/fixtures";
+import { HOME_PATH, VACATION_PATH, homeFolder } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderApp } from "@/test/renderApp";
 
@@ -50,6 +50,37 @@ describe("App: keyboard shortcuts", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "New folder" });
     expect(within(dialog).getByRole("textbox")).toHaveValue("");
+  });
+
+  it("hides and shows hidden folders with Alt+H, from the palette row", async () => {
+    const user = userEvent.setup();
+    const cache = {
+      name: ".cache",
+      path: `${HOME_PATH}\\.cache`,
+      hidden: true,
+      file_count: 0,
+      captioned_count: 0,
+      issue_count: 0,
+    };
+    installMockBackend({
+      folderByPath: {
+        [HOME_PATH]: { ...homeFolder, subfolders: [cache, ...homeFolder.subfolders] },
+      },
+    });
+    window.history.replaceState(null, "", `/?path=${encodeURIComponent(HOME_PATH)}`);
+    renderApp();
+    await screen.findByRole("button", { name: /\.cache/ });
+
+    await user.keyboard("{Alt>}h{/Alt}");
+
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /\.cache/ })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
+
+    await user.keyboard("{Alt>}h{/Alt}");
+
+    await screen.findByRole("button", { name: /\.cache/ });
   });
 
   it("leaves Alt+N to a text field", async () => {

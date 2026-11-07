@@ -62,7 +62,9 @@ def build_folder_response(folder: Path, *, remember_last: bool = True) -> Folder
     scanned = perf_counter()
 
     # Names only: the counts come from /api/folders/subfolder-stats.
-    subfolders = [{"name": entry.name, "path": str(entry.path)} for entry in scan.dirs]
+    subfolders = [
+        {"name": entry.name, "path": str(entry.path), "hidden": entry.hidden} for entry in scan.dirs
+    ]
     items = list_media_from_scan(scan)
     signature = folder_signature_from_scan(scan)
     remember_folder_signature(folder, signature)

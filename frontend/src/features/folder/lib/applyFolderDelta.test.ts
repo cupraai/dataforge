@@ -120,6 +120,7 @@ describe("applyFolderDelta", () => {
     const counted = (name: string): Subfolder => ({
       name,
       path: `C:\\datasets\\sample\\${name}`,
+      hidden: false,
       file_count: 4,
       captioned_count: 2,
       issue_count: 1,

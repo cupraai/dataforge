@@ -14,6 +14,9 @@ version heading when a minor or major version is cut.
   shows each drive's label and type, picks up a USB stick or card within seconds of plugging it
   in, and skips empty card readers and disconnected network drives. A folder on an unplugged
   drive says the drive is not connected and opens again once it is back.
+- Hidden folders (named with a leading dot, or marked hidden in Windows) can be left out of the
+  gallery, the path bar's folder menus and the move/copy folder tree. Turn it on under
+  **Settings > Appearance > Gallery**, from the command palette, or with Alt+H.
 
 ### Fixed
 

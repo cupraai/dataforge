@@ -84,6 +84,7 @@ export const homeFolder: FolderResponse = {
     {
       name: "Vacation",
       path: VACATION_PATH,
+      hidden: false,
       file_count: 1,
       captioned_count: 0,
       issue_count: 0,
@@ -91,6 +92,7 @@ export const homeFolder: FolderResponse = {
     {
       name: "Empty",
       path: EMPTY_PATH,
+      hidden: false,
       file_count: 0,
       captioned_count: 0,
       issue_count: 0,

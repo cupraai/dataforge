@@ -52,6 +52,11 @@ export const SHORTCUTS = {
     chords: [{ key: "Home", alt: true }],
   },
   newFolder: { group: "folders", label: "New folder", chords: [{ key: "n", alt: true }] },
+  toggleHiddenFolders: {
+    group: "folders",
+    label: "Show or hide hidden folders",
+    chords: [{ key: "h", alt: true }],
+  },
 
   selectAll: {
     group: "selection",

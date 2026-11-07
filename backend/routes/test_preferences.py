@@ -75,6 +75,13 @@ class UiPreferencesEndpointTests(unittest.TestCase):
         read_back = client.get("/api/preferences/ui").json()
         self.assertFalse(read_back["keep_candidate_metadata"])
 
+    def test_hidden_folders_are_listed_by_default_and_the_choice_is_remembered(self) -> None:
+        self.assertFalse(client.get("/api/preferences/ui").json()["hide_hidden_folders"])
+
+        client.put("/api/preferences/ui", json={"hide_hidden_folders": True})
+
+        self.assertTrue(client.get("/api/preferences/ui").json()["hide_hidden_folders"])
+
     def test_the_theme_follows_the_system_by_default(self) -> None:
         self.assertEqual(client.get("/api/preferences/ui").json()["theme"], "system")
 

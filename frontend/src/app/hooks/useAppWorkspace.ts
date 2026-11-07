@@ -9,6 +9,8 @@ import { useFolderChangeDetection } from "@/features/folder/hooks/useFolderChang
 import { useFolderFileDrop } from "@/features/folder/hooks/useFolderFileDrop";
 import { useFolderNavigation } from "@/features/folder/hooks/useFolderNavigation";
 import { useFolderScrollPosition } from "@/features/folder/hooks/useFolderScrollPosition";
+import { useHiddenFolders } from "@/features/folder/hooks/useHiddenFolders";
+import { visibleFolders } from "@/features/folder/lib/hiddenFolders";
 import { useRenameFolderDialog } from "@/features/folder/hooks/useRenameFolderDialog";
 import { useSubfolderStats } from "@/features/folder/hooks/useSubfolderStats";
 import { folderLeafName } from "@/features/folder/lib/folderPath";
@@ -102,11 +104,16 @@ export function useAppWorkspace() {
     onImported: refreshFolder,
   });
 
-  const subfolders = useMemo(() => folder?.subfolders ?? [], [folder?.subfolders]);
+  const allSubfolders = useMemo(() => folder?.subfolders ?? [], [folder?.subfolders]);
+  const { hideHidden } = useHiddenFolders();
+  const subfolders = useMemo(
+    () => visibleFolders(allSubfolders, hideHidden),
+    [allSubfolders, hideHidden],
+  );
   // Model files leave the media grid, its filters, stats and jobs for a section of their own.
   const { media: items, models } = useMemo(() => splitModels(folder?.items ?? []), [folder?.items]);
 
-  useSubfolderStats(folder?.path, folder?.fingerprint, subfolders, !folderNotFound);
+  useSubfolderStats(folder?.path, folder?.fingerprint, allSubfolders, !folderNotFound);
 
   // The backend still refuses a folder holding files the gallery does not list.
   const folderIsEmpty =
@@ -115,7 +122,7 @@ export function useAppWorkspace() {
     !loading &&
     items.length === 0 &&
     models.length === 0 &&
-    subfolders.length === 0;
+    allSubfolders.length === 0;
 
   const deleteFolder = useDeleteFolderDialog({
     folderPath: folder?.path,

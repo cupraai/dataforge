@@ -93,7 +93,7 @@ class ListChildFoldersTests(unittest.TestCase):
             self.assertEqual(len(children), 1)
             self.assertEqual(children[0]["name"], "Album")
             self.assertEqual(children[0]["path"], str((root / "Album").resolve()))
-            self.assertEqual(set(children[0].keys()), {"name", "path"})
+            self.assertEqual(set(children[0].keys()), {"name", "path", "hidden"})
 
 
 class CreateSubfolderTests(unittest.TestCase):

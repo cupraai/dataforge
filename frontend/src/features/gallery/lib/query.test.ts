@@ -23,6 +23,7 @@ function folder(name: string): Subfolder {
   return {
     name,
     path: `C:\\Photos\\${name}`,
+    hidden: false,
     file_count: 0,
     captioned_count: 0,
     issue_count: 0,

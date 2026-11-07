@@ -64,6 +64,7 @@ class FolderContentsEndpointTests(unittest.TestCase):
             write_media(child, "pending.png")
             (child / "nested").mkdir()
             (root / ".git").mkdir()
+            (root / ".cache").mkdir()
 
             payload = _listing(root)
             stats = client.get(f"/api/folders/subfolder-stats?path={quote(str(root))}")
@@ -71,16 +72,23 @@ class FolderContentsEndpointTests(unittest.TestCase):
         self.assertEqual(payload["parent"], str(root.parent.resolve()))
         self.assertTrue(payload["home"])
         self.assertEqual(payload["breadcrumbs"][-1]["name"], root.name)
-        self.assertEqual(payload["subfolder_count"], 1)
+        self.assertEqual(payload["subfolder_count"], 2)
+        # Hidden folders are listed and flagged; the client decides whether to show them.
+        self.assertEqual(
+            [(entry["name"], entry["hidden"]) for entry in payload["subfolders"]],
+            [(".cache", True), ("album", False)],
+        )
 
         # Counts are deferred to /api/folders/subfolder-stats so the grid can render first.
-        album = payload["subfolders"][0]
+        album = payload["subfolders"][1]
         self.assertEqual(album["name"], "album")
         self.assertIsNone(album["file_count"])
         self.assertIsNone(album["captioned_count"])
 
         self.assertEqual(stats.status_code, 200)
-        counted = stats.json()["subfolders"][0]
+        counted = next(
+            entry for entry in stats.json()["subfolders"] if entry["path"] == album["path"]
+        )
         self.assertEqual(counted["path"], album["path"])
         self.assertEqual(counted["file_count"], 2)
         self.assertEqual(counted["captioned_count"], 1)

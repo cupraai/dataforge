@@ -27,6 +27,7 @@ from duplicates import (
     save_duplicate_finding,
 )
 from ffmpeg_bin import ffmpeg_path
+from folder_fingerprint import compute_folder_fingerprint
 from folder_scan import _entry_from_dir_entry, get_media_type, scan_folder
 from media_listing import (
     clear_folder_summary_cache_for_tests,
@@ -47,6 +48,15 @@ from testing_fixtures import (
     write_txt_caption,
     write_wav,
 )
+
+
+def set_windows_hidden(path: Path) -> None:
+    import ctypes
+    import stat
+
+    attributes = os.lstat(path).st_file_attributes | stat.FILE_ATTRIBUTE_HIDDEN
+    if not ctypes.windll.kernel32.SetFileAttributesW(str(path), attributes):
+        raise OSError(f"Could not hide {path}")
 
 
 class MediaTypeTests(unittest.TestCase):
@@ -126,6 +136,61 @@ class FolderScanTests(unittest.TestCase):
 
         assert scanned is not None
         self.assertIsNone(scanned.birthtime)
+
+    def test_flags_dot_folders_as_hidden_but_not_dot_files(self) -> None:
+        with TempMediaFolder() as root:
+            (root / ".cache").mkdir()
+            (root / "album").mkdir()
+            write_media(root, ".preview.png")
+
+            scan = scan_folder(root)
+
+            assert scan is not None
+            self.assertEqual(
+                {entry.name: entry.hidden for entry in scan.dirs}, {".cache": True, "album": False}
+            )
+            self.assertFalse(scan.media[0].hidden)
+
+    @unittest.skipUnless(os.name == "nt", "Windows hidden attribute")
+    def test_flags_folders_windows_marks_hidden(self) -> None:
+        with TempMediaFolder() as root:
+            folder = root / "album"
+            folder.mkdir()
+            set_windows_hidden(folder)
+
+            scan = scan_folder(root)
+
+            assert scan is not None
+            self.assertTrue(scan.dirs[0].hidden)
+
+    @unittest.skipUnless(os.name == "nt", "Windows junctions")
+    def test_a_hidden_junction_is_hidden_though_its_target_is_not(self) -> None:
+        import _winapi
+
+        with TempMediaFolder() as root:
+            target = root / "target"
+            target.mkdir()
+            link = root / "link"
+            _winapi.CreateJunction(str(target), str(link))
+            set_windows_hidden(link)
+
+            scan = scan_folder(root)
+
+            assert scan is not None
+            self.assertEqual(
+                {entry.name: entry.hidden for entry in scan.dirs}, {"link": True, "target": False}
+            )
+
+    @unittest.skipUnless(os.name == "nt", "Windows hidden attribute")
+    def test_hiding_a_folder_changes_the_fingerprint(self) -> None:
+        with TempMediaFolder() as root:
+            folder = root / "album"
+            folder.mkdir()
+            before = compute_folder_fingerprint(root)
+
+            set_windows_hidden(folder)
+
+            self.assertNotEqual(compute_folder_fingerprint(root), before)
 
     def test_returns_none_for_unreadable_folder(self) -> None:
         with TempMediaFolder() as root:

@@ -97,6 +97,20 @@ describe("SettingsDialog: appearance", () => {
     });
   });
 
+  it("saves the choice to hide hidden folders on its own", async () => {
+    const { onClose, user } = await openAppearance();
+
+    await user.click(screen.getByRole("tab", { name: "Gallery" }));
+    const folders = within(screen.getByRole("region", { name: "Folders" }));
+    await user.click(folders.getByRole("checkbox", { name: "Hide hidden folders" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
+    const [[, init]] = requests("/api/preferences/ui", "PUT");
+    expect(JSON.parse(init?.body as string)).toEqual({ hide_hidden_folders: true });
+  });
+
   it("saves the card actions a card shows, in catalog order", async () => {
     const { onClose, user } = await openAppearance();
 

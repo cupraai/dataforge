@@ -246,12 +246,18 @@ describe("buildFolderPathCommandItems", () => {
 });
 
 describe("buildAppCommandItems", () => {
-  const appItems = (onSetTheme = vi.fn<(theme: ResolvedTheme) => void>()) =>
+  const appItems = (
+    onSetTheme = vi.fn<(theme: ResolvedTheme) => void>(),
+    hideHiddenFolders = false,
+    onToggleHiddenFolders = vi.fn<() => void>(),
+  ) =>
     buildAppCommandItems({
       theme: "dark",
       onOpenSettings: vi.fn<() => void>(),
       onOpenShortcuts: vi.fn<() => void>(),
       onSetTheme,
+      hideHiddenFolders,
+      onToggleHiddenFolders,
     });
 
   it.each([
@@ -260,6 +266,7 @@ describe("buildAppCommandItems", () => {
     ["thumbnail cache", "cmd:settings"],
     ["night mode", "cmd:toggle-theme"],
     ["hotkeys", "cmd:keyboard-shortcuts"],
+    ["dotfiles", "cmd:toggle-hidden-folders"],
   ])("finds %j", (query, id) => {
     expect(idsFor(appItems(), query)).toEqual([id]);
   });
@@ -272,6 +279,18 @@ describe("buildAppCommandItems", () => {
 
     expect(toggle?.label).toBe("Switch to light theme");
     expect(onSetTheme).toHaveBeenCalledWith("light");
+  });
+
+  it("offers the opposite of the hidden-folder setting", () => {
+    const onToggle = vi.fn<() => void>();
+    const row = (hide: boolean) =>
+      appItems(undefined, hide, onToggle).find((item) => item.id === "cmd:toggle-hidden-folders");
+
+    expect(row(false)?.label).toBe("Hide hidden folders");
+    expect(row(true)?.label).toBe("Show hidden folders");
+    expect(row(true)?.shortcut).toBe("toggleHiddenFolders");
+    row(true)?.run();
+    expect(onToggle).toHaveBeenCalledOnce();
   });
 });
 
@@ -330,6 +349,8 @@ function commandItems(overrides: Partial<CommandOptions> = {}) {
       onOpenSettings: vi.fn<() => void>(),
       onOpenShortcuts: vi.fn<() => void>(),
       onSetTheme: vi.fn<(theme: ResolvedTheme) => void>(),
+      hideHiddenFolders: false,
+      onToggleHiddenFolders: vi.fn<() => void>(),
     },
     ...overrides,
   });
@@ -359,6 +380,7 @@ describe("buildCommandItems", () => {
       "cmd:open-in-explorer",
       "cmd:settings",
       "cmd:toggle-theme",
+      "cmd:toggle-hidden-folders",
       "cmd:keyboard-shortcuts",
     ]);
   });
@@ -369,6 +391,7 @@ describe("buildCommandItems", () => {
       "cmd:parent-folder",
       "cmd:settings",
       "cmd:toggle-theme",
+      "cmd:toggle-hidden-folders",
       "cmd:keyboard-shortcuts",
     ]);
   });
@@ -382,6 +405,7 @@ describe("buildCommandItems", () => {
       "cmd:edit-sysprompt",
       "cmd:settings",
       "cmd:toggle-theme",
+      "cmd:toggle-hidden-folders",
       "cmd:keyboard-shortcuts",
     ]);
   });
@@ -915,7 +939,10 @@ describe("buildJobItems", () => {
 
   it("yields to a plainer row for the same folder", () => {
     const onNavigate = vi.fn<(path: string) => void>();
-    const subfolders = buildSubfolderItems([{ name: "gts_dataset", path: folder }], onNavigate);
+    const subfolders = buildSubfolderItems(
+      [{ name: "gts_dataset", path: folder, hidden: false }],
+      onNavigate,
+    );
     const jobs = buildJobItems([job("j1", folder)], [], onNavigate);
 
     const ordered = orderQuickActionItems(sections({ subfolders, jobs }));

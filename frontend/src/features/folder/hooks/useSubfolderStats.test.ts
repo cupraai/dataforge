@@ -19,6 +19,7 @@ function makeSubfolder(overrides: Partial<Subfolder> = {}): Subfolder {
   return {
     name: "Album",
     path: ALBUM,
+    hidden: false,
     file_count: null,
     captioned_count: null,
     issue_count: null,

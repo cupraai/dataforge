@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
+import { useHiddenFolders } from "@/features/folder/hooks/useHiddenFolders";
+import { visibleFolders } from "@/features/folder/lib/hiddenFolders";
 import { folderPathsEqual } from "@/features/folder/lib/folderPath";
 import { folderChildrenQueryOptions } from "@/features/folder/lib/folderQuery";
 import { formatApiError } from "@/shared/api/http";
@@ -30,7 +32,9 @@ export function BreadcrumbCrumbMenu({
 
   // Re-read on every open: folders come and go, and a cached list shows while it loads.
   const childrenQuery = useQuery({ ...folderChildrenQueryOptions(folderPath), enabled: open });
-  const children = childrenQuery.data ?? null;
+  const { hideHidden } = useHiddenFolders();
+  const listed = childrenQuery.data;
+  const children = listed ? visibleFolders(listed, hideHidden, activeChildPath) : null;
   const error = childrenQuery.isError ? formatApiError(childrenQuery.error) : null;
   const loading = childrenQuery.isFetching;
 

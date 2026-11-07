@@ -41,6 +41,7 @@ def update_ui_settings(
     jobs_drawer_filters: JobsDialogFilters | None = None,
     gallery_cards: GalleryCardSettings | None = None,
     editor: EditorSettings | None = None,
+    hide_hidden_folders: bool | None = None,
 ) -> UiSettingsResponse:
     return _settings.update(
         sort=_normalized_sort(sort),
@@ -50,4 +51,5 @@ def update_ui_settings(
         jobs_drawer_filters=jobs_drawer_filters,
         gallery_cards=gallery_cards,
         editor=editor,
+        hide_hidden_folders=hide_hidden_folders,
     )

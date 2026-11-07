@@ -11,6 +11,7 @@ function makeFolder(overrides: Partial<Subfolder> = {}): Subfolder {
   return {
     name: "Album",
     path: "C:\\Photos\\Album",
+    hidden: false,
     file_count: 2,
     captioned_count: 1,
     issue_count: 0,

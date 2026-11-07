@@ -10,6 +10,7 @@ export const PALETTE_BOUND_SHORTCUTS: readonly ShortcutId[] = [
   "parentFolder",
   "homeFolder",
   "newFolder",
+  "toggleHiddenFolders",
 ];
 
 /** Runs a palette row from its key, so the key works exactly when the row is enabled. */

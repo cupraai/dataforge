@@ -4,7 +4,9 @@ import {
   useFolderFavorites,
   useToggleFolderFavorite,
 } from "@/features/folder/hooks/useFolderFavorites";
+import { useHiddenFolders } from "@/features/folder/hooks/useHiddenFolders";
 import { folderPathsEqual } from "@/features/folder/lib/folderPath";
+import { visibleFolders } from "@/features/folder/lib/hiddenFolders";
 import type { SettleAllCandidatesActions } from "@/features/gallery/hooks/useSettleAllCandidates";
 import type { GallerySelectionActions } from "@/features/gallery/hooks/useGallerySelectionActions";
 import type { SidecarSweepActions } from "@/features/gallery/hooks/useSidecarSweep";
@@ -83,6 +85,7 @@ export function useQuickActionHost({
   const { jobs, externalJobs } = useJobs();
   const notify = useNotify();
   const themePreference = useThemePreference();
+  const { hideHidden, toggleHidden } = useHiddenFolders();
 
   // Re-read whenever the palette opens; the cached list shows meanwhile.
   const favorites = useFolderFavorites({ enabled: open }).data;
@@ -152,8 +155,8 @@ export function useQuickActionHost({
   }, [folderPath, isFavorite, mutateFavorite, notify]);
 
   const subfolderItems = useMemo(
-    () => buildSubfolderItems(folder?.subfolders ?? [], goTo),
-    [folder?.subfolders, goTo],
+    () => buildSubfolderItems(visibleFolders(folder?.subfolders ?? [], hideHidden), goTo),
+    [folder?.subfolders, goTo, hideHidden],
   );
 
   const recentFolderItems = useMemo(
@@ -214,6 +217,8 @@ export function useQuickActionHost({
           onOpenSettings,
           onOpenShortcuts,
           onSetTheme: setThemePreference,
+          hideHiddenFolders: hideHidden,
+          onToggleHiddenFolders: toggleHidden,
         },
       }),
     [
@@ -222,6 +227,7 @@ export function useQuickActionHost({
       folderNotFound,
       goHome,
       goTo,
+      hideHidden,
       isFavorite,
       onCreateFolder,
       onDeleteFolder,
@@ -247,6 +253,7 @@ export function useQuickActionHost({
       sidecarSweep,
       themePreference,
       toggleFavorite,
+      toggleHidden,
       visibleCount,
     ],
   );

@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { folderKey } from "@/features/folder/lib/folderPath";
+import { folderKey, isInsideFolder } from "@/features/folder/lib/folderPath";
+import { useHiddenFolders } from "@/features/folder/hooks/useHiddenFolders";
+import { visibleFolders } from "@/features/folder/lib/hiddenFolders";
 import {
   folderChildrenQueryOptions,
   folderRootsQueryOptions,
@@ -65,14 +67,6 @@ interface TreeEntry {
   depth: number;
 }
 
-function isStrictDescendant(path: string, ancestor: string): boolean {
-  const child = folderKey(path);
-  const parent = folderKey(ancestor);
-  if (child === parent) return false;
-  const prefix = parent.endsWith("/") ? parent : `${parent}/`;
-  return child.startsWith(prefix);
-}
-
 function dedupeRoots(raw: { name: string; path: string }[]): RootNode[] {
   const seen = new Set<string>();
   const result: RootNode[] = [];
@@ -95,7 +89,7 @@ function ancestorPathsToExpand(folder: string, roots: RootNode[]): string[] {
 
   const targetKey = folderKey(target);
   const owningRoot = roots.find(
-    (root) => root.key === targetKey || isStrictDescendant(target, root.path),
+    (root) => root.key === targetKey || isInsideFolder(target, root.path),
   );
   if (!owningRoot) {
     return [target];
@@ -124,7 +118,7 @@ function ancestorPathsToExpand(folder: string, roots: RootNode[]): string[] {
 
   // Only expand ancestors that fall under the owning root (inclusive of root).
   return chain.filter(
-    (path) => folderKey(path) === owningRoot.key || isStrictDescendant(path, owningRoot.path),
+    (path) => folderKey(path) === owningRoot.key || isInsideFolder(path, owningRoot.path),
   );
 }
 
@@ -175,6 +169,7 @@ export function TransferMediaDialog({
     return paths;
   }, [defaultExpanded, toggled]);
 
+  const { hideHidden } = useHiddenFolders();
   // Shared with the breadcrumb menu, so a folder listed there opens here at once.
   const expandedKeyList = [...expandedPaths.keys()];
   const listed = useQueries({
@@ -186,7 +181,7 @@ export function TransferMediaDialog({
       results.forEach((result, index) => {
         const key = expandedKeyList[index];
         if (result.data) {
-          childrenByKey[key] = result.data;
+          childrenByKey[key] = visibleFolders(result.data, hideHidden, currentFolder);
         } else if (result.isError) {
           // A folder that cannot be listed shows as a leaf.
           childrenByKey[key] = [];

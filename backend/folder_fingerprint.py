@@ -22,7 +22,7 @@ from constants import (
     SYSPROMPT_FILENAME,
 )
 from folder_instructions import find_instruction_file
-from folder_scan import FolderScan, folder_entries_in_order, scan_folder
+from folder_scan import FolderScan, ScannedEntry, folder_entries_in_order, scan_folder
 from media_tags import folder_tag_revisions, get_tag_min_confidence
 from sysprompt import load_sysprompt
 from video_project import is_draft_file
@@ -43,6 +43,11 @@ _FINDING_SIDECAR_SUFFIXES = (
 MAX_REMEMBERED_SIGNATURES = 16
 
 
+def _entry_kind(kind: str, entry: ScannedEntry) -> str:
+    """Hiding a folder changes only its attributes, which its mtime does not show."""
+    return "hidden_dir" if entry.hidden else kind
+
+
 def entry_signatures_from_scan(
     scan: FolderScan, tag_revisions: Mapping[str, int]
 ) -> tuple[EntrySignature, ...]:
@@ -50,7 +55,7 @@ def entry_signatures_from_scan(
     signatures: list[EntrySignature] = []
 
     for kind, entry in folder_entries_in_order(scan):
-        signatures.append((kind, entry.name, entry.mtime_ns, entry.size))
+        signatures.append((_entry_kind(kind, entry), entry.name, entry.mtime_ns, entry.size))
 
         if kind != "media":
             continue
@@ -203,9 +208,9 @@ def folder_signature_from_scan(scan: FolderScan) -> FolderSignature:
     for entry in scan.dirs:
         if entry.name == STAGING_DIR_NAME:
             # Staging files are tracked per-item; using this directory's mtime would full-reload on every write.
-            shell.append(("dir", entry.name, 0, 0))
+            shell.append((_entry_kind("dir", entry), entry.name, 0, 0))
         else:
-            shell.append(("dir", entry.name, entry.mtime_ns, entry.size))
+            shell.append((_entry_kind("dir", entry), entry.name, entry.mtime_ns, entry.size))
     if scan.sysprompt is not None:
         sysprompt = scan.sysprompt
         shell.append(("sysprompt", sysprompt.name, sysprompt.mtime_ns, sysprompt.size))

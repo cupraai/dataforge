@@ -27,7 +27,18 @@ class FolderChildrenEndpointTests(unittest.TestCase):
             self.assertEqual(names, {"Album", "Vacation"})
             self.assertIn(str((root / "Album").resolve()), paths)
             for entry in body["children"]:
-                self.assertEqual(set(entry.keys()), {"name", "path"})
+                self.assertEqual(set(entry.keys()), {"name", "path", "hidden"})
+
+    def test_flags_dot_folders_as_hidden(self) -> None:
+        with TempMediaFolder() as root:
+            (root / "Album").mkdir()
+            (root / ".cache").mkdir()
+
+            response = client.get(f"/api/folders/children?path={quote(str(root))}")
+
+            self.assertEqual(response.status_code, 200)
+            hidden = {entry["name"]: entry["hidden"] for entry in response.json()["children"]}
+            self.assertEqual(hidden, {".cache": True, "Album": False})
 
     def test_returns_404_for_missing_folder(self) -> None:
         with TempMediaFolder() as root:

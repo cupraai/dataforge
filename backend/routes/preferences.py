@@ -35,6 +35,7 @@ def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
         jobs_drawer_filters=body.jobs_drawer_filters,
         gallery_cards=body.gallery_cards,
         editor=body.editor,
+        hide_hidden_folders=body.hide_hidden_folders,
     )
 
 

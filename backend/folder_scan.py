@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat as stat_flags
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,6 +31,8 @@ class ScannedEntry:
     mtime_ns: int
     size: int
     birthtime: float | None = None
+    #: Directories only: a dot name, or Windows' hidden attribute.
+    hidden: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,20 @@ def is_listable_dir_name(name: str) -> bool:
     return name not in {".", ".."}
 
 
+def _is_hidden_dir(path: str, name: str) -> bool:
+    if name.startswith("."):
+        return True
+    if os.name != "nt":
+        return False
+    # The link's own attributes, as Explorer reads them: Windows hides its legacy junctions
+    # (``My Documents`` and the like) while their targets stay visible.
+    try:
+        attributes = os.lstat(path).st_file_attributes
+    except OSError:
+        return False
+    return bool(attributes & stat_flags.FILE_ATTRIBUTE_HIDDEN)
+
+
 def _sort_key(entry: ScannedEntry) -> tuple[str, str]:
     # Secondary key: two names that differ only by case would otherwise be filesystem-order.
     return (entry.name.lower(), entry.name)
@@ -95,6 +112,7 @@ def _entry_from_dir_entry(
         size=stat.st_size,
         # ctime is a metadata-change time on Unix, so it cannot substitute for birthtime.
         birthtime=getattr(stat, "st_birthtime", None),
+        hidden=is_dir and _is_hidden_dir(entry.path, entry.name),
     )
 
 

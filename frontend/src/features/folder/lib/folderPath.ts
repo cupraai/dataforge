@@ -33,6 +33,15 @@ export function folderPathsEqual(left: string, right: string): boolean {
   return foldersMatch(left, right);
 }
 
+/** Whether `path` lies somewhere below `ancestor`; a folder is not inside itself. */
+export function isInsideFolder(path: string, ancestor: string): boolean {
+  const child = folderKey(path);
+  const parent = folderKey(ancestor);
+  if (child === parent) return false;
+  const prefix = parent.endsWith("/") ? parent : `${parent}/`;
+  return child.startsWith(prefix);
+}
+
 /** The folder holding a file; a path with no separator is its own folder. */
 export function parentFolderPath(path: string): string {
   const cut = Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/"));
