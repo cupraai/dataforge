@@ -153,9 +153,9 @@ The Fill tool checks ComfyUI each time it opens and names any missing node or mo
 | Preset | Model | Steps | CFG | Sampler |
 | --- | --- | --- | --- | --- |
 | Fast | Base model + Turbo LoRA at strength 1.0 | 8 | 1 | KSampler, Euler, simple |
-| Quality | Base model | **Quality steps**, default 30 | 1 | KSampler, Euler, simple |
+| Quality | Base model | **Quality steps**, default 30 | **Quality CFG**, default 3 | KSampler, Euler, simple |
 
-At CFG 1 the negative prompt has no effect, so the templates leave it empty.
+Both templates leave the negative prompt empty. At CFG 1 it has no effect; above 1 the sampler guides against the empty prompt, so each Quality step runs the model twice.
 
 These settings are in **Settings > Integrations > Generative fill** and in `.env`. File names are as ComfyUI lists them.
 
@@ -166,6 +166,7 @@ These settings are in **Settings > Integrations > Generative fill** and in `.env
 | `COMFY_FILL_VAE` | `qwen_image_2.1_vae_bf16.safetensors` | VAE file |
 | `COMFY_FILL_TURBO_LORA` | `qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors` | Turbo LoRA file, used by Fast |
 | `COMFY_FILL_QUALITY_STEPS` | `30` | 1 to 100; steps for Quality |
+| `COMFY_FILL_QUALITY_CFG` | `3.0` | 1 to 10; CFG for Quality |
 
 The former `COMFY_FILL_LANPAINT_STEPS` setting is ignored; remove it from `.env`.
 

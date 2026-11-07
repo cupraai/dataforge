@@ -34,6 +34,7 @@ SETTINGS = FillSettings(
     vae="texture_fix_vae_for_qwen_image_2.1_bf16.safetensors",
     turbo_lora="QW21\\turbo.safetensors",
     quality_steps=36,
+    quality_cfg=4.5,
 )
 
 #: Each loader's file-name input, keyed by the setting that names it.
@@ -89,7 +90,7 @@ class TemplateTests(unittest.TestCase):
                 self.assertIn("KSampler", nodes)
                 self.assertFalse(any(name.startswith("LanPaint_") for name in nodes))
                 sampler = nodes["KSampler"]
-                self.assertEqual(sampler["cfg"], 1.0)
+                self.assertEqual(sampler["cfg"], {"fast": 1.0, "quality": 3.0}[preset])
 
                 conditioning = graph[sampler["positive"][0]]["inputs"]
                 reference = graph[conditioning["images.image_1"][0]]
@@ -127,7 +128,7 @@ class TemplateTests(unittest.TestCase):
         self.assertFalse(names & set(FILL_TEMPLATES.values()))
         self.assertTrue((FILL_TEMPLATES_DIR / "qwen21_fill_fast.json").is_file())
 
-    def test_models_and_steps_come_from_settings(self) -> None:
+    def test_models_steps_and_cfg_come_from_settings(self) -> None:
         quality = build_fill_prompt(
             load_fill_template("quality"),
             image_ref="dataforge/i.png",
@@ -163,7 +164,8 @@ class TemplateTests(unittest.TestCase):
         self.assertEqual(titled(fast, "DataForge Steps")["value"], 8)
         self.assertEqual(titled(quality, "DataForge Mask")["image"], "dataforge/m.png")
         self.assertEqual(titled(quality, "DataForge Output")["filename_prefix"], "DataForge/fill/x")
-        # CFG 1 skips the negative pass, so the template carries no negative prompt to tune.
+        self.assertEqual(by_class(quality, "KSampler")["cfg"], 4.5)
+        self.assertEqual(by_class(fast, "KSampler")["cfg"], 1.0)
         self.assertEqual(by_class(fast, "TextEncodeQwenImage21")["negative_prompt"], "")
 
     def test_an_empty_instruction_removes_and_words_say_what_goes_there(self) -> None:

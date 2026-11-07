@@ -25,6 +25,8 @@ version heading when a minor or major version is cut.
 - Model cards show what each file is (checkpoint, diffusion model, LoRA, ControlNet, text
   encoder, VAE and more) in the ComfyUI workflow map's colors and icons, instead of a same-stem
   preview image.
+- The Fill tool's Quality preset samples at CFG 3 instead of 1, so it follows the instruction
+  more closely. Change it under **Settings > Integrations > Generative fill > Quality CFG**.
 
 ## 0.12.0 - 2026-11-06
 

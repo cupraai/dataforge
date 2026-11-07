@@ -70,6 +70,8 @@ class EffectiveSettings(BaseModel):
     fill_turbo_lora: str = "qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors"
     # Within the 25-40 the base model is documented for; Fast keeps the LoRA's own 8.
     fill_quality_steps: int = 30
+    # Fast keeps CFG 1, which its LoRA was distilled for.
+    fill_quality_cfg: float = 3.0
     ai_toolkit_base_url: str = "http://127.0.0.1:8675"
     thumbnail_cache_max_mb: int = 2048
     job_history_days: int = 30
@@ -176,6 +178,7 @@ _RULES: dict[str, _Rule] = {
     "fill_vae": _Rule("Fill VAE", "COMFY_FILL_VAE", _model_id),
     "fill_turbo_lora": _Rule("Fill Turbo LoRA", "COMFY_FILL_TURBO_LORA", _model_id),
     "fill_quality_steps": _Rule("Fill Quality steps", "COMFY_FILL_QUALITY_STEPS", _Range(1, 100)),
+    "fill_quality_cfg": _Rule("Fill Quality CFG", "COMFY_FILL_QUALITY_CFG", _Range(1, 10)),
     "ai_toolkit_base_url": _Rule("AI-Toolkit URL", "OSTRIS_BASE_URL", validate_url),
     "thumbnail_cache_max_mb": _Rule(
         "Thumbnail cache limit", "DATAFORGE_THUMBNAIL_CACHE_MAX_MB", _Range(0)

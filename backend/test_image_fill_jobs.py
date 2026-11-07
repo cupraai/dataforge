@@ -19,6 +19,7 @@ from PIL import Image
 import edit_sidecars
 import image_edit
 import image_fill_jobs
+from app_settings import update_app_settings
 from image_fill import FillUnavailableError, file_digest, load_result, save_result
 from image_fill_jobs import (
     FillInProgressError,
@@ -27,7 +28,7 @@ from image_fill_jobs import (
     start_fill,
 )
 from image_fill_workflow import DEFAULT_FILL_INSTRUCTION
-from schemas import FillBox, ImageEditSpec, ImageFillRequest
+from schemas import AppSettingsUpdate, FillBox, ImageEditSpec, ImageFillRequest
 from test_image_fill import ResultsFolder, make_fill, mask_png, painted, solid_asset
 from testing_fixtures import TempMediaFolder, forget_saved_settings, mock_comfy_client
 
@@ -195,7 +196,7 @@ class SuccessTests(FillJobCase):
         # Running is reported once ComfyUI picks the prompt up, not merely when it is queued.
         self.assertIn("running", fake.statuses)
 
-    def test_the_prompt_carries_the_mask_models_steps_and_seed(self) -> None:
+    def test_the_prompt_carries_the_mask_models_steps_cfg_and_seed(self) -> None:
         fake = FakeComfy()
 
         self.run_fill(fake, self.request(instruction="a wooden bench."))
@@ -212,10 +213,20 @@ class SuccessTests(FillJobCase):
         titled = {node.get("_meta", {}).get("title"): node["inputs"] for node in prompt.values()}
         self.assertEqual(titled["DataForge Seed"]["value"], 1234)
         self.assertEqual(titled["DataForge Steps"]["value"], 30)
+        self.assertEqual(by_class["KSampler"]["cfg"], 3.0)
         # The mask that went up is binary and the size of the image beside it.
         image, mask = fake.uploads
         self.assertEqual(image.size, mask.size)
         self.assertEqual(set(mask.convert("L").get_flattened_data()), {0, 255})
+
+    def test_a_saved_quality_cfg_reaches_the_sampler(self) -> None:
+        update_app_settings(AppSettingsUpdate(fill_quality_cfg=5.5))
+        fake = FakeComfy()
+
+        self.run_fill(fake)
+
+        by_class = {node["class_type"]: node["inputs"] for node in fake.prompts[0].values()}
+        self.assertEqual(by_class["KSampler"]["cfg"], 5.5)
 
     def test_fast_runs_the_turbo_lora_at_its_own_eight_steps(self) -> None:
         fake = FakeComfy()

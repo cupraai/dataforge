@@ -67,6 +67,12 @@ export const SETTING_FIELDS: Record<AppSettingKey, SettingField> = {
     kind: "integer",
     fullLabel: "Fill Quality steps",
   },
+  fill_quality_cfg: {
+    label: "Quality CFG",
+    kind: "decimal",
+    fullLabel: "Fill Quality CFG",
+    step: 0.5,
+  },
   ai_toolkit_base_url: { label: "AI-Toolkit URL", kind: "url" },
   thumbnail_cache_max_mb: { label: "Cache limit", kind: "integer", unit: "MB" },
   job_history_days: { label: "Keep jobs", kind: "integer", unit: "days" },

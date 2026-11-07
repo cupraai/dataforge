@@ -77,6 +77,7 @@ class FillSettings:
     vae: str
     turbo_lora: str
     quality_steps: int
+    quality_cfg: float
 
 
 def get_fill_settings() -> FillSettings:
@@ -87,4 +88,5 @@ def get_fill_settings() -> FillSettings:
         vae=settings.fill_vae,
         turbo_lora=settings.fill_turbo_lora,
         quality_steps=int(settings.fill_quality_steps),
+        quality_cfg=float(settings.fill_quality_cfg),
     )

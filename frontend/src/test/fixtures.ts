@@ -205,6 +205,7 @@ export function appSettings(overrides: Partial<AppSettingsResponse> = {}): AppSe
     fill_vae: fromDefault("qwen_image_2.1_vae_bf16.safetensors"),
     fill_turbo_lora: fromDefault("qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors"),
     fill_quality_steps: number(30, 1, 100),
+    fill_quality_cfg: number(3, 1, 10),
     ai_toolkit_base_url: fromDefault("http://127.0.0.1:8675"),
     thumbnail_cache_max_mb: number(2048, 0),
     job_history_days: number(30, 0),

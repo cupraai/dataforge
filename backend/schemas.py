@@ -521,6 +521,7 @@ type AppSettingKey = Literal[
     "fill_vae",
     "fill_turbo_lora",
     "fill_quality_steps",
+    "fill_quality_cfg",
     "ai_toolkit_base_url",
     "thumbnail_cache_max_mb",
     "job_history_days",
@@ -587,6 +588,7 @@ class AppSettingsResponse(BaseModel):
     fill_vae: TextSettingState
     fill_turbo_lora: TextSettingState
     fill_quality_steps: NumberSettingState
+    fill_quality_cfg: NumberSettingState
     ai_toolkit_base_url: TextSettingState
     thumbnail_cache_max_mb: NumberSettingState
     job_history_days: NumberSettingState
@@ -624,6 +626,7 @@ class AppSettingsOverrides(BaseModel):
     fill_vae: str | None = None
     fill_turbo_lora: str | None = None
     fill_quality_steps: int | None = None
+    fill_quality_cfg: float | None = None
     ai_toolkit_base_url: str | None = None
     thumbnail_cache_max_mb: int | None = None
     job_history_days: int | None = None

@@ -3,8 +3,8 @@
 Each preset is one API-format template in ``comfy_fill_templates/``. The roles are the prep job's:
 ``DataForge Input``, ``DataForge Mask``, ``DataForge Prompt``, ``DataForge Seed`` and
 ``DataForge Output``, plus the ``DataForge Steps`` integer. The
-model loaders are found by class and take their file names from Settings, so changing a precision
-needs no template edit.
+model loaders and the sampler are found by class and take their file names and Quality's CFG from
+Settings, so changing a precision needs no template edit.
 """
 
 from __future__ import annotations
@@ -35,6 +35,8 @@ FILL_TEMPLATES: dict[FillPreset, str] = {
 FILL_PRESET_LABELS: dict[FillPreset, str] = {"fast": "Fast", "quality": "Quality"}
 
 STEPS_INPUT = "Steps"
+SAMPLER_CLASS = "KSampler"
+CFG_INPUT = "cfg"
 
 #: Loader class, its file-name input, and the setting and model folder that supply it.
 _LOADERS: dict[str, tuple[str, str, str]] = {
@@ -129,6 +131,11 @@ def build_fill_prompt(
     for node_id, class_type in _loader_nodes(prompt):
         key, setting, _ = _LOADERS[class_type]
         prompt[node_id]["inputs"][key] = getattr(settings, setting)
+    # Fast keeps the CFG 1 its LoRA was distilled for, like its steps.
+    if template.preset == "quality":
+        for node in prompt.values():
+            if isinstance(node, dict) and node.get("class_type") == SAMPLER_CLASS:
+                node["inputs"][CFG_INPUT] = settings.quality_cfg
     return prompt
 
 

@@ -233,11 +233,11 @@ const SECTIONS: Section[] = [
           {
             title: "Generative fill",
             icon: iconComfyUi,
-            hint: "File names as ComfyUI lists them, for the editor's Fill tool on Qwen-Image 2.1. Fast runs the Turbo LoRA at its own 8 steps.",
+            hint: "File names as ComfyUI lists them, for the editor's Fill tool on Qwen-Image 2.1. Fast runs the Turbo LoRA at its own 8 steps and CFG 1.",
             rows: [
               ["fill_diffusion_model", "fill_text_encoder"],
               ["fill_vae", "fill_turbo_lora"],
-              ["fill_quality_steps"],
+              ["fill_quality_steps", "fill_quality_cfg"],
             ],
           },
           {
