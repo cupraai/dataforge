@@ -11,6 +11,6 @@ export function useDocumentTitle(folderPath: string | undefined, breadcrumbs: Br
     }
 
     const folderName = breadcrumbs[breadcrumbs.length - 1]?.name ?? folderPath;
-    document.title = `${DEFAULT_TITLE} — ${folderName}`;
+    document.title = `${folderName} — ${DEFAULT_TITLE}`;
   }, [breadcrumbs, folderPath]);
 }
