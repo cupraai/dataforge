@@ -111,6 +111,12 @@ class AboutEndpointTests(unittest.TestCase):
         self.assertEqual(body["ffmpeg_source"], "path")
         self.assertTrue(body["database_path"])
         self.assertTrue(body["workflows_dir"])
+        for key in (
+            "tag_vocabulary_path",
+            "tagging_models_dir",
+            "watermark_image_path",
+        ):
+            self.assertTrue(body[key], key)
 
     def test_says_so_when_ffmpeg_is_missing(self) -> None:
         with patch("about.locate_ffmpeg", return_value=None):

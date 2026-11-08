@@ -613,8 +613,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           )
         }
       >
-        {renderRows(group.rows)}
         {probeState && <ConnectionStatus state={probeState} />}
+        {renderRows(group.rows)}
       </SettingsGroup>
     );
   };

@@ -43,6 +43,9 @@ function diagnosticsText(
     `Database: ${about.database_path}`,
     `Thumbnail cache: ${about.thumbnail_cache_dir}`,
     `Workflows: ${about.workflows_dir}`,
+    `Tag vocabulary: ${about.tag_vocabulary_path}`,
+    `Watermark image: ${about.watermark_image_path}`,
+    `Tagging models: ${about.tagging_models_dir}`,
   ];
   if (settings) {
     lines.push(
@@ -117,21 +120,33 @@ export function AboutSection({ settings, visible }: AboutSectionProps) {
 
       <SettingsGroup title="Locations" icon={iconFolder}>
         <dl className="settings-paths">
-          <dt>Database</dt>
+          <dt>.env file</dt>
           <dd>
-            <span>{about?.database_path ?? pending}</span>
-          </dd>
-          <dt>Cache folder</dt>
-          <dd>
-            <span>{about?.thumbnail_cache_dir ?? pending}</span>
+            <span>{about ? (about.env_file ?? "None loaded") : pending}</span>
           </dd>
           <dt>Workflows</dt>
           <dd>
             <span>{about?.workflows_dir ?? pending}</span>
           </dd>
-          <dt>.env file</dt>
+          <dt>Database</dt>
           <dd>
-            <span>{about ? (about.env_file ?? "None loaded") : pending}</span>
+            <span>{about?.database_path ?? pending}</span>
+          </dd>
+          <dt>Watermark image</dt>
+          <dd>
+            <span>{about?.watermark_image_path ?? pending}</span>
+          </dd>
+          <dt>Tag vocabulary</dt>
+          <dd>
+            <span>{about?.tag_vocabulary_path ?? pending}</span>
+          </dd>
+          <dt>Cache folder</dt>
+          <dd>
+            <span>{about?.thumbnail_cache_dir ?? pending}</span>
+          </dd>
+          <dt>Tagging models</dt>
+          <dd>
+            <span>{about?.tagging_models_dir ?? pending}</span>
           </dd>
         </dl>
       </SettingsGroup>

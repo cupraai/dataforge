@@ -688,6 +688,9 @@ class AboutResponse(BaseModel):
     database_path: str
     thumbnail_cache_dir: str
     workflows_dir: str
+    tag_vocabulary_path: str
+    tagging_models_dir: str
+    watermark_image_path: str
 
 
 type TaggingState = Literal["disabled", "unavailable", "idle", "loading", "tagging", "failed"]

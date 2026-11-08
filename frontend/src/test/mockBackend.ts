@@ -576,6 +576,9 @@ export function installMockBackend(options: MockBackendOptions = {}) {
         database_path: "C:\\DataForge\\backend\\data\\app.db",
         thumbnail_cache_dir: "C:\\DataForge\\backend\\data\\thumbnails",
         workflows_dir: "C:\\DataForge\\comfy_workflows",
+        tag_vocabulary_path: "C:\\DataForge\\backend\\data\\tag_vocabulary.txt",
+        tagging_models_dir: "C:\\DataForge\\backend\\data\\models",
+        watermark_image_path: "C:\\DataForge\\backend\\data\\watermark.png",
       });
     }
 

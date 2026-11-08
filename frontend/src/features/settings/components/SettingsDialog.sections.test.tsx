@@ -122,6 +122,12 @@ describe("SettingsDialog sections", () => {
     const text = await navigator.clipboard.readText();
     expect(text).toContain("DataForge 0.1.0");
     expect(text).toContain("key not set");
+    expect(text).toContain("Tagging models: C:\\DataForge\\backend\\data\\models");
+
+    const locations = groupNamed("Locations");
+    expect(
+      within(locations).getByText("C:\\DataForge\\backend\\data\\tag_vocabulary.txt"),
+    ).toBeInTheDocument();
     expect(text).not.toContain("sk-");
   });
 });

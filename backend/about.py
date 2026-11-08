@@ -7,11 +7,13 @@ import tomllib
 from functools import cache
 from pathlib import Path
 
+from automation.watermark import watermark_image_path
 from comfy_settings import get_comfy_workflows_dir
 from db import get_db_path
 from env_file import loaded_env_file
 from ffmpeg_bin import locate_ffmpeg
 from schemas import AboutResponse
+from tagger import PERSONAL_VOCABULARY_PATH, get_models_dir
 from thumbnails import get_thumbnail_cache_dir
 
 PYPROJECT = Path(__file__).resolve().parent / "pyproject.toml"
@@ -36,4 +38,7 @@ def describe_installation() -> AboutResponse:
         database_path=str(get_db_path()),
         thumbnail_cache_dir=str(get_thumbnail_cache_dir()),
         workflows_dir=str(get_comfy_workflows_dir()),
+        tag_vocabulary_path=str(PERSONAL_VOCABULARY_PATH),
+        tagging_models_dir=str(get_models_dir()),
+        watermark_image_path=str(watermark_image_path()),
     )
