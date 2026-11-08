@@ -9,6 +9,7 @@ import {
   iconHourglass,
   iconMessageSquareText,
   iconProportions,
+  iconWeight,
   type AppIcon,
 } from "@/shared/icons";
 
@@ -26,6 +27,14 @@ export interface SortField {
 
 export const SORT_FIELDS: SortField[] = [
   {
+    label: "Date created",
+    icon: iconCalendar,
+    orders: [
+      { value: "created-desc", label: "Newest first" },
+      { value: "created-asc", label: "Oldest first" },
+    ],
+  },
+  {
     label: "Date modified",
     icon: iconCalendar,
     orders: [
@@ -39,6 +48,14 @@ export const SORT_FIELDS: SortField[] = [
     orders: [
       { value: "name-asc", label: "A to Z" },
       { value: "name-desc", label: "Z to A" },
+    ],
+  },
+  {
+    label: "File size",
+    icon: iconWeight,
+    orders: [
+      { value: "size-desc", label: "Largest first" },
+      { value: "size-asc", label: "Smallest first" },
     ],
   },
   {

@@ -20,7 +20,15 @@ describe("ToolbarSortMenu", () => {
       within(fields)
         .getAllByRole("menuitemradio")
         .map((item) => item.textContent),
-    ).toEqual(["Date modified", "Name", "Caption length", "Megapixels", "Duration"]);
+    ).toEqual([
+      "Date created",
+      "Date modified",
+      "Name",
+      "File size",
+      "Caption length",
+      "Megapixels",
+      "Duration",
+    ]);
     expect(within(fields).getByRole("menuitemradio", { name: "Date modified" })).toHaveAttribute(
       "aria-checked",
       "true",

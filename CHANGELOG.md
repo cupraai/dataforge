@@ -17,6 +17,7 @@ version heading when a minor or major version is cut.
 - Hidden folders (named with a leading dot, or marked hidden in Windows) can be left out of the
   gallery, the path bar's folder menus and the move/copy folder tree. Turn it on under
   **Settings > Appearance > Gallery**, from the command palette, or with Alt+H.
+- The gallery and Models section can be sorted by date created and by file size.
 
 ### Fixed
 

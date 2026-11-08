@@ -62,6 +62,10 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "name-desc", label: "Name (Z–A)" },
   { value: "date-asc", label: "Date modified (oldest)" },
   { value: "date-desc", label: "Date modified (newest)" },
+  { value: "created-asc", label: "Date created (oldest)" },
+  { value: "created-desc", label: "Date created (newest)" },
+  { value: "size-asc", label: "File size (smallest)" },
+  { value: "size-desc", label: "File size (largest)" },
   { value: "caption-asc", label: "Caption length (shortest)" },
   { value: "caption-desc", label: "Caption length (longest)" },
   { value: "megapixels-asc", label: "Megapixels (smallest)" },
@@ -88,10 +92,23 @@ function compareNames(a: GalleryItem, b: GalleryItem): number {
   return a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 }
 
+function timestamp(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function modifiedTimestamp(item: GalleryItem): number {
-  if (!item.modified_at) return 0;
-  const parsed = Date.parse(item.modified_at);
-  return Number.isNaN(parsed) ? 0 : parsed;
+  return timestamp(item.modified_at) ?? 0;
+}
+
+/** Filesystems without a birthtime (most Linux ones) fall back to the modified time. */
+function createdTimestamp(item: GalleryItem): number {
+  return timestamp(item.created_at) ?? modifiedTimestamp(item);
+}
+
+function fileSize(item: GalleryItem): number {
+  return item.size ?? 0;
 }
 
 function captionLength(item: GalleryItem): number {
@@ -114,6 +131,10 @@ type NumericSort = Exclude<SortOption, "name-asc" | "name-desc">;
 const NUMERIC_SORT: Record<NumericSort, (item: GalleryItem) => number> = {
   "date-asc": modifiedTimestamp,
   "date-desc": modifiedTimestamp,
+  "created-asc": createdTimestamp,
+  "created-desc": createdTimestamp,
+  "size-asc": fileSize,
+  "size-desc": fileSize,
   "caption-asc": captionLength,
   "caption-desc": captionLength,
   "megapixels-asc": totalMegapixels,

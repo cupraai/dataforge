@@ -218,6 +218,7 @@ describe("processGalleryItems candidates", () => {
 describe("sortGalleryItems", () => {
   const items = [
     item("bravo.png", "image", {
+      created_at: "2026-01-02T00:00:00Z",
       modified_at: "2026-01-02T00:00:00Z",
       size: 200,
       width: 1280,
@@ -226,6 +227,7 @@ describe("sortGalleryItems", () => {
       description: "y".repeat(50),
     }),
     item("alpha.png", "image", {
+      created_at: "2026-01-01T00:00:00Z",
       modified_at: "2026-01-03T00:00:00Z",
       size: 100,
       width: 1920,
@@ -234,6 +236,7 @@ describe("sortGalleryItems", () => {
       description: "x".repeat(100),
     }),
     item("charlie.png", "image", {
+      created_at: "2026-01-03T00:00:00Z",
       modified_at: "2026-01-01T00:00:00Z",
       size: 300,
       width: 640,
@@ -248,6 +251,10 @@ describe("sortGalleryItems", () => {
     ["name-desc", ["charlie.png", "bravo.png", "alpha.png"]],
     ["date-asc", ["charlie.png", "bravo.png", "alpha.png"]],
     ["date-desc", ["alpha.png", "bravo.png", "charlie.png"]],
+    ["created-asc", ["alpha.png", "bravo.png", "charlie.png"]],
+    ["created-desc", ["charlie.png", "bravo.png", "alpha.png"]],
+    ["size-asc", ["alpha.png", "bravo.png", "charlie.png"]],
+    ["size-desc", ["charlie.png", "bravo.png", "alpha.png"]],
     ["caption-asc", ["charlie.png", "bravo.png", "alpha.png"]],
     ["caption-desc", ["alpha.png", "bravo.png", "charlie.png"]],
     ["megapixels-asc", ["charlie.png", "bravo.png", "alpha.png"]],
@@ -269,6 +276,20 @@ describe("sortGalleryItems", () => {
       "missing.png",
       "small.png",
       "large.png",
+    ]);
+  });
+
+  it("sorts by the modified time when the filesystem reports no creation time", () => {
+    const mixed = [
+      item("late.png", "image", { created_at: "2026-01-03T00:00:00Z" }),
+      item("unknown.png", "image", { modified_at: "2026-01-02T00:00:00Z" }),
+      item("early.png", "image", { created_at: "2026-01-01T00:00:00Z" }),
+    ];
+
+    expect(sortGalleryItems(mixed, "created-asc").map((entry) => entry.name)).toEqual([
+      "early.png",
+      "unknown.png",
+      "late.png",
     ]);
   });
 

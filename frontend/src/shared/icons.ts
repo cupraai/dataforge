@@ -212,6 +212,7 @@ export {
   Volume2 as iconVolume2,
   VolumeX as iconVolumeX,
   WandSparkles as iconWandSparkles,
+  Weight as iconWeight,
   X as iconX,
   Zap as iconZap,
   ZoomIn as iconZoomIn,
