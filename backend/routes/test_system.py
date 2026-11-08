@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from routes._test_client import client
@@ -55,6 +57,48 @@ class VisionLlmInfoEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"model": "qwen38"})
+
+
+class RetagEndpointTests(unittest.TestCase):
+    def test_queues_every_tagged_file_and_wakes_the_tagger(self) -> None:
+        with (
+            patch("tagging_worker.queue_all_for_retag", return_value=3),
+            patch("tagging_worker.wake_tagging_worker") as wake,
+        ):
+            response = client.post("/api/system/tagging/retag")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"queued": 3})
+        wake.assert_called_once()
+
+
+class TagVocabularyEndpointTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.path = Path(temp.name) / "tag_vocabulary.txt"
+        patcher = patch("tagger.PERSONAL_VOCABULARY_PATH", self.path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_saves_the_terms_and_counts_what_they_add(self) -> None:
+        self.assertEqual(client.get("/api/system/tagging/vocabulary").json()["text"], "")
+
+        body = client.put(
+            "/api/system/tagging/vocabulary", json={"text": "# mine\nzzz term one\nzzz term two"}
+        ).json()
+
+        self.assertEqual(body["text"], "# mine\nzzz term one\nzzz term two\n")
+        self.assertEqual(body["added_count"], 2)
+        self.assertGreater(body["default_count"], 100)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), body["text"])
+
+    def test_refuses_an_oversized_list_with_a_reason(self) -> None:
+        response = client.put("/api/system/tagging/vocabulary", json={"text": "x" * 200_000})
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("at most", response.json()["detail"])
+        self.assertFalse(self.path.exists())
 
 
 class AboutEndpointTests(unittest.TestCase):

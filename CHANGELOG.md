@@ -18,6 +18,8 @@ version heading when a minor or major version is cut.
   gallery, the path bar's folder menus and the move/copy folder tree. Turn it on under
   **Settings > Appearance > Gallery**, from the command palette, or with Alt+H.
 - The gallery and Models section can be sorted by date created and by file size.
+- Your own tag terms can be edited under **Settings > Tagging > Vocabulary**, instead of only in
+  `backend/data/tag_vocabulary.txt`.
 - On Windows, `update.bat` updates a Git clone to the latest version and reruns setup when the
   update needs it. It requires Git on PATH.
 
@@ -33,6 +35,9 @@ version heading when a minor or major version is cut.
   preview image.
 - The Fill tool's Quality preset samples at CFG 3 instead of 1, so it follows the instruction
   more closely. Change it under **Settings > Integrations > Generative fill > Quality CFG**.
+- Background tagging is off until you turn it on under **Settings > Tagging**; while it is off,
+  tags are hidden everywhere. A changed vocabulary now applies only to files tagged from then on
+  instead of re-tagging every favorite, and **Re-tag everything** brings older tags up to date.
 
 ## 0.12.0 - 2026-11-06
 

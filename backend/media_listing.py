@@ -27,7 +27,7 @@ from folder_scan import (
     scan_folder,
 )
 from media_dimensions import media_info
-from media_tags import TagRow, folder_tag_rows, get_tag_min_confidence, listed_tags
+from media_tags import TagRow, get_tag_min_confidence, listed_tag_rows, listed_tags
 from safetensors_header import model_info
 
 _EMPTY_SUMMARY = {
@@ -149,7 +149,7 @@ class _FolderTags(NamedTuple):
 
 
 def _folder_tags(scan: FolderScan) -> _FolderTags:
-    return _FolderTags(folder_tag_rows(scan.folder), get_tag_min_confidence())
+    return _FolderTags(listed_tag_rows(scan.folder), get_tag_min_confidence())
 
 
 def _iso_time(timestamp: float) -> str:

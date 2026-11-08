@@ -135,6 +135,7 @@ import { MediaProblemNotice } from "@/shared/ui/MediaProblemNotice";
 import { evenTrunc } from "@/features/gallery/lib/videoEdit";
 import { useVideoEditorLauncher } from "@/features/videoEditor/context/VideoEditorContext";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useUiSettings } from "@/shared/preferences/uiPreferences";
 
 const noop = () => {};
 
@@ -243,6 +244,7 @@ export function GalleryItemDialog({
   const notifyDeleteLeftovers = useDeleteLeftoversNotice();
   const notifyDeleteUndo = useDeleteUndoNotice();
   const itemIsModel = item ? isModel(item) : false;
+  const { taggingEnabled } = useUiSettings();
   const backupCaption = useCaptionBackup(item?.path, hasCaptionBackup && !itemIsModel);
   const captionCompletions = useMemo(() => buildCaptionVocabulary(items), [items]);
 
@@ -1424,7 +1426,7 @@ export function GalleryItemDialog({
               hasComfyWorkflow={hasComfyWorkflow}
               onInspectComfyWorkflow={() => setComfyWorkflowOpen(true)}
             />
-            {!inline && !itemIsModel && <MediaTagList tags={item.tags} />}
+            {taggingEnabled && !inline && !itemIsModel && <MediaTagList tags={item.tags} />}
             {itemIsModel ? (
               <footer className="gallery-item-dialog__footer">
                 <ModelMetadataList item={item} />

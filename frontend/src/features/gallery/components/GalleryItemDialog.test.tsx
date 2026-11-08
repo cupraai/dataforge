@@ -79,6 +79,8 @@ describe("GalleryItemDialog", () => {
   });
 
   it("lists every tag with its confidence, and says why a file has none", async () => {
+    // The mirror, which is what paints while the mock's partial UI settings fail to parse.
+    localStorage.setItem("tagging-enabled", "true");
     const props = {
       index: 0,
       onClose: vi.fn<() => void>(),
@@ -105,6 +107,23 @@ describe("GalleryItemDialog", () => {
     expect(await screen.findByRole("group", { name: "Tags" })).toHaveTextContent(
       "None. Only favorite folders are tagged.",
     );
+  });
+
+  it("has no tag row while tagging is off", async () => {
+    renderWithProviders(
+      <GalleryItemDialog
+        items={[makeItem("plain.png")]}
+        index={0}
+        onClose={vi.fn<() => void>()}
+        onPrevious={vi.fn<() => void>()}
+        onNext={vi.fn<() => void>()}
+        onCaptionSaved={vi.fn<(path: string, update: CaptionSaveResponse) => void>()}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog", { name: "Viewing plain.png" });
+    expect(within(dialog).getByText("plain.png")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("group", { name: "Tags" })).not.toBeInTheDocument();
   });
 
   it("opens the workflow prompts from the ComfyUI badge", async () => {

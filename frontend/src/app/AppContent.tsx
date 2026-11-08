@@ -12,6 +12,7 @@ import { ActiveFilters } from "@/features/gallery/components/ActiveFilters";
 import { FolderNoteBanner } from "@/features/folder/components/FolderNoteBanner";
 import { folderPathsEqual, parentFolderPath } from "@/features/folder/lib/folderPath";
 import { useTaggingFolder } from "@/features/tagging/hooks/useTaggingFolder";
+import { useUiSettings } from "@/shared/preferences/uiPreferences";
 import { WorkspaceActions, WorkspaceActivity } from "@/app/components/WorkspaceActions";
 import { VideoEditorWorkspace } from "@/features/videoEditor/components/VideoEditorWorkspace";
 import { useExportNotifications } from "@/features/videoEditor/hooks/useExportNotifications";
@@ -56,6 +57,7 @@ export function AppContent() {
     settleAllCandidates,
   } = useAppWorkspace();
   const taggingFolder = useTaggingFolder();
+  const { taggingEnabled } = useUiSettings();
   const { instructions } = useFolderInstructions(folder?.path ?? "");
 
   const {
@@ -199,6 +201,7 @@ export function AppContent() {
                 searchQuery: query.searchQuery,
                 searchRegex: query.searchRegex,
                 searchNames: query.searchNames,
+                searchTags: taggingEnabled,
                 sort: query.sort,
                 filter: query.filter,
                 filterCounts: query.filterCounts,

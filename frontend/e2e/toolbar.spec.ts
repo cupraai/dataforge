@@ -9,7 +9,7 @@ test("search expands on focus, retains a query on blur, and collapses when clear
   const compact = (await field.boundingBox())!.width;
   await page.keyboard.press("Control+f");
   const search = page.getByRole("searchbox", {
-    name: "Search files and folders by name, caption or tag",
+    name: "Search files and folders by name or caption",
   });
   await expect(search).toBeFocused();
   await expect.poll(async () => (await field.boundingBox())!.width).toBeGreaterThan(compact * 3);
@@ -46,7 +46,7 @@ test("a crowded toolbar keeps one row by showing the folder actions as icons", a
 
   // A typed query widens the search field past what the labelled actions leave.
   const search = page.getByRole("searchbox", {
-    name: "Search files and folders by name, caption or tag",
+    name: "Search files and folders by name or caption",
   });
   await search.fill("photo and a longer query");
   await expect(toolbar).toHaveClass(/toolbar--compact/);
@@ -72,7 +72,7 @@ test("a narrowing toolbar switches to icons once, without flickering at the thre
   await page.setViewportSize({ width: 1190, height: 800 });
   await openWorkspace(page);
   await page
-    .getByRole("searchbox", { name: "Search files and folders by name, caption or tag" })
+    .getByRole("searchbox", { name: "Search files and folders by name or caption" })
     .fill("photo and a longer query");
   const toolbar = page.locator(".toolbar");
   await expect(toolbar).not.toHaveClass(/toolbar--compact/);
@@ -144,7 +144,7 @@ test("an invalid regular expression says so instead of matching literally", asyn
 }, testInfo) => {
   await openWorkspace(page);
   const search = page.getByRole("searchbox", {
-    name: "Search files and folders by name, caption or tag",
+    name: "Search files and folders by name or caption",
   });
   await search.fill("photo[");
   await page.getByRole("button", { name: "Toggle regular expression search" }).click();

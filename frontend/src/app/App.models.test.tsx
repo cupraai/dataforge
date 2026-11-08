@@ -117,7 +117,7 @@ describe("model files", () => {
     });
 
     await user.type(
-      screen.getByRole("searchbox", { name: "Search files and folders by name, caption or tag" }),
+      screen.getByRole("searchbox", { name: "Search files and folders by name or caption" }),
       "subject",
     );
     await waitFor(() => {

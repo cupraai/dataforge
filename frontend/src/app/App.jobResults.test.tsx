@@ -118,7 +118,7 @@ describe("App: job results", () => {
 
     await user.type(
       await screen.findByRole("searchbox", {
-        name: "Search files and folders by name, caption or tag",
+        name: "Search files and folders by name or caption",
       }),
       "sunset",
     );

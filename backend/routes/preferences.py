@@ -15,6 +15,7 @@ from schemas import (
     UiSettingsResponse,
     UiSettingsUpdate,
 )
+from tagging_worker import wake_tagging_worker
 from ui_settings import get_ui_settings, update_ui_settings
 
 router = APIRouter()
@@ -27,7 +28,7 @@ def read_ui_settings() -> UiSettingsResponse:
 
 @router.put("/preferences/ui", response_model=UiSettingsResponse)
 def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
-    return update_ui_settings(
+    saved = update_ui_settings(
         sort=body.sort,
         show_automation_specs=body.show_automation_specs,
         theme=body.theme,
@@ -36,7 +37,11 @@ def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
         gallery_cards=body.gallery_cards,
         editor=body.editor,
         hide_hidden_folders=body.hide_hidden_folders,
+        tagging_enabled=body.tagging_enabled,
     )
+    if body.tagging_enabled is not None:
+        wake_tagging_worker()
+    return saved
 
 
 @router.get("/preferences/gallery-display", response_model=GalleryDisplaySettingsResponse)

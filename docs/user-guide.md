@@ -153,13 +153,13 @@ Neither backup nor restore changes issue findings.
 
 ## Tags
 
-DataForge tags the images, GIFs, and videos in your **favorite folders** in the background, so you can search for what files show. Subfolders are tagged only if they are favorites too. Audio is skipped, and a changed file is tagged again.
+Turn on **Tag favorite folders** under **Settings > Tagging**, and DataForge tags the images, GIFs, and videos in your **favorite folders** in the background, so you can search for what files show. Subfolders are tagged only if they are favorites too. Audio is skipped, and a changed file is tagged again. Tagging is off by default; while it is off, tags are hidden from cards, the viewer, search, and statistics, and kept for when you turn it back on.
 
 - **Search** matches tags like caption text. **Large cards** show the strongest tags; turn that off in **Settings > Appearance > Gallery**.
 - **While tagging**, the folder's sidebar favorite pulses green and its header shows a slow green sweep.
-- **Settings > Tagging** shows the status and the waiting files. **Minimum confidence** hides weaker tags immediately, without re-tagging.
+- **Settings > Tagging** shows the status and the waiting files. **Minimum confidence** hides weaker tags immediately, without re-tagging. **Re-tag everything** sends every tagged file back to the model; its old tags stay until new ones replace them.
 
-**Your own terms.** Tags come from [YOLO-World](https://docs.ultralytics.com/models/yolo-world/), which looks for about 300 built-in everyday objects, people, and scenery. Add terms to `backend/data/tag_vocabulary.txt`, one per line (`#` starts a comment). The file is not checked into Git and is picked up without a restart; every favorite is then re-tagged. Short, visible things such as `red dress` work best. The detector finds objects, not moods or styles, and near-synonyms like `woman` and `female` split one object's score.
+**Your own terms.** Tags come from [YOLO-World](https://docs.ultralytics.com/models/yolo-world/), which looks for about 300 built-in everyday objects, people, and scenery. Add your own under **Settings > Tagging > Vocabulary**, one per line (`#` starts a comment); they are saved to `backend/data/tag_vocabulary.txt`, which you can also edit directly. The file is not checked into Git and is picked up without a restart. New terms apply to files tagged from then on; use **Re-tag everything** to apply them to files that already have tags. Short, visible things such as `red dress` work best. The detector finds objects, not moods or styles, and near-synonyms like `woman` and `female` split one object's score.
 
 **Install.** Setup installs tagging, a few GB the first time; skip it with `setup.bat -SkipTagging` or `./setup.sh --skip-tagging`. It picks the PyTorch build for your GPU (CUDA, ROCm on Linux, or CPU) and downloads the model into `backend/data/models/`: `yolov8x-worldv2` on NVIDIA GPUs, otherwise the faster, less precise `yolov8s-worldv2`. If that fails, setup still finishes and **Settings > Tagging** says what is missing; run setup again to retry. To install by hand, follow the header of `backend/requirements-tagging.txt`.
 
@@ -342,7 +342,7 @@ Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption
 | Database, thumbnails | `backend/data/` | The app: settings, jobs, notifications, tags | Pruned by [retention](configuration.md#server-storage-and-logging) |
 | Unkept fill results | `backend/data/fill_results/` | Generative fill, until you keep or discard a result | Discard, or a day later |
 | `watermark.png` | `backend/data/` | The PNG chosen in the Watermark dialog | Choosing another PNG replaces it |
-| `tag_vocabulary.txt` | `backend/data/` | You: extra tag terms | You delete it |
+| `tag_vocabulary.txt` | `backend/data/` | You, or **Settings > Tagging > Vocabulary**: extra tag terms | You delete it, or clear the list |
 | Tagging model | `backend/data/models/` | The first tagging run; `DATAFORGE_MODELS_DIR` moves it | You delete it |
 
 For example, `scene.jpg` can have `scene.txt`, `scene.jpg.issue.json`, `scene.jpg.duplicate.json`, `scene.jpg.bak`, `scene.jpg.edit.json`, and `scene.jpg.fills`.

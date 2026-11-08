@@ -3,6 +3,7 @@
 One daemon thread owns the model. Each step rescans the favorites, then tags for a short budget
 before looking again, so a new favorite or a new file is picked up within one step. A result
 lands in ``media_tags``, whose revision moves the folder fingerprint and so reaches open tabs.
+Off until the user turns it on; turned off, the step only reports so.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from pathlib import Path
 import events
 from folder_favorites import get_folder_favorite_paths
 from folder_scan import ScannedEntry, get_media_type, scan_folder
-from media_tags import folder_tag_rows, forget_media_tags, save_media_tags
+from media_tags import folder_tag_rows, forget_media_tags, queue_all_for_retag, save_media_tags
 from schemas import TaggingEvent, TaggingState, TaggingStatusResponse
 from tagger import (
     MISSING_REQUIREMENTS,
@@ -29,6 +30,7 @@ from tagger import (
     tagging_requirements_installed,
     vocabulary_id,
 )
+from ui_settings import tagging_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +59,10 @@ class PendingFile:
     media_type: str
 
 
-def pending_in_folder(folder: Path, vocabulary: str) -> list[PendingFile]:
-    """Files without current tags. Rows for files that left the folder are dropped on the way."""
+def pending_in_folder(folder: Path) -> list[PendingFile]:
+    """New, changed and queued files; a new vocabulary alone queues nothing, since re-tagging
+    a whole favorite takes long. Rows for files that left the folder are dropped on the way.
+    """
     scan = scan_folder(folder)
     if scan is None:
         return []
@@ -74,11 +78,7 @@ def pending_in_folder(folder: Path, vocabulary: str) -> list[PendingFile]:
         if media_type is None or media_type in {"audio", "model"}:
             continue
         row = rows.get(entry.name)
-        if (
-            row is None
-            or row.vocabulary != vocabulary
-            or not row.matches(entry.mtime_ns, entry.size)
-        ):
+        if row is None or row.queued_for_retag or not row.matches(entry.mtime_ns, entry.size):
             pending.append(PendingFile(folder, entry, media_type))
     return pending
 
@@ -96,11 +96,13 @@ class TaggingWorker:
         vocabulary_loader: Callable[[], list[str]] = load_vocabulary,
         requirements_check: Callable[[], bool] = tagging_requirements_installed,
         model_selector: Callable[[], str] = select_model_name,
+        enabled_check: Callable[[], bool] = tagging_enabled,
     ) -> None:
         self._model_factory = model_factory
         self._vocabulary_loader = vocabulary_loader
         self._requirements_check = requirements_check
         self._model_selector = model_selector
+        self._enabled_check = enabled_check
         self._model: TagModel | None = None
         self._model_vocabulary = ""
         self._lock = threading.Lock()
@@ -135,6 +137,11 @@ class TaggingWorker:
 
     def step(self) -> float:
         """Does one round of work; returns how long to wait before the next."""
+        if not self._enabled_check():
+            self.close()
+            self._report("disabled", pending=0)
+            return IDLE_SECONDS
+
         terms = self._vocabulary_loader()
         if not self._requirements_check():
             self._report(
@@ -144,9 +151,7 @@ class TaggingWorker:
 
         model_name = self._model_selector()
         vocabulary = vocabulary_id(terms, model_name)
-        pending = [
-            file for folder in favorite_folders() for file in pending_in_folder(folder, vocabulary)
-        ]
+        pending = [file for folder in favorite_folders() for file in pending_in_folder(folder)]
         if not pending:
             self._report("idle", pending=0, vocabulary_size=len(terms), model=model_name)
             # Freed as soon as the favorites are done, so its VRAM goes back to other tools.
@@ -212,19 +217,33 @@ class TaggingWorker:
 
 _worker = TaggingWorker()
 
+#: Cuts a wait short, so turning tagging on or asking for a re-tag starts within a step.
+_wake = threading.Event()
+
 
 def tagging_status() -> TaggingStatusResponse:
     return _worker.status()
 
 
-def _run(worker: TaggingWorker, stop: threading.Event) -> None:
+def wake_tagging_worker() -> None:
+    _wake.set()
+
+
+def retag_everything() -> int:
+    queued = queue_all_for_retag()
+    wake_tagging_worker()
+    return queued
+
+
+def _run(worker: TaggingWorker, stop: threading.Event, wake: threading.Event) -> None:
     while not stop.is_set():
         try:
             delay = worker.step()
         except Exception:
             logger.exception("Tagging step failed")
             delay = FAILURE_BACKOFF_SECONDS
-        stop.wait(delay)
+        wake.wait(delay)
+        wake.clear()
     worker.close()
 
 
@@ -242,5 +261,10 @@ def start_tagging_worker() -> Callable[[], None]:
         _worker._report("unavailable", detail=f"Tagging is turned off by {DISABLE_TAGGING_ENV}.")
         return lambda: None
     stop = threading.Event()
-    threading.Thread(target=_run, args=(_worker, stop), name="tagging", daemon=True).start()
-    return stop.set
+    threading.Thread(target=_run, args=(_worker, stop, _wake), name="tagging", daemon=True).start()
+
+    def stop_worker() -> None:
+        stop.set()
+        _wake.set()
+
+    return stop_worker

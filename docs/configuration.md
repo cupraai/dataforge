@@ -10,7 +10,7 @@ Use **Settings** (`Ctrl+,`) to connect services and tune AI jobs. Browsing, manu
 | --- | --- |
 | **Appearance** | **Color scheme:** Light, Dark, or System, previewed before saving; Quick actions can also switch it. **Gallery:** caption length on large and small cards, megapixels, aspect ratio and tags on large cards, which [card actions](user-guide.md#find-files) appear on hover, and the list's caption preview. **Editor:** line wrapping, line numbers, spell checking and its language, and word suggestions |
 | **Vision model** | **Server:** connection and limits. **Sampling:** separate Reasoning and Instruct profiles. **Media input:** image and video budgets |
-| **Tagging** | [Tagging](user-guide.md#tags) status, files still waiting, and minimum confidence |
+| **Tagging** | Turning [tagging](user-guide.md#tags) on, its status, files still waiting, minimum confidence, Re-tag everything, and your own vocabulary terms |
 | **Integrations** | ComfyUI URL, [generative fill](comfyui.md#generative-fill) model files and steps, and AI-Toolkit URL. Each service has **Test connection** |
 | **Storage** | Thumbnail-cache size and limit; **Clear cache** (thumbnails regenerate as you browse) |
 | **Data & history** | Job and notification retention; **Clear** for recent folders, recent quick actions, per-folder job options, and per-folder display modes |

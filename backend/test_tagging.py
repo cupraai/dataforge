@@ -26,13 +26,23 @@ from folder_fingerprint import compute_folder_fingerprint
 from folder_scan import scan_folder
 from media_listing import list_media_from_scan
 from media_tags import (
+    RETAG_VOCABULARY,
     folder_tag_rows,
     listed_tags,
+    queue_all_for_retag,
     save_media_tags,
 )
 from schemas import AppSettingsUpdate
 from tag_vocabulary import DEFAULT_TAG_TERMS
-from tagger import fold_detections, load_vocabulary, vocabulary_id
+from tagger import (
+    MAX_PERSONAL_VOCABULARY_CHARS,
+    fold_detections,
+    load_vocabulary,
+    read_personal_vocabulary_text,
+    vocabulary_counts,
+    vocabulary_id,
+    write_personal_vocabulary_text,
+)
 from tagging_worker import (
     FAILURE_BACKOFF_SECONDS,
     IDLE_SECONDS,
@@ -41,6 +51,7 @@ from tagging_worker import (
     start_tagging_worker,
     tagging_status,
 )
+from ui_settings import UI_SETTINGS_KEY, load_tagging_switch, update_ui_settings
 
 TERMS = ["dog", "cat", "beach"]
 
@@ -49,6 +60,11 @@ def _clear_tags() -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM media_tags")
         conn.commit()
+
+
+def _forget_tagging_switch() -> None:
+    forget_preferences(UI_SETTINGS_KEY)
+    load_tagging_switch()
 
 
 class FakeTagModel:
@@ -74,9 +90,11 @@ class TaggingTestCase(unittest.TestCase):
         _clear_tags()
         forget_preferences(FOLDER_FAVORITES_KEY)
         forget_saved_settings()
+        update_ui_settings(tagging_enabled=True)
         self.addCleanup(_clear_tags)
         self.addCleanup(forget_preferences, FOLDER_FAVORITES_KEY)
         self.addCleanup(forget_saved_settings)
+        self.addCleanup(_forget_tagging_switch)
 
         temp = TempMediaFolder()
         self.root = temp.__enter__().resolve()
@@ -186,18 +204,57 @@ class TaggingWorkerTests(TaggingTestCase):
 
         self.assertEqual(self.listed(self.root)["photo.png"], [])
 
-    def test_a_new_vocabulary_reloads_the_model_and_tags_everything_again(self) -> None:
+    def test_a_new_vocabulary_tags_only_files_that_come_later(self) -> None:
         write_media(self.root, "photo.png")
         add_folder_favorite(str(self.root))
         worker = self.make_worker()
         self.run_until_idle(worker)
+        first_vocabulary = folder_tag_rows(self.root)["photo.png"].vocabulary
 
         self.terms = [*TERMS, "horse"]
+        self.assertEqual(worker.step(), IDLE_SECONDS)
+        self.assertEqual(len(self.models), 1)
+
+        write_media(self.root, "later.png")
         self.run_until_idle(worker)
 
         self.assertEqual(len(self.models), 2)
-        self.assertTrue(self.models[0].closed)
         self.assertEqual(self.models[1].tagged, 1)
+        rows = folder_tag_rows(self.root)
+        self.assertEqual(rows["photo.png"].vocabulary, first_vocabulary)
+        self.assertEqual(rows["later.png"].vocabulary, self.models[1].vocabulary)
+
+    def test_retag_everything_keeps_the_old_tags_listed_until_replaced(self) -> None:
+        write_media(self.root, "photo.png")
+        add_folder_favorite(str(self.root))
+        worker = self.make_worker()
+        self.run_until_idle(worker)
+        self.terms = [*TERMS, "horse"]
+
+        self.assertEqual(queue_all_for_retag(), 1)
+        self.assertEqual(folder_tag_rows(self.root)["photo.png"].vocabulary, RETAG_VOCABULARY)
+        self.assertEqual(self.listed(self.root)["photo.png"], [{"label": "dog", "confidence": 0.9}])
+
+        self.run_until_idle(worker)
+
+        self.assertEqual(self.tagged(), 2)
+        self.assertEqual(
+            folder_tag_rows(self.root)["photo.png"].vocabulary, self.models[-1].vocabulary
+        )
+
+    def test_turned_off_it_tags_nothing_and_frees_the_model(self) -> None:
+        write_media(self.root, "photo.png")
+        add_folder_favorite(str(self.root))
+        worker = self.make_worker()
+        self.assertEqual(worker.step(), 0.0)
+
+        update_ui_settings(tagging_enabled=False)
+        write_media(self.root, "later.png")
+
+        self.assertEqual(worker.step(), IDLE_SECONDS)
+        self.assertTrue(self.models[0].closed)
+        self.assertEqual(worker.status().state, "disabled")
+        self.assertNotIn("later.png", folder_tag_rows(self.root))
 
     def test_tags_of_files_that_left_the_folder_are_forgotten(self) -> None:
         photo = write_media(self.root, "photo.png")
@@ -241,7 +298,7 @@ class TaggingWorkerTests(TaggingTestCase):
         self.assertEqual(publish.call_args_list[0].args[0]["type"], "tagging")
 
     def test_reports_unavailable_without_the_optional_requirements(self) -> None:
-        worker = TaggingWorker(requirements_check=lambda: False)
+        worker = TaggingWorker(requirements_check=lambda: False, enabled_check=lambda: True)
 
         self.assertEqual(worker.step(), UNAVAILABLE_RECHECK_SECONDS)
         status = worker.status()
@@ -312,6 +369,19 @@ class TagListingTests(TaggingTestCase):
             [tag["label"] for tag in self.listed(self.root)["photo.png"]], ["dog", "beach"]
         )
 
+    def test_turned_off_the_listing_has_no_tags_and_the_fingerprint_moves(self) -> None:
+        write_media(self.root, "photo.png")
+        add_folder_favorite(str(self.root))
+        self.run_until_idle(self.make_worker())
+        before = compute_folder_fingerprint(self.root)
+
+        update_ui_settings(tagging_enabled=False)
+
+        self.assertEqual(self.listed(self.root)["photo.png"], [])
+        self.assertNotEqual(compute_folder_fingerprint(self.root), before)
+        # Kept for turning it back on, which needs no new pass.
+        self.assertIn("photo.png", folder_tag_rows(self.root))
+
     def test_the_confidence_setting_moves_the_fingerprint(self) -> None:
         write_media(self.root, "photo.png")
         before = compute_folder_fingerprint(self.root)
@@ -379,6 +449,38 @@ class TaggerTests(unittest.TestCase):
             absent = Path(temp) / "tag_vocabulary.txt"
 
             self.assertEqual(load_vocabulary(("dog",), absent), ["dog"])
+
+    def test_the_personal_list_is_written_tidy_and_read_back_as_written(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            personal = Path(temp) / "data" / "tag_vocabulary.txt"
+
+            write_personal_vocabulary_text("# mine\r\nred dress  \r\nCat\r\n\r\n\r\n", personal)
+
+            self.assertEqual(personal.read_bytes(), b"# mine\nred dress\nCat\n")
+            self.assertEqual(read_personal_vocabulary_text(personal), "# mine\nred dress\nCat\n")
+            # "cat" is built in, so only the dress is new.
+            built_in, added = vocabulary_counts(personal)
+            self.assertEqual(built_in, len(DEFAULT_TAG_TERMS))
+            self.assertEqual(added, 0 if "red dress" in DEFAULT_TAG_TERMS else 1)
+
+    def test_a_blank_personal_list_deletes_the_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            personal = Path(temp) / "tag_vocabulary.txt"
+            personal.write_text("dog\n", encoding="utf-8")
+
+            write_personal_vocabulary_text("  \n\n", personal)
+
+            self.assertFalse(personal.exists())
+            self.assertEqual(read_personal_vocabulary_text(personal), "")
+
+    def test_an_oversized_personal_list_is_refused_and_nothing_is_written(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            personal = Path(temp) / "tag_vocabulary.txt"
+
+            with self.assertRaisesRegex(ValueError, "at most"):
+                write_personal_vocabulary_text("x" * (MAX_PERSONAL_VOCABULARY_CHARS + 1), personal)
+
+            self.assertFalse(personal.exists())
 
     def test_the_default_terms_are_clean_and_unique(self) -> None:
         self.assertGreater(len(DEFAULT_TAG_TERMS), 100)

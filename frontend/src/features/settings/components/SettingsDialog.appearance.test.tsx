@@ -66,6 +66,7 @@ describe("SettingsDialog: appearance", () => {
   });
 
   it("saves the gallery card options together as a UI preference", async () => {
+    localStorage.setItem("tagging-enabled", "true");
     const { onClose, user } = await openAppearance();
 
     await user.click(screen.getByRole("tab", { name: "Gallery" }));
@@ -95,6 +96,17 @@ describe("SettingsDialog: appearance", () => {
         card_actions: ["open", "copy_caption", "delete"],
       },
     });
+  });
+
+  it("leaves the card tag option out while tagging is off", async () => {
+    const { user } = await openAppearance();
+
+    await user.click(screen.getByRole("tab", { name: "Gallery" }));
+
+    expect(screen.getByRole("checkbox", { name: "Show megapixels" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Show tags on large cards" }),
+    ).not.toBeInTheDocument();
   });
 
   it("saves the choice to hide hidden folders on its own", async () => {

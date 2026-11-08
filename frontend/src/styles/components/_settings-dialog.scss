@@ -403,6 +403,30 @@
     }
   }
 
+  // The page's one tall field absorbs the space left over, so the panel never scrolls.
+  &--fill {
+    flex: 1;
+    min-height: 0;
+  }
+
+  &--fill &__body {
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__fill-field {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+
+    .dialog__input--multiline {
+      flex: 1;
+      min-height: 6rem;
+      resize: none;
+    }
+  }
+
   // Related checkboxes read as one list rather than separate fields.
   &__checks {
     display: flex;

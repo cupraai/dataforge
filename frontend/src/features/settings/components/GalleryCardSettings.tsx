@@ -21,11 +21,18 @@ const SMALL_OPTIONS = lineOptions(SMALL_CARD_CAPTION_LINES);
 
 interface GalleryCardSettingsProps {
   value: GalleryCardOptions;
+  /** Off, there are no tags to show, so their option is left out too. */
+  taggingEnabled: boolean;
   disabled: boolean;
   onChange: (value: GalleryCardOptions) => void;
 }
 
-export function GalleryCardSettings({ value, disabled, onChange }: GalleryCardSettingsProps) {
+export function GalleryCardSettings({
+  value,
+  taggingEnabled,
+  disabled,
+  onChange,
+}: GalleryCardSettingsProps) {
   const change = (partial: Partial<GalleryCardOptions>) => onChange({ ...value, ...partial });
 
   return (
@@ -68,13 +75,15 @@ export function GalleryCardSettings({ value, disabled, onChange }: GalleryCardSe
             disabled={disabled}
             onChange={(largeAspectRatio) => change({ largeAspectRatio })}
           />
-          <SettingsCheckbox
-            label="Show tags on large cards"
-            hint="The strongest tags from background tagging. Only favorite folders are tagged."
-            checked={value.largeTags}
-            disabled={disabled}
-            onChange={(largeTags) => change({ largeTags })}
-          />
+          {taggingEnabled && (
+            <SettingsCheckbox
+              label="Show tags on large cards"
+              hint="The strongest tags from background tagging. Only favorite folders are tagged."
+              checked={value.largeTags}
+              disabled={disabled}
+              onChange={(largeTags) => change({ largeTags })}
+            />
+          )}
         </div>
       </SettingsGroup>
       <SettingsGroup

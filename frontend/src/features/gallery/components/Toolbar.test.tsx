@@ -88,7 +88,7 @@ describe("Toolbar", () => {
     renderToolbar();
 
     const search = screen.getByRole("searchbox", {
-      name: "Search files and folders by name, caption or tag",
+      name: "Search files and folders by name or caption",
     });
     expect(search).not.toHaveFocus();
 
@@ -104,7 +104,7 @@ describe("Toolbar", () => {
     await user.keyboard("/");
 
     const search = screen.getByRole("searchbox", {
-      name: "Search files and folders by name, caption or tag",
+      name: "Search files and folders by name or caption",
     });
     expect(search).toHaveFocus();
     expect(defaultProps.onSearchQueryChange).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe("Toolbar", () => {
     renderToolbar({ searchQuery: "sunset" });
 
     const search = screen.getByRole("searchbox", {
-      name: "Search files and folders by name, caption or tag",
+      name: "Search files and folders by name or caption",
     }) as HTMLInputElement;
 
     await user.keyboard("{Control>}f{/Control}");
@@ -182,7 +182,7 @@ describe("Toolbar", () => {
   it("flags an invalid regular expression on the field and says what is wrong", async () => {
     const { rerender } = renderToolbar({ searchQuery: "[", searchRegex: true });
     const search = screen.getByRole("searchbox", {
-      name: "Search files and folders by name, caption or tag",
+      name: "Search files and folders by name or caption",
     });
 
     expect(search).toHaveAttribute("aria-invalid", "true");
@@ -207,7 +207,17 @@ describe("Toolbar", () => {
   it("labels the search box for captions only when names are excluded", () => {
     renderToolbar({ searchNames: false });
 
+    expect(screen.getByRole("searchbox", { name: "Search captions" })).toBeInTheDocument();
+  });
+
+  it("names tags in the search label only while tagging is on", () => {
+    const { rerender } = render(<Toolbar {...defaultProps} searchNames={false} searchTags />);
     expect(screen.getByRole("searchbox", { name: "Search captions and tags" })).toBeInTheDocument();
+
+    rerender(<Toolbar {...defaultProps} searchNames searchTags />);
+    expect(
+      screen.getByRole("searchbox", { name: "Search files and folders by name, caption or tag" }),
+    ).toBeInTheDocument();
   });
 
   it("opens every filter group from the filter menu", async () => {
@@ -577,7 +587,7 @@ describe("Toolbar", () => {
       renderToolbar();
 
       const search = screen.getByRole("searchbox", {
-        name: "Search files and folders by name, caption or tag",
+        name: "Search files and folders by name or caption",
       });
 
       await user.keyboard("{Control>}f{/Control}");

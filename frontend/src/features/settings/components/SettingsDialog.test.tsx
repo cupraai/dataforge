@@ -164,7 +164,72 @@ describe("SettingsDialog", () => {
     expect(getThumbnailEpoch()).toBe(epoch + 1);
   });
 
+  it("leaves tagging off by default and saves turning it on as a UI preference", async () => {
+    const { user } = await openDialog("Tagging");
+
+    const enable = screen.getByRole("checkbox", { name: "Tag favorite folders" });
+    expect(enable).not.toBeChecked();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("spinbutton", { name: "Minimum confidence" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Re-tag everything" })).not.toBeInTheDocument();
+
+    await user.click(enable);
+    expect(
+      await screen.findByRole("spinbutton", { name: "Minimum confidence" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(backend.requestsTo("/api/preferences/ui", "PUT")).toHaveLength(1));
+    const [[, init]] = backend.requestsTo("/api/preferences/ui", "PUT");
+    expect(JSON.parse(init?.body as string)).toEqual({ tagging_enabled: true });
+    expect(settingsRequests("PUT")).toHaveLength(0);
+  });
+
+  it("edits the vocabulary on its own page and saves it with the dialog", async () => {
+    localStorage.setItem("tagging-enabled", "true");
+    const { onClose, user } = await openDialog("Tagging");
+
+    await user.click(screen.getByRole("tab", { name: "Vocabulary" }));
+    const terms = await screen.findByRole("textbox", { name: "Terms" });
+    await waitFor(() => expect(terms).toHaveValue("# mine\nred dress\n"));
+    expect(screen.getByText(/adds 1 term to the 302 built-in terms/)).toBeInTheDocument();
+
+    await user.type(terms, "hot air balloon");
+    expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const [[, init]] = backend.requestsTo("/api/system/tagging/vocabulary", "PUT");
+    expect(JSON.parse(init?.body as string)).toEqual({
+      text: "# mine\nred dress\nhot air balloon",
+    });
+    expect(settingsRequests("PUT")).toHaveLength(0);
+  });
+
+  it("has no vocabulary page while tagging is off", async () => {
+    await openDialog("Tagging");
+
+    expect(screen.getByRole("checkbox", { name: "Tag favorite folders" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Vocabulary" })).not.toBeInTheDocument();
+    expect(backend.requestsTo("/api/system/tagging/vocabulary", "GET")).toHaveLength(0);
+  });
+
+  it("sends every tagged file back to the tagger on request", async () => {
+    localStorage.setItem("tagging-enabled", "true");
+    const { user } = await openDialog("Tagging");
+
+    const retag = await screen.findByRole("button", { name: "Re-tag everything" });
+    await waitFor(() => expect(retag).toBeEnabled());
+    await user.click(retag);
+
+    expect(await screen.findByText(/12 files go back to the tagger/)).toBeInTheDocument();
+    expect(backend.requestsTo("/api/system/tagging/retag", "POST")).toHaveLength(1);
+  });
+
   it("shows why tagging is not running and saves its confidence", async () => {
+    localStorage.setItem("tagging-enabled", "true");
     backend = installMockBackend({
       taggingStatus: {
         state: "unavailable",

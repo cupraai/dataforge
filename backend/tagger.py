@@ -20,6 +20,7 @@ from PIL import Image, ImageSequence
 
 from automation.vision import extract_video_keyframes, load_image_rgb
 from constants import TAG_SCORE_FLOOR
+from file_write import write_bytes_atomic
 from gif_frames import keyframe_indices
 from media_tags import StoredTag
 from tag_vocabulary import DEFAULT_TAG_TERMS
@@ -34,6 +35,9 @@ CPU_MODEL_NAME = "yolov8s-worldv2.pt"
 
 #: The user's own terms, added after ``DEFAULT_TAG_TERMS``; ``backend/data`` is not checked in.
 PERSONAL_VOCABULARY_PATH = Path(__file__).resolve().parent / "data" / "tag_vocabulary.txt"
+
+#: Far beyond one term per line in practice; the worker rereads the file every step.
+MAX_PERSONAL_VOCABULARY_CHARS = 100_000
 
 #: Frames sampled across a video or GIF; a tag keeps its best score from any of them.
 MOTION_FRAME_COUNT = 8
@@ -82,14 +86,44 @@ def read_personal_terms(path: Path = PERSONAL_VOCABULARY_PATH) -> list[str]:
     return [line.split("#", 1)[0] for line in text.splitlines()]
 
 
+def read_personal_vocabulary_text(path: Path | None = None) -> str:
+    """The file as the user wrote it, comments included; empty when there is none."""
+    try:
+        return (path or PERSONAL_VOCABULARY_PATH).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
+
+
+def write_personal_vocabulary_text(text: str, path: Path | None = None) -> None:
+    """Blank deletes the file. The next tagging step reads it, so no restart is needed."""
+    if len(text) > MAX_PERSONAL_VOCABULARY_CHARS:
+        raise ValueError(
+            f"The vocabulary must be at most {MAX_PERSONAL_VOCABULARY_CHARS:,} characters."
+        )
+    target = path or PERSONAL_VOCABULARY_PATH
+    lines = [line.rstrip() for line in text.splitlines()]
+    while lines and not lines[-1]:
+        lines.pop()
+    if not lines:
+        target.unlink(missing_ok=True)
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Bytes, so the file has LF line endings on Windows too.
+    write_bytes_atomic(target, ("\n".join(lines) + "\n").encode("utf-8"))
+
+
 def load_vocabulary(
     defaults: Iterable[str] = DEFAULT_TAG_TERMS,
     personal: Path = PERSONAL_VOCABULARY_PATH,
 ) -> list[str]:
     """The defaults, then the user's own terms; lowercased, spaces collapsed, without repeats."""
+    return _unique_terms([*defaults, *read_personal_terms(personal)])
+
+
+def _unique_terms(raw_terms: Iterable[str]) -> list[str]:
     terms: list[str] = []
     seen: set[str] = set()
-    for raw in [*defaults, *read_personal_terms(personal)]:
+    for raw in raw_terms:
         term = " ".join(raw.split()).lower()
         if term and term not in seen:
             seen.add(term)
@@ -97,8 +131,16 @@ def load_vocabulary(
     return terms
 
 
+def vocabulary_counts(path: Path | None = None) -> tuple[int, int]:
+    """Built-in terms, and the terms the user's file adds to them."""
+    built_in = len(_unique_terms(DEFAULT_TAG_TERMS))
+    total = len(load_vocabulary(DEFAULT_TAG_TERMS, path or PERSONAL_VOCABULARY_PATH))
+    return built_in, total - built_in
+
+
 def vocabulary_id(terms: Iterable[str], model_name: str) -> str:
-    """Names the model and vocabulary behind a file's tags; changing either re-tags everything."""
+    """Names the model and vocabulary behind a file's tags; a change reloads the model, and
+    only files tagged from then on use it."""
     return hashlib.sha256("\n".join([model_name, *terms]).encode("utf-8")).hexdigest()[:16]
 
 

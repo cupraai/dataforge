@@ -20,6 +20,9 @@ VALID_SORTS = frozenset(get_args(GallerySort.__value__))
 
 _settings: JsonPreference[UiSettingsResponse] = JsonPreference(UI_SETTINGS_KEY, UiSettingsResponse)
 
+# Listings and every watch pass ask, so they read a snapshot instead of the database.
+_tagging_enabled = False
+
 
 def _normalized_sort(sort: str | None) -> str | None:
     """An unknown sort resets to the default rather than failing the request."""
@@ -32,6 +35,15 @@ def get_ui_settings() -> UiSettingsResponse:
     return _settings.get()
 
 
+def load_tagging_switch() -> None:
+    global _tagging_enabled
+    _tagging_enabled = get_ui_settings().tagging_enabled
+
+
+def tagging_enabled() -> bool:
+    return _tagging_enabled
+
+
 def update_ui_settings(
     *,
     sort: str | None = None,
@@ -42,8 +54,10 @@ def update_ui_settings(
     gallery_cards: GalleryCardSettings | None = None,
     editor: EditorSettings | None = None,
     hide_hidden_folders: bool | None = None,
+    tagging_enabled: bool | None = None,
 ) -> UiSettingsResponse:
-    return _settings.update(
+    global _tagging_enabled
+    saved = _settings.update(
         sort=_normalized_sort(sort),
         show_automation_specs=show_automation_specs,
         theme=theme,
@@ -52,4 +66,7 @@ def update_ui_settings(
         gallery_cards=gallery_cards,
         editor=editor,
         hide_hidden_folders=hide_hidden_folders,
+        tagging_enabled=tagging_enabled,
     )
+    _tagging_enabled = saved.tagging_enabled
+    return saved

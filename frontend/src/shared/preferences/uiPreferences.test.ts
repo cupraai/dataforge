@@ -41,6 +41,7 @@ const serverCopy = {
     caption_spellcheck_language: "de",
     caption_suggestions: false,
   },
+  tagging_enabled: true,
 };
 
 function respond(body: unknown) {
@@ -87,6 +88,7 @@ describe("useUiSettings", () => {
           captionSpellcheckLanguage: "de",
           captionSuggestions: false,
         },
+        taggingEnabled: true,
       }),
     );
     expect(JSON.parse(localStorage.getItem("editor-options") ?? "null")).toEqual(
@@ -98,6 +100,7 @@ describe("useUiSettings", () => {
     );
     expect(localStorage.getItem("automation-specs-visible")).toBe("true");
     expect(localStorage.getItem("keep-candidate-metadata")).toBe("false");
+    expect(localStorage.getItem("tagging-enabled")).toBe("true");
   });
 
   it("keeps candidate metadata until it is turned off", async () => {

@@ -2,6 +2,11 @@ import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VISION_MODEL_QUERY_KEY } from "@/features/automation/api/visionLlm";
+import {
+  fetchTagVocabulary,
+  saveTagVocabulary,
+  TAG_VOCABULARY_QUERY_KEY,
+} from "@/features/tagging/api/tagging";
 import { sameCardOptions } from "@/features/gallery/lib/cardOptions";
 import { formatApiError } from "@/shared/api/http";
 import { useTabList } from "@/shared/hooks/useTabList";
@@ -62,6 +67,7 @@ import { SettingsGroup } from "./SettingsGroup";
 import { SettingsPageTabs } from "./SettingsPageTabs";
 import { StorageSection } from "./StorageSection";
 import { TaggingSection } from "./TaggingSection";
+import { TagVocabularySection } from "./TagVocabularySection";
 import { ThemePicker } from "./ThemePicker";
 
 type SectionId =
@@ -75,6 +81,7 @@ type PageId =
   | "sampling"
   | "media"
   | "tagging"
+  | "vocabulary"
   | "integrations"
   | "storage"
   | "data"
@@ -217,6 +224,13 @@ const SECTIONS: Section[] = [
         description:
           "Files in favorite folders, not their subfolders, are tagged in the background so search finds them by what they show.",
         groups: [{ title: "Background tagging", icon: iconTag, rows: [["tag_min_confidence"]] }],
+      },
+      {
+        id: "vocabulary",
+        label: "Vocabulary",
+        description:
+          "Terms the tagger looks for besides its built-in ones. A change applies to files tagged from then on; Re-tag everything brings the rest up to it.",
+        groups: [],
       },
     ],
   },
@@ -382,16 +396,32 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       void queryClient.invalidateQueries({ queryKey: VISION_MODEL_QUERY_KEY });
     },
   });
-  const saving = save.isPending;
   const savedTheme = useThemePreference();
   const [theme, setTheme] = useState(savedTheme);
   const {
     galleryCards: savedCards,
     editor: savedEditor,
     hideHiddenFolders: savedHideHidden,
+    taggingEnabled: savedTagging,
   } = useUiSettings();
   const [cards, setCards] = useState(savedCards);
   const [hideHidden, setHideHidden] = useState(savedHideHidden);
+  const [tagging, setTagging] = useState(savedTagging);
+  const vocabularyQuery = useQuery({
+    queryKey: TAG_VOCABULARY_QUERY_KEY,
+    queryFn: ({ signal }) => fetchTagVocabulary(signal),
+    enabled: tagging,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+  });
+  // Null until edited, so the draft follows the saved file until then.
+  const [vocabularyDraft, setVocabularyDraft] = useState<string | null>(null);
+  const savedVocabulary = vocabularyQuery.data ?? null;
+  const saveVocabulary = useMutation({
+    mutationFn: saveTagVocabulary,
+    onSuccess: (saved) => queryClient.setQueryData(TAG_VOCABULARY_QUERY_KEY, saved),
+  });
+  const saving = save.isPending || saveVocabulary.isPending;
   const [editor, setEditor] = useState(savedEditor);
   const updateUiSettings = useUpdateUiSettings();
   const [section, setSection] = useState<SectionId>("appearance");
@@ -400,8 +430,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [probes, setProbes] = useState<Partial<Record<ProbedService, ProbeState>>>({});
   const tabs = useTabList(SECTION_IDS, section, setSection, "vertical");
   const active = SECTIONS.find((entry) => entry.id === section) ?? SECTIONS[0];
+  // Turned off, tagging has no vocabulary to edit, so its tab goes too.
+  const pagesOf = (entry: Section) =>
+    tagging ? entry.pages : entry.pages.filter((page) => page.id !== "vocabulary");
   const pageOf = (entry: Section) =>
-    entry.pages.find((page) => page.id === openPages[entry.id]) ?? entry.pages[0];
+    pagesOf(entry).find((page) => page.id === openPages[entry.id]) ?? entry.pages[0];
   const showPage = (entry: SectionId, page: PageId) =>
     setOpenPages((current) => ({ ...current, [entry]: page }));
 
@@ -409,6 +442,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const cardsEdited = !sameCardOptions(cards, savedCards);
   const hideHiddenEdited = hideHidden !== savedHideHidden;
   const editorEdited = !sameEditorOptions(editor, savedEditor);
+  const taggingEdited = tagging !== savedTagging;
+  const vocabularyEdited =
+    vocabularyDraft !== null &&
+    savedVocabulary !== null &&
+    vocabularyDraft !== savedVocabulary.text;
 
   useEffect(() => {
     previewThemePreference(themeEdited ? theme : null);
@@ -418,7 +456,14 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const editedKeys = state.status === "ready" ? editedSettingKeys(state.settings, state.draft) : [];
   const editedCount =
     editedKeys.length +
-    [themeEdited, cardsEdited, hideHiddenEdited, editorEdited].filter(Boolean).length;
+    [
+      themeEdited,
+      cardsEdited,
+      hideHiddenEdited,
+      editorEdited,
+      taggingEdited,
+      vocabularyEdited,
+    ].filter(Boolean).length;
   const discard = useDiscardChanges({
     unsavedChanges: editedCount > 0,
     busy: saving,
@@ -431,6 +476,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     if (page.id === "appearance") return themeEdited;
     if (page.id === "gallery") return cardsEdited || hideHiddenEdited;
     if (page.id === "editor") return editorEdited;
+    if (page.id === "tagging" && taggingEdited) return true;
+    if (page.id === "vocabulary") return vocabularyEdited;
     return keysOf(page).some((key) => editedKeys.includes(key));
   };
   const isSectionEdited = (entry: Section) => entry.pages.some(isPageEdited);
@@ -486,12 +533,22 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     setError(null);
     try {
       if (Object.keys(built.update).length > 0) await save.mutateAsync(built.update);
+      if (vocabularyEdited) {
+        try {
+          await saveVocabulary.mutateAsync(vocabularyDraft);
+        } catch (vocabularyError) {
+          setSection("tagging");
+          showPage("tagging", "vocabulary");
+          throw vocabularyError;
+        }
+      }
       if (themeEdited) setThemePreference(theme);
-      if (cardsEdited || hideHiddenEdited || editorEdited) {
+      if (cardsEdited || hideHiddenEdited || editorEdited || taggingEdited) {
         updateUiSettings({
           ...(cardsEdited && { galleryCards: cards }),
           ...(hideHiddenEdited && { hideHiddenFolders: hideHidden }),
           ...(editorEdited && { editor }),
+          ...(taggingEdited && { taggingEnabled: tagging }),
         });
       }
       onClose();
@@ -573,7 +630,12 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     if (page.id === "gallery") {
       return (
         <>
-          <GalleryCardSettings value={cards} disabled={saving} onChange={setCards} />
+          <GalleryCardSettings
+            value={cards}
+            taggingEnabled={tagging}
+            disabled={saving}
+            onChange={setCards}
+          />
           <SettingsGroup title="Folders" icon={iconFolder}>
             <SettingsCheckbox
               label="Hide hidden folders"
@@ -588,6 +650,17 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     }
     if (page.id === "editor") {
       return <EditorPreferenceSettings value={editor} disabled={saving} onChange={setEditor} />;
+    }
+    if (page.id === "vocabulary") {
+      return (
+        <TagVocabularySection
+          saved={savedVocabulary}
+          error={vocabularyQuery.isError ? formatApiError(vocabularyQuery.error) : null}
+          value={vocabularyDraft ?? savedVocabulary?.text ?? ""}
+          disabled={saving}
+          onChange={setVocabularyDraft}
+        />
+      );
     }
     if (page.id === "about") {
       return (
@@ -621,7 +694,12 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     }
     if (page.id === "tagging") {
       return (
-        <TaggingSection visible={section === "tagging"}>
+        <TaggingSection
+          visible={section === "tagging"}
+          enabled={tagging}
+          disabled={saving}
+          onEnabledChange={setTagging}
+        >
           {renderRows(page.groups[0].rows)}
         </TaggingSection>
       );
@@ -707,10 +785,10 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
         {SECTIONS.map((entry) => (
           <div key={entry.id} {...tabs.panelProps(entry.id)} className="settings-dialog__pane">
-            {entry.pages.length > 1 ? (
+            {pagesOf(entry).length > 1 ? (
               <SettingsPageTabs
                 label={entry.label}
-                pages={entry.pages}
+                pages={pagesOf(entry)}
                 active={pageOf(entry).id}
                 isEdited={isPageEdited}
                 onSelect={(page) => showPage(entry.id, page)}

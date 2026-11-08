@@ -106,6 +106,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let folderFavorites: string[] | null = options.folderFavorites ?? null;
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
+  let tagVocabulary = { text: "# mine\nred dress\n", default_count: 302, added_count: 1 };
   let thumbnailCache = {
     directory: "C:/DataForge/thumbnails",
     file_count: 1200,
@@ -612,6 +613,18 @@ export function installMockBackend(options: MockBackendOptions = {}) {
     if (url.pathname === "/api/duplicates/dismiss" && method === "POST") {
       const body = init?.body ? JSON.parse(init.body as string) : {};
       return jsonResponse({ cleared: body.paths ?? [], failed: [] });
+    }
+
+    if (url.pathname === "/api/system/tagging/vocabulary") {
+      if (method === "PUT") {
+        const body = JSON.parse(init?.body as string) as { text: string };
+        tagVocabulary = { ...tagVocabulary, text: body.text, added_count: 2 };
+      }
+      return jsonResponse(tagVocabulary);
+    }
+
+    if (url.pathname === "/api/system/tagging/retag" && method === "POST") {
+      return jsonResponse({ queued: 12 });
     }
 
     if (url.pathname === "/api/system/tagging") {

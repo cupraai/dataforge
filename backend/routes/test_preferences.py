@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from unittest.mock import patch
 from urllib.parse import quote
 
 from automation_settings import (
@@ -12,7 +13,7 @@ from automation_settings import (
 from db import get_connection
 from gallery_display_settings import GALLERY_DISPLAY_SETTINGS_KEY
 from routes._test_client import client
-from ui_settings import UI_SETTINGS_KEY
+from ui_settings import UI_SETTINGS_KEY, load_tagging_switch, tagging_enabled
 
 
 class UiPreferencesEndpointTests(unittest.TestCase):
@@ -21,6 +22,7 @@ class UiPreferencesEndpointTests(unittest.TestCase):
         with get_connection() as conn:
             conn.execute("DELETE FROM preferences WHERE key = ?", (UI_SETTINGS_KEY,))
             conn.commit()
+        load_tagging_switch()
 
     def test_read_default_sort(self) -> None:
         response = client.get("/api/preferences/ui")
@@ -81,6 +83,16 @@ class UiPreferencesEndpointTests(unittest.TestCase):
         client.put("/api/preferences/ui", json={"hide_hidden_folders": True})
 
         self.assertTrue(client.get("/api/preferences/ui").json()["hide_hidden_folders"])
+
+    def test_tagging_is_off_by_default_and_turning_it_on_wakes_the_tagger(self) -> None:
+        self.assertFalse(client.get("/api/preferences/ui").json()["tagging_enabled"])
+
+        with patch("routes.preferences.wake_tagging_worker") as wake:
+            client.put("/api/preferences/ui", json={"tagging_enabled": True})
+
+        wake.assert_called_once()
+        self.assertTrue(client.get("/api/preferences/ui").json()["tagging_enabled"])
+        self.assertTrue(tagging_enabled())
 
     def test_the_theme_follows_the_system_by_default(self) -> None:
         self.assertEqual(client.get("/api/preferences/ui").json()["theme"], "system")

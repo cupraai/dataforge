@@ -17,9 +17,11 @@ from media_tags import save_media_tags
 from routes._test_client import client
 from testing_fixtures import (
     TempMediaFolder,
+    forget_preferences,
     write_media,
     write_txt_caption,
 )
+from ui_settings import UI_SETTINGS_KEY, load_tagging_switch, update_ui_settings
 
 
 class FolderChangesTests(unittest.TestCase):
@@ -68,6 +70,9 @@ class FolderChangesTests(unittest.TestCase):
 
     def test_new_tags_return_only_the_tagged_item(self) -> None:
         """The tagger writes no file, so its revision is what must reach the gallery."""
+        update_ui_settings(tagging_enabled=True)
+        self.addCleanup(load_tagging_switch)
+        self.addCleanup(forget_preferences, UI_SETTINGS_KEY)
         with TempMediaFolder() as root:
             tagged = write_media(root, "tagged.png")
             write_media(root, "untouched.png")

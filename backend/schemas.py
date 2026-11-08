@@ -488,6 +488,8 @@ class UiSettingsResponse(BaseModel):
     editor: EditorSettings = Field(default_factory=EditorSettings)
     #: Leaves dot folders and folders Windows marks hidden out of every folder list.
     hide_hidden_folders: bool = False
+    #: Off by default: the model is large, and turned off every tag disappears from the UI.
+    tagging_enabled: bool = False
 
 
 class UiSettingsUpdate(BaseModel):
@@ -500,6 +502,7 @@ class UiSettingsUpdate(BaseModel):
     gallery_cards: GalleryCardSettings | None = None
     editor: EditorSettings | None = None
     hide_hidden_folders: bool | None = None
+    tagging_enabled: bool | None = None
 
 
 type AppSettingKey = Literal[
@@ -687,7 +690,7 @@ class AboutResponse(BaseModel):
     workflows_dir: str
 
 
-type TaggingState = Literal["unavailable", "idle", "loading", "tagging", "failed"]
+type TaggingState = Literal["disabled", "unavailable", "idle", "loading", "tagging", "failed"]
 
 
 class TaggingStatusResponse(BaseModel):
@@ -700,6 +703,25 @@ class TaggingStatusResponse(BaseModel):
     pending: int = 0
     #: The favorite being worked on; set only while loading or tagging.
     folder: str | None = None
+
+
+class TagVocabularyResponse(BaseModel):
+    #: The user's own terms file as written, comments included; empty when there is none.
+    text: str
+    #: Built-in terms, always looked for.
+    default_count: int
+    #: Terms the file adds; a repeat of a built-in term adds nothing.
+    added_count: int
+
+
+class TagVocabularyUpdate(BaseModel):
+    #: Blank deletes the file.
+    text: str
+
+
+class TaggingRetagResponse(BaseModel):
+    #: Tagged files sent back to the model; those outside favorites wait until they are one.
+    queued: int
 
 
 class ThumbnailCacheStats(BaseModel):

@@ -338,6 +338,11 @@ test("the media view counts the tags that do not fit and recounts on resize", as
     items
       ?.filter((item) => item.name === "photo.png" || item.name === "clip.mp4")
       .map((item) => (item.name === "photo.png" ? { ...item, tags } : item));
+  // Tagging is off by default, which hides the row; turned on here for this page only.
+  await page.route("**/api/preferences/ui", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...(await response.json()), tagging_enabled: true } });
+  });
   // Not openWorkspace: its listing route would answer first and skip this one. Deltas after the
   // listing carry items too, so both supply the tags.
   for (const pattern of ["**/api/folders/contents?**", "**/api/folders/changes?**"]) {

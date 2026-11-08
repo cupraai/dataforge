@@ -60,6 +60,7 @@ def init_db() -> None:
     from automation.jobs_store import init_jobs_table
     from media_tags import init_media_tags_table
     from notifications_store import init_notifications_table
+    from ui_settings import load_tagging_switch
     from video_project_grades import init_video_project_grades_table
     from video_project_index import init_video_project_index_table
     from video_project_versions import init_video_project_versions_table
@@ -71,6 +72,7 @@ def init_db() -> None:
     init_video_project_grades_table()
     init_video_project_index_table()
     load_saved_settings()
+    load_tagging_switch()
 
 
 def get_preference(key: str) -> str | None:

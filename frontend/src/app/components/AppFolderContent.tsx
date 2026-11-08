@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { FolderErrorState } from "@/features/folder/components/FolderErrorState";
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
@@ -80,7 +80,12 @@ export function AppFolderContent({
   fileDrop,
 }: AppFolderContentProps) {
   const { selectionMode, visibleSelectedCount } = useGallerySelectionContext();
-  const { galleryCards } = useUiSettings();
+  const { galleryCards: savedCards, taggingEnabled } = useUiSettings();
+  // Listings carry no tags while tagging is off; this hides them before the re-read lands.
+  const galleryCards = useMemo(
+    () => (taggingEnabled ? savedCards : { ...savedCards, largeTags: false }),
+    [savedCards, taggingEnabled],
+  );
   const folderNotFound = error?.kind === "folder-not-found";
   const globalError = error?.kind === "other" ? error : null;
   const showEmptyFolder = !error && items.length === 0 && models.length === 0;

@@ -247,7 +247,7 @@ test("keeps a large filtered gallery virtualized while inspecting media", async 
   await page.screenshot({ animations: "disabled", path: testInfo.outputPath("toolbar-flat.png") });
   await page.keyboard.press("Control+f");
   await page
-    .getByRole("searchbox", { name: "Search files and folders by name, caption or tag" })
+    .getByRole("searchbox", { name: "Search files and folders by name or caption" })
     .fill("image-1999.png");
   await expect(
     page.getByRole("button", { name: "View image-1999.png", exact: true }),
@@ -277,6 +277,11 @@ test("large cards show whole tags only and count the rest", async ({ page }) => 
     label: `tag number ${index + 1}`,
     confidence: 0.9 - index * 0.05,
   }));
+  // Tagging is off by default, which hides card tags; turned on here for this page only.
+  await page.route("**/api/preferences/ui", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...(await response.json()), tagging_enabled: true } });
+  });
   await page.route("**/api/folders/contents?**", async (route) => {
     const folder = (await (await route.fetch()).json()) as FolderResponse;
     const items = folder.items

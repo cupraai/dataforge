@@ -35,12 +35,15 @@ export interface UiSettings {
   editor: EditorOptions;
   /** Leaves dot folders and folders Windows marks hidden out of folder lists. */
   hideHiddenFolders: boolean;
+  /** Background tagging; while off, nothing about tags is shown. */
+  taggingEnabled: boolean;
 }
 
 const SORT_CACHE_KEY = "gallery-sort";
 const AUTOMATION_SPECS_CACHE_KEY = "automation-specs-visible";
 const KEEP_CANDIDATE_METADATA_CACHE_KEY = "keep-candidate-metadata";
 const HIDE_HIDDEN_FOLDERS_CACHE_KEY = "hide-hidden-folders";
+const TAGGING_ENABLED_CACHE_KEY = "tagging-enabled";
 /** `index.html` reads this key before first paint; rename both together. */
 export const THEME_CACHE_KEY = "ui-theme";
 
@@ -67,6 +70,7 @@ function readCachedUiSettings(): UiSettings {
     galleryCards: readCardOptions(),
     editor: readEditorOptions(),
     hideHiddenFolders: readStored(HIDE_HIDDEN_FOLDERS_CACHE_KEY) === "true",
+    taggingEnabled: readStored(TAGGING_ENABLED_CACHE_KEY) === "true",
   };
 }
 
@@ -78,6 +82,7 @@ function cacheUiSettings({
   galleryCards,
   editor,
   hideHiddenFolders,
+  taggingEnabled,
 }: Partial<UiSettings>): void {
   if (sort !== undefined) writeStored(SORT_CACHE_KEY, sort);
   if (showAutomationSpecs !== undefined) {
@@ -92,6 +97,9 @@ function cacheUiSettings({
   if (hideHiddenFolders !== undefined) {
     writeStored(HIDE_HIDDEN_FOLDERS_CACHE_KEY, String(hideHiddenFolders));
   }
+  if (taggingEnabled !== undefined) {
+    writeStored(TAGGING_ENABLED_CACHE_KEY, String(taggingEnabled));
+  }
 }
 
 function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
@@ -104,6 +112,7 @@ function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
     galleryCards: cardOptionsFromWire(data.gallery_cards),
     editor: editorOptionsFromWire(data.editor),
     hideHiddenFolders: data.hide_hidden_folders,
+    taggingEnabled: Boolean(data.tagging_enabled),
   };
 }
 
@@ -143,6 +152,7 @@ export function updateUiSettings(partial: Partial<UiSettings>): Promise<UiSettin
   if (partial.hideHiddenFolders !== undefined) {
     body.hide_hidden_folders = partial.hideHiddenFolders;
   }
+  if (partial.taggingEnabled !== undefined) body.tagging_enabled = partial.taggingEnabled;
 
   const save = pendingUiSave.then(async () =>
     parseUiSettingsResponse(await putJson<UiSettingsResponse>("/api/preferences/ui", body)),

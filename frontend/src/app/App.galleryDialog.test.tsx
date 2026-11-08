@@ -400,7 +400,7 @@ describe("App: gallery item dialog", () => {
     expect(await screen.findByRole("button", { name: /^Review 2/ })).toBeInTheDocument();
 
     await user.type(
-      screen.getByRole("searchbox", { name: "Search files and folders by name, caption or tag" }),
+      screen.getByRole("searchbox", { name: "Search files and folders by name or caption" }),
       "beach",
     );
 

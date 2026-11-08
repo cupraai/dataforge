@@ -50,6 +50,8 @@ interface ToolbarProps {
   searchQuery: string;
   searchRegex: boolean;
   searchNames: boolean;
+  /** Background tagging is on, so search reaches tags too. */
+  searchTags?: boolean;
   sort: SortOption;
   filter: ItemFilter;
   filterCounts: Record<ItemFilter, number>;
@@ -73,15 +75,22 @@ interface ToolbarSearchProps {
   value: string;
   regex: boolean;
   names: boolean;
+  tags: boolean;
   onQueryChange: (value: string) => void;
   onRegexChange: (value: boolean) => void;
   onNamesChange: (value: boolean) => void;
+}
+
+function searchLabel(names: boolean, tags: boolean): string {
+  if (names) return `Search files and folders by name${tags ? ", caption or tag" : " or caption"}`;
+  return tags ? "Search captions and tags" : "Search captions";
 }
 
 function ToolbarSearch({
   value,
   regex,
   names,
+  tags,
   onQueryChange,
   onRegexChange,
   onNamesChange,
@@ -121,7 +130,7 @@ function ToolbarSearch({
           <span className="toolbar__search-error">{errorText}</span>
         ) : (
           <span className="toolbar__search-help">
-            <ShortcutHint shortcut={SHORTCUTS.search}>Search captions and tags</ShortcutHint>
+            <ShortcutHint shortcut={SHORTCUTS.search}>{searchLabel(false, tags)}</ShortcutHint>
             <span>
               <Icon icon={iconFile} /> Include file and folder names
             </span>
@@ -163,11 +172,7 @@ function ToolbarSearch({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder="Search..."
-            aria-label={
-              names
-                ? "Search files and folders by name, caption or tag"
-                : "Search captions and tags"
-            }
+            aria-label={searchLabel(names, tags)}
             aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.search)}
             aria-invalid={errorText ? true : undefined}
             aria-describedby={errorText ? errorId : undefined}
@@ -258,6 +263,7 @@ export function Toolbar({
   searchQuery,
   searchRegex,
   searchNames,
+  searchTags = false,
   sort,
   filter,
   filterCounts,
@@ -387,6 +393,7 @@ export function Toolbar({
           value={searchQuery}
           regex={searchRegex}
           names={searchNames}
+          tags={searchTags}
           onQueryChange={onSearchQueryChange}
           onRegexChange={onSearchRegexChange}
           onNamesChange={onSearchNamesChange}
