@@ -18,6 +18,8 @@ version heading when a minor or major version is cut.
   gallery, the path bar's folder menus and the move/copy folder tree. Turn it on under
   **Settings > Appearance > Gallery**, from the command palette, or with Alt+H.
 - The gallery and Models section can be sorted by date created and by file size.
+- On Windows, `update.bat` updates a Git clone to the latest version and reruns setup when the
+  update needs it. It requires Git on PATH.
 
 ### Fixed
 

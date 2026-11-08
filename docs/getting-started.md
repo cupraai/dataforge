@@ -67,7 +67,8 @@ The [user guide](user-guide.md) explains these workflows. On macOS, use `⌘` in
 
 **Update** with the app stopped:
 
-- **Git clone:** pull, then start again.
+- **Git clone on Windows:** run `update.bat`, then start again. It needs [Git](https://git-scm.com/downloads/win) on PATH, pulls the latest version of the current branch, and reruns setup when the update changed a runtime or backend dependency. That setup leaves out the tagger unless it is already installed. Local commits, or local edits the update would overwrite, stop it without changing anything.
+- **Git clone on Linux and macOS:** pull, then start again.
 - **ZIP install:** extract a new copy, move over your `.env`, custom presets, and `backend/data/` (settings, history, and cache), and run setup in the new copy. Datasets stay where they are.
 
 The launcher notices dependency changes and rebuilds the UI when needed. Run setup again after a runtime upgrade or when the launcher asks.
