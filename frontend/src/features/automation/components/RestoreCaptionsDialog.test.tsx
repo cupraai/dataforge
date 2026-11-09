@@ -165,7 +165,7 @@ describe("RestoreCaptionsDialog", () => {
     renderDialog();
     const row = await screen.findByRole("listitem", { name: "dog.png" });
     expect(row.querySelectorAll("p.caption-diff")).toHaveLength(1);
-    expect(screen.getByText(/only in the current caption/)).toBeInTheDocument();
+    expect(screen.getByText("Only in the current caption")).toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "Side by side" }));
 

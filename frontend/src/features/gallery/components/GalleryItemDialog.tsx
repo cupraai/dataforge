@@ -1569,7 +1569,12 @@ export function GalleryItemDialog({
                       tabIndex={0}
                     >
                       {canRestoreBackup ? (
-                        <CaptionWordDiff before={caption.trim()} after={comparedBackup.trim()} />
+                        <CaptionWordDiff
+                          before={caption.trim()}
+                          after={comparedBackup.trim()}
+                          legend={{ removed: "Only in this caption", added: "From the backup" }}
+                          addedVerb="restored"
+                        />
                       ) : (
                         <p className="gallery-item-dialog__caption-compare-note">
                           Matches the backup.

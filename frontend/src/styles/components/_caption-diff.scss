@@ -1,8 +1,13 @@
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
+// One look for every caption comparison: the unchanged text steps back, the two tints carry
+// the change. Views set their own density through `font-size` and nothing else.
 .caption-diff {
   margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
   white-space: pre-wrap;
   // Captions may have no spaces; break mid-word rather than stretching the panel.
   overflow-wrap: anywhere;
@@ -11,7 +16,9 @@
   &__removed,
   &__added {
     padding: 0.0625rem 0.1875rem;
-    border-radius: 0.1875rem;
+    border-radius: 0.25rem;
+    // A mark that wraps keeps its padding and corners on every line.
+    box-decoration-break: clone;
     text-decoration: none;
   }
 
@@ -20,6 +27,8 @@
     color: var(--danger);
     text-decoration: line-through;
     text-decoration-thickness: 1px;
+    // Thinner than the letters, so the struck words stay readable.
+    text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
   }
 
   &__added {
@@ -27,20 +36,273 @@
     color: var(--success);
   }
 
-  // Only a swap needs the seam; a pure insertion sits flush with its prefix.
-  &__removed + &__added {
+  // The second half of a swap, set off from the first so the two do not read as one word.
+  &__added--flush {
     margin-left: 0.1875rem;
+  }
+
+  // Stands in for a line break that was added or removed, which has no ink of its own.
+  &__break {
+    user-select: none;
+
+    &::before {
+      content: "↵";
+    }
+  }
+
+  &__removed:has(&__break) {
+    text-decoration: none;
+  }
+
+  // Two captions with nothing in common: one above the other, each a block of its tint.
+  &--rewrite {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  &--rewrite &__removed,
+  &--rewrite &__added {
+    margin: 0;
+    padding: 0.125rem 0.375rem;
   }
 }
 
-// Each side keeps only its own changes, so the seam rule above never applies across columns.
+// One frame, two halves: each side keeps only its own changes.
 .caption-diff-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  &__side {
+    padding: 0.4375rem 0.75rem;
+
+    &--before {
+      border-right: 1px solid var(--border);
+      background: color-mix(in srgb, var(--danger-soft) 30%, transparent);
+    }
+
+    &--after {
+      background: color-mix(in srgb, var(--success-soft) 30%, transparent);
+    }
+
+    &--error {
+      color: var(--danger);
+    }
+  }
+
+  &__empty {
+    color: var(--text-subtle);
+    font-style: italic;
+  }
 }
 
-.caption-diff-split__empty {
-  color: var(--text-subtle);
-  font-style: italic;
+.caption-diff-stat {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.375rem;
+  font-size: var(--text-2xs);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  @include tabular-nums;
+
+  &__removed {
+    color: var(--danger);
+  }
+
+  &__added {
+    color: var(--success);
+  }
+}
+
+.caption-diff-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-tight);
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    min-width: 0;
+
+    // The swatch carries the same tint as the words it explains.
+    &::before {
+      content: "";
+      flex-shrink: 0;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 0.125rem;
+    }
+
+    &--removed::before {
+      border: 1px solid var(--danger-border);
+      background: var(--danger-soft);
+    }
+
+    &--added::before {
+      border: 1px solid var(--success-border);
+      background: var(--success-soft);
+    }
+  }
+}
+
+// The legend and the counts on one line, above a diff that stands alone.
+.caption-diff-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.625rem;
+  padding-bottom: 0.5625rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.caption-diff-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 1.25rem;
+
+  &__name {
+    @include truncate;
+    min-width: 0;
+    color: var(--text);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+  }
+
+  &__stat {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+
+.caption-diff-badge {
+  @include text-pill($height: 1.125rem);
+  flex-shrink: 0;
+  padding-inline: 0.4375rem;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-semibold);
+
+  &--added {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  &--error {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  &--neutral {
+    background: var(--surface-hover);
+    color: var(--text-muted);
+  }
+}
+
+// One file in a preview list: its heading, then its diff or what went wrong.
+.caption-preview-sample {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
+
+  &__error {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    overflow-wrap: anywhere;
+  }
+}
+
+// The Preview field of the caption job dialogs. Column flex items refuse to shrink below their
+// content; `min-height: 0` down this chain lets only the sample list give way.
+.caption-preview-field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.caption-preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  transition: opacity var(--transition);
+
+  &--error {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+  }
+
+  // The previous answer stays put so the panel does not jump; dimmed so stale counts are not
+  // mistaken for fresh ones.
+  &--pending {
+    opacity: 0.55;
+  }
+
+  &__summary {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+
+    strong {
+      color: var(--text);
+      font-weight: var(--font-semibold);
+    }
+  }
+
+  &--error &__summary {
+    color: var(--danger);
+    overflow-wrap: anywhere;
+  }
+
+  // Grows into leftover height and caps at a few samples; shrinks to about one before the
+  // dialog would have to scroll.
+  &__samples {
+    @include app-scrollbar;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 4.25rem;
+    max-height: 16rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 1px solid var(--border);
+    list-style: none;
+  }
+
+  &__more {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-subtle);
+    font-size: var(--text-2xs);
+  }
 }

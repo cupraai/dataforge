@@ -19,12 +19,20 @@ import {
   type AppIcon,
 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { countChangedWords, diffCaptionWords } from "@/shared/lib/captionWordDiff";
+import { diffCaptionWords } from "@/shared/lib/captionWordDiff";
 import { formatCount } from "@/shared/lib/format";
 import { readStored, writeStored } from "@/shared/lib/storage";
 import { formatApiError } from "@/shared/api/http";
 import type { CaptionBackupCompareSample, RestoreCaptionsPreviewResponse } from "@/shared/types";
-import { CaptionDiffView, type CaptionDiffLayout } from "@/shared/ui/CaptionWordDiff";
+import {
+  CaptionDiffBadge,
+  CaptionDiffHeading,
+  CaptionDiffLegend,
+  CaptionDiffSplit,
+  CaptionDiffStat,
+  CaptionDiffView,
+  type CaptionDiffLayout,
+} from "@/shared/ui/CaptionWordDiff";
 import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -310,23 +318,16 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
         {/* Same grid as a row, so each label sits exactly over its column. */}
         <div className="restore-captions-dialog__list-header">
           {layout === "split" ? (
-            <div className="restore-captions-dialog__columns">
-              <span className="restore-captions-dialog__column restore-captions-dialog__column--before">
-                Current caption
-              </span>
-              <span className="restore-captions-dialog__column restore-captions-dialog__column--after">
-                After restore
-              </span>
-            </div>
+            <CaptionDiffLegend
+              className="restore-captions-dialog__columns"
+              removed="Current caption"
+              added="After restore"
+            />
           ) : (
-            <div className="restore-captions-dialog__legend">
-              <span>
-                <del className="caption-diff__removed">removed</del> only in the current caption
-              </span>
-              <span>
-                <ins className="caption-diff__added">restored</ins> from the backup
-              </span>
-            </div>
+            <CaptionDiffLegend
+              removed="Only in the current caption"
+              added="Restored from the backup"
+            />
           )}
         </div>
 
@@ -382,16 +383,16 @@ function RestoreSkeleton() {
   );
 }
 
-// Row metrics from `_restore-captions-dialog.scss`; estimates only, every row is measured.
-const ROW_PADDING_Y_PX = 21;
-const THUMB_PX = 128;
-const HEADER_PX = 24;
-const LINE_PX = 21;
-const ROW_INSET_X_PX = 176;
-const SPLIT_GAP_PX = 12;
-// Each side is a padded panel: vertical padding plus its border, then horizontal padding.
-const SPLIT_SIDE_Y_PX = 14;
-const SPLIT_SIDE_X_PX = 22;
+// Row metrics from `_restore-captions-dialog.scss` and `_caption-diff.scss`; estimates only,
+// every row is measured.
+const ROW_PADDING_Y_PX = 25;
+const THUMB_PX = 96;
+const HEADER_PX = 26;
+const LINE_PX = 22.4;
+const ROW_INSET_X_PX = 138;
+// The split frame's border and each side's padding.
+const SPLIT_FRAME_Y_PX = 16;
+const SPLIT_SIDE_X_PX = 25;
 const AVERAGE_CHAR_PX = 6.8;
 
 function estimateRowHeight(
@@ -406,11 +407,11 @@ function estimateRowHeight(
   const longer = Math.max(current.length, sample.backup.length);
   const [chars, width] =
     layout === "split"
-      ? [longer, (textWidth - SPLIT_GAP_PX) / 2 - SPLIT_SIDE_X_PX]
+      ? [longer, textWidth / 2 - SPLIT_SIDE_X_PX]
       : // Inline shows the shared text once, plus whatever each side alone has.
         [Math.ceil(longer * 1.15), textWidth];
   const lines = Math.max(1, Math.ceil((chars * AVERAGE_CHAR_PX) / width));
-  const sides = layout === "split" ? SPLIT_SIDE_Y_PX : 0;
+  const sides = layout === "split" ? SPLIT_FRAME_Y_PX : 0;
   return ROW_PADDING_Y_PX + Math.max(THUMB_PX, HEADER_PX + lines * LINE_PX + sides);
 }
 
@@ -485,7 +486,6 @@ function RestoreRow({
   const { sample, kind } = entry;
   const { current, backup } = sample;
   const segments = useMemo(() => diffCaptionWords(current ?? "", backup), [backup, current]);
-  const words = useMemo(() => countChangedWords(segments), [segments]);
 
   return (
     <div
@@ -501,59 +501,24 @@ function RestoreRow({
     >
       <RestoreThumbnail sample={sample} />
       <div className="restore-captions-dialog__row-main">
-        <div className="restore-captions-dialog__row-header">
-          <span className="restore-captions-dialog__name" title={sample.name}>
-            {sample.name}
-          </span>
-          {kind === "new" && (
-            <span className="restore-captions-dialog__badge restore-captions-dialog__badge--new">
-              New caption
-            </span>
-          )}
-          {kind === "unreadable" && (
-            <span className="restore-captions-dialog__badge restore-captions-dialog__badge--error">
-              Unreadable
-            </span>
-          )}
-          {kind !== "unreadable" && (
-            <span
-              className="restore-captions-dialog__words"
-              title={`${plural(words.removed, "word", "words")} removed, ${plural(words.added, "word", "words")} restored`}
-            >
-              {words.removed > 0 && (
-                <span className="restore-captions-dialog__words-removed">
-                  −{formatCount(words.removed)}
-                </span>
-              )}
-              {words.added > 0 && (
-                <span className="restore-captions-dialog__words-added">
-                  +{formatCount(words.added)}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
+        <CaptionDiffHeading
+          name={sample.name}
+          stat={
+            kind !== "unreadable" && <CaptionDiffStat segments={segments} addedVerb="restored" />
+          }
+        >
+          {kind === "new" && <CaptionDiffBadge tone="added">New caption</CaptionDiffBadge>}
+          {kind === "unreadable" && <CaptionDiffBadge tone="error">Unreadable</CaptionDiffBadge>}
+        </CaptionDiffHeading>
         {sample.error && layout === "split" ? (
-          <div className="caption-diff-split restore-captions-dialog__diff">
-            <p className="caption-diff caption-diff-split__side caption-diff-split__side--before restore-captions-dialog__error">
-              {sample.error}.
-            </p>
-            <p className="caption-diff caption-diff-split__side caption-diff-split__side--after">
-              {sample.backup}
-            </p>
-          </div>
+          <CaptionDiffSplit beforeError before={`${sample.error}.`} after={sample.backup} />
         ) : sample.error ? (
-          <p className="restore-captions-dialog__error">
+          <p className="caption-diff restore-captions-dialog__error">
             {sample.error}. Restoring replaces it with the backup:{" "}
             <span className="restore-captions-dialog__error-backup">{sample.backup}</span>
           </p>
         ) : (
-          <CaptionDiffView
-            className="restore-captions-dialog__diff"
-            segments={segments}
-            layout={layout}
-            emptySideLabel="No caption"
-          />
+          <CaptionDiffView segments={segments} layout={layout} emptySideLabel="No caption" />
         )}
       </div>
     </div>

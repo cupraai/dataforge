@@ -162,6 +162,14 @@
       min-height: 4.25rem;
       resize: vertical;
     }
+
+    // Grows with its text instead of a drag handle; each dialog caps it with `max-height`,
+    // past which it scrolls, so a long entry never pushes the dialog's preview away.
+    &--grow {
+      field-sizing: content;
+      resize: none;
+      overflow-y: auto;
+    }
   }
 
   // Border lives on the wrap so the UA dropdown arrow is not cramped against a border on the select.
@@ -372,7 +380,7 @@
 .dialog__panel.edit-captions-dialog {
   display: flex;
   flex-direction: column;
-  max-height: 88vh;
+  max-height: 94vh;
   overflow: hidden;
 }
 
@@ -381,24 +389,16 @@
     margin-right: auto;
   }
 
-  &__dry-run-hint {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.375rem;
-  }
-
-  &__dry-run-hint-icon {
-    @include icon-size-sm;
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-  }
-
+  // Same chain as Find & replace: only the preview's sample list gives way to the form.
   &__body {
     @include app-scrollbar;
+    display: flex;
     flex: 1;
+    flex-direction: column;
     min-height: 0;
     margin: 0 (-$focus-ring-space);
     padding: 0 $focus-ring-space;
+    // Only on a viewport too short for the form, once the sample list has given up every pixel.
     overflow-y: auto;
   }
 
@@ -408,16 +408,11 @@
     gap: 0.75rem;
   }
 
-  &__samples {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    margin: 0.75rem 0 0;
-    padding: 0.625rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-elevated);
-    list-style: none;
+  // Up to six lines, then it scrolls. The middle term is the room the panel (94vh) has left
+  // once the rest of the form and a one-sample preview are in, so growing never scrolls the
+  // dialog; below ~880px there is none and the field stays at its two-line minimum.
+  &__instruction {
+    max-height: clamp(4.25rem, 94dvh - 48rem, 10rem);
   }
 }
 
@@ -477,7 +472,8 @@
 .dialog__panel.replace-captions-dialog {
   display: flex;
   flex-direction: column;
-  max-height: min(88vh, 46rem);
+  // Taller than its siblings: on a 720px window the preview needs every pixel to show a sample.
+  max-height: min(94vh, 52rem);
   // `__body` owns the layout; the panel's default overflow would add a second scrollbar.
   overflow: hidden;
 }
@@ -539,6 +535,13 @@
   // Without min-width: 0 the term's intrinsic min overflows the grid.
   &__term {
     min-width: 0;
+
+    // One line until the term needs more, up to five, then it scrolls. The middle term is the
+    // room the panel (94vh) has left once the rest of the form and a one-sample preview are
+    // in, so growing never scrolls the dialog; at 720px that is no room at all.
+    .dialog__input--grow {
+      max-height: clamp(2.75rem, 94dvh - 39.25rem, 8.5rem);
+    }
   }
 
   &__toggles {
@@ -550,104 +553,6 @@
   // Grows the 1rem checkbox hit area without moving the box off the text baseline.
   &__toggle {
     padding: 0.25rem 0;
-  }
-
-  // Column flex items refuse to shrink below content; this lets only the sample list give way.
-  &__preview-field {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  &__preview {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-elevated);
-    transition: opacity var(--transition);
-
-    &--error {
-      border-color: var(--danger-border);
-      background: var(--danger-soft);
-    }
-
-    // Previous answer stays put so the panel does not jump; dimmed so stale counts are not mistaken for fresh.
-    &--pending {
-      opacity: 0.55;
-    }
-  }
-
-  &__preview-summary {
-    flex-shrink: 0;
-    margin: 0;
-    padding: 0.5rem 0.625rem;
-    font-size: var(--text-xs);
-    line-height: var(--leading-snug);
-    color: var(--text-muted);
-
-    strong {
-      color: var(--text);
-      font-weight: var(--font-semibold);
-    }
-  }
-
-  &__preview--error &__preview-summary {
-    color: var(--danger);
-    overflow-wrap: anywhere;
-  }
-
-  &__preview-empty {
-    margin: 0;
-    padding: 0.5rem 0.625rem;
-    font-size: var(--text-xs);
-    line-height: var(--leading-snug);
-    color: var(--text-subtle);
-  }
-
-  // Grows into leftover height, caps at three samples, shrinks to two lines before the panel would scroll.
-  &__samples {
-    @include app-scrollbar;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-height: 3.5rem;
-    max-height: 10rem;
-    margin: 0;
-    padding: 0.5rem 0.625rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border-top: 1px solid var(--border);
-    list-style: none;
-  }
-
-  &__samples-more {
-    font-size: var(--text-2xs);
-    color: var(--text-subtle);
-  }
-}
-
-.caption-preview-sample {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  min-width: 0;
-
-  &__name {
-    @include truncate;
-    font-size: var(--text-2xs);
-    color: var(--text-subtle);
-    letter-spacing: var(--tracking-caps);
-  }
-
-  &__text {
-    font-size: var(--text-xs);
-    line-height: var(--leading-snug);
-    color: var(--text-muted);
   }
 }
 

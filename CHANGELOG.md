@@ -28,14 +28,10 @@ version heading when a minor or major version is cut.
 - In the file viewer, **Review candidate** and **Resolve duplicate** are icon buttons at the start
   of the header, so only caption actions sit above the caption. While comparing a caption with
   its backup, only **Back to editing** and **Restore** (formerly **Use backup**) are shown.
-
-### Fixed
-
-- Folders on a mapped network drive or a `subst` drive keep their drive letter in the path bar
-  and address bar, instead of switching to the share or folder the drive points at.
-
-### Changed
-
+- Caption comparisons look the same in **Restore captions**, the file viewer's **Compare**, and
+  the **Find & replace** and **Edit captions** previews: each changed word is marked on its own,
+  with a count of removed and added words per file. The text fields in those two dialogs grow as
+  you type, and a long entry no longer pushes the preview out of view.
 - Model cards show what each file is (checkpoint, diffusion model, LoRA, ControlNet, text
   encoder, VAE and more) in the ComfyUI workflow map's colors and icons, instead of a same-stem
   preview image.
@@ -44,6 +40,11 @@ version heading when a minor or major version is cut.
 - Background tagging is off until you turn it on under **Settings > Tagging**; while it is off,
   tags are hidden everywhere. A changed vocabulary now applies only to files tagged from then on
   instead of re-tagging every favorite, and **Re-tag everything** brings older tags up to date.
+
+### Fixed
+
+- Folders on a mapped network drive or a `subst` drive keep their drive letter in the path bar
+  and address bar, instead of switching to the share or folder the drive points at.
 
 ## 0.12.0 - 2026-11-06
 

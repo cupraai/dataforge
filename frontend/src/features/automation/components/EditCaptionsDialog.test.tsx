@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { previewCaptionEdits } from "@/features/automation/api/jobs";
@@ -73,11 +73,16 @@ describe("EditCaptionsDialog", () => {
       paths,
     );
     expect(previewCaptionEdits).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(/Dry run rewrites up to \d+ readable/);
     await user.click(screen.getByRole("button", { name: "Dry run" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("one.png"));
     expect(screen.getByText("dog").tagName).toBe("DEL");
     expect(screen.getByText("cat").tagName).toBe("INS");
-    expect(screen.getByRole("status")).toHaveTextContent("Unchanged:");
+    const [changed, unchanged] = within(screen.getByRole("status")).getAllByRole("listitem");
+    expect(within(changed).getByTitle("1 word removed, 1 word added")).toHaveTextContent("−1+1");
+    expect(within(unchanged).getByText("Unchanged")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("2 sample edits; nothing was saved.");
+    expect(unchanged).toHaveTextContent("a lake");
     expect(previewCaptionEdits).toHaveBeenCalledWith(
       "C:/datasets/photos",
       {

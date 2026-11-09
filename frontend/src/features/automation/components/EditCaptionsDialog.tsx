@@ -1,8 +1,8 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { previewCaptionEdits } from "@/features/automation/api/jobs";
-import { CaptionPreviewSample } from "@/features/automation/components/CaptionPreviewSample";
+import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
 import {
   AutomationModeSelector,
@@ -16,10 +16,8 @@ import { VisionModelBadge } from "@/features/automation/components/VisionModelBa
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { CAPTION_EDIT_PREVIEW_LIMIT } from "@/shared/constants";
-import { iconInfo } from "@/shared/icons";
 import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
-import { Icon } from "@/shared/ui/Icon";
 
 interface EditCaptionsDialogProps {
   scope: DialogScopeInfo;
@@ -79,6 +77,35 @@ export function EditCaptionsDialog({
     gcTime: 0,
   });
   const controlsBusy = busy || preview.isFetching;
+
+  // The results land below the form, which may be scrolled out of view on a short window.
+  const previewRef = useRef<HTMLDivElement>(null);
+  const previewShown = preview.isFetching || preview.isError || preview.data !== undefined;
+  const previewResult = preview.data ?? preview.error;
+  useEffect(() => {
+    if (previewShown) previewRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [previewResult, previewShown]);
+
+  let previewSummary: ReactNode;
+  if (preview.isFetching) {
+    previewSummary = "Generating sample edits...";
+  } else if (preview.isError) {
+    previewSummary = formatApiError(preview.error);
+  } else if (!preview.data) {
+    previewSummary =
+      `Dry run rewrites up to ${CAPTION_EDIT_PREVIEW_LIMIT} readable captions in filename ` +
+      "order without saving them. The full job generates fresh results.";
+  } else if (preview.data.samples.length === 0) {
+    previewSummary = "No readable captions found in this scope.";
+  } else {
+    previewSummary = (
+      <>
+        <strong>{preview.data.samples.length}</strong> sample{" "}
+        {preview.data.samples.length === 1 ? "edit" : "edits"}; nothing was saved. The full job
+        generates fresh results.
+      </>
+    );
+  }
 
   const handlePreview = () => {
     if (controlsBusy) return;
@@ -225,7 +252,7 @@ export function EditCaptionsDialog({
           <textarea
             id={instructionId}
             ref={instructionRef}
-            className="dialog__input dialog__input--multiline"
+            className="dialog__input dialog__input--multiline dialog__input--grow edit-captions-dialog__instruction"
             value={instruction}
             onChange={(event) => {
               setInstruction(event.target.value);
@@ -238,32 +265,13 @@ export function EditCaptionsDialog({
           />
         </div>
 
-        <div className="dialog__field edit-captions-dialog__preview">
-          <p className="dialog__hint edit-captions-dialog__dry-run-hint">
-            <Icon icon={iconInfo} className="edit-captions-dialog__dry-run-hint-icon" />
-            <span>
-              Dry run tests up to {CAPTION_EDIT_PREVIEW_LIMIT} readable captions in filename order.
-              It leaves files unchanged; the full job generates fresh results.
-            </span>
-          </p>
-          <div role="status" aria-busy={preview.isFetching || undefined}>
-            {preview.isFetching ? (
-              <p className="dialog__hint">Generating sample edits...</p>
-            ) : preview.isError ? (
-              <p className="dialog__error">{formatApiError(preview.error)}</p>
-            ) : preview.data ? (
-              preview.data.samples.length > 0 ? (
-                <ul className="edit-captions-dialog__samples">
-                  {preview.data.samples.map((sample) => (
-                    <CaptionPreviewSample key={sample.name} {...sample} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="dialog__hint">No readable captions found in this scope.</p>
-              )
-            ) : null}
-          </div>
-        </div>
+        <CaptionPreviewPanel
+          ref={previewRef}
+          summary={previewSummary}
+          samples={preview.isFetching ? [] : preview.data?.samples}
+          pending={preview.isFetching}
+          error={preview.isError}
+        />
 
         {error && (
           <p id={errorId} className="dialog__error" role="alert">

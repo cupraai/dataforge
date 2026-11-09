@@ -2,11 +2,10 @@ import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { previewCaptionReplacements } from "@/features/automation/api/jobs";
-import { CaptionPreviewSample } from "@/features/automation/components/CaptionPreviewSample";
+import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
 import { folderKey } from "@/features/folder/lib/folderPath";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
-import { classNames } from "@/shared/lib/classNames";
 import type { CaptionReplaceMode, CaptionReplacePreviewSample } from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -204,13 +203,14 @@ export function ReplaceCaptionsDialog({
             <textarea
               ref={searchRef}
               id={searchId}
-              className="dialog__input dialog__input--multiline"
+              className="dialog__input dialog__input--grow"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 clearError();
               }}
               placeholder={isReplace ? "e.g. dog" : "Not used in this mode"}
+              rows={1}
               spellCheck={false}
               autoComplete="off"
               // Kept visible rather than hidden in prepend/append mode, so the dialog
@@ -225,13 +225,14 @@ export function ReplaceCaptionsDialog({
             </label>
             <textarea
               id={replacementId}
-              className="dialog__input dialog__input--multiline"
+              className="dialog__input dialog__input--grow"
               value={replacement}
               onChange={(event) => {
                 setReplacement(event.target.value);
                 clearError();
               }}
               placeholder={isReplace ? "e.g. cat" : "e.g. sks person, "}
+              rows={1}
               spellCheck={false}
               autoComplete="off"
               disabled={busy}
@@ -290,63 +291,26 @@ export function ReplaceCaptionsDialog({
 }
 
 function ReplacePreview({ preview, pending }: { preview: PreviewState | null; pending: boolean }) {
-  const hidden = preview?.samples.length ? preview.matched - preview.samples.length : 0;
-
-  return (
-    <div className="dialog__field replace-captions-dialog__preview-field">
-      <div className="dialog__label">Preview</div>
-      <div
-        className={classNames(
-          "replace-captions-dialog__preview",
-          preview?.error && "replace-captions-dialog__preview--error",
-          pending && "replace-captions-dialog__preview--pending",
-        )}
-        // One live region for the whole panel: the counts and the samples always
-        // change together, and announcing them separately would interleave them.
-        role="status"
-        aria-busy={pending || undefined}
-      >
-        <ReplacePreviewBody preview={preview} hidden={hidden} />
-      </div>
-    </div>
-  );
-}
-
-function ReplacePreviewBody({ preview, hidden }: { preview: PreviewState | null; hidden: number }) {
-  if (preview?.error) {
-    return <p className="replace-captions-dialog__preview-summary">{preview.error}</p>;
-  }
-
-  if (!preview) {
-    return (
-      <p className="replace-captions-dialog__preview-empty">
-        Fill in the fields above to preview the change.
-      </p>
+  let summary: ReactNode;
+  if (!preview) summary = "Fill in the fields above to preview the change.";
+  else if (preview.error) summary = preview.error;
+  else if (preview.matched === 0) {
+    summary = <>No captions match — nothing would change in {preview.total} files.</>;
+  } else {
+    summary = (
+      <>
+        <strong>{preview.matched}</strong> of {preview.total} captions would change.
+      </>
     );
   }
 
   return (
-    <>
-      <p className="replace-captions-dialog__preview-summary">
-        {preview.matched === 0 ? (
-          <>No captions match — nothing would change in {preview.total} files.</>
-        ) : (
-          <>
-            <strong>{preview.matched}</strong> of {preview.total} captions would change.
-          </>
-        )}
-      </p>
-
-      {preview.samples.length > 0 && (
-        <ul className="replace-captions-dialog__samples">
-          {preview.samples.map((sample) => (
-            <CaptionPreviewSample key={sample.name} {...sample} />
-          ))}
-          {hidden > 0 && (
-            <li className="replace-captions-dialog__samples-more">and {hidden} more</li>
-          )}
-        </ul>
-      )}
-    </>
+    <CaptionPreviewPanel
+      summary={summary}
+      samples={preview?.error ? [] : preview?.samples}
+      more={preview?.samples.length ? preview.matched - preview.samples.length : 0}
+      pending={pending}
+      error={Boolean(preview?.error)}
+    />
   );
 }

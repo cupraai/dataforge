@@ -324,9 +324,6 @@
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     background: var(--caption-input-bg);
-    color: var(--text);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
 
     &:focus-visible {
       outline: none;
@@ -337,6 +334,7 @@
   &__caption-compare-note {
     margin: 0;
     color: var(--text-muted);
+    font-size: var(--text-sm);
     font-style: italic;
   }
 
