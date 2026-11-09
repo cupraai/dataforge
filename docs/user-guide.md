@@ -68,7 +68,7 @@ The media view and issue resolver show the modified date, dimensions, megapixels
 | The caption could not be opened, for example while another program has it locked | The editor stays read-only; **Retry** once it is free |
 | The caption is not UTF-8 text | The editor stays read-only; **Replace caption** writes new text over it |
 | You want the text you opened with | **Revert** |
-| The folder has a [backup](#caption-backups) of this caption | **Compare backup** shows struck-through words that would go and highlighted words that would return; **Use backup** loads it. `Escape` returns to editing |
+| The folder has a [backup](#caption-backups) of this caption | **Compare** shows struck-through words that would go and highlighted words that would return; **Restore** loads it. `Escape` returns to editing |
 
 **Completion.** Type two characters or press `Ctrl+Space` for word completions from the folder's captions. The token count marked `~` is an estimate from text length, not a model tokenizer.
 

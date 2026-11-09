@@ -947,6 +947,36 @@ export function GalleryItemDialog({
             )}
           </div>
           <div className="gallery-item-dialog__header-actions">
+            {(canReviewCandidate || canResolveDuplicate) && (
+              <div className="gallery-item-dialog__review-actions">
+                {canReviewCandidate && (
+                  <Tooltip content="Review candidate">
+                    <button
+                      type="button"
+                      className="gallery-item-dialog__review-candidate"
+                      onClick={handleReviewCandidate}
+                      disabled={busy}
+                      aria-label={`Review candidate for ${item.name}`}
+                    >
+                      <Icon icon={iconScanSquare} />
+                    </button>
+                  </Tooltip>
+                )}
+                {canResolveDuplicate && (
+                  <Tooltip content="Resolve duplicate">
+                    <button
+                      type="button"
+                      className="gallery-item-dialog__resolve-duplicate"
+                      onClick={handleResolveDuplicate}
+                      disabled={busy}
+                      aria-label={`Resolve duplicate for ${item.name}`}
+                    >
+                      <Icon icon={iconFiles} />
+                    </button>
+                  </Tooltip>
+                )}
+              </div>
+            )}
             {canOpenInVideoEditor && (
               <Tooltip content="Open in video editor">
                 <button
@@ -1448,6 +1478,21 @@ export function GalleryItemDialog({
                       />
                     </div>
                     <div className="gallery-item-dialog__caption-actions">
+                      {canResolveIssue && comparedBackup === null && (
+                        <button
+                          type="button"
+                          className="gallery-item-dialog__caption-action gallery-item-dialog__caption-action--issue"
+                          onClick={handleResolveIssue}
+                          disabled={busy}
+                          aria-label={`Resolve caption issue for ${item.name}`}
+                        >
+                          <Icon
+                            icon={iconMessageWarning}
+                            className="gallery-item-dialog__caption-action-icon"
+                          />
+                          Resolve
+                        </button>
+                      )}
                       {backupCaption !== null && (
                         <button
                           type="button"
@@ -1470,10 +1515,12 @@ export function GalleryItemDialog({
                             icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
                             className="gallery-item-dialog__caption-action-icon"
                           />
-                          {showingBackupDiff ? "Back to editing" : "Compare backup"}
+                          {showingBackupDiff ? "Back to editing" : "Compare"}
                         </button>
                       )}
-                      {comparedBackup !== null && (
+                      {/* Copy acts on the editor's text, which the comparison hides. Restoring
+                          takes its slot. */}
+                      {comparedBackup !== null ? (
                         <button
                           type="button"
                           className="gallery-item-dialog__caption-action"
@@ -1489,58 +1536,9 @@ export function GalleryItemDialog({
                             icon={iconArchiveRestore}
                             className="gallery-item-dialog__caption-action-icon"
                           />
-                          Use backup
+                          Restore
                         </button>
-                      )}
-                      {canResolveIssue && (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action gallery-item-dialog__caption-action--issue"
-                          onClick={handleResolveIssue}
-                          disabled={busy}
-                          aria-label={`Resolve caption issue for ${item.name}`}
-                        >
-                          <Icon
-                            icon={iconMessageWarning}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
-                          Resolve issue
-                        </button>
-                      )}
-                      {canReviewCandidate && (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action"
-                          onClick={handleReviewCandidate}
-                          disabled={busy}
-                          aria-label={`Review candidate for ${item.name}`}
-                          title="Compare the staged candidate against this file"
-                        >
-                          <Icon
-                            icon={iconScanSquare}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
-                          Review candidate
-                        </button>
-                      )}
-                      {canResolveDuplicate && (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action"
-                          onClick={handleResolveDuplicate}
-                          disabled={busy}
-                          aria-label={`Resolve duplicate for ${item.name}`}
-                          title="Compare this file with its duplicates and keep one"
-                        >
-                          <Icon
-                            icon={iconFiles}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
-                          Resolve duplicate
-                        </button>
-                      )}
-                      {/* Copy acts on the editor's text, which the comparison hides. */}
-                      {!showingBackupDiff && (
+                      ) : (
                         <button
                           type="button"
                           className={classNames(

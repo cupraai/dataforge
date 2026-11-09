@@ -18,7 +18,7 @@ import type {
 } from "@/features/gallery/api/media";
 import type { encodeVideoFrame, seekVideoTo } from "@/features/gallery/lib/videoFrameEncode";
 import type { importFiles, previewFileImport } from "@/features/folder/api/files";
-import type { CaptionSaveResponse } from "@/shared/types";
+import type { CaptionSaveResponse, GalleryItem } from "@/shared/types";
 
 vi.mock("@/shared/lib/defer", () => ({
   deferNonCriticalWork: (callback: () => void) => {
@@ -1038,6 +1038,55 @@ describe("GalleryItemDialog", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps file actions in the header and only caption actions by the caption", async () => {
+    installMockBackend({ captionBackups: { [`${HOME_PATH}\\sunset.png`]: "An older caption" } });
+    renderWithProviders(
+      <GalleryItemDialog
+        items={[
+          makeItem("sunset.png", {
+            has_candidate: true,
+            has_duplicate_file: true,
+            has_issue_file: true,
+            issue_fixes: ['The caption says "lake", but it is a river.'],
+          }),
+        ]}
+        index={0}
+        hasCaptionBackup
+        onClose={vi.fn<() => void>()}
+        onPrevious={vi.fn<() => void>()}
+        onNext={vi.fn<() => void>()}
+        onCaptionSaved={vi.fn<(path: string, update: CaptionSaveResponse) => void>()}
+        onResolveIssue={vi.fn<(item: GalleryItem) => void>()}
+        onReviewCandidate={vi.fn<(item: GalleryItem) => void>()}
+        onResolveDuplicate={vi.fn<(item: GalleryItem) => void>()}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Viewing sunset.png" });
+    await within(dialog).findByRole("button", { name: /with its backup$/ });
+    const actionRow = within(dialog).getByRole("button", {
+      name: "Resolve caption issue for sunset.png",
+    }).parentElement!;
+    const labels = () =>
+      [...actionRow.querySelectorAll("button")].map((button) => button.textContent);
+
+    // They lead the header, ahead of the file actions every item has.
+    const preview = within(dialog).getByRole("button", { name: "Open in image preview" });
+    for (const name of ["Review candidate for sunset.png", "Resolve duplicate for sunset.png"]) {
+      const button = within(dialog).getByRole("button", { name });
+      expect(button.closest("header")).not.toBeNull();
+      expect(
+        button.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    expect(labels()).toEqual(["Resolve", "Compare", "Copy"]);
+
+    // The comparison hides the caption the issue is about, and Restoring takes Copy's slot.
+    await userEvent
+      .setup()
+      .click(within(actionRow).getByRole("button", { name: /with its backup$/ }));
+    expect(labels()).toEqual(["Back to editing", "Restore"]);
+  });
+
   describe("caption backup", () => {
     const renderWithBackup = async (backup: string) => {
       installMockBackend({ captionBackups: { [`${HOME_PATH}\\sunset.png`]: backup } });
@@ -1063,7 +1112,7 @@ describe("GalleryItemDialog", () => {
     it("replaces the restore button with a comparison", async () => {
       const { dialog, compare } = await renderWithBackup("Golden hour over the calm lake");
 
-      expect(compare).toHaveTextContent("Compare backup");
+      expect(compare).toHaveTextContent("Compare");
       expect(
         within(dialog).queryByRole("button", { name: /Restore the backed up caption/ }),
       ).not.toBeInTheDocument();
@@ -1123,7 +1172,7 @@ describe("GalleryItemDialog", () => {
           { baseRevision: null },
         ),
       );
-      expect(compare).toHaveTextContent("Compare backup");
+      expect(compare).toHaveTextContent("Compare");
       expect(within(dialog).queryByRole("region", { name: /compared with its backup/ })).toBeNull();
       expect(within(dialog).getByRole("textbox", { name: "Caption for sunset.png" })).toHaveValue(
         "The caption as it was backed up",

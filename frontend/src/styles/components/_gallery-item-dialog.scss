@@ -57,10 +57,14 @@
   }
 
   &__header-actions {
+    // A divider gets the same space on both sides: its padding inside, the gap plus a top-up
+    // margin outside.
+    --header-gap: 0.375rem;
+    --header-divider-space: 0.625rem;
     display: flex;
     flex-shrink: 0;
     align-items: center;
-    gap: 0.375rem;
+    gap: var(--header-gap);
   }
 
   &__preview,
@@ -68,6 +72,8 @@
   &__copy,
   &__move,
   &__rename,
+  &__review-candidate,
+  &__resolve-duplicate,
   &__frame-toggle,
   &__video-editor,
   &__edit-toggle {
@@ -104,9 +110,18 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-left: auto;
-    padding-left: 0.625rem;
+    margin-left: calc(var(--header-divider-space) - var(--header-gap));
+    padding-left: var(--header-divider-space);
     border-left: 1px solid var(--border);
+  }
+
+  &__review-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--header-gap);
+    margin-right: calc(var(--header-divider-space) - var(--header-gap));
+    padding-right: var(--header-divider-space);
+    border-right: 1px solid var(--border);
   }
 
   &__stage {
@@ -377,9 +392,10 @@
   }
 
   .gallery-item-dialog__header-actions {
+    --header-gap: 0.25rem;
+    --header-divider-space: 0.375rem;
     flex-wrap: wrap;
     width: 100%;
-    gap: 0.25rem;
   }
 
   // The side panel is narrow; its actions match the step buttons beside the counter.
@@ -388,6 +404,8 @@
   .gallery-item-dialog__copy,
   .gallery-item-dialog__move,
   .gallery-item-dialog__rename,
+  .gallery-item-dialog__review-candidate,
+  .gallery-item-dialog__resolve-duplicate,
   .gallery-item-dialog__frame-toggle,
   .gallery-item-dialog__video-editor,
   .gallery-item-dialog__edit-toggle,
@@ -399,9 +417,10 @@
     @include icon-scope-sm;
   }
 
+  // The header spans the panel here, so these sit at its right edge.
   .gallery-item-dialog__presentation-actions {
     gap: 0.25rem;
-    padding-left: 0.375rem;
+    margin-left: auto;
   }
 
   // In a short window the media gives up height first, so the caption keeps its floor.

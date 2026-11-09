@@ -23,6 +23,12 @@ version heading when a minor or major version is cut.
 - On Windows, `update.bat` updates a Git clone to the latest version and reruns setup when the
   update needs it. It requires Git on PATH.
 
+### Changed
+
+- In the file viewer, **Review candidate** and **Resolve duplicate** are icon buttons at the start
+  of the header, so only caption actions sit above the caption. While comparing a caption with
+  its backup, only **Back to editing** and **Restore** (formerly **Use backup**) are shown.
+
 ### Fixed
 
 - Folders on a mapped network drive or a `subst` drive keep their drive letter in the path bar
