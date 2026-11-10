@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 import automation_settings
 import gallery_display_settings
+import instruction_snippets
 from automation_settings import get_automation_settings
 from gallery_display_settings import (
     get_gallery_display_settings,
@@ -11,6 +12,8 @@ from schemas import (
     AutomationSettingsResponse,
     GalleryDisplaySettingsResponse,
     GalleryDisplaySettingsUpdate,
+    InstructionSnippet,
+    InstructionSnippetsResponse,
     RememberedDataResponse,
     UiSettingsResponse,
     UiSettingsUpdate,
@@ -88,3 +91,23 @@ def forget_job_options() -> RememberedDataResponse:
 def forget_display_modes() -> RememberedDataResponse:
     gallery_display_settings.forget_folder_modes()
     return _remembered()
+
+
+@router.get("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
+def read_instruction_snippets() -> InstructionSnippetsResponse:
+    return instruction_snippets.list_snippets()
+
+
+@router.put("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
+def save_instruction_snippet(body: InstructionSnippet) -> InstructionSnippetsResponse:
+    try:
+        return instruction_snippets.save_snippet(body)
+    except instruction_snippets.TooManySnippetsError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.delete("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
+def delete_instruction_snippet(
+    name: str = Query(..., description="The saved instruction's name, matched ignoring case"),
+) -> InstructionSnippetsResponse:
+    return instruction_snippets.delete_snippet(name)

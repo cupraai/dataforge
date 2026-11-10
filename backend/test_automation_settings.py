@@ -22,6 +22,7 @@ from schemas import (
     ReplaceCaptionsStartRequest,
     ResizeStartRequest,
     SetCaptionsStartRequest,
+    SplitVideoStartRequest,
     TrainLoraStartRequest,
     VerifyCaptionsStartRequest,
     WatermarkStartRequest,
@@ -40,6 +41,7 @@ START_REQUESTS = {
     "train_lora": TrainLoraStartRequest,
     "watermark": WatermarkStartRequest,
     "resize": ResizeStartRequest,
+    "split_video": SplitVideoStartRequest,
 }
 
 

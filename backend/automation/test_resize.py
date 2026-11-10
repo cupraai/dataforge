@@ -166,6 +166,46 @@ class VideoTests(unittest.TestCase):
             self.assertEqual((spec.trim_start, spec.scale), (1.0, 1.0))
             self.assertIs(apply.call_args.kwargs["probe"], probe.return_value)
 
+    def test_a_frame_rate_is_stored_with_the_fit(self, _probe) -> None:
+        with TempMediaFolder() as root:
+            write_mp4_video(root)
+
+            with patch("automation.resize.apply_video_edit") as apply:
+                run_resize_job(root, megapixels=2.0, multiple=32, frame_rate=16, ffmpeg="ffmpeg")
+
+            self.assertEqual(apply.call_args.args[1].frame_rate, 16)
+
+    def test_a_new_frame_rate_alone_still_renders(self, _probe) -> None:
+        with TempMediaFolder() as root:
+            media = write_mp4_video(root)
+            fit = SizeFit(megapixels=2.0, multiple=32)
+            write_edit_spec(media, VideoEditSpec(fit=fit, frame_rate=24))
+
+            with patch("automation.resize.apply_video_edit") as apply:
+                changed = run_resize_job(
+                    root, megapixels=2.0, multiple=32, frame_rate=16, ffmpeg="ffmpeg"
+                )
+                kept = run_resize_job(root, megapixels=2.0, multiple=32, ffmpeg="ffmpeg")
+
+            self.assertEqual(changed["stats"]["video_success"], 1)
+            self.assertEqual(apply.call_args.args[1].frame_rate, 16)
+            # Keep leaves the stored rate alone, so the same fit changes nothing.
+            self.assertEqual(kept["stats"]["unchanged"], 1)
+
+    def test_reset_size_keeps_the_frame_rate(self, _probe) -> None:
+        with TempMediaFolder() as root:
+            media = write_mp4_video(root)
+            write_edit_backup(media)
+            fit = SizeFit(megapixels=2.0, multiple=32)
+            write_edit_spec(media, VideoEditSpec(fit=fit, frame_rate=16))
+
+            with patch("automation.resize.apply_video_edit") as apply:
+                run_resize_job(root, megapixels=2.0, multiple=32, reset_size=True, ffmpeg="ffmpeg")
+
+            self.assertEqual(
+                (apply.call_args.args[1].fit, apply.call_args.args[1].frame_rate), (None, 16)
+            )
+
     def test_a_failed_render_leaves_the_edit_as_it_was(self, _probe) -> None:
         with TempMediaFolder() as root:
             media = write_mp4_video(root)

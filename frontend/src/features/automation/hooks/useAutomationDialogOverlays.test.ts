@@ -330,14 +330,14 @@ describe("useAutomationDialogOverlays", () => {
     expect(result.current.dialogs.resize.initialSettings).toEqual({ megapixels: 2, multiple: 32 });
 
     await act(async () => {
-      result.current.dialogs.resize.onConfirm(1.5, 8, true);
+      result.current.dialogs.resize.onConfirm(1.5, 8, true, 16);
     });
 
     expect(result.current.dialogs.resize.open).toBe(false);
     expect(startJob).toHaveBeenCalledWith(
       "resize",
       "C:\\Photos",
-      { megapixels: 1.5, multiple: 8, reset_size: true },
+      { megapixels: 1.5, multiple: 8, reset_size: true, frame_rate: 16 },
       undefined,
     );
   });

@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { previewCaptionEdits } from "@/features/automation/api/jobs";
 import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
+import { InstructionSnippetMenu } from "@/features/automation/components/InstructionSnippetMenu";
+import { appendInstruction } from "@/features/automation/lib/appendInstruction";
 import {
   AutomationModeSelector,
   type AutomationMode,
@@ -246,9 +248,20 @@ export function EditCaptionsDialog({
         </div>
 
         <div className="dialog__field">
-          <label htmlFor={instructionId} className="dialog__label">
-            Edit instruction
-          </label>
+          <div className="edit-captions-dialog__instruction-header">
+            <label htmlFor={instructionId} className="dialog__label">
+              Edit instruction
+            </label>
+            <InstructionSnippetMenu
+              instruction={instruction}
+              disabled={controlsBusy}
+              onInsert={(text) => {
+                setInstruction((current) => appendInstruction(current, text));
+                setError(null);
+                instructionRef.current?.focus();
+              }}
+            />
+          </div>
           <textarea
             id={instructionId}
             ref={instructionRef}

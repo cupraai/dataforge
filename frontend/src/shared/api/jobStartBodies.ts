@@ -11,6 +11,7 @@ import type {
   ResizeStartRequest,
   RestoreCaptionsStartRequest,
   SetCaptionsStartRequest,
+  SplitVideoStartRequest,
   StripMetadataStartRequest,
   TrainLoraStartRequest,
   EditCaptionsStartRequest,
@@ -36,6 +37,7 @@ export interface JobStartBodies {
   restore_captions: RestoreCaptionsStartRequest;
   auto_adjust: AutoAdjustStartRequest;
   resize: ResizeStartRequest;
+  split_video: SplitVideoStartRequest;
 }
 
 /** Any job's body, for callers whose job type is only known at runtime. */

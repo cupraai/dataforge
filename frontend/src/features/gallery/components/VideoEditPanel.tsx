@@ -24,6 +24,8 @@ import {
   iconSliders,
   iconVolume2,
 } from "@/shared/icons";
+import { VIDEO_FRAME_RATES } from "@/shared/constants";
+import type { VideoFrameRate } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
 import { AdjustTools } from "./AdjustTools";
@@ -63,11 +65,21 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "blur", label: "Blur", icon: iconDroplets },
 ];
 
+const SPEED_HINT = "Changes the length too; the audio keeps its pitch.";
+
+/** The preview plays at the source's rate, so the hint says what the saved file will have. */
+function speedHint(frameRate: VideoFrameRate | null, outputSeconds: number): ToolHintEntry {
+  if (frameRate === null) return { message: SPEED_HINT };
+  const frames = Math.round(outputSeconds * frameRate);
+  return {
+    message: `Saves ${frames} frames at ${frameRate} fps; the preview plays the source's rate.`,
+  };
+}
+
 // Adjust has none: its strip and dial take the whole row and label themselves.
-// Adjust has its own, which follows the wand.
+// Adjust has its own, which follows the wand. Speed's depends on the draft.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   trim: TRIM_HINT,
-  speed: { message: "Changes the length too; the audio keeps its pitch." },
   volume: { message: "Applies to the whole clip; Mute removes the sound." },
   crop: CROP_HINT,
   size: SIZE_HINT,
@@ -92,7 +104,7 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
     trim: edit.draft.trimStart > 0 || (edit.ready && edit.draft.trimEnd < edit.duration),
     crop: !isIdentityCrop(edit.draft.crop),
     blur: edit.draft.masks.length > 0,
-    speed: edit.draft.speed !== 1,
+    speed: edit.draft.speed !== 1 || edit.draft.frameRate !== null,
     size: edit.draft.scale !== 1 || edit.draft.fit !== null,
     volume: edit.draft.volume !== 1,
     adjust: !isAdjustIdentity(edit.draft.adjust),
@@ -180,14 +192,28 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
           )}
 
           {activeTool === "speed" && (
-            <PresetChoices
-              label="Playback"
-              values={SPEED_PRESETS}
-              current={edit.draft.speed}
-              format={formatSpeed}
-              disabled={locked}
-              onSelect={edit.setSpeed}
-            />
+            <>
+              <PresetChoices
+                label="Playback"
+                values={SPEED_PRESETS}
+                current={edit.draft.speed}
+                format={formatSpeed}
+                disabled={locked}
+                onSelect={edit.setSpeed}
+              />
+              <ToolPresets label="Frame rate">
+                {([null, ...VIDEO_FRAME_RATES] as const).map((rate) => (
+                  <PresetButton
+                    key={rate ?? "source"}
+                    active={edit.draft.frameRate === rate}
+                    disabled={locked}
+                    onClick={() => edit.setFrameRate(rate)}
+                  >
+                    {rate === null ? "Source" : `${rate} fps`}
+                  </PresetButton>
+                ))}
+              </ToolPresets>
+            </>
           )}
 
           {activeTool === "volume" && (
@@ -230,7 +256,15 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
           )}
         </div>
 
-        <ToolHint tools={TOOLS} activeTool={activeTool} hint={HINTS[activeTool]} />
+        <ToolHint
+          tools={TOOLS}
+          activeTool={activeTool}
+          hint={
+            activeTool === "speed"
+              ? speedHint(edit.draft.frameRate, edit.outputSeconds)
+              : HINTS[activeTool]
+          }
+        />
       </div>
 
       <div className="edit-panel__footer">
@@ -242,6 +276,7 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
                 to={`${edit.outputWidth} x ${edit.outputHeight}`}
               />
               {modified.blur && <OutputPart>{describeMasks(edit.draft.masks.length)}</OutputPart>}
+              {edit.draft.frameRate !== null && <OutputPart>{edit.draft.frameRate} fps</OutputPart>}
               {modified.volume && (
                 <OutputPart>
                   {edit.draft.volume === 0 ? "Muted" : `Volume ${formatVolume(edit.draft.volume)}`}

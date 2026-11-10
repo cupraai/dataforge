@@ -302,6 +302,10 @@ const TIMING_SPLITS: Partial<Record<JobType, TimingSplit>> = {
     ...MEDIA_KIND_SPLIT,
     fast: [...MEDIA_KIND_SPLIT.fast, "unchanged", "skipped"],
   },
+  split_video: {
+    slow: ["success", "skipped", "ffmpeg_error", "write_error"],
+    fast: ["busy", "read_error"],
+  },
 };
 
 export function jobTimingCounts(job: Job): { fast: number; slow: number } {

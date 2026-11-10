@@ -87,6 +87,14 @@ def _no_audio_warning(count: int) -> str | None:
     return f"{count} videos had no audio track and were captioned without them."
 
 
+def _no_clips_warning(count: int) -> str | None:
+    if count == 0:
+        return None
+    if count == 1:
+        return "1 video had no piece as long as the shortest clip, so it gave no clips."
+    return f"{count} videos had no piece as long as the shortest clip, so they gave no clips."
+
+
 def shows_warning_state(job_type: str, status: str, stats: dict[str, int]) -> bool:
     if status != "completed" or effective_status(job_type, status, stats) != "completed":
         return False
@@ -96,6 +104,8 @@ def shows_warning_state(job_type: str, status: str, stats: dict[str, int]) -> bo
         return _count(stats, "orphaned") > 0
     if known in _NEVER_WARN:
         return False
+    if known == "split_video":
+        return _count(stats, "skipped") > 0
     if known == "auto_caption":
         return _count(stats, "no_caption", "audio_error") > 0
     if known == "edit_captions":
@@ -114,6 +124,8 @@ def warning_message(job_type: str, status: str, stats: dict[str, int]) -> str | 
         if orphaned == 1:
             return "1 backed up caption had no matching media file and was skipped."
         return f"{orphaned} backed up captions had no matching media file and were skipped."
+    if known == "split_video":
+        return _no_clips_warning(_count(stats, "skipped"))
 
     parts = [_no_caption_warning(_count(stats, "no_caption"))]
     if known == "auto_caption":

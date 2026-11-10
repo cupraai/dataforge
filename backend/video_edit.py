@@ -57,6 +57,11 @@ _COLOR_MATRIX_TAGS = ("bt709", "bt470bg", "smpte170m", "bt2020", "smpte240m", "f
 _PROBE_TIMEOUT_SECONDS = 15
 
 
+#: Every render's video and re-encoded audio, so an edit and a split clip look alike.
+H264_OUTPUT_ARGS = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+AAC_OUTPUT_ARGS = ["-c:a", "aac", "-b:a", "192k"]
+
+
 def read_edit_spec(media: Path) -> VideoEditSpec | None:
     return read_spec(media, VideoEditSpec)
 
@@ -68,6 +73,7 @@ def is_identity_spec(spec: VideoEditSpec) -> bool:
         and abs(spec.speed - 1.0) < IDENTITY_EPSILON
         and abs(spec.scale - 1.0) < IDENTITY_EPSILON
         and spec.fit is None
+        and spec.frame_rate is None
         and abs(spec.volume - 1.0) < IDENTITY_EPSILON
         and is_adjust_identity(spec.adjust)
         and spec.trim_start < IDENTITY_EPSILON
@@ -324,9 +330,13 @@ def geometry_filters(
 
     if abs(spec.speed - 1.0) > IDENTITY_EPSILON:
         filters.append(f"setpts=PTS/{_fraction(spec.speed)}")
-        # setpts compresses timestamps and keeps every frame; pin fps so a 2x 24fps clip stays 24fps.
-        if frame_rate is not None:
-            filters.append(f"fps={_fraction(frame_rate)}")
+
+    # After setpts, which keeps every frame: without a pin a 2x 24fps clip would play at 48fps.
+    output_rate = spec.frame_rate or (
+        frame_rate if abs(spec.speed - 1.0) > IDENTITY_EPSILON else None
+    )
+    if output_rate is not None:
+        filters.append(f"fps={_fraction(output_rate)}")
 
     return filters
 
@@ -586,13 +596,13 @@ def build_video_edit_command(
     if not muted and audio_filters:
         command += ["-af", audio_filters]
 
-    command += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+    command += H264_OUTPUT_ARGS
 
     # Stream copy lands on a packet boundary; only an edit that leaves the audio alone copies it.
     if muted:
         command += ["-an"]
     elif retimed or trimmed or revoiced or spec.transcode:
-        command += ["-c:a", "aac", "-b:a", "192k"]
+        command += AAC_OUTPUT_ARGS
     else:
         command += ["-c:a", "copy"]
 

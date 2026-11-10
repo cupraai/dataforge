@@ -15,7 +15,7 @@ from ffmpeg_run import FfmpegCancelled, ShouldCancel
 from image_edit import apply_image_edit, fit_input_size, read_image_edit_spec, revert_image_edit
 from image_edit import is_identity_spec as is_identity_image_spec
 from image_io import ImageReadError, load_image_for_edit
-from schemas import ImageEditSpec, SizeFit, VideoEditSpec
+from schemas import ImageEditSpec, SizeFit, VideoEditSpec, VideoFrameRate
 from size_fit import fitted_size
 from video_edit import (
     apply_video_edit,
@@ -96,17 +96,27 @@ def resize_video(
     fit: SizeFit,
     *,
     reset: bool = False,
+    frame_rate: VideoFrameRate | None = None,
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> None:
+    """``frame_rate`` ``None`` leaves the stored rate alone; a reset never touches it."""
     spec = read_edit_spec(media) or VideoEditSpec()
     probe = None
     if reset:
         resized = _reset_size(spec)
     else:
+        retimed = frame_rate is not None and spec.frame_rate != frame_rate
         probe = probe_source(original_path_for(media))
         frame = cropped_frame_size(probe.size, spec) if probe.size else None
-        resized = _with_fit(spec, fit, frame, even=True)
+        try:
+            resized = _with_fit(spec, fit, frame, even=True)
+        except AlreadyResizedError:
+            if not retimed:
+                raise
+            resized = spec
+        if retimed:
+            resized = resized.model_copy(update={"frame_rate": frame_rate})
 
     if is_identity_spec(resized):
         revert_video_edit(media)
@@ -119,13 +129,21 @@ def resize_file(
     fit: SizeFit,
     *,
     reset: bool = False,
+    frame_rate: VideoFrameRate | None = None,
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> str:
     """Store and render ``fit``, or clear the fit and scale when ``reset``; returns ``image`` or
-    ``video``."""
+    ``video``. Images ignore ``frame_rate``."""
     if media.suffix.lower() in VIDEO_EDIT_EXTENSIONS:
-        resize_video(media, fit, reset=reset, ffmpeg=ffmpeg, should_cancel=should_cancel)
+        resize_video(
+            media,
+            fit,
+            reset=reset,
+            frame_rate=frame_rate,
+            ffmpeg=ffmpeg,
+            should_cancel=should_cancel,
+        )
         return "video"
 
     resize_image(media, fit, reset=reset)
@@ -142,6 +160,7 @@ def run_resize_job(
     megapixels: float,
     multiple: int,
     reset_size: bool = False,
+    frame_rate: VideoFrameRate | None = None,
 ) -> dict[str, object]:
     validate_resize_folder(folder, selected_paths)
 
@@ -155,6 +174,7 @@ def run_resize_job(
                 media_path,
                 fit,
                 reset=reset_size,
+                frame_rate=frame_rate,
                 ffmpeg=resolved_ffmpeg,
                 should_cancel=should_cancel,
             )

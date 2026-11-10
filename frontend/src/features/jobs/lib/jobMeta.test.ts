@@ -90,7 +90,7 @@ describe("SECONDARY_JOB_GROUPS", () => {
     expect(byId.captions).toEqual(["replace_captions", "edit_captions", "set_captions"]);
     // Check jobs only write findings for the Review menu, never media or captions.
     expect(byId.check).toEqual(["check_caption_rules", "verify_captions", "find_duplicates"]);
-    expect(byId.media).toEqual(["auto_adjust", "resize", "watermark"]);
+    expect(byId.media).toEqual(["auto_adjust", "resize", "split_video", "watermark"]);
     expect(byId.files).toEqual([
       "batch_rename",
       "strip_metadata",

@@ -106,6 +106,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let folderFavorites: string[] | null = options.folderFavorites ?? null;
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
+  let instructionSnippets: { name: string; text: string }[] = [];
   let tagVocabulary = { text: "# mine\nred dress\n", default_count: 302, added_count: 1 };
   let thumbnailCache = {
     directory: "C:/DataForge/thumbnails",
@@ -616,6 +617,23 @@ export function installMockBackend(options: MockBackendOptions = {}) {
     if (url.pathname === "/api/duplicates/dismiss" && method === "POST") {
       const body = init?.body ? JSON.parse(init.body as string) : {};
       return jsonResponse({ cleared: body.paths ?? [], failed: [] });
+    }
+
+    if (url.pathname === "/api/preferences/instruction-snippets") {
+      if (method === "PUT") {
+        const body = JSON.parse(init?.body as string) as { name: string; text: string };
+        const key = body.name.toLowerCase();
+        instructionSnippets = [
+          ...instructionSnippets.filter((snippet) => snippet.name.toLowerCase() !== key),
+          body,
+        ].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      } else if (method === "DELETE") {
+        const key = (url.searchParams.get("name") ?? "").toLowerCase();
+        instructionSnippets = instructionSnippets.filter(
+          (snippet) => snippet.name.toLowerCase() !== key,
+        );
+      }
+      return jsonResponse({ snippets: instructionSnippets });
     }
 
     if (url.pathname === "/api/system/tagging/vocabulary") {

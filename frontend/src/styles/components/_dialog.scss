@@ -363,6 +363,7 @@
   .replace-captions-dialog,
   .resize-dialog,
   .set-captions-dialog,
+  .split-video-dialog,
   .train-lora-dialog,
   .transfer-media-dialog,
   .verify-captions-dialog,
@@ -408,6 +409,19 @@
     gap: 0.75rem;
   }
 
+  // Same as Train LoRA's prompts header: the row takes the label's margin.
+  &__instruction-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.375rem;
+
+    .dialog__label {
+      flex: none;
+      margin: 0;
+    }
+  }
+
   // Up to six lines, then it scrolls. The middle term is the room the panel (94vh) has left
   // once the rest of the form and a one-sample preview are in, so growing never scrolls the
   // dialog; below ~880px there is none and the field stays at its two-line minimum.
@@ -427,6 +441,19 @@
   // Without min-width: 0 the stem's intrinsic min overflows the grid.
   &__stem {
     min-width: 0;
+  }
+}
+
+.split-video-dialog {
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  &__number {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 }
 

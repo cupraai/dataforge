@@ -1,0 +1,149 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+.instruction-snippets {
+  display: flex;
+  flex: none;
+  margin-left: auto;
+
+  // Train LoRA's "Add prompt" is the same kind of field-header action.
+  &__trigger {
+    @include pill-btn-compact(default);
+  }
+
+  &__trigger-icon {
+    @include icon-size-sm;
+  }
+
+  // Sized and laid out like the toolbar's Review menu.
+  &__panel {
+    @include dropdown-menu-surface(null);
+    gap: 0.125rem;
+    width: min(22rem, calc(100vw - 2rem));
+  }
+
+  &__caption,
+  &__note {
+    margin: 0;
+    padding: 0.375rem 0.6875rem 0.25rem;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+
+  &__empty {
+    margin: 0.25rem 0.375rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+  }
+
+  &__option {
+    @include dropdown-menu-option;
+    flex: 1;
+    min-width: 0;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+
+      &:hover {
+        color: var(--text-muted);
+        @include fade-bg(transparent);
+      }
+    }
+  }
+
+  &__icon {
+    @include dropdown-menu-option-icon;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  &__name,
+  &__preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__name {
+    color: var(--text);
+  }
+
+  &__preview {
+    font-size: var(--text-xs);
+    font-weight: var(--font-normal);
+  }
+
+  // Train LoRA's prompt remove button.
+  &__remove {
+    @include icon-btn-sm;
+    flex: none;
+    border-color: transparent;
+    @include fade-bg(transparent);
+    color: var(--text-muted);
+
+    &:hover:not(:disabled) {
+      color: var(--danger);
+      border-color: var(--danger-border);
+      @include fade-bg(var(--danger-soft));
+    }
+  }
+
+  &__divider {
+    margin: 0.25rem 0;
+    border-top: 1px solid var(--border);
+  }
+
+  &__save {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.25rem;
+  }
+
+  &__input {
+    @include dialog-form-input(var(--control-height-sm));
+    flex: 1;
+    min-width: 0;
+    padding-block: 0;
+  }
+
+  &__save-button {
+    @include pill-btn-compact(accent);
+  }
+
+  &__cancel-button {
+    @include pill-btn-compact(default);
+  }
+
+  &__error {
+    margin: 0;
+    padding: 0.25rem 0.6875rem 0.375rem;
+    color: var(--danger);
+    font-size: var(--text-xs);
+  }
+}

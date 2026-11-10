@@ -40,7 +40,7 @@ import { formatApiError } from "@/shared/api/http";
 import { useServerEvent } from "@/shared/events/serverEvents";
 import { useNotify } from "@/shared/notifications/notifications";
 import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
-import type { GalleryItem, VideoEditSpec } from "@/shared/types";
+import type { GalleryItem, VideoEditSpec, VideoFrameRate } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -95,6 +95,8 @@ export interface VideoEdit extends MaskRegionControls {
   selectAspect: (aspectId: string) => void;
   toggleMuted: () => void;
   setSpeed: (speed: number) => void;
+  /** null keeps the source's rate. */
+  setFrameRate: (frameRate: VideoFrameRate | null) => void;
   setScale: (scale: number) => void;
   setVolume: (volume: number) => void;
   adjust: ColorAdjustControls;
@@ -119,7 +121,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
 
   const [duration, setDuration] = useState(Number.NaN);
   // Probed server-side: no browser API reports it, and the trim grid is built on it.
-  const [frameRate, setFrameRate] = useState<number | null>(null);
+  const [sourceFrameRate, setSourceFrameRate] = useState<number | null>(null);
   const [sourceWidth, setSourceWidth] = useState(0);
   const [sourceHeight, setSourceHeight] = useState(0);
   const [draft, setDraft] = useState<VideoEditDraft>(() => emptyDraft(Number.NaN));
@@ -135,7 +137,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
 
   const draftRef = useLatestRef(draft);
   const durationRef = useLatestRef(duration);
-  const frameSeconds = frameDurationFor(frameRate);
+  const frameSeconds = frameDurationFor(sourceFrameRate);
   const frameSecondsRef = useLatestRef(frameSeconds);
   const seededPathRef = useRef<string | null>(null);
   const mutedRef = useLatestRef(muted);
@@ -192,7 +194,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     setSourceWidth(0);
     setSourceHeight(0);
     setDraft(emptyDraft(Number.NaN));
-    setFrameRate(null);
+    setSourceFrameRate(null);
     setSavedSpec(null);
     setAspectId("free");
     clearMaskSelection();
@@ -278,7 +280,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
         setHasBackup(state.has_backup);
         // Through the ref too: seedDraft runs before this state update is visible.
         frameSecondsRef.current = frameDurationFor(state.frame_rate);
-        setFrameRate(state.frame_rate ?? null);
+        setSourceFrameRate(state.frame_rate ?? null);
         setSavedSpec(state.spec ?? null);
         seedDraft(state.spec ?? null, durationRef.current);
       } catch {
@@ -377,6 +379,10 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
 
   const setSpeed = useCallback((speed: number) => {
     setDraft((current) => ({ ...current, speed }));
+  }, []);
+
+  const setFrameRate = useCallback((frameRate: VideoFrameRate | null) => {
+    setDraft((current) => ({ ...current, frameRate }));
   }, []);
 
   const setScale = useCallback((scale: number) => {
@@ -554,7 +560,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     progress,
     draft,
     duration,
-    frameDuration: frameDurationFor(frameRate),
+    frameDuration: frameDurationFor(sourceFrameRate),
     sourceWidth,
     sourceHeight,
     hasBackup,
@@ -582,6 +588,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     selectAspect,
     toggleMuted,
     setSpeed,
+    setFrameRate,
     setScale,
     setVolume,
     adjust,

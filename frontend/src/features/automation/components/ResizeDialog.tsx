@@ -3,7 +3,15 @@ import { useId, useState } from "react";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { MAX_RESIZE_MEGAPIXELS, MAX_RESIZE_MULTIPLE } from "@/shared/constants";
 import { fittedSize } from "@/shared/lib/sizeFit";
+import {
+  frameRateChoice,
+  frameRateFromChoice,
+  frameRateOptions,
+  type FrameRateChoice,
+} from "@/shared/lib/frameRate";
+import type { VideoFrameRate } from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
+import { DialogSelect } from "@/shared/ui/DialogSelect";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 
 /** Large enough that the budget, not the source, decides every example. */
@@ -13,11 +21,18 @@ const EXAMPLE_SOURCES = [
   { label: "1:1", width: 8192, height: 8192 },
 ] as const;
 
+const FRAME_RATE_OPTIONS = frameRateOptions("Keep each video's rate");
+
 interface ResizeDialogProps {
   scope: DialogScopeInfo;
   initialSettings: JobSettingsByType["resize"];
   busy?: boolean;
-  onConfirm: (megapixels: number, multiple: number, resetSize: boolean) => void;
+  onConfirm: (
+    megapixels: number,
+    multiple: number,
+    resetSize: boolean,
+    frameRate: VideoFrameRate | null,
+  ) => void;
   onCancel: () => void;
 }
 
@@ -44,6 +59,9 @@ export function ResizeDialog({
   const [error, setError] = useState<string | null>(null);
   // Never restored: discarding earlier sizing is destructive, so it is re-chosen every run.
   const [reset, setReset] = useState(false);
+  const [frameRate, setFrameRate] = useState<FrameRateChoice>(
+    frameRateChoice(initialSettings.frame_rate),
+  );
   const megapixelsId = useId();
   const multipleId = useId();
   const resetId = useId();
@@ -68,7 +86,12 @@ export function ResizeDialog({
     // The fields are ignored on a reset, so the remembered settings travel unchanged.
     if (reset) {
       setError(null);
-      onConfirm(initialSettings.megapixels, initialSettings.multiple, true);
+      onConfirm(
+        initialSettings.megapixels,
+        initialSettings.multiple,
+        true,
+        initialSettings.frame_rate ?? null,
+      );
       return;
     }
     if (parsedMegapixels === null) {
@@ -81,7 +104,7 @@ export function ResizeDialog({
     }
 
     setError(null);
-    onConfirm(parsedMegapixels, parsedMultiple, false);
+    onConfirm(parsedMegapixels, parsedMultiple, false, frameRateFromChoice(frameRate));
   };
 
   return (
@@ -89,6 +112,7 @@ export function ResizeDialog({
       unsavedChanges={
         megapixels !== String(initialSettings.megapixels) ||
         multiple !== String(initialSettings.multiple) ||
+        frameRate !== frameRateChoice(initialSettings.frame_rate) ||
         reset
       }
       scope={scope}
@@ -174,6 +198,13 @@ export function ResizeDialog({
           </p>
         )}
       </div>
+      <DialogSelect
+        label="Video frame rate"
+        value={frameRate}
+        options={FRAME_RATE_OPTIONS}
+        disabled={busy || reset}
+        onChange={setFrameRate}
+      />
       <div className="dialog__field">
         <label className="dialog__checkbox" htmlFor={resetId}>
           <input
@@ -191,8 +222,8 @@ export function ResizeDialog({
           <span className="dialog__checkbox-label">Reset size to the original</span>
         </label>
         <p className="dialog__hint">
-          Clears earlier resizes and manual scaling without applying the budget. Crops, masks and
-          all other edits are kept.
+          Clears earlier resizes and manual scaling without applying the budget. Crops, masks, frame
+          rates and all other edits are kept.
         </p>
       </div>
     </GuardedDialog>

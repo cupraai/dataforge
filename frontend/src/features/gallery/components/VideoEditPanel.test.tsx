@@ -54,6 +54,7 @@ function makeEdit(overrides: Partial<VideoEdit> = {}): VideoEdit {
     setTrimStartAtPlayhead: vi.fn<() => void>(),
     setTrimEndAtPlayhead: vi.fn<() => void>(),
     setTrimLength: vi.fn<(seconds: number) => void>(),
+    setFrameRate: vi.fn<VideoEdit["setFrameRate"]>(),
     setCrop: vi.fn<(crop: CropRect) => void>(),
     setCropActive: vi.fn<(active: boolean) => void>(),
     setMaskActive: vi.fn<(active: boolean) => void>(),
@@ -262,6 +263,34 @@ describe("VideoEditPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "0.5x" }));
 
       expect(edit.setSpeed).toHaveBeenCalledWith(0.5);
+    });
+
+    it("sets a frame rate for the saved file and says how many frames it keeps", () => {
+      const edit = makeEdit();
+      renderPanel(edit);
+
+      fireEvent.click(tool("Speed"));
+      const rates = within(screen.getByRole("group", { name: "Frame rate" }));
+      expect(rates.getAllByRole("button").map((b) => b.textContent?.trim())).toEqual([
+        "Source",
+        "16 fps",
+        "24 fps",
+        "25 fps",
+        "30 fps",
+      ]);
+      expect(rates.getByRole("button", { name: "Source" })).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.click(rates.getByRole("button", { name: "16 fps" }));
+      expect(edit.setFrameRate).toHaveBeenCalledWith(16);
+    });
+
+    it("counts the saved frames at the chosen rate", () => {
+      renderPanel(makeEdit({ draft: { ...emptyDraft(12), frameRate: 16 }, outputSeconds: 5 }));
+
+      fireEvent.click(tool("Speed, changed"));
+
+      expect(screen.getByText(/Saves 80 frames at 16 fps/)).toBeInTheDocument();
+      expect(screen.getByText("16 fps", { selector: ".edit-panel__output *" })).toBeInTheDocument();
     });
 
     it("marks the active speed and scale presets", () => {

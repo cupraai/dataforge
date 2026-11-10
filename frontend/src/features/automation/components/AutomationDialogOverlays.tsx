@@ -11,6 +11,7 @@ import { ComfyProcessDialog } from "./ComfyProcessDialog";
 import { TrainLoraDialog } from "./TrainLoraDialog";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
 import { ResizeDialog } from "./ResizeDialog";
+import { SplitVideoDialog } from "./SplitVideoDialog";
 import { RestoreCaptionsDialog } from "./RestoreCaptionsDialog";
 import { WatermarkDialog } from "./WatermarkDialog";
 import type { AutomationDialogsState } from "@/features/automation/types";
@@ -32,6 +33,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     trainLora,
     watermark,
     resize,
+    splitVideo,
     comfyProcess,
     autoAdjust,
     checkCaptionRules,
@@ -163,6 +165,16 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           busy={resize.busy}
           onConfirm={resize.onConfirm}
           onCancel={resize.onCancel}
+        />
+      )}
+
+      {splitVideo.open && splitVideo.initialSettings && (
+        <SplitVideoDialog
+          scope={splitVideo.scope}
+          initialSettings={splitVideo.initialSettings}
+          busy={splitVideo.busy}
+          onConfirm={splitVideo.onConfirm}
+          onCancel={splitVideo.onCancel}
         />
       )}
 

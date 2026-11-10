@@ -263,6 +263,17 @@ class BuildVideoEditCommandTests(unittest.TestCase):
 
         self.assertNotIn("fps=", command[command.index("-vf") + 1])
 
+    def test_a_chosen_frame_rate_replaces_the_source_rate(self) -> None:
+        command = command_for(VideoEditSpec(frame_rate=16), frame_rate=30.0)
+
+        self.assertEqual(command[command.index("-vf") + 1], "fps=16.000000")
+        self.assertFalse(video_edit.is_identity_spec(VideoEditSpec(frame_rate=16)))
+
+    def test_a_retime_pins_the_chosen_rate_once(self) -> None:
+        command = command_for(VideoEditSpec(speed=2.0, frame_rate=24), frame_rate=30.0)
+
+        self.assertEqual(command[command.index("-vf") + 1], "setpts=PTS/2.000000,fps=24.000000")
+
     def test_speeding_up_retimes_the_audio_too(self) -> None:
         command = command_for(VideoEditSpec(speed=2.0))
 

@@ -16,10 +16,17 @@ from constants import (
     DEFAULT_GALLERY_SORT,
     DEFAULT_RESIZE_MEGAPIXELS,
     DEFAULT_RESIZE_MULTIPLE,
+    DEFAULT_SPLIT_INTERVAL_SECONDS,
+    DEFAULT_SPLIT_LONGEST_SECONDS,
+    DEFAULT_SPLIT_SHORTEST_SECONDS,
     MAX_FILL_INSTRUCTION_LENGTH,
     MAX_IMAGE_FILLS,
+    MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
+    MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH,
     MAX_RESIZE_MEGAPIXELS,
     MAX_RESIZE_MULTIPLE,
+    MAX_SPLIT_CLIP_SECONDS,
+    MIN_SPLIT_CLIP_SECONDS,
     VIDEO_PROJECT_MAX_KEYFRAMES,
     VIDEO_PROJECT_MAX_TRACKS,
     VIDEO_PROJECT_MIN_CLIP_SECONDS,
@@ -109,6 +116,7 @@ type JobType = Literal[
     "watermark",
     "auto_adjust",
     "resize",
+    "split_video",
     "comfy_process",
 ]
 
@@ -674,6 +682,28 @@ class RememberedDataResponse(BaseModel):
     display_mode_folders: int
 
 
+class InstructionSnippet(BaseModel):
+    """A saved Edit captions instruction. Names are unique ignoring case."""
+
+    name: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=1, max_length=MAX_INSTRUCTION_SNIPPET_NAME_LENGTH
+        ),
+    ]
+    text: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=1, max_length=MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH
+        ),
+    ]
+
+
+class InstructionSnippetsResponse(BaseModel):
+    #: Sorted by name, ignoring case.
+    snippets: list[InstructionSnippet] = Field(default_factory=list)
+
+
 #: ``setup`` is the checksum-verified build setup installs into the clone.
 type FfmpegSource = Literal["setup", "path", "bundled"]
 
@@ -1036,9 +1066,49 @@ class WatermarkImageInfo(BaseModel):
     revision: int = 0
 
 
+#: Frame rates a render can convert to; ``VIDEO_FRAME_RATES`` in constants lists the same ones.
+type VideoFrameRate = Literal[16, 24, 25, 30]
+
+#: ``scenes`` cuts where the picture changes; ``interval`` cuts every ``interval_seconds``.
+type SplitVideoMode = Literal["scenes", "interval"]
+
+#: How small a picture change still counts as a new scene.
+type SceneSensitivity = Literal["low", "medium", "high"]
+
+
+class SplitVideoJobSettings(BaseModel):
+    mode: SplitVideoMode = "scenes"
+    sensitivity: SceneSensitivity = "medium"
+    interval_seconds: float = Field(
+        DEFAULT_SPLIT_INTERVAL_SECONDS, ge=MIN_SPLIT_CLIP_SECONDS, le=MAX_SPLIT_CLIP_SECONDS
+    )
+    #: Scenes only: a longer scene is divided into equal parts no longer than this.
+    longest_seconds: float = Field(
+        DEFAULT_SPLIT_LONGEST_SECONDS, ge=MIN_SPLIT_CLIP_SECONDS, le=MAX_SPLIT_CLIP_SECONDS
+    )
+    #: Shorter pieces are left out; 0 keeps every piece.
+    shortest_seconds: float = Field(DEFAULT_SPLIT_SHORTEST_SECONDS, ge=0, le=MAX_SPLIT_CLIP_SECONDS)
+    #: ``None`` keeps each source's own rate.
+    frame_rate: VideoFrameRate | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "SplitVideoJobSettings":
+        upper = self.longest_seconds if self.mode == "scenes" else self.interval_seconds
+        if self.shortest_seconds > upper:
+            limit = "longest clip" if self.mode == "scenes" else "clip length"
+            raise ValueError(f"The shortest clip cannot be longer than the {limit}")
+        return self
+
+
+class SplitVideoStartRequest(JobSelectionRequest, SplitVideoJobSettings):
+    pass
+
+
 class ResizeJobSettings(BaseModel):
     megapixels: float = Field(DEFAULT_RESIZE_MEGAPIXELS, gt=0, le=MAX_RESIZE_MEGAPIXELS)
     multiple: int = Field(DEFAULT_RESIZE_MULTIPLE, ge=1, le=MAX_RESIZE_MULTIPLE)
+    #: Videos only; ``None`` leaves each video's stored rate as it is.
+    frame_rate: VideoFrameRate | None = None
 
 
 class ResizeStartRequest(JobSelectionRequest, ResizeJobSettings):
@@ -1208,6 +1278,7 @@ class AutomationSettingsResponse(BaseModel):
     train_lora: TrainLoraJobSettings = Field(default_factory=TrainLoraJobSettings)
     watermark: WatermarkJobSettings = Field(default_factory=WatermarkJobSettings)
     resize: ResizeJobSettings = Field(default_factory=ResizeJobSettings)
+    split_video: SplitVideoJobSettings = Field(default_factory=SplitVideoJobSettings)
     comfy_process: ComfyProcessSettingsResponse = Field(
         default_factory=ComfyProcessSettingsResponse
     )
@@ -1711,6 +1782,8 @@ class VideoEditSpec(BaseModel):
     speed: float = Field(1.0, ge=MIN_EDIT_SPEED, le=MAX_EDIT_SPEED)
     scale: float = Field(1.0, ge=MIN_EDIT_SCALE, le=1.0)
     fit: SizeFit | None = None
+    #: The output's frame rate; ``None`` keeps the source's. Frames are dropped or repeated.
+    frame_rate: VideoFrameRate | None = None
     #: Audio gain: 1 unchanged, 0 mutes (the track is dropped), up to 2 for a boost.
     volume: float = Field(1.0, ge=MIN_EDIT_VOLUME, le=MAX_EDIT_VOLUME)
     adjust: ColorAdjust = Field(default_factory=ColorAdjust)

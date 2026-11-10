@@ -56,6 +56,7 @@ from schemas import (
     RestoreCaptionsPreviewResponse,
     RestoreCaptionsStartRequest,
     SetCaptionsStartRequest,
+    SplitVideoStartRequest,
     StripMetadataStartRequest,
     TrainingModel,
     TrainingTemplateCheckRequest,
@@ -201,6 +202,13 @@ def start_resize_job(
     path: str = FOLDER_QUERY, body: ResizeStartRequest = ResizeStartRequest()
 ) -> JobResponse:
     return _start_job("resize", path, body)
+
+
+@router.post("/automation/split-video", response_model=JobResponse)
+def start_split_video_job(
+    path: str = FOLDER_QUERY, body: SplitVideoStartRequest = SplitVideoStartRequest()
+) -> JobResponse:
+    return _start_job("split_video", path, body)
 
 
 @router.post("/automation/restore-captions", response_model=JobResponse)

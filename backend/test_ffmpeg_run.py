@@ -8,7 +8,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from ffmpeg_run import FfmpegCancelled, parse_progress_seconds, run_ffmpeg
+from ffmpeg_run import FfmpegCancelled, parse_progress_seconds, run_ffmpeg, stream_ffmpeg
 
 
 def _script(body: str) -> list[str]:
@@ -112,6 +112,32 @@ class RunFfmpegTests(unittest.TestCase):
 
     def test_leaves_stdout_unread_without_a_progress_callback(self) -> None:
         run_ffmpeg(_script("print('out_time_us=1')"))
+
+
+class StreamTests(unittest.TestCase):
+    def test_hands_over_whole_chunks_and_drops_a_short_tail(self) -> None:
+        chunks: list[bytes] = []
+
+        stream_ffmpeg(_script("import sys; sys.stdout.buffer.write(b'abcdefg')"), 3, chunks.append)
+
+        self.assertEqual(chunks, [b"abc", b"def"])
+
+    def test_a_cancel_stops_the_process(self) -> None:
+        endless = _script(
+            "import sys\nwhile True:\n    sys.stdout.buffer.write(b'x' * 64); sys.stdout.flush()"
+        )
+        seen: list[bytes] = []
+
+        with self.assertRaises(FfmpegCancelled):
+            stream_ffmpeg(endless, 64, seen.append, should_cancel=lambda: len(seen) >= 3)
+
+        self.assertEqual(len(seen), 3)
+
+    def test_a_failure_raises_with_the_log(self) -> None:
+        failing = _script("import sys; sys.stderr.write('bad input'); sys.exit(1)")
+
+        with self.assertRaisesRegex(RuntimeError, "bad input"):
+            stream_ffmpeg(failing, 4, lambda _chunk: None)
 
 
 if __name__ == "__main__":

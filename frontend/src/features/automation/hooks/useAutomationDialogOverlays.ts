@@ -18,7 +18,7 @@ import {
   type BulkScopeKind,
   type BulkScopeSnapshot,
 } from "@/features/automation/lib/bulkScope";
-import type { DuplicateThreshold, JobType, ReasoningEffort } from "@/shared/types";
+import type { DuplicateThreshold, JobType, ReasoningEffort, VideoFrameRate } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -228,8 +228,23 @@ export function useAutomationDialogOverlays({
       },
       resize: {
         ...shared("resize"),
-        onConfirm: (megapixels: number, multiple: number, resetSize: boolean) =>
-          startJobFromDialog("resize", { megapixels, multiple, reset_size: resetSize }),
+        onConfirm: (
+          megapixels: number,
+          multiple: number,
+          resetSize: boolean,
+          frameRate: VideoFrameRate | null,
+        ) =>
+          startJobFromDialog("resize", {
+            megapixels,
+            multiple,
+            reset_size: resetSize,
+            frame_rate: frameRate,
+          }),
+      },
+      splitVideo: {
+        ...shared("split_video"),
+        onConfirm: (settings: JobSettingsByType["split_video"]) =>
+          startJobFromDialog("split_video", settings),
       },
       autoAdjust: {
         open: openJobType === "auto_adjust",

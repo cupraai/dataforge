@@ -8,8 +8,15 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+## 0.13.0 - 2026-11-10
+
 ### Added
 
+- **Split into clips** cuts videos into short MP4 clips in a `clips` folder, at scene changes or
+  every few seconds, with a longest and shortest clip length. Clips, single videos in the editor's
+  Speed tool, and **Resize** batches can be converted to 16, 24, 25 or 30 fps.
+- **Edit captions** can save instructions by name and add them back from a **Saved** menu, so
+  instruction fragments can be reused and combined.
 - On Windows, a drive button at the start of the folder path switches to another drive. It
   shows each drive's label and type, picks up a USB stick or card within seconds of plugging it
   in, and skips empty card readers and disconnected network drives. A folder on an unplugged

@@ -13,7 +13,13 @@ import {
   specCropsEqual,
 } from "./editSpec";
 import { fittedSize } from "@/shared/lib/sizeFit";
-import type { AutoAdjust, ColorAdjust, SizeFit, VideoEditSpec } from "@/shared/types";
+import type {
+  AutoAdjust,
+  ColorAdjust,
+  SizeFit,
+  VideoEditSpec,
+  VideoFrameRate,
+} from "@/shared/types";
 
 export const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4] as const;
 /** 0 mutes; the rest are audio gain, capped at 2x to match backend/schemas.py. */
@@ -36,6 +42,8 @@ export interface VideoEditDraft {
   scale: number;
   /** Set by the Resize job; replaces `scale`, and any scale change clears it. */
   fit: SizeFit | null;
+  /** The saved file's frame rate; null keeps the source's. Applied on save, not in preview. */
+  frameRate: VideoFrameRate | null;
   volume: number;
   adjust: ColorAdjust;
   /** The wand's last reading, so its dial can rescale it; never rendered. */
@@ -61,6 +69,7 @@ export function emptyDraft(duration: number): VideoEditDraft {
     speed: 1,
     scale: 1,
     fit: null,
+    frameRate: null,
     volume: 1,
     adjust: { ...RESTING_ADJUST },
     autoAdjust: null,
@@ -93,6 +102,7 @@ export function isIdentityEdit(draft: VideoEditDraft, duration: number): boolean
     Math.abs(draft.speed - 1) < IDENTITY_EPSILON &&
     Math.abs(draft.scale - 1) < IDENTITY_EPSILON &&
     draft.fit === null &&
+    draft.frameRate === null &&
     Math.abs(draft.volume - 1) < IDENTITY_EPSILON &&
     isAdjustIdentity(draft.adjust) &&
     !draft.transcode
@@ -228,6 +238,7 @@ export function toVideoEditSpec(draft: VideoEditDraft, duration: number): VideoE
     speed: draft.speed,
     scale: draft.scale,
     fit: draft.fit,
+    frame_rate: draft.frameRate,
     volume: draft.volume,
     adjust: clampAdjust(draft.adjust),
     auto_adjust: draft.autoAdjust,
@@ -247,6 +258,7 @@ export function draftFromSpec(spec: VideoEditSpec | null, duration: number): Vid
     speed: spec.speed,
     scale: spec.scale,
     fit: spec.fit ?? null,
+    frameRate: spec.frame_rate ?? null,
     volume: spec.volume,
     adjust: { ...spec.adjust },
     autoAdjust: spec.auto_adjust ?? null,
@@ -266,6 +278,7 @@ export function specsEqual(a: VideoEditSpec, b: VideoEditSpec): boolean {
     sameNumber(a.speed, b.speed) &&
     sameNumber(a.scale, b.scale) &&
     sizeFitsEqual(a.fit, b.fit) &&
+    (a.frame_rate ?? null) === (b.frame_rate ?? null) &&
     sameNumber(a.volume, b.volume) &&
     adjustEqual(a.adjust, b.adjust) &&
     autoAdjustEqual(a.auto_adjust ?? null, b.auto_adjust ?? null) &&

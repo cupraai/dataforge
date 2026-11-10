@@ -25,6 +25,7 @@ export type JobSettingsByType = {
   train_lora: AutomationSettings["train_lora"];
   watermark: AutomationSettings["watermark"];
   resize: AutomationSettings["resize"];
+  split_video: AutomationSettings["split_video"];
   comfy_process: AutomationSettings["comfy_process"];
 };
 
@@ -39,6 +40,9 @@ const DEFAULT_WATERMARK_IMAGE_OPACITY: WatermarkOpacity = 100;
 const DEFAULT_WATERMARK_IMAGE_POSITION: WatermarkPosition = "top_right";
 const DEFAULT_RESIZE_MEGAPIXELS = 2;
 const DEFAULT_RESIZE_MULTIPLE = 32;
+const DEFAULT_SPLIT_INTERVAL_SECONDS = 5;
+const DEFAULT_SPLIT_LONGEST_SECONDS = 5;
+const DEFAULT_SPLIT_SHORTEST_SECONDS = 1;
 
 export function emptyAutomationSettings(folderPath: string): AutomationSettings {
   return {
@@ -87,6 +91,14 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       strip_metadata: false,
     },
     resize: { megapixels: DEFAULT_RESIZE_MEGAPIXELS, multiple: DEFAULT_RESIZE_MULTIPLE },
+    split_video: {
+      mode: "scenes",
+      sensitivity: "medium",
+      interval_seconds: DEFAULT_SPLIT_INTERVAL_SECONDS,
+      longest_seconds: DEFAULT_SPLIT_LONGEST_SECONDS,
+      shortest_seconds: DEFAULT_SPLIT_SHORTEST_SECONDS,
+      frame_rate: null,
+    },
     comfy_process: { preset: "", overwrite_candidates: false, by_preset: {} },
   };
 }

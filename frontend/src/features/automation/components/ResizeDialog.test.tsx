@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import { ResizeDialog } from "./ResizeDialog";
 import {
   emptyAutomationSettings,
@@ -11,7 +12,7 @@ const RESET_LABEL = "Reset size to the original";
 const DEFAULTS: JobSettingsByType["resize"] = emptyAutomationSettings("C:/datasets/photos").resize;
 
 function renderDialog(overrides: Partial<JobSettingsByType["resize"]> = {}) {
-  const onConfirm = vi.fn<(megapixels: number, multiple: number, resetSize: boolean) => void>();
+  const onConfirm = vi.fn<ComponentProps<typeof ResizeDialog>["onConfirm"]>();
   render(
     <ResizeDialog
       scope={{ itemCount: 12, folderLabel: "Photos", kind: "folder" as const }}
@@ -31,7 +32,7 @@ describe("ResizeDialog", () => {
     await user.click(screen.getByRole("button", { name: "Resize" }));
 
     expect(screen.getByLabelText(RESET_LABEL)).not.toBeChecked();
-    expect(onConfirm).toHaveBeenCalledWith(1.5, 8, false);
+    expect(onConfirm).toHaveBeenCalledWith(1.5, 8, false, null);
   });
 
   it("submits the values typed into the fields", async () => {
@@ -44,12 +45,23 @@ describe("ResizeDialog", () => {
     await user.type(screen.getByLabelText("Multiple of (px)"), "64");
     await user.click(screen.getByRole("button", { name: "Resize" }));
 
-    expect(onConfirm).toHaveBeenCalledWith(4, 64, false);
+    expect(onConfirm).toHaveBeenCalledWith(4, 64, false, null);
+  });
+
+  it("sends a chosen video frame rate, and Keep as null", async () => {
+    const user = userEvent.setup();
+    const onConfirm = renderDialog({ frame_rate: 24 });
+
+    expect(screen.getByLabelText("Video frame rate")).toHaveValue("24");
+    await user.selectOptions(screen.getByLabelText("Video frame rate"), "16");
+    await user.click(screen.getByRole("button", { name: "Resize" }));
+
+    expect(onConfirm).toHaveBeenLastCalledWith(2, 32, false, 16);
   });
 
   it("resets with the remembered settings even while a field cannot be read", async () => {
     const user = userEvent.setup();
-    const onConfirm = renderDialog({ megapixels: 1.5, multiple: 8 });
+    const onConfirm = renderDialog({ megapixels: 1.5, multiple: 8, frame_rate: 24 });
 
     await user.clear(screen.getByLabelText("Megapixels"));
     await user.click(screen.getByLabelText(RESET_LABEL));
@@ -57,7 +69,7 @@ describe("ResizeDialog", () => {
     expect(screen.getByLabelText("Megapixels")).toBeDisabled();
     expect(screen.getByLabelText("Multiple of (px)")).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Reset size" }));
-    expect(onConfirm).toHaveBeenCalledWith(1.5, 8, true);
+    expect(onConfirm).toHaveBeenCalledWith(1.5, 8, true, 24);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

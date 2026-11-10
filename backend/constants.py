@@ -276,6 +276,7 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "watermark": "Watermark",
     "auto_adjust": "Auto-adjust",
     "resize": "Resize",
+    "split_video": "Split into clips",
     "comfy_process": "Process with ComfyUI",
 }
 
@@ -328,6 +329,21 @@ DEFAULT_RESIZE_MEGAPIXELS = 2.0
 DEFAULT_RESIZE_MULTIPLE = 32
 MAX_RESIZE_MEGAPIXELS = 64.0
 MAX_RESIZE_MULTIPLE = 256
+
+#: Split into clips writes here, beside the source videos.
+CLIPS_DIR_NAME = "clips"
+#: Frame rates a split or a video edit can convert to; mirrored by ``VideoFrameRate`` in schemas.
+VIDEO_FRAME_RATES = (16, 24, 25, 30)
+DEFAULT_SPLIT_INTERVAL_SECONDS = 5.0
+DEFAULT_SPLIT_LONGEST_SECONDS = 5.0
+DEFAULT_SPLIT_SHORTEST_SECONDS = 1.0
+MIN_SPLIT_CLIP_SECONDS = 0.5
+MAX_SPLIT_CLIP_SECONDS = 600.0
+
+#: Saved Edit captions instructions: how many, and how long a name and a text may be.
+MAX_INSTRUCTION_SNIPPETS = 100
+MAX_INSTRUCTION_SNIPPET_NAME_LENGTH = 80
+MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH = 8000
 
 #: The gallery order until the user picks one: the newest files are the ones being worked on.
 DEFAULT_GALLERY_SORT: Final = "date-desc"
@@ -392,4 +408,11 @@ SHARED_CONSTANTS: dict[str, object] = {
     "MEGAPIXEL": MEGAPIXEL,
     "MAX_RESIZE_MEGAPIXELS": MAX_RESIZE_MEGAPIXELS,
     "MAX_RESIZE_MULTIPLE": MAX_RESIZE_MULTIPLE,
+    "CLIPS_DIR_NAME": CLIPS_DIR_NAME,
+    "VIDEO_FRAME_RATES": list(VIDEO_FRAME_RATES),
+    "MIN_SPLIT_CLIP_SECONDS": MIN_SPLIT_CLIP_SECONDS,
+    "MAX_SPLIT_CLIP_SECONDS": MAX_SPLIT_CLIP_SECONDS,
+    "MAX_INSTRUCTION_SNIPPETS": MAX_INSTRUCTION_SNIPPETS,
+    "MAX_INSTRUCTION_SNIPPET_NAME_LENGTH": MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
+    "MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH": MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH,
 }

@@ -5,7 +5,12 @@ import type { ReplaceCaptionsSettings } from "@/features/automation/components/R
 import type { VerifyCaptionsMode } from "@/features/automation/components/VerifyCaptionsDialog";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
-import type { AutomationMode, DuplicateThreshold, ReasoningEffort } from "@/shared/types";
+import type {
+  AutomationMode,
+  DuplicateThreshold,
+  ReasoningEffort,
+  VideoFrameRate,
+} from "@/shared/types";
 
 type FolderBusyDialogState<TConfirm, TSettings> = {
   open: boolean;
@@ -85,8 +90,17 @@ export type AutomationDialogsState = {
     JobSettingsByType["comfy_process"]
   >;
   resize: FolderBusyDialogState<
-    (megapixels: number, multiple: number, resetSize: boolean) => void,
+    (
+      megapixels: number,
+      multiple: number,
+      resetSize: boolean,
+      frameRate: VideoFrameRate | null,
+    ) => void,
     JobSettingsByType["resize"]
+  >;
+  splitVideo: FolderBusyDialogState<
+    (settings: JobSettingsByType["split_video"]) => void,
+    JobSettingsByType["split_video"]
   >;
   autoAdjust: {
     open: boolean;

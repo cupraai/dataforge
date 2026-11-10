@@ -594,6 +594,7 @@ describe("GalleryItemDialog", () => {
         speed: 0.5,
         scale: 1,
         fit: null,
+        frame_rate: null,
         volume: 1,
         transcode: false,
         adjust: { ...RESTING_ADJUST },

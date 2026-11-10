@@ -118,3 +118,50 @@ def run_ffmpeg(
     if process.returncode != 0:
         raise RuntimeError(log or "ffmpeg failed")
     return log
+
+
+def stream_ffmpeg(
+    command: list[str],
+    chunk_size: int,
+    on_chunk: Callable[[bytes], None],
+    *,
+    should_cancel: ShouldCancel | None = None,
+) -> str:
+    """Hand ffmpeg's stdout to ``on_chunk`` in pieces of exactly ``chunk_size`` bytes, such as
+    raw frames; a short tail is dropped. Returns the log; raises like :func:`run_ffmpeg`."""
+    try:
+        process = subprocess.Popen(
+            command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    except OSError as exc:
+        raise RuntimeError(f"Failed to run ffmpeg: {exc}") from exc
+
+    stderr_pipe = process.stderr
+    stdout_pipe = process.stdout
+    assert stdout_pipe is not None
+    stderr_output: list[bytes] = []
+
+    with process:
+        reader = threading.Thread(
+            target=lambda: stderr_output.append(stderr_pipe.read() if stderr_pipe else b"")
+        )
+        reader.start()
+        try:
+            while chunk := stdout_pipe.read(chunk_size):
+                if should_cancel and should_cancel():
+                    _terminate_ffmpeg(process)
+                    raise FfmpegCancelled
+                if len(chunk) == chunk_size:
+                    on_chunk(chunk)
+            process.wait()
+        except BaseException:
+            if process.poll() is None:
+                _terminate_ffmpeg(process)
+            raise
+        finally:
+            reader.join(timeout=FFMPEG_READER_JOIN_SECONDS)
+
+    log = b"".join(stderr_output).decode("utf-8", errors="replace").strip()
+    if process.returncode != 0:
+        raise RuntimeError(log or "ffmpeg failed")
+    return log

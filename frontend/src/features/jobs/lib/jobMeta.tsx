@@ -1,4 +1,4 @@
-import { CAPTION_RULES_FILENAME, JOB_TYPE_LABELS } from "@/shared/constants";
+import { CAPTION_RULES_FILENAME, CLIPS_DIR_NAME, JOB_TYPE_LABELS } from "@/shared/constants";
 import type { ReactNode } from "react";
 import type { AppIcon } from "@/shared/icons";
 import {
@@ -13,6 +13,7 @@ import {
   iconPencilSparkles,
   iconReplace,
   iconScaling,
+  iconScissors,
   iconShredder,
   iconSparkles,
   iconSpellCheck2,
@@ -126,6 +127,13 @@ export const JOB_TYPE_META = {
     icon: iconScaling,
     startUi: "dialog" as const,
     menuDescription: "Scale media to a megapixel size with sides on a pixel grid, for training.",
+  },
+  split_video: {
+    type: "split_video" as const,
+    group: "media" as const,
+    icon: iconScissors,
+    startUi: "dialog" as const,
+    menuDescription: `Cut videos into short clips in a ${CLIPS_DIR_NAME} folder, at scene changes or evenly.`,
   },
   watermark: {
     type: "watermark" as const,

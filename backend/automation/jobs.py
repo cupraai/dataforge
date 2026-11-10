@@ -51,6 +51,7 @@ from automation.job_messages import (
     resize_error_message,
     restore_captions_error_message,
     set_captions_error_message,
+    split_video_error_message,
     strip_metadata_error_message,
     verify_captions_failure_message,
     watermark_error_message,
@@ -70,6 +71,7 @@ from automation.replace_captions import (
 )
 from automation.resize import run_resize_job, validate_resize_folder
 from automation.set_captions import run_set_captions_job, validate_set_captions_folder
+from automation.split_video import run_split_video_job, validate_split_video_folder
 from automation.strip_metadata import run_strip_metadata_job, validate_strip_metadata_folder
 from automation.train_lora import run_train_lora_job, validate_train_lora_folder
 from automation.verify_captions import run_verify_captions_job, validate_verify_captions_folder
@@ -276,6 +278,10 @@ def _validate_resize(folder: Path, **params: object) -> None:
     validate_resize_folder(folder, _selected_paths(params))
 
 
+def _validate_split_video(folder: Path, **params: object) -> None:
+    validate_split_video_folder(folder, _selected_paths(params))
+
+
 def _comfy_inputs(params: dict[str, object]) -> dict[str, object]:
     inputs = params.get("inputs")
     return {str(name): value for name, value in inputs.items()} if isinstance(inputs, dict) else {}
@@ -437,6 +443,12 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         run=run_resize_job,
         failure_message=resize_error_message,
         validate=_validate_resize,
+    ),
+    "split_video": JobSpec(
+        thread_prefix="split-video",
+        run=run_split_video_job,
+        failure_message=split_video_error_message,
+        validate=_validate_split_video,
     ),
     "comfy_process": JobSpec(
         thread_prefix="comfy-process",

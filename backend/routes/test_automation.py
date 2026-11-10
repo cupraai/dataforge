@@ -52,10 +52,13 @@ def _post(endpoint: str, folder: Path, body: dict[str, object] | None = None):
     return client.post(f"/api/automation/{endpoint}?path={quote(str(folder))}", json=body)
 
 
-def _write_captioned_folder(folder: Path) -> Path:
+def _write_captioned_folder(folder: Path, *, video: bool = False) -> Path:
+    """``video`` adds a placeholder clip for jobs that refuse a folder without one."""
     write_sysprompt(folder, "# Describe the scene.")
     media = write_media(folder, "photo.png")
     write_txt_caption(media, "A lake.")
+    if video:
+        (folder / "walk.mp4").write_bytes(b"")
     return media
 
 
@@ -150,7 +153,18 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
         },
     ),
     "auto_adjust": ("auto-adjust", {"replace_adjustments": True}),
-    "resize": ("resize", {"megapixels": 1.5, "multiple": 8}),
+    "resize": ("resize", {"megapixels": 1.5, "multiple": 8, "frame_rate": 16}),
+    "split_video": (
+        "split-video",
+        {
+            "mode": "interval",
+            "sensitivity": "high",
+            "interval_seconds": 3.0,
+            "longest_seconds": 8.0,
+            "shortest_seconds": 0.5,
+            "frame_rate": 24,
+        },
+    ),
 }
 
 
@@ -171,7 +185,7 @@ class JobStartEndpointTests(unittest.TestCase):
     def test_every_body_field_reaches_the_runner(self) -> None:
         for job_type, (_endpoint, body) in _NON_DEFAULT_STARTS.items():
             with self.subTest(job_type=job_type), TempMediaFolder() as root:
-                _write_captioned_folder(root)
+                _write_captioned_folder(root, video=job_type == "split_video")
 
                 payload, received = self._start(job_type, root)
 
@@ -748,7 +762,7 @@ class JobSettingsPersistenceTests(unittest.TestCase):
 
     def _run(self, job_type: str, folder: Path) -> dict:
         endpoint, body = _NON_DEFAULT_STARTS[job_type]
-        _write_captioned_folder(folder)
+        _write_captioned_folder(folder, video=job_type == "split_video")
 
         with _patched_job_runner(job_type, _capturing_runner({})):
             response = _post(endpoint, folder, body)

@@ -88,6 +88,15 @@ def resize_error_message(stats: dict[str, int]) -> str | None:
     )
 
 
+def split_video_error_message(stats: dict[str, int]) -> str | None:
+    return _ffmpeg_job_message(
+        stats,
+        "split",
+        kept_one=" Its earlier clips were kept.",
+        kept_many=" Their earlier clips were kept.",
+    )
+
+
 def rename_media_error_message(stats: dict[str, int]) -> str | None:
     rename_errors = _count(stats, "rename_error")
     if rename_errors == 0:

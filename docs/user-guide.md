@@ -172,7 +172,7 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 | Media | Formats | Tools |
 | --- | --- | --- |
 | Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, masks, [generative fill](#generative-fill) |
-| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, volume, mute, Adjust, masks. Rendering shows progress and can be cancelled |
+| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Adjust, masks. Rendering shows progress and can be cancelled |
 | Audio | WAV, MP3, FLAC | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
 
 - **Masks** blur, pixelate, or black out regions.
@@ -234,6 +234,22 @@ Two options start off every run:
 - **Replace earlier adjustments** resets every Adjust tool before applying Auto, discarding manual values.
 - **Reset all color adjustments to zero** clears manual and Auto color without applying Auto. Other edits stay.
 
+### Split videos into clips
+
+**Split into clips** (a Tool) cuts each video in the [job scope](#scope) into MP4 clips in a `clips/` subfolder, named `<stem>_001.mp4`, `<stem>_002.mp4`, and so on; when two videos share a stem, such as `walk.mp4` and `walk.mkv`, the extension joins it (`walk_mkv_001.mp4`). Clips are cut on frame boundaries and measured on the picture, so audio that runs past the picture's end never makes an extra clip. The videos and their captions stay as they are, and the clips start without captions, ready for Auto-caption. Any video the app lists can be split, including MKV, AVI, WMV, and FLV.
+
+| Option | What it does |
+| --- | --- |
+| **Cut** | **At scene changes** cuts where the picture changes; **Evenly** cuts every **Clip length** seconds |
+| **Scene sensitivity** | How clearly a cut must stand out from the frames around it. **Low** keeps only the plainest cuts; **High** also takes cuts between similar-looking shots. Camera moves, flashes, and dissolves are not cuts at any setting |
+| **Longest clip** | Scenes only: a longer scene is divided into equal parts no longer than this |
+| **Shortest clip** | Shorter pieces, such as the end of a video cut evenly, are left out; 0 keeps them all |
+| **Frame rate** | Converts the clips to 16, 24, 25, or 30 fps, or keeps each video's rate |
+
+Splitting a video again replaces its earlier clips, together with their captions and other related files (to the Recycle Bin on Windows). A video with no piece as long as **Shortest clip** keeps its earlier clips and is reported as a warning.
+
+To set a frame rate without splitting, use the **Speed** tool in the video editor (applied when you save; the preview keeps the source's rate) or **Resize** for a batch.
+
 ## Video editor
 
 Combine videos, stills, audio, and titles on a multi-track timeline and export an MP4; see the [Video editor guide](video-editor.md).
@@ -278,10 +294,14 @@ Finished runs are kept for the [job history](configuration.md#server-storage-and
 | **Watermark** | Copies in `watermarked/` | Text, a PNG such as a logo, or both, each with its own size, opacity, and position. The PNG is kept for later runs. Overwrites earlier copies; captions are not copied. Can strip metadata from the copies |
 | **Strip metadata** | Files in place | Removes EXIF, XMP, text and workflow metadata, video tags, and chapters. Keeps image color and density data and every video and audio stream; video is remuxed, not re-encoded. No undo |
 | **Auto-adjust** | Files in place, originals kept | See [Auto-adjust a batch](#auto-adjust-a-batch) |
+| **Resize** | Files in place, originals kept | Fits images and videos to a megapixel size on a pixel grid. Can also set the videos' frame rate; **Keep** leaves each video's rate as it is |
+| **Split into clips** | MP4 clips in `clips/` | Cuts videos at scene changes or evenly; see [Split videos into clips](#split-videos-into-clips) |
 | **Process with ComfyUI** | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
 | **Quick LoRA training** | Nothing in the folder | Starts and monitors a run in [AI-Toolkit](ai-toolkit.md) |
 
 Jobs that change captions run once per caption, so `scene.jpg` and `scene.png` sharing `scene.txt` are changed once, and the result names both.
+
+**Saved instructions.** In **Edit captions**, **Saved** next to the instruction lists the instructions you saved. Click one to add it: it fills an empty field, or goes after a blank line, so several can be combined. To save the instruction you typed, choose **Save current instruction...**, name it, and press `Enter` or **Save**; a name already in the list (ignoring case) offers **Replace**. Saved instructions are shared by every folder and kept in `backend/data/`.
 
 **Try Edit captions first.** Enter an instruction and click **Dry run**. It rewrites up to three readable captions from the dialog's scope, in filename order, with the job's model settings, and highlights removed and added text. Nothing is written. Changing the instruction or model clears it. The full job generates fresh text, so its wording can differ. With **Send media** on, the model also sees each file's image or video keyframes, so an instruction such as "add clothing colours" can use what the picture shows.
 
@@ -322,7 +342,7 @@ Models take no caption and no job. They can be copied, moved, renamed, and delet
 
 ## Files DataForge creates
 
-`<stem>` is the name without its extension (`scene`); `<name>` includes it (`scene.jpg`). Related files travel with their media but are not gallery items. Media in `watermarked/` and `staging/` can be browsed like any folder.
+`<stem>` is the name without its extension (`scene`); `<name>` includes it (`scene.jpg`). Related files travel with their media but are not gallery items. Media in `watermarked/`, `staging/`, and `clips/` can be browsed like any folder.
 
 Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption, but each keeps its own edit original and settings. Use different stems when files need different captions.
 
@@ -338,6 +358,7 @@ Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption
 | `<name>.video-project.json` | Beside an exported video | The edit that export came from | It moves, copies, and deletes with the video |
 | `<stem>.txt` | `.backup/` | Caption backup | You delete it; restoring keeps it |
 | Watermarked media | `watermarked/` | Watermark | You delete it |
+| `<stem>_001.mp4`, ... | `clips/` | Split into clips | You delete it, or split the same video again |
 | Result, `<result-name>.comfy.json` | `staging/` | Process with ComfyUI | It is accepted, rejected, or deleted |
 | Database, thumbnails | `backend/data/` | The app: settings, jobs, notifications, tags | Pruned by [retention](configuration.md#server-storage-and-logging) |
 | Unkept fill results | `backend/data/fill_results/` | Generative fill, until you keep or discard a result | Discard, or a day later |
