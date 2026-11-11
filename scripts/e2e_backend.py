@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 import sys
 import threading
@@ -328,6 +329,9 @@ def main() -> int:
 
     from main import app
 
+    # The stand-ins answer the availability polls with 503 every few seconds; one INFO line each
+    # would bury the app's own logs.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     port = int(os.environ.get("DATAFORGE_API_PORT", DEFAULT_API_PORT))
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
     return 0
