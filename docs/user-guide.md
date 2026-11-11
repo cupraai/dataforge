@@ -256,6 +256,8 @@ Combine videos, stills, audio, and titles on a multi-track timeline and export a
 
 ## Jobs
 
+The folder toolbar's **Tools** menu groups jobs under **Captions**, **Check**, **Media**, **Files**, and **Integrations**. You can also find the jobs in Quick actions.
+
 ### Scope
 
 A job runs on the first of these that applies:
@@ -268,9 +270,20 @@ The dialog shows the count and freezes the file list when it opens, previews inc
 
 ### Running and history
 
-Jobs run in the background, one per folder at a time; different folders run side by side. The strip under the toolbar shows progress, the current file, and the time left, and **Cancel job** appears beside Auto-caption and Tools. Cancelling keeps what was already written.
+Jobs run in the background, one per folder at a time. Different folders run side by side. The strip under the toolbar shows progress, the current file, and the time left. **Cancel job** appears beside **Tools**. Cancelling keeps what was already written.
 
-**Queue jobs.** Starting a job while another runs in the same folder queues it: the dialog's scope line says what it is **queued after**, the strip counts the **queued** jobs (hover for their order), and each one starts as soon as the job before it finishes cleanly. If a job fails, is cancelled, is interrupted by a restart, or finishes with failed files, every job queued after it is cancelled, marked "Not run" in the Jobs drawer, and one notification says why. Cancelling the running job therefore cancels the queue too; cancelling a queued job from the Jobs drawer removes only that one. A queued job is checked again when it starts, so a folder an earlier step emptied fails it then. Edits to `.sysprompt` stay open until a queued Auto-caption starts, and it uses the saved text. Restarting DataForge drops the queue.
+**Queue jobs.** Starting a job while another runs in the same folder queues it: the dialog's scope line says what it is **queued after**, the strip counts the **queued** jobs (hover for their order), and each one starts as soon as the job before it finishes cleanly. If a job fails, is cancelled, is interrupted by a restart, or finishes with failed files, every job queued after it is cancelled, marked "Not run" in the Jobs drawer, and one notification says why. Cancelling the running job therefore cancels the queue too; cancelling a queued job from the Jobs drawer removes only that one. A queued job is checked again when it starts, so a folder an earlier step emptied fails it then. Jobs that use [folder instructions](#folder-instructions) read the saved text when they start and lock the file while they run. Restarting DataForge drops the queue.
+
+### Workflows
+
+A workflow is a saved chain of jobs, each with its own settings, such as Resize, then Auto-caption, then Lint captions. Workflows are shared by every folder.
+
+- **Create and edit.** Click **Workflows** in the toolbar, then **New workflow...** or **Manage workflows...**. The editor lists your workflows on the left, the selected one's steps in the middle, and every job you can add on the right (filter them by name). Type the name at the top, then click a job to add it as the last step: a job with settings opens its usual dialog, whose button reads **Save step**, and a job without settings is added as it is. Each step shows a one-line summary of its settings. Change one with **Settings**, reorder with the arrows, by dragging the grip, or with `Alt+Up`/`Alt+Down`, and remove it with the bin. **Save** stores the workflow, **Run...** runs the saved version, and **Close** asks first when there are unsaved changes.
+- **Run.** Pick a workflow in the **Workflows** menu or in Quick actions (**Run workflow: <name>**). The confirmation lists the steps and the scope: the selection, else the files in view, fixed when you click **Run workflow**. The steps join the folder's [queue](#jobs) back to back and follow its rules: each starts when the one before it finishes cleanly, and a failure cancels the rest. Each job's card and the strip say which workflow and step it is. In the Jobs drawer, waiting jobs sit under **Queued** in the order they will start, each saying which job it starts after.
+- **Settings are the workflow's own.** Running a workflow does not change what a job's dialog remembers for the folder, and the dialogs' one-run choices, such as **Overwrite existing captions** or **Reset size**, are kept with the step.
+- **Limits.** Quick LoRA training cannot be a step. **Rename** can only be the last step, because the steps after it would look for the old file names. A workflow holds up to 12 steps, and up to 50 workflows can be saved.
+
+The first step is checked when you run the workflow; later steps are checked when they start, since an earlier step may create what they need (for example, Backup captions before Restore captions).
 
 A clean finish leaves no strip. After a failure, cancellation, warnings, or failed files, the strip stays until dismissed:
 
@@ -284,12 +297,12 @@ Finished runs are kept for the [job history](configuration.md#server-storage-and
 
 | Job | Writes | Notes |
 | --- | --- | --- |
-| **Auto-caption** | `.txt` captions | Captions files that have none and expands short drafts, from the media and the [system prompt](#folder-instructions). Skips captions over the [draft threshold](configuration.md#vision-model-settings). The dialog counts what it will do first |
-| **Verify captions** | `.issue.json` findings | A model checks each caption against its media; captions stay unchanged |
-| **Lint captions** | `.issue.json` findings | Local [caption rules](#caption-rules); no model |
+| **Auto-caption** | `.txt` captions | Writes missing captions and expands short drafts using the media and [system prompt](#folder-instructions). **Caption audio** also sends the video's audio to a compatible model. The dialog previews how many captions the job will write or skip based on the [draft threshold](configuration.md#vision-model-settings) |
+| **Find & replace** | `.txt` captions | Text or regex replace, or add a prefix or suffix. Regex `^` and `$` match at each line. Previews counts and examples first; backs up first by default |
 | **Edit captions** | `.txt` captions | A model rewrites captions to your instruction; it sees the media only with **Send media**. Backs up first by default. **Dry run** previews it; see below |
 | **Set captions** | `.txt` captions | One caption for every file; overwriting existing captions needs permission |
-| **Find & replace** | `.txt` captions | Text or regex replace, or add a prefix or suffix. Regex `^` and `$` match at each line. Previews counts and examples first; backs up first by default |
+| **Lint captions** | `.issue.json` findings | Local [caption rules](#caption-rules); no model |
+| **Verify captions** | `.issue.json` findings | A model checks each caption against its media; captions stay unchanged |
 | **Find duplicates** | `.duplicate.json` groups | Deletes media only when you confirm in the resolver |
 | **Backup captions** / **Restore captions** | `.backup/` copies / `.txt` captions | See [Caption backups](#caption-backups) |
 | **Rename** | New file names | Sequential, with related files; no undo |

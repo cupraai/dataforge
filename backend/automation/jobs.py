@@ -95,7 +95,7 @@ from external.ostris_training import DEFAULT_TRAINING_MODEL
 from filesystem import normalize_user_path, path_leaf_name
 from path_resolve import resolve_path
 from revisions import next_revision
-from schemas import JobEvent, JobHistoryStatus, JobsRemovedEvent, JobStatus, JobType
+from schemas import AutomationMode, JobEvent, JobHistoryStatus, JobsRemovedEvent, JobStatus, JobType
 
 ACTIVE_STATUSES = frozenset({"queued", "running"})
 
@@ -125,6 +125,11 @@ def _stored_int(data: dict[str, object], key: str) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
+def _stored_workflow_run(data: dict[str, object]) -> dict[str, object] | None:
+    value = data.get("workflow_run")
+    return dict(value) if isinstance(value, dict) else None
+
+
 def _stored_literal[T: str](data: dict[str, object], key: str, allowed: tuple[T, ...]) -> T:
     value = data.get(key)
     # Returns the member itself: a comparison narrows nothing, so `value` stays a plain str.
@@ -138,6 +143,7 @@ def _stored_literal[T: str](data: dict[str, object], key: str, allowed: tuple[T,
 class Job:
     id: str
     folder: str
+    job_type: JobType
     status: JobStatus = "queued"
     total: int = 0
     processed: int = 0
@@ -149,7 +155,7 @@ class Job:
     created_at: str = field(default_factory=_utc_now)
     started_at: str | None = None
     finished_at: str | None = None
-    job_type: JobType = "auto_caption"
+    #: Legacy field name for the model mode recorded by caption-writing jobs.
     auto_caption_mode: str | None = None
     external_ref: str | None = None
     #: The ComfyUI preset or training model the run used; null for types without one.
@@ -160,6 +166,8 @@ class Job:
     revision: int = 0
     #: Its caption writes can still be taken back; computed by the store, never a column.
     undoable: bool = False
+    #: ``WorkflowRunTag`` fields when the job is a step of a workflow run.
+    workflow_run: dict[str, object] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> Job:
@@ -187,6 +195,7 @@ class Job:
             workflow_edited=data.get("workflow_edited") is True,
             revision=_stored_int(data, "revision"),
             undoable=data.get("undoable") is True,
+            workflow_run=_stored_workflow_run(data),
         )
 
     def to_summary_dict(self) -> dict[str, object]:
@@ -212,6 +221,7 @@ class Job:
             "workflow_edited": self.workflow_edited,
             "revision": self.revision,
             "undoable": self.undoable,
+            "workflow_run": self.workflow_run,
         }
 
     def to_dict(self) -> dict[str, object]:
@@ -322,14 +332,6 @@ def _train_lora_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
     return model, params.get("template") is not None
 
 
-def _auto_caption_mode(params: dict[str, object]) -> str | None:
-    return str(params.get("mode", "thinking"))
-
-
-def _edit_captions_mode(params: dict[str, object]) -> str | None:
-    return str(params.get("mode", "instruct"))
-
-
 def _validate_edit_captions(folder: Path, **params: object) -> None:
     validate_edit_captions_folder(folder, instruction=str(params.get("instruction", "")))
 
@@ -348,7 +350,7 @@ class JobSpec:
     failure_message: Callable[[dict[str, int]], str | None] | None = None
     resume: Callable[[Job], dict[str, object] | None] | None = None
     external_ref: Callable[[dict[str, object]], str | None] | None = None
-    caption_mode: Callable[[dict[str, object]], str | None] | None = None
+    default_caption_mode: AutomationMode | None = None
     #: What the run was built from, and whether it was edited for this run only.
     workflow: Callable[[dict[str, object]], tuple[str | None, bool]] | None = None
 
@@ -369,7 +371,7 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         run=run_auto_caption_job,
         failure_message=auto_caption_failure_message,
         validate=_validate_auto_caption,
-        caption_mode=_auto_caption_mode,
+        default_caption_mode="thinking",
     ),
     "strip_metadata": JobSpec(
         thread_prefix="strip-metadata",
@@ -430,7 +432,7 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         run=run_edit_captions_job,
         failure_message=edit_captions_failure_message,
         validate=_validate_edit_captions,
-        caption_mode=_edit_captions_mode,
+        default_caption_mode="instruct",
     ),
     "watermark": JobSpec(
         thread_prefix="watermark",
@@ -642,6 +644,27 @@ class JobManager:
             self._spawn_worker(start_now)
         return job
 
+    def queue_workflow(
+        self,
+        folder: Path,
+        steps: Sequence[tuple[JobType, dict[str, object]]],
+        name: str,
+    ) -> list[Job]:
+        """Queue ``steps`` back to back as one workflow run, tagged with ``name``. Only the first
+        step is validated now: the steps before a later one may create what it needs, so each is
+        validated when it starts instead."""
+        if not steps:
+            raise ValueError("A workflow needs at least one step")
+        folder = resolve_path(folder.expanduser())
+        first_type, first_params = steps[0]
+        JOB_SPECS[first_type].validate(folder, **first_params)
+
+        run_tag: dict[str, object] = {"id": uuid.uuid4().hex, "name": name}
+        jobs, start_now = self._register_jobs(folder, steps, run_tag)
+        if start_now is not None:
+            self._spawn_worker(start_now)
+        return jobs
+
     def queued_jobs(self, folder: str) -> list[Job]:
         """The jobs waiting behind ``folder``'s active job, in the order they will start."""
         with self._lock:
@@ -802,49 +825,85 @@ class JobManager:
         params: dict[str, object],
     ) -> tuple[Job, _QueuedRun | None]:
         """Store the job as queued and return the run to start now, or ``None`` when it waits in
-        the folder's queue. Earlier finished runs stay in the store as history; only their
-        in-memory copies are dropped."""
+        the folder's queue."""
+        jobs, start_now = self._register_jobs(folder, [(job_type, params)])
+        return jobs[0], start_now
+
+    def _register_jobs(
+        self,
+        folder: Path,
+        steps: Sequence[tuple[JobType, dict[str, object]]],
+        workflow_run: dict[str, object] | None = None,
+    ) -> tuple[list[Job], _QueuedRun | None]:
+        """Store ``steps`` as queued jobs in order and return the run to start now, or ``None``
+        when the first waits in the folder's queue. Earlier finished runs stay in the store as
+        history; only their in-memory copies are dropped."""
         with self._lock:
             # Decided and queued under one lock hold, so the active job cannot finish in between
-            # and leave this one waiting in a queue nobody advances.
+            # and leave these waiting in a queue nobody advances, and no other start can land
+            # between two steps.
             busy = self._memory_job_for_folder_unlocked(str(folder), statuses=ACTIVE_STATUSES)
 
-            job_id = uuid.uuid4().hex
-            workflow, workflow_edited = spec.workflow(params) if spec.workflow else (None, False)
-            job = Job(
-                id=job_id,
-                folder=str(folder),
-                job_type=job_type,
-                auto_caption_mode=spec.caption_mode(params) if spec.caption_mode else None,
-                external_ref=spec.external_ref(params) if spec.external_ref else None,
-                workflow=workflow,
-                workflow_edited=workflow_edited,
-            )
-            self._jobs[job_id] = job
-            cancel_event = threading.Event()
-            self._cancel_flags[job_id] = cancel_event
+            jobs: list[Job] = []
+            runs: list[_QueuedRun] = []
+            for index, (job_type, params) in enumerate(steps):
+                tag = (
+                    {**workflow_run, "step": index + 1, "steps": len(steps)}
+                    if workflow_run is not None
+                    else None
+                )
+                job, run = self._new_job_unlocked(folder, job_type, params, tag)
+                jobs.append(job)
+                runs.append(run)
 
-            for jid in list(self._jobs):
-                if jid == job_id:
-                    continue
-                existing = self._jobs[jid]
-                if (
-                    existing.folder == job.folder
-                    and existing.job_type == job_type
-                    and existing.status not in ACTIVE_STATUSES
-                ):
-                    self._jobs.pop(jid, None)
-                    self._cancel_flags.pop(jid, None)
-                    self._published.pop(jid, None)
+            waiting = runs if busy is not None else runs[1:]
+            if waiting:
+                self._queues.setdefault(str(folder), []).extend(waiting)
+            # Saved before any worker exists: a later save of a queued frame would overwrite the
+            # running one the worker stores when it begins.
+            for job in jobs:
+                self._save_snapshot(job.id, job.to_dict())
 
-            run = _QueuedRun(spec, job_id, folder, cancel_event, params)
-            if busy is not None:
-                self._queues.setdefault(job.folder, []).append(run)
-            # Saved before any worker exists: a later save of this queued frame would overwrite
-            # the running one the worker stores when it begins.
-            self._save_snapshot(job_id, job.to_dict())
+        return jobs, None if busy is not None else runs[0]
 
-        return job, None if busy is not None else run
+    def _new_job_unlocked(
+        self,
+        folder: Path,
+        job_type: JobType,
+        params: dict[str, object],
+        workflow_run: dict[str, object] | None,
+    ) -> tuple[Job, _QueuedRun]:
+        spec = JOB_SPECS[job_type]
+        job_id = uuid.uuid4().hex
+        workflow, workflow_edited = spec.workflow(params) if spec.workflow else (None, False)
+        default_mode = spec.default_caption_mode
+        job = Job(
+            id=job_id,
+            folder=str(folder),
+            job_type=job_type,
+            auto_caption_mode=str(params.get("mode", default_mode)) if default_mode else None,
+            external_ref=spec.external_ref(params) if spec.external_ref else None,
+            workflow=workflow,
+            workflow_edited=workflow_edited,
+            workflow_run=workflow_run,
+        )
+        self._jobs[job_id] = job
+        cancel_event = threading.Event()
+        self._cancel_flags[job_id] = cancel_event
+
+        for jid in list(self._jobs):
+            existing = self._jobs[jid]
+            if (
+                jid != job_id
+                and existing.folder == job.folder
+                and existing.job_type == job_type
+                and existing.status not in ACTIVE_STATUSES
+            ):
+                self._jobs.pop(jid, None)
+                self._cancel_flags.pop(jid, None)
+                self._published.pop(jid, None)
+
+        return job, _QueuedRun(spec, job_id, folder, cancel_event, params)
 
     def _run_managed_job(self, run: _QueuedRun, *, revalidate: bool = False) -> None:
         try:
@@ -906,7 +965,8 @@ class JobManager:
                 # One notification for the whole queue, below, instead of one per job.
                 self._save_snapshot(run.job_id, skipped.to_dict(), notify=False)
 
-        self._notify_queue_cancelled(folder, finished_id, len(queue), reason)
+        workflow = finished.workflow_run if finished is not None else None
+        self._notify_queue_cancelled(folder, finished_id, len(queue), reason, workflow)
         return None
 
     def _dequeue_unlocked(self, job_id: str) -> bool:
@@ -1073,11 +1133,19 @@ class JobManager:
         events.publish(JobsRemovedEvent(ids=job_ids, revision=next_revision()).model_dump())
 
     def _notify_queue_cancelled(
-        self, folder: str, finished_id: str, count: int, reason: str
+        self,
+        folder: str,
+        finished_id: str,
+        count: int,
+        reason: str,
+        workflow_run: dict[str, object] | None,
     ) -> None:
         jobs = "1 queued job" if count == 1 else f"{count} queued jobs"
         detail = reason.removeprefix("Not run: ").rstrip(".")
-        message = f'{jobs} in "{path_leaf_name(folder)}" cancelled: {detail}.'
+        place = f'"{path_leaf_name(folder)}"'
+        if workflow_run is not None:
+            place = f'{place} (workflow "{workflow_run.get("name")}")'
+        message = f"{jobs} in {place} cancelled: {detail}."
         with suppress(Exception):
             notifications.record_notification(message, "warning", source="job", job_id=finished_id)
 

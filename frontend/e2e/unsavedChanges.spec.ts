@@ -510,7 +510,7 @@ test("browser discard closes persistent settings and clears their draft", async 
   await expect(settings).toHaveCount(0);
   await page.getByRole("button", { name: "Open settings", exact: true }).click();
   await expect(settings.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
-  await settings.getByRole("button", { name: "Cancel", exact: true }).click();
+  await settings.getByRole("button", { name: "Close", exact: true }).click();
   await expect(confirmation(page)).toHaveCount(0);
 });
 

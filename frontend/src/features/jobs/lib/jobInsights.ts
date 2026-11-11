@@ -151,7 +151,7 @@ export function jobWhenLabel(job: Job, nowMs = Date.now()): JobWhen | null {
   return relative ? { label: `${verb} ${relative}`, title: formatModifiedAt(iso) } : null;
 }
 
-export type JobSectionId = "running" | "new" | "today" | "yesterday" | "earlier";
+export type JobSectionId = "running" | "queued" | "new" | "today" | "yesterday" | "earlier";
 
 export interface JobSection {
   id: JobSectionId;
@@ -161,13 +161,21 @@ export interface JobSection {
 
 const SECTION_LABELS: Record<JobSectionId, string> = {
   running: "Running",
+  queued: "Queued",
   new: "New",
   today: "Today",
   yesterday: "Yesterday",
   earlier: "Earlier",
 };
 
-const SECTION_ORDER: readonly JobSectionId[] = ["running", "new", "today", "yesterday", "earlier"];
+const SECTION_ORDER: readonly JobSectionId[] = [
+  "running",
+  "queued",
+  "new",
+  "today",
+  "yesterday",
+  "earlier",
+];
 
 function startOfDay(ms: number, daysBack = 0): number {
   const date = new Date(ms);
@@ -188,17 +196,27 @@ export function groupJobsForDrawer(
 
   for (const job of jobs) {
     const time = jobFinishedMs(job) ?? parseJobTimestamp(job.created_at) ?? 0;
-    const id: JobSectionId = isActiveJobStatus(job.status)
-      ? "running"
-      : isUnseenJob(job, seenAtMs)
-        ? "new"
-        : time >= today
-          ? "today"
-          : time >= yesterday
-            ? "yesterday"
-            : "earlier";
+    const id: JobSectionId =
+      job.status === "queued"
+        ? "queued"
+        : isActiveJobStatus(job.status)
+          ? "running"
+          : isUnseenJob(job, seenAtMs)
+            ? "new"
+            : time >= today
+              ? "today"
+              : time >= yesterday
+                ? "yesterday"
+                : "earlier";
     buckets.get(id)!.push(job);
   }
+
+  // Queued jobs read in the order they will start, oldest first.
+  buckets
+    .get("queued")!
+    .sort(
+      (a, b) => (parseJobTimestamp(a.created_at) ?? 0) - (parseJobTimestamp(b.created_at) ?? 0),
+    );
 
   return SECTION_ORDER.map((id) => ({
     id,

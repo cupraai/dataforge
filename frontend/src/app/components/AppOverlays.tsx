@@ -1,4 +1,5 @@
 import { AutomationDialogOverlays } from "@/features/automation/components/AutomationDialogOverlays";
+import { WorkflowOverlays } from "@/features/workflows/components/WorkflowOverlays";
 import { CreateFolderDialog } from "@/features/folder/components/CreateFolderDialog";
 import { FileImportOverwriteDialog } from "@/features/folder/components/FileImportOverwriteDialog";
 import { QuickActionDialog } from "@/features/quickAction/components/QuickActionDialog";
@@ -39,6 +40,7 @@ export function AppOverlays({
   candidateReview,
   jobStart,
   automation,
+  workflows,
   fileImport,
   createFolder,
   renameFolder,
@@ -173,6 +175,8 @@ export function AppOverlays({
       )}
 
       <AutomationDialogOverlays dialogs={automation} />
+
+      <WorkflowOverlays state={workflows} />
 
       {fileImport.overwritePrompt && (
         <FileImportOverwriteDialog

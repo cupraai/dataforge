@@ -71,8 +71,12 @@ class JobManagerQueueTests(unittest.TestCase):
     def test_the_latest_job_for_a_folder_is_the_newer_of_memory_and_store(self) -> None:
         with TempMediaFolder() as root:
             folder = str(root.resolve())
-            older = Job(id="older", folder=folder, created_at="2026-01-01T00:00:00+00:00")
-            newer = Job(id="newer", folder=folder, created_at="2026-01-02T00:00:00+00:00")
+            older = Job(
+                id="older", folder=folder, job_type="resize", created_at="2026-01-01T00:00:00+00:00"
+            )
+            newer = Job(
+                id="newer", folder=folder, job_type="resize", created_at="2026-01-02T00:00:00+00:00"
+            )
             jobs_store.save_job(older.to_dict())
 
             stored_only = job_manager.get_latest_job_for_folder(folder)
@@ -424,6 +428,7 @@ class JobManagerLifecycleTests(unittest.TestCase):
             job_manager._jobs[job_id] = Job(
                 id=job_id,
                 folder="/tmp/folder",
+                job_type="resize",
                 status="running",
             )
             job_manager._cancel_flags[job_id] = cancel_event
@@ -468,7 +473,7 @@ def _revision(record: dict[str, object]) -> int:
 class JobRevisionTests(unittest.TestCase):
     def setUp(self) -> None:
         reset_job_manager()
-        self.job = Job(id=uuid.uuid4().hex, folder=r"C:\Photos")
+        self.job = Job(id=uuid.uuid4().hex, folder=r"C:\Photos", job_type="resize")
         with job_manager._lock:
             job_manager._jobs[self.job.id] = self.job
         publish = patch("automation.jobs.events.publish")
@@ -601,7 +606,9 @@ class JobOutcomeNotificationTests(unittest.TestCase):
 
     def _publish(self, status: str) -> None:
         with job_manager._lock:
-            job_manager._jobs.setdefault(self.job_id, Job(id=self.job_id, folder=r"C:\Photos"))
+            job_manager._jobs.setdefault(
+                self.job_id, Job(id=self.job_id, folder=r"C:\Photos", job_type="auto_caption")
+            )
             job_manager._save_snapshot(self.job_id, self._snapshot(status))
 
     def test_reaching_a_terminal_status_records_one_notification(self) -> None:
@@ -646,7 +653,8 @@ class JobOutcomeNotificationTests(unittest.TestCase):
         self.assertEqual(list_notifications(), [])
 
     def test_a_job_cut_off_by_a_restart_is_announced_once(self) -> None:
-        jobs_store.save_job(Job(id=self.job_id, folder=r"C:\Photos", status="running").to_dict())
+        job = Job(id=self.job_id, folder=r"C:\Photos", job_type="auto_caption", status="running")
+        jobs_store.save_job(job.to_dict())
 
         job_manager.initialize()
         job_manager.initialize()
@@ -660,7 +668,7 @@ class JobOutcomeNotificationTests(unittest.TestCase):
         self.assertEqual(stored["job_id"], self.job_id)
 
     def test_a_job_resumed_after_a_restart_is_not_announced(self) -> None:
-        resumed = Job(id=self.job_id, folder=r"C:\Photos", status="running")
+        resumed = Job(id=self.job_id, folder=r"C:\Photos", job_type="train_lora", status="running")
         jobs_store.save_job(resumed.to_dict())
 
         with (

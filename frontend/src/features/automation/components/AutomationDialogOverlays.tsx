@@ -47,6 +47,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={setCaptions.scope}
           initialSettings={setCaptions.initialSettings}
           busy={setCaptions.busy}
+          confirmLabel={setCaptions.confirmLabel}
           onConfirm={setCaptions.onConfirm}
           onCancel={setCaptions.onCancel}
         />
@@ -59,6 +60,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           folderPath={replaceCaptions.folderPath}
           selectedPaths={replaceCaptions.selectedPaths}
           busy={replaceCaptions.busy}
+          confirmLabel={replaceCaptions.confirmLabel}
           onConfirm={replaceCaptions.onConfirm}
           onCancel={replaceCaptions.onCancel}
         />
@@ -69,6 +71,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={backupCaptions.scope}
           initialSettings={backupCaptions.initialSettings}
           busy={backupCaptions.busy}
+          confirmLabel={backupCaptions.confirmLabel}
           onConfirm={backupCaptions.onConfirm}
           onCancel={backupCaptions.onCancel}
         />
@@ -81,6 +84,8 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           selectedPaths={autoCaption.selectedPaths}
           initialSettings={autoCaption.initialSettings}
           busy={autoCaption.busy}
+          editingStep={autoCaption.editingStep}
+          confirmLabel={autoCaption.confirmLabel}
           onConfirm={autoCaption.onConfirm}
           onCancel={autoCaption.onCancel}
         />
@@ -91,6 +96,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={verifyCaptions.scope}
           initialSettings={verifyCaptions.initialSettings}
           busy={verifyCaptions.busy}
+          confirmLabel={verifyCaptions.confirmLabel}
           onConfirm={verifyCaptions.onConfirm}
           onCancel={verifyCaptions.onCancel}
         />
@@ -103,6 +109,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           selectedPaths={editCaptions.selectedPaths}
           initialSettings={editCaptions.initialSettings}
           busy={editCaptions.busy}
+          confirmLabel={editCaptions.confirmLabel}
           onConfirm={editCaptions.onConfirm}
           onCancel={editCaptions.onCancel}
         />
@@ -113,6 +120,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={findDuplicates.scope}
           initialSettings={findDuplicates.initialSettings}
           busy={findDuplicates.busy}
+          confirmLabel={findDuplicates.confirmLabel}
           onConfirm={findDuplicates.onConfirm}
           onCancel={findDuplicates.onCancel}
         />
@@ -123,6 +131,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={batchRename.scope}
           initialSettings={batchRename.initialSettings}
           busy={batchRename.busy}
+          confirmLabel={batchRename.confirmLabel}
           onConfirm={batchRename.onConfirm}
           onCancel={batchRename.onCancel}
         />
@@ -143,6 +152,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={watermark.scope}
           initialSettings={watermark.initialSettings}
           busy={watermark.busy}
+          confirmLabel={watermark.confirmLabel}
           onConfirm={watermark.onConfirm}
           onCancel={watermark.onCancel}
         />
@@ -153,6 +163,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={comfyProcess.scope}
           initialSettings={comfyProcess.initialSettings}
           busy={comfyProcess.busy}
+          confirmLabel={comfyProcess.confirmLabel}
           onConfirm={comfyProcess.onConfirm}
           onCancel={comfyProcess.onCancel}
         />
@@ -163,6 +174,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={resize.scope}
           initialSettings={resize.initialSettings}
           busy={resize.busy}
+          confirmLabel={resize.confirmLabel}
           onConfirm={resize.onConfirm}
           onCancel={resize.onCancel}
         />
@@ -173,6 +185,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={splitVideo.scope}
           initialSettings={splitVideo.initialSettings}
           busy={splitVideo.busy}
+          confirmLabel={splitVideo.confirmLabel}
           onConfirm={splitVideo.onConfirm}
           onCancel={splitVideo.onCancel}
         />
@@ -181,7 +194,9 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
       {autoAdjust.open && (
         <AutoAdjustDialog
           scope={autoAdjust.scope}
+          initialSettings={autoAdjust.initialSettings}
           busy={autoAdjust.busy}
+          confirmLabel={autoAdjust.confirmLabel}
           onConfirm={autoAdjust.onConfirm}
           onCancel={autoAdjust.onCancel}
         />
@@ -192,6 +207,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={checkCaptionRules.scope}
           folderPath={checkCaptionRules.folderPath}
           busy={checkCaptionRules.busy}
+          confirmLabel={checkCaptionRules.confirmLabel}
           onConfirm={checkCaptionRules.onConfirm}
           onCancel={checkCaptionRules.onCancel}
         />
@@ -203,6 +219,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           folderPath={restoreCaptions.folderPath}
           selectedPaths={restoreCaptions.selectedPaths}
           busy={restoreCaptions.busy}
+          confirmLabel={restoreCaptions.confirmLabel}
           onConfirm={restoreCaptions.onConfirm}
           onCancel={restoreCaptions.onCancel}
         />

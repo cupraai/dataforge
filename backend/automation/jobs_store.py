@@ -39,6 +39,7 @@ _JOB_SCHEMA: tuple[tuple[str, str], ...] = (
     ("workflow", "TEXT"),
     ("workflow_edited", "INTEGER NOT NULL DEFAULT 0"),
     ("revision", "INTEGER NOT NULL DEFAULT 0"),
+    ("workflow_run_json", "TEXT"),
 )
 
 _JOB_COLUMN_NAMES = tuple(name for name, _ in _JOB_SCHEMA)
@@ -142,6 +143,8 @@ def _row_to_dict(row: tuple, columns: tuple[str, ...] = _JOB_COLUMN_NAMES) -> di
     values = dict(zip(columns, stored, strict=True))
 
     stats = _decode_json(values.pop("stats_json"), dict)
+    raw_run = values.pop("workflow_run_json")
+    workflow_run = _decode_json(raw_run, dict) if raw_run else None
     results = _decode_json(values.pop("results_json"), list) if "results_json" in values else None
 
     job: dict[str, object] = {
@@ -154,6 +157,7 @@ def _row_to_dict(row: tuple, columns: tuple[str, ...] = _JOB_COLUMN_NAMES) -> di
         "workflow_edited": bool(values["workflow_edited"]),
         "undoable": bool(undoable),
         "stats": {key: int(value) for key, value in stats.items()},
+        "workflow_run": workflow_run or None,
     }
     if results is not None:
         job["results"] = results
@@ -186,6 +190,9 @@ def _job_column_value(job: dict[str, object], column: str) -> object:
         return json.dumps(job.get("stats") or {})
     if column == "results_json":
         return json.dumps(job.get("results") or [])
+    if column == "workflow_run_json":
+        run = job.get("workflow_run")
+        return json.dumps(run) if isinstance(run, dict) else None
     return job.get(column)
 
 

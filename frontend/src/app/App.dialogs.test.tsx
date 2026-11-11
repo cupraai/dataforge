@@ -11,6 +11,12 @@ async function openLintDialog(user: ReturnType<typeof userEvent.setup>) {
   return screen.findByRole("dialog", { name: "Lint captions?" });
 }
 
+async function openAutoCaptionDialog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Tools" }));
+  await user.click(screen.getByRole("menuitem", { name: /^Auto-caption/ }));
+  return screen.findByRole("dialog", { name: "Start auto-caption?" });
+}
+
 describe("App: dialogs", () => {
   it("lists a folder opened from the gallery under recent folders in the sidebar", async () => {
     const user = userEvent.setup();
@@ -39,9 +45,7 @@ describe("App: dialogs", () => {
     await user.click(await screen.findByRole("button", { name: "Select" }));
     await user.click(screen.getByRole("button", { name: "Select sunset.png" }));
 
-    await user.click(screen.getByRole("button", { name: /Auto-caption/ }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Start auto-caption?" });
+    const dialog = await openAutoCaptionDialog(user);
     expect(dialog.querySelector(".dialog-scope__line")).toHaveTextContent(
       "1 selected file in Photos",
     );
@@ -113,13 +117,7 @@ describe("App: dialogs", () => {
     const { fetchMock } = installMockBackend();
     renderApp();
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Auto-caption/ })).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("button", { name: /Auto-caption/ }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Start auto-caption?" });
+    const dialog = await openAutoCaptionDialog(user);
     expect(dialog.querySelector(".dialog-scope__line")).toHaveTextContent(
       /^Matching \d+ files? in Photos$/,
     );
@@ -129,15 +127,17 @@ describe("App: dialogs", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
-      fetchMock.mock.calls.some(([input]) => {
+      fetchMock.mock.calls.some(([input, init]) => {
         const requestUrl =
           typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-        return new URL(requestUrl, "http://localhost").pathname === "/api/auto-caption";
+        return (
+          new URL(requestUrl, "http://localhost").pathname === "/api/automation/auto-caption" &&
+          (init?.method ?? "GET").toUpperCase() === "POST"
+        );
       }),
     ).toBe(false);
 
-    await user.click(screen.getByRole("button", { name: /Auto-caption/ }));
-    await screen.findByRole("dialog", { name: "Start auto-caption?" });
+    await openAutoCaptionDialog(user);
 
     const instructRadio = screen.getByRole("radio", { name: /Instruct/i });
     await user.click(instructRadio);

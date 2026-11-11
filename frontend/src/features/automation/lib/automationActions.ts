@@ -1,5 +1,6 @@
 import type { JobStartContext } from "@/features/jobs/lib/jobMeta";
 import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
+import type { WorkflowActions } from "@/features/workflows/hooks/useWorkflowHost";
 import type { Job, JobType } from "@/shared/types";
 import type { GalleryItemOpenOutcome } from "@/features/gallery/hooks/useGalleryItemDialog";
 
@@ -9,7 +10,8 @@ export interface AutomationActions {
   job: Job | null;
   /** Jobs waiting behind `job`, in the order they start. */
   queuedJobs: readonly Job[];
-  startingJobType: JobType | null;
+  /** Saved workflows, run on the current scope. */
+  workflows: WorkflowActions;
   /** Everything that decides whether a job can start; read through `jobStartBlock`. */
   startContext: JobStartContext;
   onEditSysprompt: () => void;

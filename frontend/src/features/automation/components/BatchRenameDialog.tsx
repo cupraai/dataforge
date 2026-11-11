@@ -12,6 +12,8 @@ interface BatchRenameDialogProps {
   scope: DialogScopeInfo;
   initialSettings: JobSettingsByType["batch_rename"];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (stem: string, startNumber: number) => void;
   onCancel: () => void;
 }
@@ -29,6 +31,7 @@ export function BatchRenameDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: BatchRenameDialogProps) {
@@ -90,7 +93,13 @@ export function BatchRenameDialog({
       onConfirm={handleConfirm}
       onClose={onCancel}
       describedById={error ? errorId : undefined}
-      footer={<DialogActions confirmLabel="Rename" busyLabel="Starting..." onCancel={onCancel} />}
+      footer={
+        <DialogActions
+          confirmLabel={confirmLabel ?? "Rename"}
+          busyLabel="Starting..."
+          onCancel={onCancel}
+        />
+      }
     >
       <div className="dialog__field">
         <div className="batch-rename-dialog__row">

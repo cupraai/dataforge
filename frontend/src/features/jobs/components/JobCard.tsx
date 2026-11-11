@@ -2,9 +2,11 @@ import {
   iconBan,
   iconCircleAlert,
   iconFolder,
+  iconHourglass,
   iconLoader2,
   iconTrash2,
   iconTriangleAlert,
+  iconWorkflow,
   type AppIcon,
 } from "@/shared/icons";
 import type { Job } from "@/shared/types";
@@ -19,6 +21,8 @@ import {
   jobTypeLabel,
   jobWarningMessage,
   progressPercent,
+  workflowRunLabel,
+  type QueueSpot,
 } from "@/features/jobs/lib/jobs";
 import {
   jobHeadline,
@@ -61,6 +65,14 @@ interface JobCardProps {
   onDelete?: (jobId: string) => void;
   cancelling?: boolean;
   onLightboxOpenChange?: (open: boolean) => void;
+  /** Where a queued job stands in its folder's queue. */
+  queueSpot?: QueueSpot | null;
+}
+
+function ordinal(value: number): string {
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+  return `${value}${["th", "st", "nd", "rd"][value % 10] ?? "th"}`;
 }
 
 const MIX_PARTS: ReadonlyArray<{ key: keyof JobOutcomeMix; word: string }> = [
@@ -109,6 +121,7 @@ export function JobCard({
   onOpenItem,
   onRetryFailed,
   followUps = [],
+  queueSpot,
 }: JobCardProps) {
   const tone = jobStatusTone(job);
   const active = isActiveJobStatus(job.status);
@@ -123,6 +136,7 @@ export function JobCard({
   const samples = useTrainingSamples(job);
   const when = jobWhenLabel(job, nowMs);
   const workflow = jobWorkflow(job);
+  const runLabel = workflowRunLabel(job);
   const mix = active ? null : jobOutcomeMix(job);
   const throughput = jobThroughputLabel(job);
   const headline = jobHeadline(job);
@@ -169,6 +183,12 @@ export function JobCard({
               </span>
             )}
           </div>
+          {runLabel && (
+            <p className="job-card__workflow-run">
+              <Icon icon={iconWorkflow} />
+              {runLabel}
+            </p>
+          )}
         </div>
 
         <div className="job-card__header-actions">
@@ -214,12 +234,30 @@ export function JobCard({
         </p>
       )}
 
-      {active && (
+      {job.status === "queued" && (
+        <p className="job-card__waiting">
+          <Icon icon={iconHourglass} className="job-card__waiting-icon" />
+          <span className="job-card__waiting-text">
+            {queueSpot?.waitsFor ? (
+              <>
+                Starts after <strong>{jobTypeLabel(queueSpot.waitsFor)}</strong>
+              </>
+            ) : (
+              "Waiting to start"
+            )}
+          </span>
+          {queueSpot && (
+            <span className="job-card__waiting-spot">
+              {queueSpot.position === 1 ? "Next up" : `${ordinal(queueSpot.position)} in line`}
+            </span>
+          )}
+        </p>
+      )}
+
+      {active && job.status !== "queued" && (
         <div className="job-card__live">
           <div className="job-card__live-row">
-            <span className="job-card__count">
-              {job.status === "queued" ? "Waiting to start" : (countLabel ?? "Preparing...")}
-            </span>
+            <span className="job-card__count">{countLabel ?? "Preparing..."}</span>
             {timeLabel && <span className="job-card__remaining">{timeLabel}</span>}
             {job.total > 0 && <span className="job-card__percent">{percent}%</span>}
           </div>

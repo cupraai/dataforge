@@ -95,8 +95,18 @@ test("a job filter menu stays inside its modal and owns the first Escape", async
 
 test("form cancellation preserves edits until discard is confirmed", async ({ page }, testInfo) => {
   await openWorkspace(page);
-  await page.getByRole("button", { name: "Auto-caption", exact: true }).click();
+  const tools = page.getByRole("button", { name: "Tools", exact: true });
+  await tools.press("Enter");
+  const menu = page.getByRole("menu", { name: "Tools" });
+  const autoCaption = menu.getByRole("menuitem", { name: /^Auto-caption/ });
+  await expect(menu).toBeFocused();
+  await expect(autoCaption).toBeEnabled();
+  await page.keyboard.press("Tab");
+  await expect(autoCaption).toBeFocused();
+  await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Start auto-caption?" });
+  await expect(menu).toHaveCount(0);
+  await expect(dialog).toBeFocused();
   const option = dialog.getByRole("checkbox", { name: "Caption audio", exact: true });
   const original = await option.isChecked();
   await dialog.getByText("Caption audio", { exact: true }).click();
@@ -114,7 +124,7 @@ test("form cancellation preserves edits until discard is confirmed", async ({ pa
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await confirmation.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Auto-caption", exact: true })).toBeFocused();
+  await expect(tools).toBeFocused();
 });
 
 test("settings keep their draft after Escape and close without prompting after undo", async ({
@@ -148,7 +158,8 @@ for (const name of ["Cancel", "Close"]) {
       return route.fulfill({ status: 503, json: { detail: "No job should start." } });
     });
     await openWorkspace(page);
-    await page.getByRole("button", { name: "Auto-caption", exact: true }).click();
+    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("menuitem", { name: /^Auto-caption/ }).click();
     const dialog = page.getByRole("dialog", { name: "Start auto-caption?" });
     const dismiss = dialog.getByRole("button", { name, exact: true });
     await dismiss.focus();

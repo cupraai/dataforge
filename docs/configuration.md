@@ -31,7 +31,7 @@ Auto-caption and Verify captions need an OpenAI-compatible chat-completions serv
 2. Enter the API URL, including `/v1`, and a key if the server requires one. The default URL is `http://127.0.0.1:8888/v1`.
 3. Select **Test connection**. It tests the entered address and key and lists the model ids the server reports.
 4. Choose the server's model id, then **Save**. The default `qwen38` is only an id, not a model download.
-5. Open your dataset and use **Create instructions** to write a system prompt, or inherit one from a parent folder. Run Auto-caption on a small selection first.
+5. Open your dataset, select a few files, and choose **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**. For Auto-caption, use **Create instructions** to write a system prompt if the folder has none to inherit.
 
 The connection test only checks the server's model list; it does not prove that image or audio input works. A saved key is never displayed again. If the key field is blank during a test, the saved or environment key is used.
 

@@ -6,7 +6,6 @@ from automation.job_outcome import (
     effective_status,
     finished_cleanly,
     job_response,
-    shows_warning_state,
     warning_message,
 )
 from constants import JOB_TYPE_LABELS
@@ -51,7 +50,6 @@ class EffectiveStatusTests(unittest.TestCase):
 class WarningMessageTests(unittest.TestCase):
     def test_it_flags_completed_jobs_that_skipped_files_without_caption_sidecars(self) -> None:
         stats = {"success": 2, "no_caption": 1}
-        self.assertTrue(shows_warning_state("auto_caption", "completed", stats))
         self.assertEqual(
             warning_message("auto_caption", "completed", stats),
             "1 file had no caption sidecar (.txt) and was skipped.",
@@ -90,8 +88,8 @@ class WarningMessageTests(unittest.TestCase):
         )
 
     def test_only_auto_caption_treats_a_missing_audio_track_as_a_warning(self) -> None:
-        self.assertFalse(
-            shows_warning_state("verify_captions", "completed", {"success": 1, "audio_error": 1})
+        self.assertIsNone(
+            warning_message("verify_captions", "completed", {"success": 1, "audio_error": 1})
         )
 
     def test_restore_captions_reports_backups_with_no_matching_media(self) -> None:
@@ -171,6 +169,12 @@ class CompletionNotificationTests(unittest.TestCase):
             ("success", 'Auto-caption completed in "Photos".'),
         )
 
+    def test_a_missing_type_uses_a_generic_notification(self) -> None:
+        self.assertEqual(
+            completion_notification(snapshot(job_type=None, stats={"audio_error": 1})),
+            ("success", 'Job completed in "Photos".'),
+        )
+
 
 class JobResponseTests(unittest.TestCase):
     def test_it_fills_in_the_derived_outcome_fields(self) -> None:
@@ -208,6 +212,7 @@ class FinishedCleanlyTests(unittest.TestCase):
     def test_a_failed_file_its_type_reports_as_a_warning_does_not_count(self) -> None:
         stats = {"success": 4, "audio_error": 1}
         self.assertTrue(finished_cleanly("auto_caption", "completed", stats))
+        self.assertFalse(finished_cleanly("verify_captions", "completed", stats))
 
 
 if __name__ == "__main__":

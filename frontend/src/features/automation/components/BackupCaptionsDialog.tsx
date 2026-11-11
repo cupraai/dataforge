@@ -9,6 +9,8 @@ interface BackupCaptionsDialogProps {
   scope: DialogScopeInfo;
   initialSettings: JobSettingsByType["backup_captions"];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -16,6 +18,7 @@ interface BackupCaptionsDialogProps {
 export function BackupCaptionsDialog({
   scope,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: BackupCaptionsDialogProps) {
@@ -41,7 +44,7 @@ export function BackupCaptionsDialog({
       onClose={onCancel}
       footer={
         <DialogActions
-          confirmLabel="Back up captions"
+          confirmLabel={confirmLabel ?? "Back up captions"}
           busyLabel="Starting..."
           onCancel={onCancel}
         />

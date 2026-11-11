@@ -62,12 +62,6 @@ $toolbar-search-width-max: 22rem;
     @include visually-hidden;
   }
 
-  // Matches the round icon buttons beside them, such as system specifications.
-  &--compact &__round-when-compact {
-    width: var(--control-height);
-    padding: 0;
-  }
-
   &__search,
   &__filter-menu,
   &__sort-menu {

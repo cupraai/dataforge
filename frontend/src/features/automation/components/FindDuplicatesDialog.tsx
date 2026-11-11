@@ -16,6 +16,8 @@ interface FindDuplicatesDialogProps {
   scope: DialogScopeInfo;
   initialSettings: JobSettingsByType["find_duplicates"];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (threshold: DuplicateThreshold) => void;
   onCancel: () => void;
 }
@@ -24,6 +26,7 @@ export function FindDuplicatesDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: FindDuplicatesDialogProps) {
@@ -47,7 +50,11 @@ export function FindDuplicatesDialog({
       onConfirm={handleConfirm}
       onClose={onCancel}
       footer={
-        <DialogActions confirmLabel="Find duplicates" busyLabel="Starting..." onCancel={onCancel} />
+        <DialogActions
+          confirmLabel={confirmLabel ?? "Find duplicates"}
+          busyLabel="Starting..."
+          onCancel={onCancel}
+        />
       }
     >
       <RadioTileGroup

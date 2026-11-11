@@ -5,10 +5,10 @@ import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
 import { useAutomationDialogOverlays } from "@/features/automation/hooks/useAutomationDialogOverlays";
 import type { useFolderAutomation } from "@/features/automation/hooks/useFolderAutomation";
 import { useJobStartConfirmation } from "@/features/jobs/hooks/useJobStartConfirmation";
+import { useWorkflowHost } from "@/features/workflows/hooks/useWorkflowHost";
 import {
   isConfirmableJobType,
   jobStartBlock,
-  type JobAvailability,
   type JobStartContext,
 } from "@/features/jobs/lib/jobMeta";
 import { isActiveJobStatus, jobTypeLabel } from "@/features/jobs/lib/jobs";
@@ -84,6 +84,19 @@ export function useAutomationHost({
 
   const queuedAfter = queuedAfterLabel(automation.folderJob, automation.queuedJobs);
 
+  const workflowHost = useWorkflowHost({
+    folder,
+    folderLabel: jobStart.folderLabel,
+    liveScope,
+    scopeKind,
+    folderItemCount: items.length,
+    getJobPaths,
+    queuedAfter,
+    comfyPresetsAvailable,
+    runWorkflow: automation.runWorkflow,
+    startingWorkflow: automation.startingWorkflow,
+  });
+
   const dialogs = useAutomationDialogOverlays({
     folderPath: folder,
     folderLabel: jobStart.folderLabel,
@@ -105,26 +118,22 @@ export function useAutomationHost({
   } = jobStart;
   const { openDialogForJobType, dialogs: automationDialogs } = dialogs;
 
-  const jobAvailability = useMemo<JobAvailability>(
-    () => ({ hasCaptionBackup, ostrisAvailable, comfyPresetsAvailable }),
-    [comfyPresetsAvailable, hasCaptionBackup, ostrisAvailable],
-  );
-
   const startContext = useMemo<JobStartContext>(
     () => ({
       hasFolder: Boolean(folder),
       starting: automation.startingJobType !== null,
       itemCount: jobItemCount,
       folderCount: items.length,
-      syspromptApplies,
-      availability: jobAvailability,
+      availability: { syspromptApplies, hasCaptionBackup, ostrisAvailable, comfyPresetsAvailable },
     }),
     [
       automation.startingJobType,
+      comfyPresetsAvailable,
       folder,
+      hasCaptionBackup,
       items.length,
-      jobAvailability,
       jobItemCount,
+      ostrisAvailable,
       syspromptApplies,
     ],
   );
@@ -167,7 +176,7 @@ export function useAutomationHost({
     () => ({
       job: automation.folderJob,
       queuedJobs: automation.queuedJobs,
-      startingJobType: automation.startingJobType,
+      workflows: workflowHost.actions,
       startContext,
       onEditSysprompt,
       onRequestStart: requestStart,
@@ -188,7 +197,7 @@ export function useAutomationHost({
       automation.cancellingJob,
       automation.folderJob,
       automation.queuedJobs,
-      automation.startingJobType,
+      workflowHost.actions,
       startContext,
       reviewScope,
       issueCount,
@@ -216,6 +225,7 @@ export function useAutomationHost({
     actions,
     requestStart,
     dialogs: automationDialogs,
+    workflowOverlays: workflowHost.overlays,
     jobStartConfirm: {
       pending: pendingJobStart,
       scope: confirmScope,

@@ -10,6 +10,8 @@ interface CheckCaptionRulesDialogProps {
   scope: DialogScopeInfo;
   folderPath: string;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +20,7 @@ export function CheckCaptionRulesDialog({
   scope,
   folderPath,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: CheckCaptionRulesDialogProps) {
@@ -43,7 +46,11 @@ export function CheckCaptionRulesDialog({
       footer={
         <>
           <InstructionFileSource state={state} kind="caption_rules" />
-          <DialogActions confirmLabel="Lint captions" busyLabel="Starting..." onCancel={onCancel} />
+          <DialogActions
+            confirmLabel={confirmLabel ?? "Lint captions"}
+            busyLabel="Starting..."
+            onCancel={onCancel}
+          />
         </>
       }
     >

@@ -13,6 +13,7 @@ import type {
   RestoreCaptionsPreviewResponse,
   TaggingStatusResponse,
   VideoProjectSummary,
+  Workflow,
 } from "@/shared/types";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
 import { appSettings, emptyFolder, HOME_SYSPROMPT, homeFolder, vacationFolder } from "./fixtures";
@@ -49,6 +50,8 @@ export interface MockBackendOptions {
   videoProjects?: Record<string, VideoProjectSummary[]>;
   /** Paths of related files a delete of the keyed media path reports as left behind. */
   retainedOnDelete?: Record<string, string[]>;
+  /** Saved workflows; none unless a test needs them. */
+  workflows?: Workflow[];
 }
 
 function normalizeFolderKey(path: string | null | undefined): string | undefined {
@@ -83,7 +86,7 @@ function folderLeafName(path: string): string {
   return parts[parts.length - 1] || trimmed || path;
 }
 
-function createMockJob(folderPath: string, jobType: Job["job_type"] = "auto_caption"): Job {
+function createMockJob(folderPath: string, jobType: Job["job_type"]): Job {
   const now = new Date().toISOString();
   return {
     workflow_edited: false,
@@ -107,6 +110,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
   let instructionSnippets: { name: string; text: string }[] = [];
+  let workflows: Workflow[] = options.workflows ?? [];
   let tagVocabulary = { text: "# mine\nred dress\n", default_count: 302, added_count: 1 };
   let thumbnailCache = {
     directory: "C:/DataForge/thumbnails",
@@ -634,6 +638,43 @@ export function installMockBackend(options: MockBackendOptions = {}) {
         );
       }
       return jsonResponse({ snippets: instructionSnippets });
+    }
+
+    if (url.pathname === "/api/workflows/run" && method === "POST") {
+      const folderPath = normalizeFolderKey(url.searchParams.get("path")) ?? homeFolder.path;
+      const body = JSON.parse(init?.body as string) as { name: string };
+      const workflow = workflows.find((saved) => saved.name === body.name);
+      if (!workflow) return jsonResponse({ detail: "No such workflow" }, 404);
+      const jobs = workflow.steps.map((step, index) => ({
+        ...createMockJob(folderPath, step.job_type),
+        id: `job-workflow-${index}-${folderPath}`,
+        workflow_run: {
+          id: "run-1",
+          name: workflow.name,
+          step: index + 1,
+          steps: workflow.steps.length,
+        },
+      }));
+      return jsonResponse({ jobs });
+    }
+
+    if (url.pathname === "/api/workflows") {
+      if (method === "PUT") {
+        const body = JSON.parse(init?.body as string) as {
+          workflow: Workflow;
+          previous_name: string | null;
+        };
+        const replaced = (body.previous_name ?? body.workflow.name).toLowerCase();
+        const key = body.workflow.name.toLowerCase();
+        workflows = [
+          ...workflows.filter((saved) => ![replaced, key].includes(saved.name.toLowerCase())),
+          body.workflow,
+        ].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      } else if (method === "DELETE") {
+        const key = (url.searchParams.get("name") ?? "").toLowerCase();
+        workflows = workflows.filter((saved) => saved.name.toLowerCase() !== key);
+      }
+      return jsonResponse({ workflows });
     }
 
     if (url.pathname === "/api/system/tagging/vocabulary") {
@@ -1203,8 +1244,16 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       return jsonResponse({ job_id: jobId, results: options.jobResults?.[jobId] ?? [] });
     }
 
-    if (url.pathname.startsWith("/api/jobs/") && url.pathname.endsWith("/cancel")) {
-      return jsonResponse(createMockJob(homeFolder.path));
+    if (
+      url.pathname.startsWith("/api/jobs/") &&
+      url.pathname.endsWith("/cancel") &&
+      method === "POST"
+    ) {
+      const jobId = url.pathname.split("/").at(-2);
+      const job = options.jobs?.find(({ id }) => id === jobId);
+      return job
+        ? jsonResponse({ ...job, status: "cancelled", effective_status: "cancelled" })
+        : jsonResponse({ detail: "Job not found" }, 404);
     }
 
     if (url.pathname.startsWith("/api/jobs/") && method === "DELETE") {

@@ -20,6 +20,7 @@ from routes import (
     sidecars,
     system,
     video_projects,
+    workflows,
 )
 
 router = APIRouter(prefix="/api")
@@ -44,5 +45,6 @@ for module in (
     external_jobs,
     events,
     video_projects,
+    workflows,
 ):
     router.include_router(module.router)

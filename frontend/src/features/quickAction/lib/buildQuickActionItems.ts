@@ -11,8 +11,7 @@ import {
 } from "@/features/jobs/lib/jobs";
 import {
   JOB_TYPE_META,
-  PRIMARY_JOB_TYPE,
-  SECONDARY_JOB_TYPES,
+  JOB_TYPES,
   jobMenuLabelFor,
   jobStartBlock,
   jobTypeIconFor,
@@ -58,6 +57,7 @@ import {
   iconHeartPlus,
   iconSun,
   iconTrash2,
+  iconWorkflow,
   type AppIcon,
 } from "@/shared/icons";
 import type {
@@ -68,12 +68,11 @@ import type {
   JobType,
   SidecarKind,
   Subfolder,
+  Workflow,
 } from "@/shared/types";
 import type { ResolvedTheme } from "@/shared/theme/theme";
 import type { QuickActionItem, QuickActionSection } from "../types";
 import { reviewScopeSuffix, type ReviewScope } from "@/features/gallery/lib/reviewScope";
-
-export const ALL_JOB_TYPES: JobType[] = [PRIMARY_JOB_TYPE, ...SECONDARY_JOB_TYPES];
 
 export function quickActionFolderId(path: string): string {
   return `folder:${normalizeFolderPath(path)}`;
@@ -183,13 +182,32 @@ export function buildJobItems(
 export interface RunJobOptions {
   startContext: JobStartContext;
   onRequestStart: (jobType: JobType) => void;
+  /** Saved workflows, each offered as "Run workflow: <name>". */
+  workflows?: readonly Workflow[];
+  onRunWorkflow?: (name: string) => void;
+}
+
+export function quickActionRunWorkflowId(name: string): string {
+  return `run-workflow:${name.toLowerCase()}`;
 }
 
 export function buildRunJobItems({
   startContext,
   onRequestStart,
+  workflows = [],
+  onRunWorkflow,
 }: RunJobOptions): QuickActionItem[] {
-  return ALL_JOB_TYPES.map((type) => {
+  const workflowItems = workflows.map<QuickActionItem>((workflow) => ({
+    id: quickActionRunWorkflowId(workflow.name),
+    section: "run",
+    label: `Run workflow: ${workflow.name}`,
+    detail: workflow.steps.map((step) => jobMenuLabelFor(step.job_type)).join(" → "),
+    icon: iconWorkflow,
+    keywords: "workflow chain",
+    disabled: !startContext.hasFolder || startContext.starting || !onRunWorkflow,
+    run: () => onRunWorkflow?.(workflow.name),
+  }));
+  const jobItems = JOB_TYPES.map<QuickActionItem>((type) => {
     const { blocked, reason } = jobStartBlock(type, startContext);
     const description = JOB_TYPE_META[type].menuDescription;
     return {
@@ -203,6 +221,7 @@ export function buildRunJobItems({
       run: () => onRequestStart(type),
     };
   });
+  return [...jobItems, ...workflowItems];
 }
 
 export interface NavigationCommandOptions {

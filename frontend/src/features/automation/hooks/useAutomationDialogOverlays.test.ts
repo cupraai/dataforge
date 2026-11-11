@@ -267,7 +267,12 @@ describe("useAutomationDialogOverlays", () => {
     });
 
     await act(async () => {
-      result.current.dialogs.autoCaption.onConfirm("instruct", true, "xhigh", false);
+      result.current.dialogs.autoCaption.onConfirm({
+        mode: "instruct",
+        caption_audio: true,
+        reasoning_effort: "xhigh",
+        preserve_thinking: false,
+      });
     });
 
     expect(result.current.dialogs.autoCaption.open).toBe(false);
@@ -299,12 +304,12 @@ describe("useAutomationDialogOverlays", () => {
     });
 
     await act(async () => {
-      result.current.dialogs.verifyCaptions.onConfirm(
-        "thinking",
-        "Outdoor portraits.",
-        "low",
-        true,
-      );
+      result.current.dialogs.verifyCaptions.onConfirm({
+        mode: "thinking",
+        context: "Outdoor portraits.",
+        reasoning_effort: "low",
+        preserve_thinking: true,
+      });
     });
 
     expect(result.current.dialogs.verifyCaptions.open).toBe(false);
@@ -550,14 +555,14 @@ describe("useAutomationDialogOverlays edit captions", () => {
     expect(result.current.dialogs.editCaptions.open).toBe(true);
 
     await act(async () => {
-      result.current.dialogs.editCaptions.onConfirm(
-        "thinking",
-        "Rewrite in present tense.",
-        "low",
-        false,
-        true,
-        false,
-      );
+      result.current.dialogs.editCaptions.onConfirm({
+        mode: "thinking",
+        instruction: "Rewrite in present tense.",
+        reasoning_effort: "low",
+        preserve_thinking: false,
+        vision: true,
+        backup: false,
+      });
     });
 
     expect(result.current.dialogs.editCaptions.open).toBe(false);

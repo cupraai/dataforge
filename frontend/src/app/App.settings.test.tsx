@@ -34,7 +34,7 @@ describe("App: settings", () => {
     const dialog = await screen.findByRole("dialog", { name: "Settings" });
     expect(within(dialog).getByRole("radiogroup", { name: "Color scheme" })).toBeVisible();
 
-    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
   });
 

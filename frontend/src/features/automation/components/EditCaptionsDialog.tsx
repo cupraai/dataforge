@@ -1,40 +1,32 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { previewCaptionEdits } from "@/features/automation/api/jobs";
 import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
 import { InstructionSnippetMenu } from "@/features/automation/components/InstructionSnippetMenu";
 import { appendInstruction } from "@/features/automation/lib/appendInstruction";
-import {
-  AutomationModeSelector,
-  type AutomationMode,
-} from "@/features/automation/components/AutomationModeSelector";
-import {
-  ReasoningEffortSelector,
-  type ReasoningEffort,
-} from "@/features/automation/components/ReasoningEffortSelector";
+import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
+import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { CAPTION_EDIT_PREVIEW_LIMIT } from "@/shared/constants";
 import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import type { EditCaptionsRunSettings } from "@/shared/types";
 
 interface EditCaptionsDialogProps {
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["edit_captions"];
+  /** A workflow step's settings also carry the start-only choices, which then win. */
+  initialSettings: JobSettingsByType["edit_captions"] &
+    Partial<Pick<EditCaptionsRunSettings, "backup">>;
   folderPath: string;
   selectedPaths?: string[];
   busy?: boolean;
-  onConfirm: (
-    mode: AutomationMode,
-    instruction: string,
-    reasoningEffort: ReasoningEffort,
-    preserveThinking: boolean,
-    vision: boolean,
-    backup: boolean,
-  ) => void;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
+  onConfirm: (settings: EditCaptionsRunSettings) => void;
   onCancel: () => void;
 }
 
@@ -44,18 +36,17 @@ export function EditCaptionsDialog({
   folderPath,
   selectedPaths,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: EditCaptionsDialogProps) {
-  const [mode, setMode] = useState<AutomationMode>(initialSettings.mode);
+  const [mode, setMode] = useState(initialSettings.mode);
   const [instruction, setInstruction] = useState(initialSettings.instruction);
-  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
-    initialSettings.reasoning_effort,
-  );
+  const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const [vision, setVision] = useState(initialSettings.vision);
   // Reset on every open so opting out only applies to the current run.
-  const [backup, setBackup] = useState(true);
+  const [backup, setBackup] = useState(initialSettings.backup ?? true);
   const [error, setError] = useState<string | null>(null);
   const instructionRef = useRef<HTMLTextAreaElement>(null);
   const instructionId = useId();
@@ -63,14 +54,14 @@ export function EditCaptionsDialog({
   const visionId = useId();
   const errorId = useId();
 
-  const request = {
+  const settings = {
     instruction: instruction.trim(),
     mode,
     reasoning_effort: reasoningEffort,
     preserve_thinking: preserveThinking,
     vision,
-    paths: selectedPaths,
   };
+  const request = { ...settings, paths: selectedPaths };
   const preview = useQuery({
     queryKey: ["edit-captions-preview", folderPath, request],
     queryFn: ({ signal }) => previewCaptionEdits(folderPath, request, signal),
@@ -120,28 +111,18 @@ export function EditCaptionsDialog({
     void preview.refetch();
   };
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = () => {
     if (controlsBusy) return;
 
-    if (!instruction.trim()) {
+    if (!settings.instruction) {
       setError("Enter an instruction for the edit.");
       instructionRef.current?.focus();
       return;
     }
 
     setError(null);
-    // Starting the job is what stores these, exactly as it is for every other dialog.
-    onConfirm(mode, instruction.trim(), reasoningEffort, preserveThinking, vision, backup);
-  }, [
-    backup,
-    controlsBusy,
-    instruction,
-    mode,
-    onConfirm,
-    preserveThinking,
-    reasoningEffort,
-    vision,
-  ]);
+    onConfirm({ ...settings, backup });
+  };
 
   return (
     <GuardedDialog
@@ -185,7 +166,7 @@ export function EditCaptionsDialog({
             />
           </div>
           <DialogActions
-            confirmLabel="Start edit captions"
+            confirmLabel={confirmLabel ?? "Start edit captions"}
             busyLabel="Starting..."
             onCancel={onCancel}
           />

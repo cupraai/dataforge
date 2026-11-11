@@ -34,6 +34,7 @@ import { Tooltip } from "@/shared/ui/Tooltip";
 import {
   isActiveJobStatus,
   isTrainLoraCoTrackedByExternal,
+  queueSpot,
   runningJobCount,
 } from "@/features/jobs/lib/jobs";
 import { ExternalJobCard } from "./ExternalJobCard";
@@ -192,10 +193,12 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
   const hasAnyJobs = hasLocalJobs || hasExternalJobs || hasExports;
   const hasHistory = jobs.length > 0 || history.total > 0 || filtering;
   const recordCount = filtering ? null : Math.max(history.total, jobs.length);
-  const runningCount = runningJobCount(jobs, externalJobs) + videoExports.length;
+  const queuedCount = jobs.filter((job) => job.status === "queued").length;
+  const runningCount = runningJobCount(jobs, externalJobs) + videoExports.length - queuedCount;
   const newCount = jobs.filter((job) => isUnseenJob(job, seenAtMs)).length;
   const summary = [
     runningCount > 0 && `${runningCount} running`,
+    queuedCount > 0 && `${queuedCount} queued`,
     newCount > 0 && `${newCount} new`,
   ].filter(Boolean);
   const changeFilters = (next: JobFilters) => updateUiSettings({ jobsDrawerFilters: next });
@@ -243,6 +246,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
         isNew={isUnseenJob(job, seenAtMs)}
         nowMs={nowMs}
         isCurrentFolder={inCurrentFolder}
+        queueSpot={queueSpot(job, jobs)}
         onOpenFolder={openFolder}
         onOpenItem={
           actions?.onOpenItem
@@ -389,7 +393,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
               <p>{history.loading ? "Loading job history..." : "No automation jobs yet."}</p>
               {!history.loading && (
                 <p className="jobs-dialog__empty-hint">
-                  Start one from a folder with media files using Auto-caption or Tools.
+                  Start one from a folder with media files using the Tools menu.
                 </p>
               )}
             </div>

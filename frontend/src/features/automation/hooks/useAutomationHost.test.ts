@@ -31,6 +31,8 @@ function setupHost(
   const automation = {
     folderJob: null,
     queuedJobs: [],
+    runWorkflow: vi.fn<() => Promise<null>>(),
+    startingWorkflow: null,
     startingJobType: null,
     isStarting: false,
     cancellingJob: false,

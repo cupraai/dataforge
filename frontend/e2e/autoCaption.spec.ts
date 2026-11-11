@@ -24,7 +24,8 @@ test("auto-captions a still and a clip, and shows both captions back", async ({ 
   await expect(page.getByText("photo.png")).toBeVisible();
   await expect(page.getByText("clip.mp4")).toBeVisible();
 
-  await page.getByRole("button", { name: "Auto-caption", exact: true }).click();
+  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Auto-caption/ }).click();
   const dialog = page.getByRole("dialog", { name: "Start auto-caption?" });
   await dialog.getByRole("button", { name: "Start auto-caption" }).click();
 

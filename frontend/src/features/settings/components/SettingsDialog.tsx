@@ -777,7 +777,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             className="settings-dialog__close"
             onClick={requestClose}
             disabled={saving}
-            aria-label="Close"
+            aria-label="Close settings"
           >
             <Icon icon={iconX} />
           </button>
@@ -817,7 +817,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           </p>
           <div className="settings-dialog__actions">
             <DialogButton
-              label="Cancel"
+              label="Close"
               variant="secondary"
               disabled={saving}
               onClick={requestClose}

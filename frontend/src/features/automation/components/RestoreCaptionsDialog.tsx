@@ -83,6 +83,8 @@ interface RestoreCaptionsDialogProps {
   /** The files the restore will run on, so the preview compares exactly those. */
   selectedPaths?: string[];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -92,6 +94,7 @@ export function RestoreCaptionsDialog({
   folderPath,
   selectedPaths,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: RestoreCaptionsDialogProps) {
@@ -124,7 +127,8 @@ export function RestoreCaptionsDialog({
       footer={
         <DialogActions
           confirmLabel={
-            differing ? `Restore ${plural(differing, "caption", "captions")}` : "Restore captions"
+            confirmLabel ??
+            (differing ? `Restore ${plural(differing, "caption", "captions")}` : "Restore captions")
           }
           busyLabel="Starting..."
           onCancel={onCancel}

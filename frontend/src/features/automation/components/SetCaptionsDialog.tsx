@@ -2,12 +2,17 @@ import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useRef, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import type { SetCaptionsRunSettings } from "@/shared/types";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 
 interface SetCaptionsDialogProps {
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["set_captions"];
+  /** A workflow step's settings also carry the start-only choices, which then win. */
+  initialSettings: JobSettingsByType["set_captions"] &
+    Partial<Pick<SetCaptionsRunSettings, "overwrite">>;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (caption: string, overwrite: boolean) => void;
   onCancel: () => void;
 }
@@ -16,13 +21,14 @@ export function SetCaptionsDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: SetCaptionsDialogProps) {
   const [caption, setCaption] = useState(initialSettings.caption);
   // Never restored: overwriting existing captions is destructive, so it is re-chosen
   // every run however the last one was started.
-  const [overwrite, setOverwrite] = useState(false);
+  const [overwrite, setOverwrite] = useState(initialSettings.overwrite ?? false);
   const captionId = useId();
   const overwriteId = useId();
   const captionRef = useRef<HTMLTextAreaElement>(null);
@@ -49,7 +55,11 @@ export function SetCaptionsDialog({
       onClose={onCancel}
       initialFocusRef={captionRef}
       footer={
-        <DialogActions confirmLabel="Set captions" busyLabel="Starting..." onCancel={onCancel} />
+        <DialogActions
+          confirmLabel={confirmLabel ?? "Set captions"}
+          busyLabel="Starting..."
+          onCancel={onCancel}
+        />
       }
     >
       <div className="dialog__field">

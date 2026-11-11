@@ -55,7 +55,7 @@ Browse to a dataset with the breadcrumbs and subfolder cards, or open [`sample_m
 1. Browse the gallery. Filters and statistics show missing captions and review work.
 2. Open a file and write a caption. It autosaves as a `.txt` file beside the media.
 3. For local quality checks, write **Caption rules** in **Create instructions**, then run **Lint captions**.
-4. For AI jobs, [connect a model in Settings](configuration.md#connect-a-vision-model). Auto-caption also needs a **System prompt** in the folder or a parent.
+4. To use **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**, [connect a model in Settings](configuration.md#connect-a-vision-model). Auto-caption uses a **System prompt** from the folder or a parent.
 5. Jobs run on the selected files; with no selection, on what the search and filters show; otherwise on the whole folder. Training always uses the whole folder. See [job scope](user-guide.md#scope).
 6. Open **Review** for flagged captions, duplicate groups, or staged ComfyUI results.
 

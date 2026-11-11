@@ -3,9 +3,6 @@ import { createContext, useContext } from "react";
 /** Marks a toolbar action's text, which a crowded toolbar hides to leave the icon. */
 export const COLLAPSIBLE_LABEL_CLASS = "toolbar__collapsible-label";
 
-/** Marks a button whose label is all it has beside one icon; compact, it becomes a circle. */
-export const ROUND_WHEN_COMPACT_CLASS = "toolbar__round-when-compact";
-
 export const ToolbarCompactContext = createContext(false);
 
 export function useToolbarCompact(): boolean {

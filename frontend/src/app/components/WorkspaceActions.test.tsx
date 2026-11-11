@@ -2,12 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
-import {
-  PRIMARY_JOB_TYPE,
-  SECONDARY_JOB_TYPES,
-  jobMenuLabelFor,
-  type JobStartContext,
-} from "@/features/jobs/lib/jobMeta";
+import { JOB_TYPES, jobMenuLabelFor, type JobStartContext } from "@/features/jobs/lib/jobMeta";
 import {
   buildRunJobItems,
   quickActionRunJobId,
@@ -29,14 +24,23 @@ function renderActions(
   const panel: AutomationActions = {
     job: null,
     queuedJobs: [],
-    startingJobType: null,
+    workflows: {
+      workflows: [],
+      startingWorkflow: null,
+      onRunWorkflow: vi.fn<(name: string) => void>(),
+      onEditWorkflows: vi.fn<(name: string | null) => void>(),
+    },
     startContext: {
       hasFolder: true,
       starting: false,
       itemCount: 1,
       folderCount: 1,
-      syspromptApplies: true,
-      availability: { hasCaptionBackup: true, ostrisAvailable: true, comfyPresetsAvailable: true },
+      availability: {
+        syspromptApplies: true,
+        hasCaptionBackup: true,
+        ostrisAvailable: true,
+        comfyPresetsAvailable: true,
+      },
       ...context,
     },
     onEditSysprompt: vi.fn<() => void>(),
@@ -58,10 +62,8 @@ describe("Workspace tools", () => {
     const user = userEvent.setup();
     renderActions({}, {}, true);
 
-    for (const name of [jobMenuLabelFor(PRIMARY_JOB_TYPE), "Tools"]) {
-      expect(screen.getByRole("button", { name })).toBeInTheDocument();
-    }
-    await user.hover(screen.getByRole("button", { name: "Tools" }));
+    const tools = screen.getByRole("button", { name: "Tools" });
+    await user.hover(tools);
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Tools");
   });
 
@@ -87,14 +89,15 @@ describe("Workspace tools", () => {
     );
   });
 
-  it("shows the running file and keeps the start actions beside Cancel for queueing", () => {
+  it("shows the running file and keeps the start actions beside Cancel for queueing", async () => {
+    const user = userEvent.setup();
     renderActions({
       job: job({ status: "running", processed: 2, total: 8, current_name: "landscape.png" }),
     });
     expect(screen.getByText("landscape.png")).toBeVisible();
     expect(screen.getByRole("button", { name: "Cancel job" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Auto-caption" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Tools" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Tools" }));
+    expect(screen.getByRole("menuitem", { name: /^Auto-caption/ })).toBeEnabled();
   });
 
   it("counts the jobs queued behind the running one and names them in order", async () => {
@@ -110,6 +113,19 @@ describe("Workspace tools", () => {
     const chip = screen.getByText("2 queued");
     await user.hover(chip);
     expect(await screen.findByText("Then: Resize, Split into clips")).toBeInTheDocument();
+  });
+
+  it("names the workflow run of the folder's job and its step", () => {
+    renderActions({
+      job: job({
+        status: "running",
+        processed: 2,
+        total: 8,
+        workflow_run: { id: "r", name: "Prep", step: 2, steps: 3 },
+      }),
+    });
+
+    expect(screen.getByText("Prep · step 2 of 3")).toBeVisible();
   });
 
   it("warns that cancelling the running job cancels the queue too", async () => {
@@ -212,16 +228,14 @@ describe("Workspace tools", () => {
     const user = userEvent.setup();
     const { panel, onRequestStart } = renderActions();
     const commands = buildRunJobItems({ startContext: panel.startContext, onRequestStart });
-    await user.click(screen.getByRole("button", { name: jobMenuLabelFor(PRIMARY_JOB_TYPE) }));
-    expect(onRequestStart).toHaveBeenLastCalledWith(PRIMARY_JOB_TYPE);
-    for (const type of SECONDARY_JOB_TYPES) {
+    for (const type of JOB_TYPES) {
       await user.click(screen.getByRole("button", { name: "Tools" }));
       const drawer = screen.getByRole("menu", { name: "Tools" });
       const label = within(drawer).getByText(jobMenuLabelFor(type), { exact: true });
       await user.click(label.closest("button")!);
       expect(onRequestStart).toHaveBeenLastCalledWith(type);
     }
-    for (const type of [PRIMARY_JOB_TYPE, ...SECONDARY_JOB_TYPES]) {
+    for (const type of JOB_TYPES) {
       // The palette offers the job under the same name and the same rule.
       const command = commands.find((item) => item.id === quickActionRunJobId(type))!;
       expect(command.label).toBe(jobMenuLabelFor(type));
@@ -250,20 +264,22 @@ describe("Workspace tools", () => {
     }
   });
 
-  it("lists Auto-caption only as its own button, not again under Tools", async () => {
+  it("offers Auto-caption under Captions in Tools", async () => {
     const user = userEvent.setup();
     renderActions();
+    expect(screen.queryByRole("button", { name: "Auto-caption" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Tools" }));
-    const drawer = screen.getByRole("menu", { name: "Tools" });
-    expect(within(drawer).queryByText(jobMenuLabelFor(PRIMARY_JOB_TYPE))).not.toBeInTheDocument();
+    const captions = screen.getByRole("group", { name: "Captions" });
+    expect(within(captions).getByRole("menuitem", { name: /^Auto-caption/ })).toBeEnabled();
   });
 
-  it("keeps unavailable integrations and backup restoration visible and disabled", async () => {
+  it("shows why unavailable tools are disabled in Tools and Quick actions", async () => {
     const user = userEvent.setup();
     const { panel, onRequestStart } = renderActions(
       {},
       {
         availability: {
+          syspromptApplies: false,
           hasCaptionBackup: false,
           ostrisAvailable: false,
           comfyPresetsAvailable: false,
@@ -273,14 +289,19 @@ describe("Workspace tools", () => {
     await user.click(screen.getByRole("button", { name: "Tools" }));
     const drawer = screen.getByRole("menu", { name: "Tools" });
     const commands = buildRunJobItems({ startContext: panel.startContext, onRequestStart });
-    for (const type of ["train_lora", "comfy_process", "restore_captions"] as const) {
-      expect(within(drawer).getByText(jobMenuLabelFor(type)).closest("button")).toBeDisabled();
-      // The palette gives the same reason the menu does.
+    const unavailable = [
+      ["auto_caption", "Create folder instructions to enable auto-captioning."],
+      ["train_lora", "AI-Toolkit is unavailable"],
+      ["comfy_process", "No ComfyUI"],
+      ["restore_captions", "No caption backup in this folder."],
+    ] as const;
+    for (const [type, reason] of unavailable) {
+      const item = within(drawer).getByText(jobMenuLabelFor(type)).closest("button");
+      expect(item).toBeDisabled();
+      expect(item).toHaveTextContent(reason);
       const command = commands.find((item) => item.id === quickActionRunJobId(type))!;
       expect(command.disabled).toBe(true);
-      expect(command.detail).toMatch(/No caption backup|AI-Toolkit is unavailable|No ComfyUI/);
+      expect(command.detail).toContain(reason);
     }
-    expect(drawer).toHaveTextContent("No caption backup in this folder.");
-    expect(drawer).toHaveTextContent("AI-Toolkit is unavailable.");
   });
 });

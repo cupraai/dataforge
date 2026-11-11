@@ -346,8 +346,7 @@
   }
 }
 
-// Every form shares one width, so it is listed here rather than beside its other rules. At 38rem
-// the auto caption reasoning-effort sentences wrap to three lines instead of four.
+// Standard width for forms, including the caption jobs' model options.
 .dialog__panel:is(
   .auto-adjust-dialog,
   .auto-caption-dialog,
@@ -367,6 +366,7 @@
   .train-lora-dialog,
   .transfer-media-dialog,
   .verify-captions-dialog,
+  .workflow-run-dialog,
   .video-export-dialog,
   .video-settings-dialog,
   .video-versions-dialog

@@ -43,6 +43,8 @@ interface WatermarkDialogProps {
   scope: DialogScopeInfo;
   initialSettings: WatermarkSettings;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (settings: WatermarkSettings) => void;
   onCancel: () => void;
 }
@@ -218,6 +220,7 @@ export function WatermarkDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: WatermarkDialogProps) {
@@ -327,7 +330,7 @@ export function WatermarkDialog({
       describedById={error ? errorId : undefined}
       footer={
         <DialogActions
-          confirmLabel="Add watermark"
+          confirmLabel={confirmLabel ?? "Add watermark"}
           busyLabel={uploading ? "Uploading..." : "Starting..."}
           onCancel={onCancel}
         />

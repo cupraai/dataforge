@@ -9,7 +9,7 @@ import {
   frameRateOptions,
   type FrameRateChoice,
 } from "@/shared/lib/frameRate";
-import type { VideoFrameRate } from "@/shared/types";
+import type { ResizeRunSettings, VideoFrameRate } from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
 import { DialogSelect } from "@/shared/ui/DialogSelect";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -25,8 +25,11 @@ const FRAME_RATE_OPTIONS = frameRateOptions("Keep each video's rate");
 
 interface ResizeDialogProps {
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["resize"];
+  /** A workflow step's settings also carry the start-only choices, which then win. */
+  initialSettings: JobSettingsByType["resize"] & Partial<Pick<ResizeRunSettings, "reset_size">>;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (
     megapixels: number,
     multiple: number,
@@ -50,6 +53,7 @@ export function ResizeDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: ResizeDialogProps) {
@@ -58,7 +62,7 @@ export function ResizeDialog({
   const [multiple, setMultiple] = useState(String(initialSettings.multiple));
   const [error, setError] = useState<string | null>(null);
   // Never restored: discarding earlier sizing is destructive, so it is re-chosen every run.
-  const [reset, setReset] = useState(false);
+  const [reset, setReset] = useState(initialSettings.reset_size ?? false);
   const [frameRate, setFrameRate] = useState<FrameRateChoice>(
     frameRateChoice(initialSettings.frame_rate),
   );
@@ -135,7 +139,7 @@ export function ResizeDialog({
       describedById={error ? errorId : undefined}
       footer={
         <DialogActions
-          confirmLabel={reset ? "Reset size" : "Resize"}
+          confirmLabel={confirmLabel ?? (reset ? "Reset size" : "Resize")}
           busyLabel="Starting..."
           onCancel={onCancel}
         />

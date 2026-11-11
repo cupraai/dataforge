@@ -210,14 +210,14 @@ describe("EditCaptionsDialog", () => {
     await user.click(backupCheckbox());
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith(
-      "thinking",
-      "Rewrite in present tense.",
-      "low",
-      true,
-      false,
-      false,
-    );
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "thinking",
+      instruction: "Rewrite in present tense.",
+      reasoning_effort: "low",
+      preserve_thinking: true,
+      vision: false,
+      backup: false,
+    });
   });
 
   it("submits a cleared Preserve thinking box", async () => {
@@ -231,14 +231,14 @@ describe("EditCaptionsDialog", () => {
     await user.click(screen.getByLabelText("Preserve thinking"));
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith(
-      "thinking",
-      "Rewrite in present tense.",
-      "medium",
-      false,
-      false,
-      true,
-    );
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "thinking",
+      instruction: "Rewrite in present tense.",
+      reasoning_effort: "medium",
+      preserve_thinking: false,
+      vision: false,
+      backup: true,
+    });
   });
 
   it("sends the media with each caption once Send media is checked", async () => {
@@ -255,14 +255,14 @@ describe("EditCaptionsDialog", () => {
     expect(vi.mocked(previewCaptionEdits).mock.calls[0]?.[1]).toMatchObject({ vision: true });
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith(
-      "instruct",
-      "Add the clothing colours.",
-      "medium",
-      true,
-      true,
-      true,
-    );
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "instruct",
+      instruction: "Add the clothing colours.",
+      reasoning_effort: "medium",
+      preserve_thinking: true,
+      vision: true,
+      backup: true,
+    });
   });
 
   it("trims the instruction before starting", async () => {
@@ -271,14 +271,14 @@ describe("EditCaptionsDialog", () => {
 
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith(
-      "instruct",
-      "Drop the colours.",
-      "medium",
-      true,
-      false,
-      true,
-    );
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "instruct",
+      instruction: "Drop the colours.",
+      reasoning_effort: "medium",
+      preserve_thinking: true,
+      vision: false,
+      backup: true,
+    });
   });
 
   it("refuses a blank instruction", async () => {

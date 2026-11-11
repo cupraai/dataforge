@@ -1,14 +1,12 @@
 import type { TrainLoraSettings } from "@/features/automation/api/jobs";
-import type { AutoCaptionMode } from "@/features/automation/components/AutoCaptionDialog";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
-import type { VerifyCaptionsMode } from "@/features/automation/components/VerifyCaptionsDialog";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type {
-  AutomationMode,
+  AutoAdjustRunSettings,
   DuplicateThreshold,
-  ReasoningEffort,
+  EditCaptionsRunSettings,
   VideoFrameRate,
 } from "@/shared/types";
 
@@ -17,6 +15,8 @@ type FolderBusyDialogState<TConfirm, TSettings> = {
   scope: DialogScopeInfo;
   initialSettings: TSettings | null;
   busy?: boolean;
+  /** Set when the dialog edits a workflow step rather than starting a job. */
+  confirmLabel?: string;
   onConfirm: TConfirm;
   onCancel: () => void;
 };
@@ -35,35 +35,19 @@ export type AutomationDialogsState = {
   };
   backupCaptions: FolderBusyDialogState<() => void, JobSettingsByType["backup_captions"]>;
   autoCaption: FolderBusyDialogState<
-    (
-      mode: AutoCaptionMode,
-      captionAudio: boolean,
-      reasoningEffort: ReasoningEffort,
-      preserveThinking: boolean,
-    ) => void,
+    (settings: JobSettingsByType["auto_caption"]) => void,
     JobSettingsByType["auto_caption"]
   > & {
     folderPath: string;
     selectedPaths?: string[];
+    editingStep: boolean;
   };
   verifyCaptions: FolderBusyDialogState<
-    (
-      mode: VerifyCaptionsMode,
-      context: string,
-      reasoningEffort: ReasoningEffort,
-      preserveThinking: boolean,
-    ) => void,
+    (settings: JobSettingsByType["verify_captions"]) => void,
     JobSettingsByType["verify_captions"]
   >;
   editCaptions: FolderBusyDialogState<
-    (
-      mode: AutomationMode,
-      instruction: string,
-      reasoningEffort: ReasoningEffort,
-      preserveThinking: boolean,
-      vision: boolean,
-      backup: boolean,
-    ) => void,
+    (settings: EditCaptionsRunSettings) => void,
     JobSettingsByType["edit_captions"]
   > & {
     folderPath: string;
@@ -106,6 +90,8 @@ export type AutomationDialogsState = {
     open: boolean;
     scope: DialogScopeInfo;
     busy: boolean;
+    confirmLabel?: string;
+    initialSettings?: AutoAdjustRunSettings;
     onConfirm: (replaceAdjustments: boolean, resetAdjustments: boolean) => void;
     onCancel: () => void;
   };
@@ -113,6 +99,7 @@ export type AutomationDialogsState = {
     open: boolean;
     scope: DialogScopeInfo;
     busy: boolean;
+    confirmLabel?: string;
     folderPath: string;
     onConfirm: () => void;
     onCancel: () => void;
@@ -121,6 +108,7 @@ export type AutomationDialogsState = {
     open: boolean;
     scope: DialogScopeInfo;
     busy: boolean;
+    confirmLabel?: string;
     folderPath: string;
     selectedPaths?: string[];
     onConfirm: () => void;

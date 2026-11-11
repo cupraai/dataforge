@@ -105,7 +105,9 @@ class JobErrorResolutionTests(unittest.TestCase):
                 self.assertEqual(job.to_dict()["error"], expected(stats))
 
     def test_resolve_status_fails_a_run_whose_stats_carry_an_error(self) -> None:
-        job = Job(id="job-1", folder="/tmp/folder", stats={"parse_error": 3})
+        job = Job(
+            id="job-1", folder="/tmp/folder", job_type="verify_captions", stats={"parse_error": 3}
+        )
         spec = JOB_SPECS["verify_captions"]
 
         status, error = spec.resolve_status(job, cancelled=False)
@@ -116,8 +118,10 @@ class JobErrorResolutionTests(unittest.TestCase):
     def test_a_training_run_stopped_in_ai_toolkit_counts_as_cancelled(self) -> None:
         spec = JOB_SPECS["train_lora"]
 
-        stopped = Job(id="job-1", folder="/tmp/folder", stats={"stopped": 1})
-        finished = Job(id="job-2", folder="/tmp/folder", stats={"success": 1})
+        stopped = Job(id="job-1", folder="/tmp/folder", job_type="train_lora", stats={"stopped": 1})
+        finished = Job(
+            id="job-2", folder="/tmp/folder", job_type="train_lora", stats={"success": 1}
+        )
 
         self.assertEqual(spec.resolve_status(stopped, cancelled=False), ("cancelled", None))
         self.assertEqual(spec.resolve_status(finished, cancelled=False), ("completed", None))

@@ -100,7 +100,7 @@ describe("App: folder navigation", () => {
       expect(screen.getByRole("button", { name: /Vacation/ })).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "Auto-caption" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tools" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit instructions" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View sunset.png" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View beach.jpg" })).toBeInTheDocument();

@@ -26,6 +26,8 @@ from constants import (
     MAX_RESIZE_MEGAPIXELS,
     MAX_RESIZE_MULTIPLE,
     MAX_SPLIT_CLIP_SECONDS,
+    MAX_WORKFLOW_NAME_LENGTH,
+    MAX_WORKFLOW_STEPS,
     MIN_SPLIT_CLIP_SECONDS,
     VIDEO_PROJECT_MAX_KEYFRAMES,
     VIDEO_PROJECT_MAX_TRACKS,
@@ -894,9 +896,13 @@ class SetCaptionsJobSettings(BaseModel):
     caption: str = ""
 
 
-class SetCaptionsStartRequest(JobSelectionRequest, SetCaptionsJobSettings):
+class SetCaptionsRunSettings(SetCaptionsJobSettings):
     # Never remembered: overwriting must be re-chosen every run.
     overwrite: bool = False
+
+
+class SetCaptionsStartRequest(JobSelectionRequest, SetCaptionsRunSettings):
+    pass
 
 
 class ReplaceCaptionsJobSettings(BaseModel):
@@ -909,12 +915,16 @@ class ReplaceCaptionsJobSettings(BaseModel):
     case_sensitive: bool = False
 
 
-class ReplaceCaptionsStartRequest(JobSelectionRequest, ReplaceCaptionsJobSettings):
+class ReplaceCaptionsRunSettings(ReplaceCaptionsJobSettings):
     # Never remembered: persisting it would make "no backup" sticky.
     backup: bool = Field(
         default=True,
         description="Copy each caption into .backup before overwriting it.",
     )
+
+
+class ReplaceCaptionsStartRequest(JobSelectionRequest, ReplaceCaptionsRunSettings):
+    pass
 
 
 class ReplaceCaptionsPreviewRequest(JobSelectionRequest, ReplaceCaptionsJobSettings):
@@ -949,7 +959,11 @@ class StripMetadataStartRequest(JobSelectionRequest):
     pass
 
 
-class AutoAdjustStartRequest(JobSelectionRequest):
+class EmptyJobSettings(BaseModel):
+    """A job with nothing to set, as a workflow step stores it."""
+
+
+class AutoAdjustRunSettings(BaseModel):
     # Never remembered: discarding earlier adjustments must be re-chosen every run.
     replace_adjustments: bool = Field(
         default=False,
@@ -959,6 +973,10 @@ class AutoAdjustStartRequest(JobSelectionRequest):
         default=False,
         description="Reset only color adjustments to zero without applying the wand; overrides replace.",
     )
+
+
+class AutoAdjustStartRequest(JobSelectionRequest, AutoAdjustRunSettings):
+    pass
 
 
 class CheckCaptionRulesStartRequest(JobSelectionRequest):
@@ -1111,12 +1129,16 @@ class ResizeJobSettings(BaseModel):
     frame_rate: VideoFrameRate | None = None
 
 
-class ResizeStartRequest(JobSelectionRequest, ResizeJobSettings):
+class ResizeRunSettings(ResizeJobSettings):
     # Never remembered: discarding earlier sizing must be re-chosen every run.
     reset_size: bool = Field(
         default=False,
         description="Clear the size fit and scale instead of applying the budget.",
     )
+
+
+class ResizeStartRequest(JobSelectionRequest, ResizeRunSettings):
+    pass
 
 
 class ComfyPresetSettings(BaseModel):
@@ -1221,12 +1243,16 @@ class EditCaptionsJobSettings(BaseModel):
     )
 
 
-class EditCaptionsStartRequest(JobSelectionRequest, EditCaptionsJobSettings):
+class EditCaptionsRunSettings(EditCaptionsJobSettings):
     # Never remembered: persisting it would make "no backup" sticky.
     backup: bool = Field(
         default=True,
         description="Copy each caption into .backup before overwriting it.",
     )
+
+
+class EditCaptionsStartRequest(JobSelectionRequest, EditCaptionsRunSettings):
+    pass
 
 
 class EditCaptionsPreviewRequest(JobSelectionRequest, EditCaptionsJobSettings):
@@ -1261,6 +1287,150 @@ class TrainLoraStartRequest(JobSelectionRequest, TrainLoraJobSettings):
             "template for the chosen model."
         ),
     )
+
+
+class AutoCaptionStep(BaseModel):
+    job_type: Literal["auto_caption"] = "auto_caption"
+    settings: AutoCaptionJobSettings = Field(default_factory=AutoCaptionJobSettings)
+
+
+class StripMetadataStep(BaseModel):
+    job_type: Literal["strip_metadata"] = "strip_metadata"
+    settings: EmptyJobSettings = Field(default_factory=EmptyJobSettings)
+
+
+class SetCaptionsStep(BaseModel):
+    job_type: Literal["set_captions"] = "set_captions"
+    settings: SetCaptionsRunSettings = Field(default_factory=SetCaptionsRunSettings)
+
+
+class ReplaceCaptionsStep(BaseModel):
+    job_type: Literal["replace_captions"] = "replace_captions"
+    settings: ReplaceCaptionsRunSettings = Field(default_factory=ReplaceCaptionsRunSettings)
+
+
+class FindDuplicatesStep(BaseModel):
+    job_type: Literal["find_duplicates"] = "find_duplicates"
+    settings: FindDuplicatesJobSettings = Field(default_factory=FindDuplicatesJobSettings)
+
+
+class BatchRenameStep(BaseModel):
+    job_type: Literal["batch_rename"] = "batch_rename"
+    settings: BatchRenameJobSettings = Field(default_factory=BatchRenameJobSettings)
+
+
+class BackupCaptionsStep(BaseModel):
+    job_type: Literal["backup_captions"] = "backup_captions"
+    settings: BackupCaptionsJobSettings = Field(default_factory=BackupCaptionsJobSettings)
+
+
+class RestoreCaptionsStep(BaseModel):
+    job_type: Literal["restore_captions"] = "restore_captions"
+    settings: EmptyJobSettings = Field(default_factory=EmptyJobSettings)
+
+
+class VerifyCaptionsStep(BaseModel):
+    job_type: Literal["verify_captions"] = "verify_captions"
+    settings: VerifyCaptionsJobSettings = Field(default_factory=VerifyCaptionsJobSettings)
+
+
+class CheckCaptionRulesStep(BaseModel):
+    job_type: Literal["check_caption_rules"] = "check_caption_rules"
+    settings: EmptyJobSettings = Field(default_factory=EmptyJobSettings)
+
+
+class EditCaptionsStep(BaseModel):
+    job_type: Literal["edit_captions"] = "edit_captions"
+    settings: EditCaptionsRunSettings = Field(default_factory=EditCaptionsRunSettings)
+
+
+class WatermarkStep(BaseModel):
+    job_type: Literal["watermark"] = "watermark"
+    settings: WatermarkJobSettings = Field(default_factory=WatermarkJobSettings)
+
+
+class AutoAdjustStep(BaseModel):
+    job_type: Literal["auto_adjust"] = "auto_adjust"
+    settings: AutoAdjustRunSettings = Field(default_factory=AutoAdjustRunSettings)
+
+
+class ResizeStep(BaseModel):
+    job_type: Literal["resize"] = "resize"
+    settings: ResizeRunSettings = Field(default_factory=ResizeRunSettings)
+
+
+class SplitVideoStep(BaseModel):
+    job_type: Literal["split_video"] = "split_video"
+    settings: SplitVideoJobSettings = Field(default_factory=SplitVideoJobSettings)
+
+
+class ComfyProcessStep(BaseModel):
+    job_type: Literal["comfy_process"] = "comfy_process"
+    settings: ComfyProcessJobSettings = Field(default_factory=ComfyProcessJobSettings)
+
+
+#: Every job but LoRA training, whose run name is a per-run resume key and which ignores the scope.
+type WorkflowStep = Annotated[
+    AutoCaptionStep
+    | StripMetadataStep
+    | SetCaptionsStep
+    | ReplaceCaptionsStep
+    | FindDuplicatesStep
+    | BatchRenameStep
+    | BackupCaptionsStep
+    | RestoreCaptionsStep
+    | VerifyCaptionsStep
+    | CheckCaptionRulesStep
+    | EditCaptionsStep
+    | WatermarkStep
+    | AutoAdjustStep
+    | ResizeStep
+    | SplitVideoStep
+    | ComfyProcessStep,
+    Field(discriminator="job_type"),
+]
+
+
+class Workflow(BaseModel):
+    """A saved chain of jobs, run in order on one scope. Names are unique ignoring case."""
+
+    name: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_WORKFLOW_NAME_LENGTH),
+    ]
+    steps: list[WorkflowStep] = Field(min_length=1, max_length=MAX_WORKFLOW_STEPS)
+
+    @model_validator(mode="after")
+    def _rename_last(self) -> "Workflow":
+        # A rename moves files out from under the fixed scope the later steps were handed.
+        if any(step.job_type == "batch_rename" for step in self.steps[:-1]):
+            raise ValueError("Rename must be the last step")
+        return self
+
+
+class WorkflowsResponse(BaseModel):
+    #: Sorted by name, ignoring case.
+    workflows: list[Workflow] = Field(default_factory=list)
+
+
+class WorkflowSaveRequest(BaseModel):
+    workflow: Workflow
+    #: The name it was saved under, when this save renames it.
+    previous_name: str | None = None
+
+
+class WorkflowRunRequest(JobSelectionRequest):
+    name: str
+
+
+class WorkflowRunTag(BaseModel):
+    """Which workflow run a job belongs to, and where in it."""
+
+    id: str
+    name: str
+    #: 1-based.
+    step: int
+    steps: int
 
 
 class AutomationSettingsResponse(BaseModel):
@@ -1343,6 +1513,13 @@ class JobResponse(BaseModel):
     revision: int = 0
     #: Its caption writes can still be taken back, once, with ``POST /jobs/{id}/undo``.
     undoable: bool = False
+    #: Set when the job was queued as a step of a workflow.
+    workflow_run: WorkflowRunTag | None = None
+
+
+class WorkflowRunResponse(BaseModel):
+    #: The run's jobs, in step order.
+    jobs: list[JobResponse]
 
 
 class JobUndoFailure(BaseModel):

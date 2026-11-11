@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { startAutomationJob, type JobStartBody } from "@/features/automation/api/jobs";
+import { runWorkflow as runWorkflowRequest } from "@/features/workflows/api/workflows";
 import {
   cancelJob,
   deleteAllJobs,
@@ -123,6 +124,10 @@ interface JobsContextValue {
     body?: JobStartBody,
     paths?: string[],
   ) => Promise<Job | null>;
+  /** Queues a saved workflow's steps on `paths`, or the whole folder; null once reported. */
+  runWorkflow: (folderPath: string, name: string, paths?: string[]) => Promise<Job[] | null>;
+  /** The workflow whose run request is in flight. */
+  startingWorkflow: { folder: string; name: string } | null;
   cancelJob: (jobId: string) => Promise<Job | null>;
   stopExternalOstrisJob: (jobId: string) => Promise<boolean>;
   cancelVideoExport: (exportId: string) => void;
@@ -131,6 +136,12 @@ interface JobsContextValue {
 }
 
 const JobsContext = createContext<JobsContextValue | null>(null);
+
+interface RunWorkflowVariables {
+  folderPath: string;
+  name: string;
+  paths?: string[];
+}
 
 interface StartJobVariables {
   jobType: JobType;
@@ -301,6 +312,18 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     onError: (error) => reportError("", error),
   });
 
+  const run = useMutation({
+    mutationFn: ({ folderPath, name, paths }: RunWorkflowVariables) =>
+      runWorkflowRequest(folderPath, name, paths),
+    onSuccess: async (response) => {
+      queryClient.setQueryData<LiveJobs>(jobKeys.live, (live) =>
+        response.jobs.reduce((merged, job) => upsertByRevision(merged, job), live),
+      );
+      await refreshLive();
+    },
+    onError: (error) => reportError("", error),
+  });
+
   const cancel = useMutation({
     mutationFn: cancelJob,
     onSuccess: refreshLive,
@@ -360,6 +383,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
 
   const { mutateAsync: startAsync } = start;
   const { mutateAsync: cancelAsync } = cancel;
+  const { mutateAsync: runAsync } = run;
   const { mutateAsync: stopAsync } = stop;
   const { mutateAsync: removeAsync } = remove;
   const { mutateAsync: removeAllAsync } = removeAll;
@@ -368,6 +392,20 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     (jobType: JobType, folderPath: string, body?: JobStartBody, paths?: string[]) =>
       settle(startAsync({ jobType, folderPath, body, paths }), null),
     [startAsync],
+  );
+  const runWorkflow = useCallback(
+    (folderPath: string, name: string, paths?: string[]) =>
+      settle(
+        runAsync({ folderPath, name, paths }).then((response) => response.jobs),
+        null,
+      ),
+    [runAsync],
+  );
+  const runningFolder = run.isPending ? run.variables?.folderPath : undefined;
+  const runningName = run.isPending ? run.variables?.name : undefined;
+  const startingWorkflow = useMemo(
+    () => (runningFolder && runningName ? { folder: runningFolder, name: runningName } : null),
+    [runningFolder, runningName],
   );
   const cancelJobImpl = useCallback(
     (jobId: string) => settle(cancelAsync(jobId), null),
@@ -427,6 +465,8 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       toggleDrawer,
       setShownJobFilter,
       startJob,
+      runWorkflow,
+      startingWorkflow,
       cancelJob: cancelJobImpl,
       stopExternalOstrisJob,
       cancelVideoExport,
@@ -449,6 +489,8 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       toggleDrawer,
       setShownJobFilter,
       startJob,
+      runWorkflow,
+      startingWorkflow,
       cancelJobImpl,
       stopExternalOstrisJob,
       cancelVideoExport,

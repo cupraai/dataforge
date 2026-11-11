@@ -273,6 +273,8 @@ export function useQuickActionHost({
             hasFolder: panel.startContext.hasFolder && !folderNotFound,
           },
           onRequestStart: panel.onRequestStart,
+          workflows: panel.workflows.workflows,
+          onRunWorkflow: panel.workflows.onRunWorkflow,
         }),
         commands: commandItems,
         filters: buildFilterItems({
@@ -291,6 +293,7 @@ export function useQuickActionHost({
       jobs,
       panel.startContext,
       panel.onRequestStart,
+      panel.workflows,
       recentFolderItems,
       subfolderItems,
     ],

@@ -26,8 +26,7 @@ The app opens at `http://localhost:18081`. Open [`sample_media/`](sample_media/)
 ## What it does
 
 - **Browse and organize:** live folder updates, search (including regex and [tags](docs/user-guide.md#tags)), filters, sorting, card and list views, and file operations.
-- **Caption:** manual editing with autosave and word completion; bulk set, find & replace, AI rewriting, backups, and undo.
-- **Auto-caption:** write image and video captions with an OpenAI-compatible vision model, optionally hearing the video's audio.
+- **Caption:** edit by hand with autosave and word completion, or use **Auto-caption**, **Edit captions**, **Find & replace**, and **Set captions** in bulk. Generate captions for images and videos, optionally including video audio. Back up captions and undo eligible caption edits.
 - **Review:** model checks, caption-rule linting, near-duplicate detection, and dataset statistics.
 - **Edit media:** crop, resize, color adjustment and Auto-adjust, blur or black out regions, generative fill, video trim/speed/audio, and audio editing. The original is kept so you can revert.
 - **Video editor:** cut videos, stills, sound, and titles together on a multi-track timeline with dissolves, fades, and per-clip color, then export an MP4. See the [Video editor guide](docs/video-editor.md).

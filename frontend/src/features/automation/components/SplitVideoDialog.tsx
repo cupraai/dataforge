@@ -33,6 +33,8 @@ interface SplitVideoDialogProps {
   scope: DialogScopeInfo;
   initialSettings: SplitVideoSettings;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (settings: SplitVideoSettings) => void;
   onCancel: () => void;
 }
@@ -49,6 +51,7 @@ export function SplitVideoDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: SplitVideoDialogProps) {
@@ -133,7 +136,11 @@ export function SplitVideoDialog({
       onClose={onCancel}
       describedById={error ? errorId : undefined}
       footer={
-        <DialogActions confirmLabel="Split videos" busyLabel="Starting..." onCancel={onCancel} />
+        <DialogActions
+          confirmLabel={confirmLabel ?? "Split videos"}
+          busyLabel="Starting..."
+          onCancel={onCancel}
+        />
       }
     >
       <RadioTileGroup

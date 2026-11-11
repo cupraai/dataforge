@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trainLoraBody, type TrainLoraSettings } from "@/features/automation/api/jobs";
-import type { AutoCaptionMode } from "@/features/automation/components/AutoCaptionDialog";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
-import type { VerifyCaptionsMode } from "@/features/automation/components/VerifyCaptionsDialog";
 import {
   loadAutomationSettings,
   type AutomationSettings,
@@ -18,7 +16,13 @@ import {
   type BulkScopeKind,
   type BulkScopeSnapshot,
 } from "@/features/automation/lib/bulkScope";
-import type { DuplicateThreshold, JobType, ReasoningEffort, VideoFrameRate } from "@/shared/types";
+import type {
+  AutoAdjustRunSettings,
+  DuplicateThreshold,
+  EditCaptionsRunSettings,
+  JobType,
+  VideoFrameRate,
+} from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -40,7 +44,15 @@ type UseAutomationDialogOverlaysOptions = {
     paths?: string[],
   ) => Promise<unknown>;
   getJobPaths?: () => string[] | undefined;
+  /** Edit a workflow step: confirming hands the body to `startJob` under this label. */
+  stepMode?: { confirmLabel: string; note: string };
 };
+
+/** What `openDialogForJobType` can preset: the scope, and a workflow step's own settings. */
+export interface DialogOpenOverride extends Partial<BulkScopeSnapshot> {
+  /** Shown instead of the folder's remembered settings, in the dialog's own settings shape. */
+  initialSettings?: unknown;
+}
 
 export function useAutomationDialogOverlays({
   folderPath,
@@ -52,19 +64,23 @@ export function useAutomationDialogOverlays({
   scopeKind = "folder",
   startJob,
   getJobPaths,
+  stepMode,
 }: UseAutomationDialogOverlaysOptions) {
   // At most one dialog is ever open, so one job type beats a boolean per dialog.
   const [openJobType, setOpenJobType] = useState<JobType | null>(null);
   // This folder's saved settings, loaded before any dialog opens.
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<AutomationSettings | null>(null);
+  const [stepSettings, setStepSettings] = useState<unknown>(undefined);
   const [snapshot, setSnapshot] = useState<BulkScopeSnapshot | null>(null);
+  const editingStep = stepMode !== undefined;
   const folderRef = useLatestRef(folderPath);
   const openRevisionRef = useRef(0);
 
   const closeDialog = useCallback(() => {
     setOpenJobType(null);
     setSettings(null);
+    setStepSettings(undefined);
     setSnapshot(null);
     openRevisionRef.current += 1;
   }, []);
@@ -81,7 +97,11 @@ export function useAutomationDialogOverlays({
   /** Closes the dialog, then starts its job; a rejection is already reported by the context. */
   const startJobFromDialog = useCallback(
     <T extends JobType>(jobType: T, body?: JobStartBodies[T]) => {
-      if (!folderPath || (jobType !== "train_lora" && snapshot?.paths?.length === 0)) return;
+      if (
+        !folderPath ||
+        (!editingStep && jobType !== "train_lora" && snapshot?.paths?.length === 0)
+      )
+        return;
       closeDialog();
       startJob(
         jobType,
@@ -90,7 +110,7 @@ export function useAutomationDialogOverlays({
         jobType === "train_lora" ? undefined : snapshot?.paths,
       ).catch(() => {});
     },
-    [closeDialog, folderPath, snapshot, startJob],
+    [closeDialog, editingStep, folderPath, snapshot, startJob],
   );
 
   // Live, not snapshotted: the job ahead can finish while the dialog is open.
@@ -110,14 +130,24 @@ export function useAutomationDialogOverlays({
     [folderItemCount, folderLabel, queuedAfter],
   );
 
+  const stepNote = stepMode?.note;
+  const stepScope = useMemo<DialogScopeInfo>(
+    () => (stepNote ? { ...scope, note: stepNote, queuedAfter: undefined } : scope),
+    [scope, stepNote],
+  );
+
   const dialogs = useMemo<AutomationDialogsState>(() => {
     const shared = <K extends keyof AutomationSettings & JobType>(jobType: K) => ({
       open: openJobType === jobType,
-      scope,
+      scope: stepScope,
       // Every dialog starts from what its last run used, so there is no job type
-      // here that reads its settings differently from the rest.
-      initialSettings: settings?.[jobType] ?? null,
+      // here that reads its settings differently from the rest. A step brings its own.
+      initialSettings:
+        settings === null
+          ? null
+          : ((stepSettings as AutomationSettings[K] | undefined) ?? settings[jobType]),
       busy: startingJobType === jobType,
+      confirmLabel: stepMode?.confirmLabel,
       onCancel: closeDialog,
     });
 
@@ -148,56 +178,23 @@ export function useAutomationDialogOverlays({
       },
       autoCaption: {
         ...shared("auto_caption"),
+        editingStep,
         folderPath: folderPath ?? "",
         selectedPaths: snapshot?.paths ?? getJobPaths?.(),
-        onConfirm: (
-          mode: AutoCaptionMode,
-          captionAudio: boolean,
-          reasoningEffort: ReasoningEffort,
-          preserveThinking: boolean,
-        ) =>
-          startJobFromDialog("auto_caption", {
-            mode,
-            caption_audio: captionAudio,
-            reasoning_effort: reasoningEffort,
-            preserve_thinking: preserveThinking,
-          }),
+        onConfirm: (settings: JobSettingsByType["auto_caption"]) =>
+          startJobFromDialog("auto_caption", settings),
       },
       verifyCaptions: {
         ...shared("verify_captions"),
-        onConfirm: (
-          mode: VerifyCaptionsMode,
-          context: string,
-          reasoningEffort: ReasoningEffort,
-          preserveThinking: boolean,
-        ) =>
-          startJobFromDialog("verify_captions", {
-            mode,
-            context,
-            reasoning_effort: reasoningEffort,
-            preserve_thinking: preserveThinking,
-          }),
+        onConfirm: (settings: JobSettingsByType["verify_captions"]) =>
+          startJobFromDialog("verify_captions", settings),
       },
       editCaptions: {
         ...shared("edit_captions"),
         folderPath: folderPath ?? "",
         selectedPaths: snapshot?.paths ?? getJobPaths?.(),
-        onConfirm: (
-          mode: VerifyCaptionsMode,
-          instruction: string,
-          reasoningEffort: ReasoningEffort,
-          preserveThinking: boolean,
-          vision: boolean,
-          backup: boolean,
-        ) =>
-          startJobFromDialog("edit_captions", {
-            mode,
-            instruction,
-            reasoning_effort: reasoningEffort,
-            preserve_thinking: preserveThinking,
-            vision,
-            backup,
-          }),
+        onConfirm: (settings: EditCaptionsRunSettings) =>
+          startJobFromDialog("edit_captions", settings),
       },
       findDuplicates: {
         ...shared("find_duplicates"),
@@ -253,8 +250,10 @@ export function useAutomationDialogOverlays({
       },
       autoAdjust: {
         open: openJobType === "auto_adjust",
-        scope,
+        scope: stepScope,
         busy: startingJobType === "auto_adjust",
+        confirmLabel: stepMode?.confirmLabel,
+        initialSettings: stepSettings as AutoAdjustRunSettings | undefined,
         onCancel: closeDialog,
         onConfirm: (replaceAdjustments: boolean, resetAdjustments: boolean) =>
           startJobFromDialog("auto_adjust", {
@@ -264,16 +263,18 @@ export function useAutomationDialogOverlays({
       },
       checkCaptionRules: {
         open: openJobType === "check_caption_rules",
-        scope,
+        scope: stepScope,
         busy: startingJobType === "check_caption_rules",
+        confirmLabel: stepMode?.confirmLabel,
         folderPath: folderPath ?? "",
         onCancel: closeDialog,
         onConfirm: () => startJobFromDialog("check_caption_rules"),
       },
       restoreCaptions: {
         open: openJobType === "restore_captions",
-        scope,
+        scope: stepScope,
         busy: startingJobType === "restore_captions",
+        confirmLabel: stepMode?.confirmLabel,
         folderPath: folderPath ?? "",
         // The same selection the job will run on, so the preview compares what it restores.
         selectedPaths: snapshot?.paths ?? getJobPaths?.(),
@@ -283,23 +284,26 @@ export function useAutomationDialogOverlays({
     };
   }, [
     closeDialog,
+    editingStep,
     folderPath,
     getJobPaths,
     openJobType,
-    scope,
     settings,
     startJobFromDialog,
     startingJobType,
+    stepMode?.confirmLabel,
+    stepScope,
+    stepSettings,
     trainLoraScope,
     snapshot,
   ]);
 
   /** Shows a job type's dialog, loading this folder's saved settings first. */
   const openDialogForJobType = useCallback(
-    (jobType: JobType, override?: BulkScopeSnapshot) => {
+    (jobType: JobType, override?: DialogOpenOverride) => {
       if (!folderPath) return;
       const paths = override?.paths ?? getJobPaths?.();
-      if (jobType !== "train_lora" && paths?.length === 0) return;
+      if (!editingStep && jobType !== "train_lora" && paths?.length === 0) return;
       setSnapshot(
         snapshotBulkScope(override?.scope ?? { itemCount, folderLabel, kind: scopeKind }, paths),
       );
@@ -308,10 +312,20 @@ export function useAutomationDialogOverlays({
         const loaded = await loadAutomationSettings(folderPath, queryClient);
         if (folderRef.current !== folderPath || revision !== openRevisionRef.current) return;
         setSettings(loaded);
+        setStepSettings(override?.initialSettings);
         setOpenJobType(jobType);
       })();
     },
-    [folderLabel, folderPath, folderRef, getJobPaths, itemCount, queryClient, scopeKind],
+    [
+      editingStep,
+      folderLabel,
+      folderPath,
+      folderRef,
+      getJobPaths,
+      itemCount,
+      queryClient,
+      scopeKind,
+    ],
   );
 
   return { dialogs, openDialogForJobType };

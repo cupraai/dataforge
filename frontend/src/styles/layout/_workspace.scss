@@ -20,10 +20,6 @@
   }
 }
 
-.workspace-button--accent {
-  @include btn-surface-accent;
-}
-
 .workspace-button--warning {
   @include btn-surface-warning;
 }

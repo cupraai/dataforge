@@ -24,14 +24,14 @@ describe("SettingsDialog: appearance", () => {
     const original = screen.getByRole("radio", { checked: true });
 
     await user.click(screen.getByRole("radio", { name: /^Light/ }));
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).not.toHaveBeenCalled();
     await user.keyboard("{Escape}");
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(screen.getByRole("radio", { name: /^Light/ })).toBeChecked();
 
     await user.click(original);
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
     expect(screen.queryByRole("alertdialog", { name: "Discard changes?" })).not.toBeInTheDocument();
   });

@@ -344,6 +344,7 @@ export function AppContent() {
               candidateReview={candidateReview.overlay}
               jobStart={automation.jobStartConfirm}
               automation={automation.dialogs}
+              workflows={automation.workflowOverlays}
               fileImport={{
                 overwritePrompt: fileDrop.overwritePrompt,
                 busy: fileDrop.importing,

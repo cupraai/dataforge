@@ -32,6 +32,8 @@ interface ComfyProcessDialogProps {
   scope: DialogScopeInfo;
   initialSettings: JobSettingsByType["comfy_process"];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (settings: ComfyProcessSettings) => void;
   onCancel: () => void;
 }
@@ -98,6 +100,7 @@ export function ComfyProcessDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: ComfyProcessDialogProps) {
@@ -211,7 +214,7 @@ export function ComfyProcessDialog({
       describedById={error ? errorId : undefined}
       footer={
         <DialogActions
-          confirmLabel="Start processing"
+          confirmLabel={confirmLabel ?? "Start processing"}
           busyLabel="Starting..."
           onCancel={onCancel}
         />

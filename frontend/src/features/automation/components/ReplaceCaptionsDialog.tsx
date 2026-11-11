@@ -6,7 +6,11 @@ import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPre
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
 import { folderKey } from "@/features/folder/lib/folderPath";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
-import type { CaptionReplaceMode, CaptionReplacePreviewSample } from "@/shared/types";
+import type {
+  CaptionReplaceMode,
+  CaptionReplacePreviewSample,
+  ReplaceCaptionsRunSettings,
+} from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
@@ -31,11 +35,15 @@ export interface ReplaceCaptionsSettings {
 
 interface ReplaceCaptionsDialogProps {
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["replace_captions"];
+  /** A workflow step's settings also carry the start-only choices, which then win. */
+  initialSettings: JobSettingsByType["replace_captions"] &
+    Partial<Pick<ReplaceCaptionsRunSettings, "backup">>;
   folderPath: string;
   /** Paths the job will be limited to, or undefined for the whole folder. */
   selectedPaths?: string[];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (settings: ReplaceCaptionsSettings) => void;
   onCancel: () => void;
 }
@@ -53,6 +61,7 @@ export function ReplaceCaptionsDialog({
   folderPath,
   selectedPaths,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: ReplaceCaptionsDialogProps) {
@@ -62,7 +71,7 @@ export function ReplaceCaptionsDialog({
   const [useRegex, setUseRegex] = useState(initialSettings.use_regex);
   const [caseSensitive, setCaseSensitive] = useState(initialSettings.case_sensitive);
   // Reset on every open so opting out only applies to the current run.
-  const [backup, setBackup] = useState(true);
+  const [backup, setBackup] = useState(initialSettings.backup ?? true);
   const [error, setError] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLTextAreaElement>(null);
@@ -178,7 +187,13 @@ export function ReplaceCaptionsDialog({
       onClose={onCancel}
       initialFocusRef={searchRef}
       describedById={error ? errorId : undefined}
-      footer={<DialogActions confirmLabel="Replace" busyLabel="Starting..." onCancel={onCancel} />}
+      footer={
+        <DialogActions
+          confirmLabel={confirmLabel ?? "Replace"}
+          busyLabel="Starting..."
+          onCancel={onCancel}
+        />
+      }
     >
       <div className="replace-captions-dialog__body">
         <RadioTileGroup

@@ -1,6 +1,6 @@
 import { foldersMatch } from "@/features/folder/lib/folderPath";
 import type { Job, JobHistoryStatus, JobStatus, JobType } from "@/shared/types";
-import { jobTypeLabelFor, PRIMARY_JOB_TYPE, SECONDARY_JOB_TYPES } from "./jobMeta";
+import { JOB_TYPES, jobTypeLabelFor } from "./jobMeta";
 import { isActiveJobStatus } from "./jobs";
 
 export type JobFolderFilter = "all" | "current";
@@ -14,10 +14,8 @@ export interface JobFilters {
 
 export const DEFAULT_JOB_FILTERS: JobFilters = { jobTypes: [], status: "all", folder: "all" };
 
-export const JOB_TYPE_FILTER_OPTIONS: ReadonlyArray<{ value: JobType; title: string }> = [
-  PRIMARY_JOB_TYPE,
-  ...SECONDARY_JOB_TYPES,
-].map((type) => ({ value: type, title: jobTypeLabelFor(type) }));
+export const JOB_TYPE_FILTER_OPTIONS: ReadonlyArray<{ value: JobType; title: string }> =
+  JOB_TYPES.map((type) => ({ value: type, title: jobTypeLabelFor(type) }));
 
 /** Adds or removes ``type``, keeping option order so equal selections compare equal. */
 export function toggleJobType(selected: readonly JobType[], type: JobType): JobType[] {

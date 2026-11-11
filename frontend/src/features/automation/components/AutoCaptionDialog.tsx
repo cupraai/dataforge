@@ -1,17 +1,11 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useId, useState } from "react";
+import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { previewAutoCaption } from "@/features/automation/api/jobs";
 import { autoCaptionPlan } from "@/features/automation/lib/autoCaptionPlan";
-import {
-  AutomationModeSelector,
-  type AutomationMode,
-} from "@/features/automation/components/AutomationModeSelector";
+import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { InstructionFileSource } from "@/features/automation/components/InstructionFileSource";
-import {
-  ReasoningEffortSelector,
-  type ReasoningEffort,
-} from "@/features/automation/components/ReasoningEffortSelector";
+import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
 import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
 import { instructionApplies } from "@/shared/api/folderInstructions";
@@ -19,21 +13,19 @@ import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 
-export type AutoCaptionMode = AutomationMode;
+type Settings = JobSettingsByType["auto_caption"];
 
 interface AutoCaptionDialogProps {
   scope: DialogScopeInfo;
   folderPath: string;
   /** The scope's files; undefined for the whole folder. */
   selectedPaths?: string[];
-  initialSettings: JobSettingsByType["auto_caption"];
+  initialSettings: Settings;
   busy?: boolean;
-  onConfirm: (
-    mode: AutoCaptionMode,
-    captionAudio: boolean,
-    reasoningEffort: ReasoningEffort,
-    preserveThinking: boolean,
-  ) => void;
+  editingStep?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
+  onConfirm: (settings: Settings) => void;
   onCancel: () => void;
 }
 
@@ -43,14 +35,14 @@ export function AutoCaptionDialog({
   selectedPaths,
   initialSettings,
   busy = false,
+  editingStep = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: AutoCaptionDialogProps) {
-  const [mode, setMode] = useState<AutoCaptionMode>(initialSettings.mode);
+  const [mode, setMode] = useState(initialSettings.mode);
   const [captionAudio, setCaptionAudio] = useState(initialSettings.caption_audio);
-  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
-    initialSettings.reasoning_effort,
-  );
+  const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const { state, instructions } = useFolderInstructions(folderPath);
   const promptReady = instructions !== null && instructionApplies(instructions.sysprompt);
@@ -64,14 +56,9 @@ export function AutoCaptionDialog({
   const captionAudioId = useId();
   const preserveThinkingId = useId();
 
-  const handleConfirm = useCallback(() => {
-    if (busy || !promptReady) return;
-    onConfirm(mode, captionAudio, reasoningEffort, preserveThinking);
-  }, [busy, captionAudio, mode, onConfirm, preserveThinking, promptReady, reasoningEffort]);
-
   return (
     <GuardedDialog
-      confirmDisabled={!promptReady}
+      confirmDisabled={!editingStep && !promptReady}
       unsavedChanges={
         mode !== initialSettings.mode ||
         captionAudio !== initialSettings.caption_audio ||
@@ -88,13 +75,20 @@ export function AutoCaptionDialog({
       }
       panelClassName="auto-caption-dialog"
       busy={busy}
-      onConfirm={handleConfirm}
+      onConfirm={() =>
+        onConfirm({
+          mode,
+          caption_audio: captionAudio,
+          reasoning_effort: reasoningEffort,
+          preserve_thinking: preserveThinking,
+        })
+      }
       onClose={onCancel}
       footer={
         <>
-          <InstructionFileSource state={state} kind="sysprompt" />
+          {!editingStep && <InstructionFileSource state={state} kind="sysprompt" />}
           <DialogActions
-            confirmLabel="Start auto-caption"
+            confirmLabel={confirmLabel ?? "Start auto-caption"}
             busyLabel="Starting..."
             onCancel={onCancel}
           />
@@ -102,7 +96,7 @@ export function AutoCaptionDialog({
       }
     >
       {plan.data && (
-        <p className="dialog__hint auto-caption-dialog__plan" role="status">
+        <p className="dialog__hint" role="status">
           {autoCaptionPlan(plan.data)}
         </p>
       )}
@@ -159,12 +153,12 @@ export function AutoCaptionDialog({
         </p>
       </div>
 
-      {state.status === "error" && (
+      {!editingStep && state.status === "error" && (
         <p className="dialog__error" role="alert">
           Could not load the system prompt. {state.message}
         </p>
       )}
-      {instructions?.sysprompt.state.status === "missing" && (
+      {!editingStep && instructions?.sysprompt.state.status === "missing" && (
         <p className="dialog__hint">
           No system prompt was found in this folder or above it. Add one in Folder instructions,
           starting with a # heading.

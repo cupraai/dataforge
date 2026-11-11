@@ -7,6 +7,12 @@ export function jobTypeLabel(job: Job): string {
   return jobTypeLabelFor(job.job_type);
 }
 
+/** "Dataset prep · step 2 of 4" for a job queued by a workflow, else null. */
+export function workflowRunLabel(job: Pick<Job, "workflow_run">): string | null {
+  const run = job.workflow_run;
+  return run ? `${run.name} · step ${run.step} of ${run.steps}` : null;
+}
+
 export function jobIcon(job: Job): AppIcon {
   return jobTypeIconFor(job.job_type);
 }
@@ -42,6 +48,27 @@ export function selectFolderJob(
 
 function newestJob(jobs: Job[]): Job {
   return jobs.reduce((latest, job) => (compareJobRecency(latest, job) > 0 ? job : latest));
+}
+
+/** Where a queued job stands in its folder's queue: 1 starts next. */
+export interface QueueSpot {
+  position: number;
+  /** The job right ahead of it, running or queued; null when that job is not listed. */
+  waitsFor: Job | null;
+}
+
+export function queueSpot(job: Job, jobs: readonly Job[]): QueueSpot | null {
+  if (job.status !== "queued") return null;
+  const queued = queuedFolderJobs(jobs, job.folder);
+  const index = queued.findIndex((entry) => entry.id === job.id);
+  if (index === -1) return null;
+  const running = jobs.find(
+    (entry) => entry.status === "running" && foldersMatch(entry.folder, job.folder),
+  );
+  return {
+    position: index + 1,
+    waitsFor: index > 0 ? queued[index - 1] : (running ?? null),
+  };
 }
 
 /** The folder's jobs waiting to start, in the order the server starts them. */
@@ -144,9 +171,10 @@ export function statusLabel(job: Job): string {
   }
 }
 
-export type JobStatusTone = "active" | "success" | "danger" | "warning" | "muted";
+export type JobStatusTone = "active" | "queued" | "success" | "danger" | "warning" | "muted";
 
 export function statusTone(status: JobStatus): JobStatusTone {
+  if (status === "queued") return "queued";
   if (isActiveJobStatus(status)) return "active";
   if (status === "completed") return "success";
   if (status === "failed" || status === "interrupted") return "danger";

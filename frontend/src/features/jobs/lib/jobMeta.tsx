@@ -25,6 +25,7 @@ import type { JobType } from "@/shared/types";
 type JobStartUi = "dialog" | "confirm";
 
 export interface JobAvailability {
+  syspromptApplies: boolean;
   hasCaptionBackup: boolean;
   ostrisAvailable: boolean;
   comfyPresetsAvailable: boolean;
@@ -34,7 +35,7 @@ export interface JobAvailability {
  * Tools menu sections, by what a job changes: caption text, nothing (findings for the Review menu),
  * pixels, or file names, metadata and backups. Jobs run by external tools span the menu below.
  */
-export const JOB_GROUPS = [
+const JOB_GROUP_DEFINITIONS = [
   { id: "captions", label: "Captions" },
   { id: "check", label: "Check" },
   { id: "media", label: "Media" },
@@ -42,14 +43,13 @@ export const JOB_GROUPS = [
   { id: "integrations", label: "Integrations", wide: true },
 ] as const;
 
-export type JobGroup = (typeof JOB_GROUPS)[number]["id"];
+type JobGroup = (typeof JOB_GROUP_DEFINITIONS)[number]["id"];
 
 interface JobTypeMeta {
   type: JobType;
   icon: AppIcon;
   startUi: JobStartUi;
   group: JobGroup;
-  primary?: boolean;
   menuLabel?: string;
   menuDescription?: string;
   confirm?: {
@@ -57,9 +57,7 @@ interface JobTypeMeta {
     description: () => ReactNode;
     confirmLabel: string;
   };
-  isAvailable?: (availability: JobAvailability) => boolean;
-  /** Shown wherever the job is offered while `isAvailable` is false. */
-  unavailableReason?: string;
+  requires?: { flag: keyof JobAvailability; reason: string };
 }
 
 // Entry order is menu order: the jobs filter and Quick actions list jobs in this order too.
@@ -69,8 +67,11 @@ export const JOB_TYPE_META = {
     group: "captions" as const,
     icon: iconSparkles,
     startUi: "dialog" as const,
-    primary: true as const,
-    menuDescription: "Auto-complete captions with the local model.",
+    menuDescription: "Write missing captions and expand drafts with the local model.",
+    requires: {
+      flag: "syspromptApplies",
+      reason: "Create folder instructions to enable auto-captioning.",
+    },
   },
   replace_captions: {
     type: "replace_captions" as const,
@@ -174,8 +175,7 @@ export const JOB_TYPE_META = {
     icon: iconArchiveRestore,
     startUi: "dialog" as const,
     menuDescription: "Bring captions back from the .backup folder.",
-    isAvailable: ({ hasCaptionBackup }: JobAvailability) => hasCaptionBackup,
-    unavailableReason: "No caption backup in this folder.",
+    requires: { flag: "hasCaptionBackup", reason: "No caption backup in this folder." },
   },
   comfy_process: {
     type: "comfy_process" as const,
@@ -184,8 +184,10 @@ export const JOB_TYPE_META = {
     startUi: "dialog" as const,
     menuLabel: "Process with ComfyUI",
     menuDescription: "Process images and videos with a ComfyUI workflow, for review.",
-    isAvailable: ({ comfyPresetsAvailable }: JobAvailability) => comfyPresetsAvailable,
-    unavailableReason: "No ComfyUI presets are available. Configure workflows in Settings.",
+    requires: {
+      flag: "comfyPresetsAvailable",
+      reason: "No ComfyUI presets are available. Configure workflows in Settings.",
+    },
   },
   train_lora: {
     type: "train_lora" as const,
@@ -194,8 +196,10 @@ export const JOB_TYPE_META = {
     startUi: "dialog" as const,
     menuLabel: "Quick LoRA training",
     menuDescription: "Train a LoRA on this folder with Ostris AI-Toolkit.",
-    isAvailable: ({ ostrisAvailable }: JobAvailability) => ostrisAvailable,
-    unavailableReason: "AI-Toolkit is unavailable. Check its connection in Settings.",
+    requires: {
+      flag: "ostrisAvailable",
+      reason: "AI-Toolkit is unavailable. Check its connection in Settings.",
+    },
   },
 } satisfies Record<JobType, JobTypeMeta>;
 
@@ -205,30 +209,23 @@ type JobTypeWithStartUi<Ui extends JobStartUi> = {
 
 export type ConfirmableJobType = JobTypeWithStartUi<"confirm">;
 
-const JOB_TYPES = Object.keys(JOB_TYPE_META) as JobType[];
+export const JOB_TYPES = Object.keys(JOB_TYPE_META) as JobType[];
 
 function jobTypeMeta(type: JobType): JobTypeMeta {
   return JOB_TYPE_META[type];
 }
 
-export const PRIMARY_JOB_TYPE: JobType =
-  JOB_TYPES.find((type) => jobTypeMeta(type).primary) ?? "auto_caption";
-
-export const SECONDARY_JOB_TYPES: JobType[] = JOB_TYPES.filter(
-  (type) => !jobTypeMeta(type).primary,
-);
-
-export const SECONDARY_JOB_GROUPS: Array<{
+export const JOB_GROUPS: Array<{
   id: JobGroup;
   label: string;
   /** Spans the menu below the columns instead of taking one. */
   wide: boolean;
   types: JobType[];
-}> = JOB_GROUPS.map((group) => ({
+}> = JOB_GROUP_DEFINITIONS.map((group) => ({
   id: group.id,
   label: group.label,
   wide: "wide" in group && group.wide,
-  types: SECONDARY_JOB_TYPES.filter((type) => jobTypeMeta(type).group === group.id),
+  types: JOB_TYPES.filter((type) => jobTypeMeta(type).group === group.id),
 })).filter((group) => group.types.length > 0);
 
 export function jobTypeLabelFor(type: JobType): string {
@@ -248,7 +245,6 @@ export interface JobStartContext {
   itemCount: number;
   /** Every file in the folder; LoRA training ignores the scope. */
   folderCount: number;
-  syspromptApplies: boolean;
   availability: JobAvailability;
 }
 
@@ -258,19 +254,13 @@ export interface JobStartBlock {
   reason: string | null;
 }
 
-/** Whether a job can start now. Tools, the Auto-caption button and Quick actions all use this. */
+/** Whether a job can start now. Shared by Tools and Quick actions. */
 export function jobStartBlock(type: JobType, context: JobStartContext): JobStartBlock {
-  const unavailable = !isJobAvailable(type, context.availability);
-  const needsInstructions = type === "auto_caption" && !context.syspromptApplies;
+  const requirement = jobTypeMeta(type).requires;
+  const reason = requirement && !context.availability[requirement.flag] ? requirement.reason : null;
   const emptyScope = type === "train_lora" ? context.folderCount === 0 : context.itemCount === 0;
-  const reason = unavailable
-    ? (jobTypeMeta(type).unavailableReason ?? null)
-    : needsInstructions
-      ? "Create folder instructions to enable auto-captioning."
-      : null;
   return {
-    blocked:
-      !context.hasFolder || context.starting || emptyScope || unavailable || needsInstructions,
+    blocked: !context.hasFolder || context.starting || emptyScope || reason !== null,
     reason,
   };
 }
@@ -281,10 +271,6 @@ export function jobTypeIconFor(type: JobType): AppIcon {
 
 export function isConfirmableJobType(type: JobType): type is ConfirmableJobType {
   return JOB_TYPE_META[type].startUi === "confirm";
-}
-
-export function isJobAvailable(type: JobType, availability: JobAvailability): boolean {
-  return jobTypeMeta(type).isAvailable?.(availability) ?? true;
 }
 
 export const JOB_START_CONFIRM: Record<ConfirmableJobType, NonNullable<JobTypeMeta["confirm"]>> = {

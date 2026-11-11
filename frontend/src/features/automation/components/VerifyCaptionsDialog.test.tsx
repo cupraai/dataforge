@@ -57,7 +57,12 @@ describe("VerifyCaptionsDialog", () => {
 
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", "Studio product shots.", "low", true);
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "thinking",
+      context: "Studio product shots.",
+      reasoning_effort: "low",
+      preserve_thinking: true,
+    });
   });
 
   it("submits an edited context", async () => {
@@ -67,7 +72,12 @@ describe("VerifyCaptionsDialog", () => {
     await user.type(screen.getByLabelText("Additional context"), "Outdoor portraits.");
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", "Outdoor portraits.", "medium", true);
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "thinking",
+      context: "Outdoor portraits.",
+      reasoning_effort: "medium",
+      preserve_thinking: true,
+    });
   });
 
   it("submits a cleared Preserve thinking box", async () => {
@@ -77,7 +87,12 @@ describe("VerifyCaptionsDialog", () => {
     await user.click(screen.getByLabelText("Preserve thinking"));
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", "", "medium", false);
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: "thinking",
+      context: "",
+      reasoning_effort: "medium",
+      preserve_thinking: false,
+    });
   });
 
   it("confirms without writing preferences of its own", async () => {

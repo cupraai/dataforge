@@ -98,7 +98,7 @@ describe("AutoCaptionDialog", () => {
 
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", false, "medium", true);
+    expect(onConfirm).toHaveBeenCalledWith(DEFAULTS);
   });
 
   it("submits the audio choice once it is checked", async () => {
@@ -108,7 +108,7 @@ describe("AutoCaptionDialog", () => {
     await user.click(audioCheckbox());
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", true, "medium", true);
+    expect(onConfirm).toHaveBeenCalledWith({ ...DEFAULTS, caption_audio: true });
   });
 
   it("submits the reasoning choices once they are changed", async () => {
@@ -119,7 +119,11 @@ describe("AutoCaptionDialog", () => {
     await user.click(preserveThinkingCheckbox());
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("thinking", false, "xhigh", false);
+    expect(onConfirm).toHaveBeenCalledWith({
+      ...DEFAULTS,
+      reasoning_effort: "xhigh",
+      preserve_thinking: false,
+    });
   });
 
   it("disables the reasoning controls in instruct mode", async () => {
@@ -142,7 +146,7 @@ describe("AutoCaptionDialog", () => {
     await user.click(audioCheckbox());
     await confirm(user);
 
-    expect(onConfirm).toHaveBeenCalledWith("instruct", true, "medium", true);
+    expect(onConfirm).toHaveBeenCalledWith({ ...DEFAULTS, mode: "instruct", caption_audio: true });
   });
 
   it("disables its controls while the job is starting", () => {

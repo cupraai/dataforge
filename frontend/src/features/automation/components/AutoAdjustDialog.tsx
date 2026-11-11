@@ -2,23 +2,30 @@ import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import type { AutoAdjustRunSettings } from "@/shared/types";
 
 interface AutoAdjustDialogProps {
   scope: DialogScopeInfo;
+  /** Only a workflow step passes these; a run re-chooses them every time. */
+  initialSettings?: AutoAdjustRunSettings;
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
   onConfirm: (replaceAdjustments: boolean, resetAdjustments: boolean) => void;
   onCancel: () => void;
 }
 
 export function AutoAdjustDialog({
   scope,
+  initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: AutoAdjustDialogProps) {
-  // Never restored: discarding earlier adjustments is destructive, so it is re-chosen every run.
-  const [replace, setReplace] = useState(false);
-  const [reset, setReset] = useState(false);
+  // Never remembered: discarding earlier adjustments is destructive, so it is re-chosen every run.
+  const [replace, setReplace] = useState(initialSettings?.replace_adjustments ?? false);
+  const [reset, setReset] = useState(initialSettings?.reset_adjustments ?? false);
   const replaceId = useId();
   const resetId = useId();
 
@@ -48,7 +55,7 @@ export function AutoAdjustDialog({
       onClose={onCancel}
       footer={
         <DialogActions
-          confirmLabel={reset ? "Reset color adjustments" : "Start auto-adjust"}
+          confirmLabel={confirmLabel ?? (reset ? "Reset color adjustments" : "Start auto-adjust")}
           busyLabel="Starting..."
           onCancel={onCancel}
         />

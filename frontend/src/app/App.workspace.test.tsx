@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as captionsApi from "@/features/gallery/api/captions";
-import { SECONDARY_JOB_GROUPS, SECONDARY_JOB_TYPES } from "@/features/jobs/lib/jobMeta";
+import { JOB_GROUPS, JOB_TYPES } from "@/features/jobs/lib/jobMeta";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderApp } from "@/test/renderApp";
 
@@ -171,11 +171,8 @@ describe("App workspace", () => {
     const trigger = await screen.findByRole("button", { name: "Tools" });
     await user.click(trigger);
     const drawer = await screen.findByRole("menu", { name: "Tools" });
-    // Auto-caption has its own button, so Tools lists only the secondary jobs.
-    expect(drawer.querySelectorAll(".workspace-tools__item")).toHaveLength(
-      SECONDARY_JOB_TYPES.length,
-    );
-    expect(within(drawer).getAllByRole("group")).toHaveLength(SECONDARY_JOB_GROUPS.length);
+    expect(within(drawer).getAllByRole("menuitem")).toHaveLength(JOB_TYPES.length);
+    expect(within(drawer).getAllByRole("group")).toHaveLength(JOB_GROUPS.length);
     expect(within(drawer).queryByRole("searchbox")).not.toBeInTheDocument();
     expect(
       within(drawer).queryByRole("menuitem", { name: "Folder instructions" }),
@@ -195,15 +192,19 @@ describe("App workspace", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "View beach.jpg" })).not.toBeInTheDocument(),
     );
-    await user.click(screen.getByRole("button", { name: "Auto-caption" }));
+    const tools = screen.getByRole("button", { name: "Tools" });
+    await user.click(tools);
+    await user.click(screen.getByRole("menuitem", { name: /^Auto-caption/ }));
     const dialog = await screen.findByRole("dialog", { name: "Start auto-caption?" });
     expect(dialog).toHaveTextContent("Matching 1 file in Photos");
     await user.keyboard("{Escape}");
     await user.clear(search);
     await user.type(search, "no matching media");
+    await user.click(tools);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Auto-caption" })).toBeDisabled(),
+      expect(screen.getByRole("menuitem", { name: /^Auto-caption/ })).toBeDisabled(),
     );
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("button", { name: /Commands/ })).not.toBeInTheDocument();
     await user.keyboard("{Control>}p{/Control}");
     const palette = await screen.findByRole("dialog", { name: "Quick actions" });

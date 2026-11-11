@@ -1,30 +1,21 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useId, useState } from "react";
-import {
-  AutomationModeSelector,
-  type AutomationMode,
-} from "@/features/automation/components/AutomationModeSelector";
-import {
-  ReasoningEffortSelector,
-  type ReasoningEffort,
-} from "@/features/automation/components/ReasoningEffortSelector";
+import { useId, useState } from "react";
+import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
+import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 
-export type VerifyCaptionsMode = AutomationMode;
+type Settings = JobSettingsByType["verify_captions"];
 
 interface VerifyCaptionsDialogProps {
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["verify_captions"];
+  initialSettings: Settings;
   busy?: boolean;
-  onConfirm: (
-    mode: VerifyCaptionsMode,
-    context: string,
-    reasoningEffort: ReasoningEffort,
-    preserveThinking: boolean,
-  ) => void;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
+  onConfirm: (settings: Settings) => void;
   onCancel: () => void;
 }
 
@@ -32,23 +23,16 @@ export function VerifyCaptionsDialog({
   scope,
   initialSettings,
   busy = false,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: VerifyCaptionsDialogProps) {
-  const [mode, setMode] = useState<AutomationMode>(initialSettings.mode);
+  const [mode, setMode] = useState(initialSettings.mode);
   const [context, setContext] = useState(initialSettings.context);
-  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
-    initialSettings.reasoning_effort,
-  );
+  const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const contextId = useId();
   const preserveThinkingId = useId();
-
-  const handleConfirm = useCallback(() => {
-    if (busy) return;
-    // Starting the job is what stores these, exactly as it is for every other dialog.
-    onConfirm(mode, context, reasoningEffort, preserveThinking);
-  }, [busy, context, mode, onConfirm, preserveThinking, reasoningEffort]);
 
   return (
     <GuardedDialog
@@ -68,11 +52,18 @@ export function VerifyCaptionsDialog({
       }
       panelClassName="verify-captions-dialog"
       busy={busy}
-      onConfirm={handleConfirm}
+      onConfirm={() =>
+        onConfirm({
+          mode,
+          context,
+          reasoning_effort: reasoningEffort,
+          preserve_thinking: preserveThinking,
+        })
+      }
       onClose={onCancel}
       footer={
         <DialogActions
-          confirmLabel="Start verify captions"
+          confirmLabel={confirmLabel ?? "Start verify captions"}
           busyLabel="Starting..."
           onCancel={onCancel}
         />

@@ -50,13 +50,28 @@ afterEach(() => {
 });
 
 describe("JobCard", () => {
-  it.each(["queued", "running"] as const)("shows progress for a %s job", (status) => {
-    renderWithQueryClient(<JobCard job={{ ...runningJob, status }} />);
+  it("shows progress for a running job", () => {
+    renderWithQueryClient(<JobCard job={runningJob} />);
 
     expect(screen.getByRole("progressbar", { name: "Progress for Photos" })).toHaveAttribute(
       "aria-valuenow",
       "30",
     );
+  });
+
+  it("shows a queued job waiting, with what it waits for, instead of progress", () => {
+    const resize = { ...runningJob, id: "resize", job_type: "resize" as const };
+    renderWithQueryClient(
+      <JobCard
+        job={{ ...runningJob, status: "queued", effective_status: "queued" }}
+        queueSpot={{ position: 2, waitsFor: resize }}
+      />,
+    );
+
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.getByText("Queued")).toBeInTheDocument();
+    expect(screen.getByText(/Starts after/)).toHaveTextContent("Starts after Resize");
+    expect(screen.getByText("2nd in line")).toBeInTheDocument();
   });
 
   it.each(["completed", "failed", "cancelled", "interrupted"] as const)(
@@ -80,6 +95,16 @@ describe("JobCard", () => {
     const cancelButton = screen.getByRole("button", { name: "Cancel job for Photos" });
     expect(cancelButton).toBeDisabled();
     expect(container.querySelector(".job-card__cancel-icon--spin")).toBeInTheDocument();
+  });
+
+  it("names the workflow run a job belongs to and its step", () => {
+    renderWithQueryClient(
+      <JobCard
+        job={{ ...runningJob, workflow_run: { id: "r", name: "Prep", step: 2, steps: 3 } }}
+      />,
+    );
+
+    expect(screen.getByText("Prep · step 2 of 3")).toBeInTheDocument();
   });
 
   it("opens the job's folder", async () => {

@@ -31,10 +31,10 @@ from automation.vision import (
 )
 from captions import (
     CAPTION_CHANGED_STATUS,
-    CAPTION_READ_ERROR,
     NO_CAPTION_STATUS,
     CaptionConflictError,
     CaptionTarget,
+    ReferenceCaption,
     caption_targets,
     load_reference_caption,
     save_caption,
@@ -276,9 +276,9 @@ def complete_caption(
     )
 
 
-def _read_draft_caption(media_path: Path) -> tuple[str | None, str]:
+def _draft_caption(reference: ReferenceCaption) -> tuple[str | None, str]:
     """The draft to expand, ``""`` to caption from scratch, or ``None`` with why not."""
-    ref_caption, status, _revision = load_reference_caption(media_path)
+    ref_caption, status, _revision = reference
     if status == NO_CAPTION_STATUS:
         return "", "ok"
     if status != "ok" or ref_caption is None:
@@ -302,9 +302,10 @@ def process_media(
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     caption_audio: bool = False,
     should_cancel: ShouldCancel | None = None,
+    reference: ReferenceCaption | None = None,
 ) -> tuple[str | None, str, str | None, bool]:
     """Caption one file; the trailing flag is True only for motion media missing audio on an audio run."""
-    ref_caption, status = _read_draft_caption(media_path)
+    ref_caption, status = _draft_caption(reference or load_reference_caption(media_path))
     if status != "ok" or ref_caption is None:
         return None, status, None, False
 
@@ -374,13 +375,13 @@ def preview_auto_caption(
     counts = {"total": 0, "drafts": 0, "from_scratch": 0, "unreadable": 0, "long_enough": 0}
     for target in caption_targets(media_files):
         counts["total"] += 1
-        text, status, _revision = load_reference_caption(target.primary)
-        if status == CAPTION_READ_ERROR:
-            counts["unreadable"] += 1
-        elif text is None:
-            counts["from_scratch"] += 1
-        elif len(text) > get_draft_caption_threshold():
+        draft, status = _draft_caption(load_reference_caption(target.primary))
+        if status == "skipped_long":
             counts["long_enough"] += 1
+        elif draft is None:
+            counts["unreadable"] += 1
+        elif not draft:
+            counts["from_scratch"] += 1
         else:
             counts["drafts"] += 1
     return counts
@@ -455,7 +456,7 @@ def run_auto_caption_job(
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
             # The caption the reply is built from; the write is refused if it changes meanwhile.
-            base_revision = load_reference_caption(media_path).revision
+            reference = load_reference_caption(media_path)
             clean_text, status, message, audio_missing = process_media(
                 client,
                 media_path,
@@ -466,10 +467,16 @@ def run_auto_caption_job(
                 preserve_thinking=preserve_thinking,
                 caption_audio=caption_audio,
                 should_cancel=should_cancel,
+                reference=reference,
             )
 
             outcome = _caption_outcome(
-                media_path, clean_text, status, message, should_cancel, base_revision=base_revision
+                media_path,
+                clean_text,
+                status,
+                message,
+                should_cancel,
+                base_revision=reference.revision,
             )
             if not audio_missing or outcome.status == "cancelled":
                 return outcome

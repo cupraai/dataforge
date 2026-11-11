@@ -1,9 +1,8 @@
 import { useState } from "react";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import {
+  JOB_GROUPS,
   JOB_TYPE_META,
-  PRIMARY_JOB_TYPE,
-  SECONDARY_JOB_GROUPS,
   jobMenuLabelFor,
   jobStartBlock,
   jobTypeIconFor,
@@ -17,9 +16,11 @@ import {
   jobShowsWarningState,
   jobTypeLabel,
   jobWarningMessage,
+  workflowRunLabel,
   progressPercent,
 } from "@/features/jobs/lib/jobs";
 import { CancelJobDialog } from "@/features/jobs/components/CancelJobDialog";
+import { WorkflowsMenu } from "@/features/workflows/components/WorkflowsMenu";
 import { JobStatusBadge } from "@/features/jobs/components/JobStatusBadge";
 import { useJobTimeLabel } from "@/features/jobs/hooks/useJobTimeLabel";
 import { failedCountFromStats } from "@/features/jobs/lib/jobFileResults";
@@ -46,11 +47,7 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import { AutomationSystemSpecs } from "@/features/automation/components/AutomationSystemSpecs";
 import { useAutomationSpecsVisible } from "@/features/automation/hooks/useAutomationSpecsVisible";
-import {
-  COLLAPSIBLE_LABEL_CLASS,
-  ROUND_WHEN_COMPACT_CLASS,
-  useToolbarCompact,
-} from "@/features/gallery/lib/toolbarCompact";
+import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
 import { reviewScopeNote } from "@/features/gallery/lib/reviewScope";
 
 interface ToolsMenuProps {
@@ -63,7 +60,7 @@ function ToolsGroup({
   group,
   panel,
   onPick,
-}: ToolsMenuItemsProps & { group: (typeof SECONDARY_JOB_GROUPS)[number] }) {
+}: ToolsMenuItemsProps & { group: (typeof JOB_GROUPS)[number] }) {
   return (
     <div
       role="group"
@@ -102,18 +99,16 @@ function ToolsGroup({
   );
 }
 
-// No scope line: each job's confirmation dialog states which files it targets. Auto-caption has
-// its own button, so the menu lists only the secondary jobs. Wide groups sit outside the wrapping
-// row so their text cannot widen the panel's max-content width.
+// Wide groups sit outside the wrapping row so their text cannot widen the panel.
 function ToolsMenuItems(props: ToolsMenuItemsProps) {
   return (
     <>
       <div className="workspace-tools__groups">
-        {SECONDARY_JOB_GROUPS.filter((group) => !group.wide).map((group) => (
+        {JOB_GROUPS.filter((group) => !group.wide).map((group) => (
           <ToolsGroup key={group.id} group={group} {...props} />
         ))}
       </div>
-      {SECONDARY_JOB_GROUPS.filter((group) => group.wide).map((group) => (
+      {JOB_GROUPS.filter((group) => group.wide).map((group) => (
         <ToolsGroup key={group.id} group={group} {...props} />
       ))}
     </>
@@ -144,7 +139,14 @@ function ToolsMenu(props: ToolsMenuProps) {
         role="menu"
         label="Tools"
       >
-        <ToolsMenuItems {...props} onPick={close} />
+        <ToolsMenuItems
+          {...props}
+          onPick={() => {
+            // The job dialog restores focus to the element focused when it opened.
+            rootRef.current?.querySelector("button")?.focus();
+            close();
+          }}
+        />
       </AnchoredLayer>
     </>
   );
@@ -226,16 +228,6 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const job = panel.job;
   const active = Boolean(job && isActiveJobStatus(job.status));
-  const startingPrimary = panel.startingJobType === PRIMARY_JOB_TYPE;
-  const autoCaption = jobStartBlock(PRIMARY_JOB_TYPE, panel.startContext);
-  const autoCaptionTooltip = startingPrimary
-    ? "Starting auto-caption job..."
-    : panel.startingJobType !== null
-      ? "Another job is starting..."
-      : (autoCaption.reason ??
-        (active
-          ? "Queue captions for files in scope; they start when the jobs ahead finish"
-          : "Generate captions for files in scope"));
 
   return (
     <div className="workspace-actions">
@@ -250,27 +242,8 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
           Cancel job
         </button>
       )}
-      <>
-        <Tooltip content={autoCaptionTooltip}>
-          <button
-            type="button"
-            className={classNames(
-              "workspace-button workspace-button--accent",
-              ROUND_WHEN_COMPACT_CLASS,
-            )}
-            aria-busy={startingPrimary || undefined}
-            disabled={autoCaption.blocked}
-            onClick={() => panel.onRequestStart(PRIMARY_JOB_TYPE)}
-          >
-            <Icon
-              icon={startingPrimary ? iconLoader2 : jobTypeIconFor(PRIMARY_JOB_TYPE)}
-              spin={startingPrimary}
-            />
-            <span className={COLLAPSIBLE_LABEL_CLASS}>{jobMenuLabelFor(PRIMARY_JOB_TYPE)}</span>
-          </button>
-        </Tooltip>
-        <ToolsMenu panel={panel} />
-      </>
+      <ToolsMenu panel={panel} />
+      <WorkflowsMenu actions={panel.workflows} />
       <ReviewMenu panel={panel} />
       <Tooltip content={showSpecs ? "Hide system specifications" : "Show system specifications"}>
         <button
@@ -337,6 +310,9 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
               <Icon icon={jobTypeIconFor(job.job_type)} />
               <strong>{jobTypeLabelFor(job.job_type)}</strong>
             </span>
+            {job.workflow_run && (
+              <span className="workspace-activity__count">{workflowRunLabel(job)}</span>
+            )}
             <JobStatusBadge job={job} />
             {job.total > 0 && (
               <span className="workspace-activity__count">

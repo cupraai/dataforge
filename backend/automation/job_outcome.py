@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from constants import CAPTION_SIDECAR_EXTENSIONS, JOB_TYPE_LABELS
 from filesystem import path_leaf_name
-from schemas import JobResponse, JobType, NotificationVariant
-
-PRIMARY_JOB_TYPE: JobType = "auto_caption"
+from schemas import JobResponse, NotificationVariant
 
 TERMINAL_STATUSES: frozenset[str] = frozenset({"completed", "failed", "cancelled", "interrupted"})
 
@@ -28,11 +28,7 @@ _CAPTION_SIDECAR_LIST = "/".join(CAPTION_SIDECAR_EXTENSIONS)
 
 
 def job_type_label(job_type: str) -> str:
-    return JOB_TYPE_LABELS.get(job_type) or job_type.strip()
-
-
-def _known_job_type(job_type: str) -> str:
-    return job_type if job_type in JOB_TYPE_LABELS else PRIMARY_JOB_TYPE
+    return JOB_TYPE_LABELS.get(job_type) or job_type.strip() or "Job"
 
 
 def _count(stats: dict[str, int], *keys: str) -> int:
@@ -51,16 +47,8 @@ def effective_status(job_type: str, status: str, stats: dict[str, int]) -> str:
     if status != "completed":
         return status
 
-    keys = _FAILURE_KEYS.get(_known_job_type(job_type), ("api_error",))
+    keys = _FAILURE_KEYS.get(job_type, ("api_error",))
     return "failed" if _count(stats, *keys) else "completed"
-
-
-def shows_error_state(job_type: str, status: str, stats: dict[str, int]) -> bool:
-    return effective_status(job_type, status, stats) in ("failed", "interrupted")
-
-
-def is_cancelled(job_type: str, status: str, stats: dict[str, int]) -> bool:
-    return effective_status(job_type, status, stats) == "cancelled"
 
 
 def _no_caption_warning(count: int) -> str | None:
@@ -95,17 +83,33 @@ def _no_clips_warning(count: int) -> str | None:
     return f"{count} videos had no piece as long as the shortest clip, so they gave no clips."
 
 
+def _orphaned_backup_warning(count: int) -> str | None:
+    if count == 0:
+        return None
+    if count == 1:
+        return "1 backed up caption had no matching media file and was skipped."
+    return f"{count} backed up captions had no matching media file and were skipped."
+
+
+type WarningRule = tuple[str, Callable[[int], str | None]]
+_NO_CAPTION: WarningRule = ("no_caption", _no_caption_warning)
+_WARNING_RULES: dict[str, tuple[WarningRule, ...]] = {
+    "auto_caption": (_NO_CAPTION, ("audio_error", _no_audio_warning)),
+    "edit_captions": (_NO_CAPTION, ("rejected", _rejected_warning)),
+    "restore_captions": (("orphaned", _orphaned_backup_warning),),
+    "split_video": (("skipped", _no_clips_warning),),
+}
+
+
 #: Per-file outcomes the jobs drawer counts as failed files, as ``failedCountFromStats`` does.
 _FAILED_FILE_KEYS = frozenset({"busy", "too_short"})
-#: Failed-file keys a type reports as a warning instead; they do not stop a queue.
-_WARNING_FILE_KEYS: dict[str, frozenset[str]] = {"auto_caption": frozenset({"audio_error"})}
 
 
 def finished_cleanly(job_type: str, status: str, stats: dict[str, int]) -> bool:
     """Completed with no failed file: what lets the next job queued for the folder start."""
     if effective_status(job_type, status, stats) != "completed":
         return False
-    warnings = _WARNING_FILE_KEYS.get(_known_job_type(job_type), frozenset())
+    warnings = {key for key, _ in _WARNING_RULES.get(job_type, ())}
     return not any(
         count
         for key, count in stats.items()
@@ -113,44 +117,13 @@ def finished_cleanly(job_type: str, status: str, stats: dict[str, int]) -> bool:
     )
 
 
-def shows_warning_state(job_type: str, status: str, stats: dict[str, int]) -> bool:
-    if status != "completed" or effective_status(job_type, status, stats) != "completed":
-        return False
-
-    known = _known_job_type(job_type)
-    if known == "restore_captions":
-        return _count(stats, "orphaned") > 0
-    if known in _NEVER_WARN:
-        return False
-    if known == "split_video":
-        return _count(stats, "skipped") > 0
-    if known == "auto_caption":
-        return _count(stats, "no_caption", "audio_error") > 0
-    if known == "edit_captions":
-        return _count(stats, "no_caption", "rejected") > 0
-    return _count(stats, "no_caption") > 0
-
-
 def warning_message(job_type: str, status: str, stats: dict[str, int]) -> str | None:
     """The job's warning prose, or ``None`` when it finished cleanly."""
-    if not shows_warning_state(job_type, status, stats):
+    if job_type in _NEVER_WARN or effective_status(job_type, status, stats) != "completed":
         return None
 
-    known = _known_job_type(job_type)
-    if known == "restore_captions":
-        orphaned = _count(stats, "orphaned")
-        if orphaned == 1:
-            return "1 backed up caption had no matching media file and was skipped."
-        return f"{orphaned} backed up captions had no matching media file and were skipped."
-    if known == "split_video":
-        return _no_clips_warning(_count(stats, "skipped"))
-
-    parts = [_no_caption_warning(_count(stats, "no_caption"))]
-    if known == "auto_caption":
-        parts.append(_no_audio_warning(_count(stats, "audio_error")))
-    if known == "edit_captions":
-        parts.append(_rejected_warning(_count(stats, "rejected")))
-
+    rules = _WARNING_RULES.get(job_type, (_NO_CAPTION,))
+    parts = (message(_count(stats, key)) for key, message in rules)
     return " ".join(part for part in parts if part) or None
 
 
@@ -160,35 +133,33 @@ def completion_notification(snapshot: dict[str, object]) -> tuple[NotificationVa
     if status not in TERMINAL_STATUSES:
         return None
 
-    job_type = str(snapshot.get("job_type") or PRIMARY_JOB_TYPE)
+    job_type = str(snapshot.get("job_type") or "")
     raw_stats = snapshot.get("stats")
     stats = dict(raw_stats) if isinstance(raw_stats, dict) else {}
     folder = str(snapshot.get("folder_name") or "") or path_leaf_name(
         str(snapshot.get("folder") or "")
     )
     label = job_type_label(job_type)
+    outcome = effective_status(job_type, status, stats)
 
-    if shows_error_state(job_type, status, stats):
+    if outcome in ("failed", "interrupted"):
         detail = snapshot.get("error")
         if isinstance(detail, str) and detail:
             return "danger", f'{label} failed in "{folder}": {detail}'
         return "danger", f'{label} failed in "{folder}".'
 
-    if is_cancelled(job_type, status, stats):
+    if outcome == "cancelled":
         return "warning", f'{label} cancelled in "{folder}".'
 
-    if shows_warning_state(job_type, status, stats):
-        detail = warning_message(job_type, status, stats)
-        if detail:
-            return "warning", f'{label} finished with warnings in "{folder}": {detail}'
-        return "warning", f'{label} finished with warnings in "{folder}".'
+    if detail := warning_message(job_type, status, stats):
+        return "warning", f'{label} finished with warnings in "{folder}": {detail}'
 
     return "success", f'{label} completed in "{folder}".'
 
 
 def job_response(snapshot: dict[str, object]) -> JobResponse:
     """The only place the derived outcome fields are filled in, so they cannot drift."""
-    job_type = str(snapshot.get("job_type") or PRIMARY_JOB_TYPE)
+    job_type = str(snapshot["job_type"])
     status = str(snapshot.get("status") or "")
     raw_stats = snapshot.get("stats")
     stats = dict(raw_stats) if isinstance(raw_stats, dict) else {}

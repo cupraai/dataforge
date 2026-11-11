@@ -1,3 +1,4 @@
+import type { WorkflowOverlaysState } from "@/features/workflows/hooks/useWorkflowHost";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
 import type { AutomationDialogsState } from "@/features/automation/types";
 import type { GalleryItemOpenIntent } from "@/features/gallery/hooks/useGalleryOverlays";
@@ -151,6 +152,7 @@ export type AppOverlaysProps = {
   candidateReview: CandidateReviewOverlayState;
   jobStart: JobStartConfirmState;
   automation: AutomationDialogsState;
+  workflows: WorkflowOverlaysState;
   fileImport: FileImportOverlayState;
   createFolder: CreateFolderOverlayState | null;
   renameFolder: RenameFolderOverlayState | null;

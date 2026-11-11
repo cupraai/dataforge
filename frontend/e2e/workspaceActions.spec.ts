@@ -248,11 +248,7 @@ for (const theme of ["dark", "light"]) {
       });
       await openWorkspace(page);
       await expect(page.getByRole("button", { name: "View photo.png", exact: true })).toBeVisible();
-      await page.getByRole("button", { name: "Auto-caption", exact: true }).hover();
-      await page.screenshot({
-        animations: "disabled",
-        path: testInfo.outputPath("auto-caption-hover.png"),
-      });
+      await expect(page.getByRole("button", { name: "Auto-caption", exact: true })).toHaveCount(0);
       await page.getByRole("button", { name: "Tools", exact: true }).hover();
       await page.screenshot({
         animations: "disabled",
@@ -272,6 +268,11 @@ for (const theme of ["dark", "light"]) {
       await expect(tools.getByRole("searchbox")).toHaveCount(0);
       await expect(tools.getByRole("menuitem", { name: "Folder instructions" })).toHaveCount(0);
       await expect(tools.getByRole("group")).toHaveCount(5);
+      await expect(
+        tools
+          .getByRole("group", { name: "Captions" })
+          .getByRole("menuitem", { name: /^Auto-caption/ }),
+      ).toBeVisible();
       if (width >= 1440) {
         expect(toolsBox.width).toBeLessThan(950);
         const groups = await tools.getByRole("group").all();
