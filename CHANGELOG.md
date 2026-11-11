@@ -8,6 +8,10 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Added
+
+- The gallery lists, previews and captions more formats: AVIF, HEIC and TIFF images, WebM videos, and OGG, M4A and Opus audio. These are view-only: the editors, Resize, Watermark and Strip metadata skip them.
+
 ## 0.13.0 - 2026-11-10
 
 ### Added

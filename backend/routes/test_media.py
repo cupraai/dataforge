@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.parse import quote
+
+from PIL import Image
 
 from gif_frames import clear_gif_caches_for_tests
 from routes._test_client import client
@@ -30,6 +33,32 @@ class MediaEndpointTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.content.startswith(b"\x89PNG"))
 
+    def test_serves_a_webp_rendition_of_an_image_browsers_cannot_decode(self) -> None:
+        for name, image_format in (
+            ("scan.tiff", "TIFF"),
+            ("scan.tif", "TIFF"),
+            ("shot.heic", "HEIF"),
+        ):
+            with self.subTest(name=name), TempMediaFolder() as root:
+                media = root / name
+                Image.new("RGB", (48, 32), (200, 40, 40)).save(media, format=image_format)
+
+                response = client.get(f"/api/media?path={quote(str(media))}")
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers["content-type"], "image/webp")
+                with Image.open(io.BytesIO(response.content)) as image:
+                    self.assertEqual((image.format, image.size), ("WEBP", (48, 32)))
+
+    def test_an_undecodable_rendition_source_is_a_client_error(self) -> None:
+        with TempMediaFolder() as root:
+            media = root / "broken.tiff"
+            media.write_bytes(b"not a tiff")
+
+            response = client.get(f"/api/media?path={quote(str(media))}")
+
+            self.assertEqual(response.status_code, 400)
+
     def test_serves_an_explicit_content_type_for_every_media_extension(self) -> None:
         """Guessed types come off the Windows registry, which need not know WebP or MKV."""
         expected = {
@@ -39,6 +68,7 @@ class MediaEndpointTests(unittest.TestCase):
             "loop.gif": "image/gif",
             "logo.webp": "image/webp",
             "logo.bmp": "image/bmp",
+            "photo.avif": "image/avif",
             "clip.mp4": "video/mp4",
             "clip.m4v": "video/mp4",
             "clip.mov": "video/quicktime",
@@ -46,9 +76,13 @@ class MediaEndpointTests(unittest.TestCase):
             "clip.avi": "video/x-msvideo",
             "clip.wmv": "video/x-ms-wmv",
             "clip.flv": "video/x-flv",
+            "clip.webm": "video/webm",
             "voice.wav": "audio/wav",
             "song.mp3": "audio/mpeg",
             "track.flac": "audio/flac",
+            "tone.ogg": "audio/ogg",
+            "voice.opus": "audio/ogg",
+            "song.m4a": "audio/mp4",
             "TRACK.FLAC": "audio/flac",
         }
 

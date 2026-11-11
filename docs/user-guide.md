@@ -318,12 +318,16 @@ Every format below shows in the gallery and takes a `.txt` caption. AI caption j
 | JPG/JPEG, WebP | Image | Image | Yes | Yes | — |
 | PNG | Image | Image | Yes | Yes | Yes |
 | BMP | Image | Image | Nothing to strip | Yes | — |
+| AVIF | Image | — | — | — | — |
+| HEIC, TIFF/TIF | Image, shown as a converted copy | — | — | — | — |
 | GIF | Animation, frame capture | Convert to MP4 first | — | Yes | — |
 | MP4, MOV, M4V | Playback and frame capture if the browser has the codec | Video | Yes | Yes | Yes |
+| WebM | Playback and frame capture if the browser has the codec | — | — | — | — |
 | AVI, MKV, WMV, FLV | Thumbnail only | — | — | — | — |
 | WAV, MP3, FLAC | Waveform and playback | Audio | — | — | — |
+| OGG, M4A, Opus | Waveform and playback | — | — | — | — |
 
-Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's first frame and sample frames across a video, including containers the browser cannot play. A watermarked GIF stays an animated GIF with its frame timing, loop count, and transparency.
+Browsers cannot decode HEIC or TIFF, so the viewer shows a WebP copy made from the file and kept in the thumbnail cache; the file itself is never changed, and caption jobs read the original. Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's first frame and sample frames across a video, including containers the browser cannot play. A watermarked GIF stays an animated GIF with its frame timing, loop count, and transparency.
 
 ### Model files
 

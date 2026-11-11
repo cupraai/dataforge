@@ -12,6 +12,8 @@ python-dotenv==1.2.4
 httpx==0.28.1
 openai==3.26.1
 Pillow==12.3.0
+# HEIC decoding for Pillow; image_io registers it.
+pillow-heif==1.8.1
 # Audio length for the gallery; header reads only, no decoding.
 mutagen==1.48.1
 imageio-ffmpeg==0.6.0

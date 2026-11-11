@@ -1,8 +1,13 @@
 from typing import Final, TypedDict
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+# Written back in their own format by edits, the watermark and metadata stripping.
+NATIVE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+# Browsers decode none of these, so `/media` serves a WebP rendition of the picture instead.
+DISPLAY_RENDITION_EXTENSIONS = {".heic", ".tif", ".tiff"}
+# Everything Pillow reads as a still: listed, captioned and given to jobs that read pixels.
+IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | DISPLAY_RENDITION_EXTENSIONS | {".avif"}
 GIF_EXTENSION = ".gif"
-VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".m4v", ".flv"}
+VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".m4v", ".flv", ".webm"}
 
 # GIF is still for decode/caption and motion for frames/LoRA; keep the two sets separate.
 PILLOW_EXTENSIONS = IMAGE_EXTENSIONS | {GIF_EXTENSION}
@@ -10,7 +15,7 @@ MOTION_EXTENSIONS = VIDEO_EXTENSIONS | {GIF_EXTENSION}
 
 MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | MOTION_EXTENSIONS
 
-AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac"}
+AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".opus"}
 
 # Model weights: listed, inspected and moved around, never captioned. Pickled checkpoints stay
 # out because reading one runs code.
@@ -31,7 +36,7 @@ ISOBMFF_EXTENSIONS = {".mp4", ".mov", ".m4v"}
 COMFY_WORKFLOW_EXTENSIONS = {".png"} | ISOBMFF_EXTENSIONS
 
 # `-movflags`/`-c:a copy` only work on the MP4 family; GIFs take their own palette-rebuild path.
-WATERMARK_EXTENSIONS = IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTENSION}
+WATERMARK_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTENSION}
 
 # Browser-decodable only: the editor reads size from `<video>`. Muxers here all accept `-movflags`.
 VIDEO_EDIT_EXTENSIONS = ISOBMFF_EXTENSIONS
@@ -58,8 +63,8 @@ AUDIO_PITCH_MAX_SEMITONES = 12
 
 # The multi-track editor previews in the browser and renders with ffmpeg; GIF stays out.
 VIDEO_PROJECT_VIDEO_EXTENSIONS = ISOBMFF_EXTENSIONS
-VIDEO_PROJECT_IMAGE_EXTENSIONS = IMAGE_EXTENSIONS
-VIDEO_PROJECT_AUDIO_EXTENSIONS = AUDIO_EXTENSIONS
+VIDEO_PROJECT_IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS
+VIDEO_PROJECT_AUDIO_EXTENSIONS = set(AUDIO_EDIT_MUXERS)
 VIDEO_PROJECT_SOURCE_EXTENSIONS = (
     VIDEO_PROJECT_VIDEO_EXTENSIONS | VIDEO_PROJECT_IMAGE_EXTENSIONS | VIDEO_PROJECT_AUDIO_EXTENSIONS
 )
@@ -132,7 +137,7 @@ GIF_MP4_EXTENSION = ".mp4"
 TAG_SCORE_FLOOR = 0.1
 
 # GIF excluded: a Pillow round-trip flattens the animation.
-IMAGE_EDIT_EXTENSIONS = IMAGE_EXTENSIONS
+IMAGE_EDIT_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS
 
 # Appended to the whole filename so `clip.mp4` and `clip.mov` keep distinct backups.
 EDIT_BACKUP_SUFFIX = ".bak"
@@ -160,6 +165,10 @@ MEDIA_MIME_TYPES = {
     ".gif": "image/gif",
     ".webp": "image/webp",
     ".bmp": "image/bmp",
+    ".avif": "image/avif",
+    ".heic": "image/heic",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
     ".mp4": "video/mp4",
     ".m4v": "video/mp4",
     ".mov": "video/quicktime",
@@ -167,9 +176,13 @@ MEDIA_MIME_TYPES = {
     ".avi": "video/x-msvideo",
     ".wmv": "video/x-ms-wmv",
     ".flv": "video/x-flv",
+    ".webm": "video/webm",
     ".wav": "audio/wav",
     ".mp3": "audio/mpeg",
     ".flac": "audio/flac",
+    ".ogg": "audio/ogg",
+    ".opus": "audio/ogg",
+    ".m4a": "audio/mp4",
     ".safetensors": "application/octet-stream",
 }
 

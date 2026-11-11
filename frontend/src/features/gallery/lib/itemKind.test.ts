@@ -3,6 +3,7 @@ import type { GalleryItem } from "@/shared/types";
 import {
   isAudio,
   isAudioName,
+  isEditableAudio,
   isEditableImage,
   isEditableVideo,
   isGif,
@@ -121,15 +122,31 @@ describe("isAudio", () => {
     expect(isAudio(item("still.png", "audio"))).toBe(true);
   });
 
-  it("falls back to the extension for WAV, MP3, and FLAC", () => {
+  it("falls back to the extension for every audio format", () => {
     expect(
-      ["voice.wav", "song.mp3", "SONG.MP3", "track.flac", "TRACK.FLAC"].filter(
-        (name) => !isAudioName(name),
-      ),
+      [
+        "voice.wav",
+        "song.mp3",
+        "SONG.MP3",
+        "track.flac",
+        "TRACK.FLAC",
+        "tone.ogg",
+        "song.m4a",
+        "voice.opus",
+      ].filter((name) => !isAudioName(name)),
     ).toEqual([]);
-    expect(["track.ogg", "clip.mp4", "photo.png"].filter(isAudioName)).toEqual([]);
+    expect(["track.aiff", "clip.mp4", "photo.png"].filter(isAudioName)).toEqual([]);
     expect(isAudio(item("song.mp3", undefined))).toBe(true);
     expect(isAudio(item("track.flac", undefined))).toBe(true);
+  });
+
+  it("edits only the formats the server can write back", () => {
+    expect(isEditableAudio(item("song.mp3", "audio"))).toBe(true);
+    expect(isEditableAudio(item("tone.ogg", "audio"))).toBe(false);
+    expect(isEditableImage(item("photo.png", "image"))).toBe(true);
+    expect(isEditableImage(item("photo.heic", "image"))).toBe(false);
+    expect(isEditableImage(item("photo.avif", "image"))).toBe(false);
+    expect(isEditableVideo(item("clip.webm", "video"))).toBe(false);
   });
 
   it("is neither motion nor editable", () => {

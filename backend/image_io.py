@@ -5,6 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
+
+# Registered for the whole process: the media routes import this module at startup, so every
+# `Image.open` reads HEIC, not only the ones here.
+register_heif_opener()
 
 JPEG_SUFFIXES = {".jpg", ".jpeg"}
 JPEG_QUALITY = 92
@@ -23,12 +28,18 @@ class ImageReadError(Exception):
 
 def displayed_image(image: Image.Image) -> Image.Image:
     """The frame as browsers and the editor show it: EXIF Orientation applied, then dropped."""
+    if image.mode.startswith("I;16"):
+        # Pillow's own conversions clip 16-bit grey to white instead of scaling it.
+        image = image.point(lambda value: value / 256).convert("L")
     return ImageOps.exif_transpose(image) or image
 
 
 def displayed_size(image: Image.Image) -> tuple[int, int]:
     """:func:`displayed_image`'s size, read from the header without decoding the pixels."""
     width, height = image.size
+    if image.format == "TIFF":
+        # Pillow's TIFF reader reports the turned size itself and turns the pixels on load.
+        return width, height
     # PngImageFile.getexif decodes every pixel to find an eXIf chunk after IDAT, which the PNG
     # spec forbids; the base reader uses what Image.open already parsed from the header.
     exif = Image.Image.getexif(image) if image.format == "PNG" else image.getexif()

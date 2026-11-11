@@ -70,7 +70,17 @@ class MediaTypeTests(unittest.TestCase):
 
     def test_classifies_every_image_format(self) -> None:
         with TempMediaFolder() as root:
-            for name in ("photo.jpg", "photo.jpeg", "photo.png", "photo.webp", "photo.bmp"):
+            for name in (
+                "photo.jpg",
+                "photo.jpeg",
+                "photo.png",
+                "photo.webp",
+                "photo.bmp",
+                "photo.heic",
+                "photo.avif",
+                "photo.tif",
+                "photo.tiff",
+            ):
                 with self.subTest(name=name):
                     self.assertEqual(get_media_type(root / name), "image")
 
@@ -84,6 +94,7 @@ class MediaTypeTests(unittest.TestCase):
                 "clip.wmv",
                 "clip.m4v",
                 "clip.flv",
+                "clip.webm",
             ):
                 with self.subTest(name=name):
                     self.assertEqual(get_media_type(root / name), "video")
@@ -99,11 +110,20 @@ class MediaTypeTests(unittest.TestCase):
             self.assertIsNone(get_media_type(root / "notes.md"))
             # Vector, so nothing that decodes pixels here could read it.
             self.assertIsNone(get_media_type(root / "logo.svg"))
-            self.assertIsNone(get_media_type(root / "track.ogg"))
+            self.assertIsNone(get_media_type(root / "track.aiff"))
 
     def test_classifies_audio_formats(self) -> None:
         with TempMediaFolder() as root:
-            for name in ("track.wav", "track.mp3", "TRACK.MP3", "track.flac", "TRACK.FLAC"):
+            for name in (
+                "track.wav",
+                "track.mp3",
+                "TRACK.MP3",
+                "track.flac",
+                "TRACK.FLAC",
+                "track.ogg",
+                "track.m4a",
+                "track.opus",
+            ):
                 with self.subTest(name=name):
                     self.assertEqual(get_media_type(root / name), "audio")
 

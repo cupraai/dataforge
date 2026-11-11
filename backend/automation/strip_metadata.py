@@ -12,7 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
 from automation.selection import filter_media_list, list_folder_media
-from constants import IMAGE_EXTENSIONS, ISOBMFF_EXTENSIONS
+from constants import ISOBMFF_EXTENSIONS, NATIVE_IMAGE_EXTENSIONS
 from edit_sidecars import refresh_published
 from ffmpeg_bin import ffmpeg_path
 from ffmpeg_run import FfmpegCancelled, ShouldCancel, run_ffmpeg
@@ -20,7 +20,7 @@ from image_io import JPEG_SUFFIXES
 
 # BMP has no metadata container: it is listed so the job does not skip the file in silence.
 STRIP_BMP_SUFFIX = ".bmp"
-STRIP_METADATA_EXTENSIONS = IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS
+STRIP_METADATA_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS
 
 # Sits before the suffix so the watermark job's `*.watermark-tmp.*` sweep still reaches it.
 STRIP_TEMP_MARKER = ".strip-meta"

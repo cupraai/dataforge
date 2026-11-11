@@ -3,11 +3,14 @@ from __future__ import annotations
 import unittest
 
 from constants import (
+    AUDIO_EDIT_MUXERS,
     AUDIO_EXTENSIONS,
     CAPTIONED_EXTENSIONS,
     COMFY_WORKFLOW_EXTENSIONS,
+    DISPLAY_RENDITION_EXTENSIONS,
     GALLERY_EXTENSIONS,
     GIF_EXTENSION,
+    IMAGE_EDIT_EXTENSIONS,
     IMAGE_EXTENSIONS,
     IMPORT_EXTENSIONS,
     ISOBMFF_EXTENSIONS,
@@ -15,15 +18,18 @@ from constants import (
     MEDIA_MIME_TYPES,
     MODEL_EXTENSIONS,
     MOTION_EXTENSIONS,
+    NATIVE_IMAGE_EXTENSIONS,
     PILLOW_EXTENSIONS,
     SHARED_CONSTANTS,
     SIDECAR_EXTENSIONS,
     VIDEO_EXTENSIONS,
+    VIDEO_PROJECT_AUDIO_EXTENSIONS,
+    VIDEO_PROJECT_IMAGE_EXTENSIONS,
     WATERMARK_EXTENSIONS,
 )
 
-#: OGG is not listed, and SVG is vector - nothing here decodes it.
-UNSUPPORTED_EXTENSIONS = {".ogg", ".svg"}
+#: SVG is vector - nothing here decodes it.
+UNSUPPORTED_EXTENSIONS = {".svg"}
 
 
 class MediaExtensionInvariantTests(unittest.TestCase):
@@ -38,8 +44,22 @@ class MediaExtensionInvariantTests(unittest.TestCase):
     def test_watermark_covers_images_gifs_and_only_the_mp4_family(self) -> None:
         # `-movflags` and `-c:a copy` are MP4-family shaped; GIFs have their own encode path.
         self.assertEqual(
-            WATERMARK_EXTENSIONS, IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTENSION}
+            WATERMARK_EXTENSIONS, NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTENSION}
         )
+
+    def test_only_native_image_formats_are_written_back(self) -> None:
+        # The savers know these five; a HEIC, AVIF or TIFF would come back as a PNG in disguise.
+        self.assertLess(NATIVE_IMAGE_EXTENSIONS, IMAGE_EXTENSIONS)
+        self.assertEqual(IMAGE_EDIT_EXTENSIONS, NATIVE_IMAGE_EXTENSIONS)
+        self.assertEqual(VIDEO_PROJECT_IMAGE_EXTENSIONS, NATIVE_IMAGE_EXTENSIONS)
+
+    def test_renditions_are_for_listed_images_only(self) -> None:
+        self.assertLessEqual(DISPLAY_RENDITION_EXTENSIONS, IMAGE_EXTENSIONS)
+        self.assertEqual(DISPLAY_RENDITION_EXTENSIONS & NATIVE_IMAGE_EXTENSIONS, set())
+
+    def test_audio_is_edited_and_placed_only_in_formats_with_an_encoder(self) -> None:
+        self.assertLess(set(AUDIO_EDIT_MUXERS), AUDIO_EXTENSIONS)
+        self.assertEqual(VIDEO_PROJECT_AUDIO_EXTENSIONS, set(AUDIO_EDIT_MUXERS))
 
     def test_comfy_workflow_extensions_are_png_plus_isobmff(self) -> None:
         self.assertEqual(COMFY_WORKFLOW_EXTENSIONS, {".png"} | ISOBMFF_EXTENSIONS)

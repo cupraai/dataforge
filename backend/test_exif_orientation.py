@@ -54,6 +54,22 @@ class ExifOrientationReaderTests(unittest.TestCase):
                 media_dimensions(media, "image", stat.st_mtime_ns, stat.st_size), DISPLAYED
             )
 
+    def test_a_turned_tiff_lists_the_size_its_thumbnail_has(self) -> None:
+        """Pillow's TIFF reader turns the size itself, so turning it again would undo it."""
+        with TempMediaFolder() as root:
+            media = root / "scan.tiff"
+            # 274 is Orientation.
+            Image.new("RGB", STORED).save(
+                media, format="TIFF", tiffinfo={274: 6}, compression="tiff_lzw"
+            )
+            stat = media.stat()
+
+            self.assertEqual(
+                media_dimensions(media, "image", stat.st_mtime_ns, stat.st_size), DISPLAYED
+            )
+            with Image.open(get_or_create_thumbnail(media, 1200)) as thumbnail:
+                self.assertEqual(thumbnail.size, DISPLAYED)
+
     def test_an_unrotated_photo_keeps_its_stored_size(self) -> None:
         with TempMediaFolder() as root:
             media = write_jpeg(root, "landscape.jpg", width=STORED[0], height=STORED[1])

@@ -6,13 +6,20 @@ import os
 import subprocess
 import tempfile
 import threading
+from collections.abc import Callable
 from itertools import chain
 from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
 
 from app_settings import effective_settings
-from constants import AUDIO_EXTENSIONS, GALLERY_EXTENSIONS, MODEL_EXTENSIONS, PILLOW_EXTENSIONS
+from constants import (
+    AUDIO_EXTENSIONS,
+    DISPLAY_RENDITION_EXTENSIONS,
+    GALLERY_EXTENSIONS,
+    MODEL_EXTENSIONS,
+    PILLOW_EXTENSIONS,
+)
 from ffmpeg_bin import ffmpeg_path
 from image_io import displayed_image
 from schemas import ThumbnailCacheCleared, ThumbnailCacheStats
@@ -58,6 +65,12 @@ class ThumbnailUnavailableError(ThumbnailError):
 #: Part of the cache key; bump it when rendering changes so stale thumbnails are not served.
 #: 2: EXIF Orientation applied.
 THUMBNAIL_RENDER_VERSION = 2
+
+#: The width a display rendition is cached under; no thumbnail is ever this narrow.
+_DISPLAY_RENDITION_KEY = 0
+DISPLAY_RENDITION_QUALITY = 92
+#: WebP's limit per side.
+DISPLAY_RENDITION_MAX_SIDE = 16383
 
 
 def get_thumbnail_cache_dir() -> Path:
@@ -123,6 +136,30 @@ def _render_image_thumbnail(source: Path, destination: Path, width: int) -> None
             _save_thumbnail_webp(displayed_image(image), destination, width)
     except (OSError, UnidentifiedImageError) as exc:
         raise ThumbnailError("Failed to read image for thumbnail generation") from exc
+
+
+def _render_display_image(source: Path, destination: Path) -> None:
+    try:
+        with Image.open(source) as image:
+            working = displayed_image(image)
+            if working.mode not in {"RGB", "RGBA"}:
+                transparent = working.mode in {"LA", "PA"} or "transparency" in working.info
+                working = working.convert("RGBA" if transparent else "RGB")
+            if max(working.size) > DISPLAY_RENDITION_MAX_SIDE:
+                working.thumbnail(
+                    (DISPLAY_RENDITION_MAX_SIDE, DISPLAY_RENDITION_MAX_SIDE),
+                    Image.Resampling.LANCZOS,
+                )
+            # Explicit: Pillow's WebP saver takes the profile from its arguments only.
+            profile = image.info.get("icc_profile")
+            working.save(
+                destination,
+                format="WEBP",
+                quality=DISPLAY_RENDITION_QUALITY,
+                **({"icc_profile": profile} if profile else {}),
+            )
+    except (OSError, UnidentifiedImageError, ValueError) as exc:
+        raise ThumbnailError("Failed to read the image") from exc
 
 
 def _video_thumbnail_commands(source: Path, destination: Path, width: int) -> list[list[str]]:
@@ -338,7 +375,32 @@ def get_or_create_thumbnail(source: Path, width: int) -> Path:
     if suffix in MODEL_EXTENSIONS:
         raise ThumbnailUnavailableError("Model files have no thumbnail")
 
-    cached = thumbnail_cache_path(source, normalized_width)
+    def render(destination: Path) -> None:
+        if suffix in PILLOW_EXTENSIONS:
+            # GIF via Pillow: frame zero is the poster a still thumbnail wants.
+            _render_image_thumbnail(source, destination, normalized_width)
+        elif suffix in AUDIO_EXTENSIONS:
+            _render_audio_thumbnail(source, destination, normalized_width)
+        else:
+            _render_video_thumbnail(source, destination, normalized_width)
+
+    return _cached_render(thumbnail_cache_path(source, normalized_width), render)
+
+
+def get_or_create_display_image(source: Path) -> Path:
+    """The whole picture as WebP, for an image format browsers cannot decode. Cached and evicted
+    with the thumbnails."""
+    source = source.resolve()
+    if source.suffix.lower() not in DISPLAY_RENDITION_EXTENSIONS:
+        raise ThumbnailError("This format is served as it is")
+
+    return _cached_render(
+        thumbnail_cache_path(source, _DISPLAY_RENDITION_KEY),
+        lambda destination: _render_display_image(source, destination),
+    )
+
+
+def _cached_render(cached: Path, render: Callable[[Path], None]) -> Path:
     if cached.is_file():
         return cached
 
@@ -356,13 +418,7 @@ def get_or_create_thumbnail(source: Path, width: int) -> Path:
             temp_path = Path(handle.name)
 
         try:
-            if suffix in PILLOW_EXTENSIONS:
-                # GIF via Pillow: frame zero is the poster a still thumbnail wants.
-                _render_image_thumbnail(source, temp_path, normalized_width)
-            elif suffix in AUDIO_EXTENSIONS:
-                _render_audio_thumbnail(source, temp_path, normalized_width)
-            else:
-                _render_video_thumbnail(source, temp_path, normalized_width)
+            render(temp_path)
             os.replace(temp_path, cached)
         except Exception:
             temp_path.unlink(missing_ok=True)

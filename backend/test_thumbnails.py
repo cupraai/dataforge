@@ -31,6 +31,7 @@ from thumbnails import (
     ThumbnailUnavailableError,
     _video_thumbnail_commands,
     clear_thumbnail_cache,
+    get_or_create_display_image,
     get_or_create_thumbnail,
     get_thumbnail_cache_budget_bytes,
     get_thumbnail_cache_dir,
@@ -149,6 +150,50 @@ class ThumbnailGenerationTests(CacheFolderTestCase):
 
             self.assertTrue(thumbnail.is_file())
             self.assertGreater(thumbnail.stat().st_size, 0)
+
+
+class NewImageFormatTests(CacheFolderTestCase):
+    def test_thumbnails_every_pillow_only_format(self) -> None:
+        for name, image_format in (("a.heic", "HEIF"), ("a.avif", "AVIF"), ("a.tiff", "TIFF")):
+            with self.subTest(name=name), TempMediaFolder() as root:
+                media = root / name
+                Image.new("RGB", (320, 240), (10, 120, 200)).save(media, format=image_format)
+
+                with Image.open(get_or_create_thumbnail(media, 160)) as image:
+                    self.assertEqual((image.format, image.size), ("WEBP", (160, 120)))
+
+    def test_display_rendition_keeps_transparency_and_applies_orientation(self) -> None:
+        with TempMediaFolder() as root:
+            media = root / "turned.tiff"
+            # 274 is Orientation; 6 turns the stored frame a quarter turn.
+            Image.new("RGBA", (40, 20), (0, 200, 0, 128)).save(
+                media, format="TIFF", tiffinfo={274: 6}, compression="tiff_lzw"
+            )
+
+            with Image.open(get_or_create_display_image(media)) as image:
+                self.assertEqual((image.size, image.mode), ((20, 40), "RGBA"))
+                self.assertEqual(image.getpixel((5, 5))[3], 128)
+
+    def test_sixteen_bit_grey_is_scaled_not_clipped(self) -> None:
+        with TempMediaFolder() as root:
+            media = root / "deep.tiff"
+            Image.new("I;16", (16, 16), 32768).save(media, format="TIFF")
+
+            with Image.open(get_or_create_display_image(media)) as image:
+                red, green, blue = image.convert("RGB").getpixel((8, 8))
+            self.assertTrue(all(120 <= channel <= 136 for channel in (red, green, blue)))
+
+    def test_display_rendition_is_cached_and_evicted_with_thumbnails(self) -> None:
+        with TempMediaFolder() as root:
+            media = root / "scan.tiff"
+            Image.new("RGB", (32, 32)).save(media, format="TIFF")
+
+            rendition = get_or_create_display_image(media)
+
+            self.assertEqual(rendition, get_or_create_display_image(media))
+            self.assertNotEqual(rendition, get_or_create_thumbnail(media, 64))
+            clear_thumbnail_cache()
+            self.assertFalse(rendition.exists())
 
 
 class ModelThumbnailTests(CacheFolderTestCase):

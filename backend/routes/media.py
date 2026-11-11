@@ -23,6 +23,7 @@ from comfy_candidates import (
 )
 from constants import (
     AUDIO_PITCH_MAX_SEMITONES,
+    DISPLAY_RENDITION_EXTENSIONS,
     GALLERY_EXTENSIONS,
     MAX_IMAGE_FILLS,
     MEDIA_MIME_TYPES,
@@ -129,6 +130,7 @@ from thumbnails import (
     MIN_THUMBNAIL_WIDTH,
     ThumbnailError,
     ThumbnailUnavailableError,
+    get_or_create_display_image,
     get_or_create_thumbnail,
 )
 from video_edit import (
@@ -225,6 +227,18 @@ def serve_media(
     file_path = _served_file(path, optional, resolve_media_file, resolve_optional_media_file)
     if file_path is None:
         return _gone()
+
+    if file_path.suffix.lower() in DISPLAY_RENDITION_EXTENSIONS:
+        try:
+            rendition = get_or_create_display_image(file_path)
+        except ThumbnailError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to read image: {exc}") from exc
+        # MediaFileResponse: cache pruning deletes these .webp files mid-stream.
+        return MediaFileResponse(
+            rendition, media_type="image/webp", headers={"Cache-Control": _cache_control(v)}
+        )
 
     # Content type comes from the media path; the backup suffix is deliberately non-media.
     served_path = original_path_for(file_path) if original else file_path
