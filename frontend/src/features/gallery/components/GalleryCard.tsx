@@ -10,6 +10,7 @@ import {
   iconFiles,
   iconMessageDashed,
   iconMessageWarning,
+  iconPencil,
   iconScanSquare,
   iconTriangleAlert,
   iconVideo,
@@ -149,26 +150,44 @@ export const GalleryCard = memo(function GalleryCard({
                 {selected && <Icon icon={iconCheck} className="card__selection-indicator-icon" />}
               </span>
             )}
-            {itemIsVideo && (
-              <CardBadge
-                icon={iconVideo}
-                compact={compactBadges}
-                label={mediaLength || "Video"}
-                variant="video"
-                numeric={!!mediaLength}
-              />
-            )}
-            {itemIsAudio && (
-              <CardBadge
-                icon={iconAudioLines}
-                compact={compactBadges}
-                label={mediaLength || "Audio"}
-                variant="audio"
-                numeric={!!mediaLength}
-              />
-            )}
-            {itemIsGif && (
-              <CardBadge icon={iconFileImage} compact={compactBadges} label="GIF" variant="gif" />
+            {/* The file's own facts on the left; caption and dataset findings on the right. */}
+            {(itemIsVideo || itemIsAudio || itemIsGif || item.has_backup) && (
+              <span className="card__file-badges">
+                {itemIsVideo && (
+                  <CardBadge
+                    icon={iconVideo}
+                    compact={compactBadges}
+                    label={mediaLength || "Video"}
+                    variant="video"
+                    numeric={!!mediaLength}
+                  />
+                )}
+                {itemIsAudio && (
+                  <CardBadge
+                    icon={iconAudioLines}
+                    compact={compactBadges}
+                    label={mediaLength || "Audio"}
+                    variant="audio"
+                    numeric={!!mediaLength}
+                  />
+                )}
+                {itemIsGif && (
+                  <CardBadge
+                    icon={iconFileImage}
+                    compact={compactBadges}
+                    label="GIF"
+                    variant="gif"
+                  />
+                )}
+                {item.has_backup && (
+                  <CardBadge
+                    icon={iconPencil}
+                    compact={compactBadges}
+                    label="Edited"
+                    variant="edited"
+                  />
+                )}
+              </span>
             )}
             {(item.has_issue_file || item.has_candidate || item.has_duplicate_file) && (
               <span className="card__badge-stack">

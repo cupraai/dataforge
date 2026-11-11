@@ -111,7 +111,8 @@
 :root[data-theme="light"] .card__media {
   .card__badge--video,
   .card__badge--candidate,
-  .card__badge--duplicate {
+  .card__badge--duplicate,
+  .card__badge--edited {
     @include root.dark-theme;
     // Inherited color was already resolved against the light --text on .card.
     color: var(--text);

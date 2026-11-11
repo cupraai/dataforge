@@ -280,6 +280,36 @@ describe("GalleryCard", () => {
     expect(stack?.lastElementChild).toHaveClass("card__badge--duplicate");
   });
 
+  it.each(["large", "small"] as const)(
+    "badges an edited file on %s cards with its kind, apart from the findings",
+    (displayMode) => {
+      const { container, rerender } = render(
+        <GalleryCard
+          item={{ ...uncaptionedItem, has_backup: true, has_issue_file: true }}
+          onSelect={vi.fn<(path: string) => void>()}
+          displayMode={displayMode}
+        />,
+      );
+
+      const fileBadges = container.querySelector(".card__file-badges");
+      expect(Array.from(fileBadges?.children ?? [], (badge) => badge.classList.item(1))).toEqual([
+        "card__badge--video",
+        "card__badge--edited",
+      ]);
+      expect(fileBadges?.lastElementChild?.querySelector(".lucide-pencil")).not.toBeNull();
+      expect(container.querySelector(".card__badge-stack .card__badge--edited")).toBeNull();
+
+      rerender(
+        <GalleryCard
+          item={captionedItem}
+          onSelect={vi.fn<(path: string) => void>()}
+          displayMode={displayMode}
+        />,
+      );
+      expect(container.querySelector(".card__badge--edited")).toBeNull();
+    },
+  );
+
   it("labels a video badge with the clip length when it is known", () => {
     const { container, rerender } = render(
       <GalleryCard

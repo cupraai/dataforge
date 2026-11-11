@@ -17,6 +17,7 @@ version heading when a minor or major version is cut.
 ### Changed
 
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
+- Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
 
 ## 0.13.0 - 2026-11-10
 
