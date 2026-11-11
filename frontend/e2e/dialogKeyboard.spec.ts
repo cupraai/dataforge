@@ -145,7 +145,7 @@ test("settings keep their draft after Escape and close without prompting after u
   await expect(edited).toBeChecked();
   const originalName = original === "system" ? "System" : original === "light" ? "Light" : "Dark";
   await dialog.getByText(originalName, { exact: true }).click();
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(confirmation).toHaveCount(0);
 });
