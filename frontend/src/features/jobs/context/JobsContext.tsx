@@ -34,11 +34,11 @@ import type {
   VideoProjectExportState,
 } from "@/shared/types";
 import { useVideoExports } from "@/features/videoEditor/hooks/useVideoExports";
-import { foldersMatch } from "@/features/folder/lib/folderPath";
 import {
   isActiveJobStatus,
   isTerminalJobStatus,
   jobShowsErrorState,
+  queuedFolderJobs,
   runningJobCount,
   selectFolderJob,
 } from "@/features/jobs/lib/jobs";
@@ -482,14 +482,15 @@ export function useFolderJob(folderPath: string | undefined) {
 
   const resolvedJob = contextJob ?? (folderPath ? (latestQuery.data ?? null) : null);
 
-  const folderHasActiveJob = useMemo(
-    () => jobs.some((job) => foldersMatch(job.folder, folderPath) && isActiveJobStatus(job.status)),
-    [jobs, folderPath],
+  const queuedJobs = useMemo(
+    () =>
+      queuedFolderJobs(jobs, folderPath).filter((job) => !resolvedJob || job.id !== resolvedJob.id),
+    [jobs, folderPath, resolvedJob],
   );
 
   return {
     job: resolvedJob,
-    folderHasActiveJob,
+    queuedJobs,
   };
 }
 

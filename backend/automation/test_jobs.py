@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import unittest
 import uuid
 from dataclasses import replace
@@ -53,23 +54,6 @@ class JobManagerQueueTests(unittest.TestCase):
             assert stored is not None
             self.assertEqual(stored["folder"], str(root.resolve()))
             self.assertEqual(stored.get("auto_caption_mode"), "instruct")
-
-    def test_rejects_second_active_job_for_same_folder(self) -> None:
-        with TempMediaFolder() as root:
-            write_sysprompt(root, "# Describe the scene.")
-            media = write_media(root, "photo.png")
-            write_txt_caption(media, "Draft.")
-            folder = str(root.resolve())
-
-            with job_manager._lock:
-                job_manager._jobs["running-test"] = Job(
-                    id="running-test",
-                    folder=folder,
-                    status="running",
-                )
-
-            with self.assertRaisesRegex(ValueError, "already running"):
-                job_manager.queue_job("strip_metadata", root)
 
     def test_get_active_job_for_folder_prefers_memory(self) -> None:
         with TempMediaFolder() as root:
@@ -236,6 +220,195 @@ class JobManagerExecutionTests(unittest.TestCase):
                 second.with_suffix(".txt").read_text(encoding="utf-8").strip(),
                 "Shared caption.",
             )
+
+
+def _finished(**stats: int) -> dict[str, object]:
+    return {"total": 1, "processed": 1, "stats": stats, "results": []}
+
+
+class _Gate:
+    """A runner that holds its job running until released, then returns ``result``."""
+
+    def __init__(self, result: dict[str, object] | None = None) -> None:
+        self.started = threading.Event()
+        self.release = threading.Event()
+        self.result = result or _finished(success=1)
+
+    def __call__(self, _folder, *, should_cancel, **_params):
+        self.started.set()
+        while not self.release.wait(0.01):
+            if should_cancel():
+                break
+        return self.result
+
+
+class FolderQueueTests(unittest.TestCase):
+    def setUp(self) -> None:
+        reset_job_manager()
+        init_notifications_table()
+        clear_notifications_for_tests()
+
+    def _queue(self, root, first: _Gate, second_run, third_run=None):
+        runners = {
+            "strip_metadata": replace(JOB_SPECS["strip_metadata"], run=first),
+            "set_captions": replace(JOB_SPECS["set_captions"], run=second_run),
+            "find_duplicates": replace(JOB_SPECS["find_duplicates"], run=third_run or second_run),
+        }
+        return patch.dict(JOB_SPECS, runners)
+
+    def test_a_job_started_while_another_runs_waits_and_then_runs(self) -> None:
+        first = _Gate()
+        ran: list[str] = []
+
+        def second(_folder, **_params):
+            ran.append("second")
+            return _finished(success=1)
+
+        with TempMediaFolder() as root, self._queue(root, first, second):
+            write_media(root, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            waiting = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+
+            self.assertEqual(job_manager.get_job(waiting.id).status, "queued")
+            self.assertEqual([job.id for job in job_manager.queued_jobs(str(root))], [waiting.id])
+            self.assertEqual(ran, [])
+
+            first.release.set()
+            self.assertEqual(wait_for_job(running.id).status, "completed")
+            self.assertEqual(wait_for_job(waiting.id).status, "completed")
+
+        self.assertEqual(ran, ["second"])
+
+    def test_the_folder_job_is_the_running_one_not_the_newer_queued_one(self) -> None:
+        first = _Gate()
+        with TempMediaFolder() as root, self._queue(root, first, lambda *_a, **_k: _finished()):
+            write_media(root, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+
+            latest = job_manager.get_latest_job_for_folder(str(root.resolve()))
+            active = job_manager.get_active_job_for_folder(str(root.resolve()))
+            first.release.set()
+            wait_for_job(running.id)
+
+        self.assertEqual(getattr(latest, "id", None), running.id)
+        self.assertEqual(getattr(active, "id", None), running.id)
+
+    def test_a_failed_job_cancels_everything_queued_behind_it(self) -> None:
+        first = _Gate(_finished(write_error=1))
+        ran: list[str] = []
+
+        def later(_folder, **_params):
+            ran.append("later")
+            return _finished(success=1)
+
+        with TempMediaFolder() as root, self._queue(root, first, later):
+            write_media(root, "photo.png")
+            failing = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            second = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+            third = job_manager.queue_job("find_duplicates", root)
+            first.release.set()
+
+            self.assertEqual(wait_for_job(failing.id).status, "failed")
+            skipped = [wait_for_job(second.id), wait_for_job(third.id)]
+
+        self.assertEqual(ran, [])
+        for job in skipped:
+            self.assertEqual(job.status, "cancelled")
+            self.assertEqual(job.error, "Not run: Strip metadata before it failed.")
+        messages = [str(entry["message"]) for entry in list_notifications()]
+        self.assertEqual(sum("queued jobs" in message for message in messages), 1)
+        self.assertFalse(any("Set captions" in message for message in messages))
+
+    def test_failed_files_in_a_completed_job_cancel_the_queue(self) -> None:
+        first = _Gate(_finished(success=3, skipped=1, read_error=1))
+        with TempMediaFolder() as root, self._queue(root, first, lambda *_a, **_k: _finished()):
+            write_media(root, "photo.png")
+            job_manager.queue_job("find_duplicates", root)
+            first_job = job_manager.queue_job("strip_metadata", root)
+            waiting = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+            first.release.set()
+
+            wait_for_job(first_job.id)
+            skipped = wait_for_job(waiting.id)
+
+        self.assertEqual(skipped.status, "cancelled")
+
+    def test_cancelling_the_running_job_cancels_the_queue(self) -> None:
+        first = _Gate()
+        with TempMediaFolder() as root, self._queue(root, first, lambda *_a, **_k: _finished()):
+            write_media(root, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            waiting = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+
+            job_manager.cancel_job(running.id)
+
+            self.assertEqual(wait_for_job(running.id).status, "cancelled")
+            skipped = wait_for_job(waiting.id)
+
+        self.assertEqual(skipped.status, "cancelled")
+        self.assertEqual(skipped.error, "Not run: Strip metadata before it was cancelled.")
+
+    def test_cancelling_a_queued_job_leaves_the_rest_of_the_queue(self) -> None:
+        first = _Gate()
+        ran: list[str] = []
+
+        def later(_folder, **_params):
+            ran.append("later")
+            return _finished(success=1)
+
+        with TempMediaFolder() as root, self._queue(root, first, later):
+            write_media(root, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            dropped = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+            kept = job_manager.queue_job("find_duplicates", root)
+
+            job_manager.cancel_job(dropped.id)
+            self.assertEqual(wait_for_job(dropped.id).status, "cancelled")
+            first.release.set()
+            wait_for_job(running.id)
+            self.assertEqual(wait_for_job(kept.id).status, "completed")
+
+        self.assertEqual(ran, ["later"])
+        self.assertIsNone(job_manager.get_job(dropped.id).error)
+
+    def test_a_queued_job_is_validated_again_when_it_starts(self) -> None:
+        first = _Gate()
+        with TempMediaFolder() as root, self._queue(root, first, lambda *_a, **_k: _finished()):
+            media = write_media(root, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+            waiting = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+            media.unlink()
+            first.release.set()
+
+            wait_for_job(running.id)
+            failed = wait_for_job(waiting.id)
+
+        self.assertEqual(failed.status, "failed")
+        self.assertTrue(failed.error)
+
+    def test_other_folders_do_not_wait(self) -> None:
+        first = _Gate()
+        with (
+            TempMediaFolder() as root,
+            TempMediaFolder() as other,
+            self._queue(root, first, lambda *_a, **_k: _finished(success=1)),
+        ):
+            write_media(root, "photo.png")
+            write_media(other, "photo.png")
+            running = job_manager.queue_job("strip_metadata", root)
+            first.started.wait(5)
+
+            elsewhere = job_manager.queue_job("set_captions", other, caption="x", overwrite=True)
+            self.assertEqual(wait_for_job(elsewhere.id).status, "completed")
+            first.release.set()
+            wait_for_job(running.id)
 
 
 class JobManagerLifecycleTests(unittest.TestCase):

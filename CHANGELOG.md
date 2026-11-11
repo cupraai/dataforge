@@ -10,6 +10,7 @@ version heading when a minor or major version is cut.
 
 ### Added
 
+- Jobs can be queued: starting a job while another runs in the same folder queues it to start when the one before it finishes cleanly. A job that fails, is cancelled or leaves failed files cancels everything queued after it.
 - The gallery lists, previews and captions more formats: AVIF, HEIC and TIFF images, WebM videos, and OGG, M4A and Opus audio. These are view-only: the editors, Resize, Watermark and Strip metadata skip them.
 
 ## 0.13.0 - 2026-11-10

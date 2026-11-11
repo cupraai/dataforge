@@ -11,9 +11,10 @@ import {
   type JobAvailability,
   type JobStartContext,
 } from "@/features/jobs/lib/jobMeta";
+import { isActiveJobStatus, jobTypeLabel } from "@/features/jobs/lib/jobs";
 import { quickActionRunJobId } from "@/features/quickAction/lib/buildQuickActionItems";
 import { touchRecentAction } from "@/features/quickAction/lib/quickActionHistory";
-import type { Breadcrumb, GalleryItem, JobType } from "@/shared/types";
+import type { Breadcrumb, GalleryItem, Job, JobType } from "@/shared/types";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
 import type { GalleryItemOpenOutcome } from "@/features/gallery/hooks/useGalleryItemDialog";
@@ -81,9 +82,12 @@ export function useAutomationHost({
   );
   const [pendingScope, setPendingScope] = useState<DialogScopeInfo | null>(null);
 
+  const queuedAfter = queuedAfterLabel(automation.folderJob, automation.queuedJobs);
+
   const dialogs = useAutomationDialogOverlays({
     folderPath: folder,
     folderLabel: jobStart.folderLabel,
+    queuedAfter,
     startingJobType: automation.startingJobType,
     itemCount: jobItemCount,
     folderItemCount: items.length,
@@ -109,7 +113,6 @@ export function useAutomationHost({
   const startContext = useMemo<JobStartContext>(
     () => ({
       hasFolder: Boolean(folder),
-      canStart: !automation.folderHasActiveJob,
       starting: automation.startingJobType !== null,
       itemCount: jobItemCount,
       folderCount: items.length,
@@ -117,7 +120,6 @@ export function useAutomationHost({
       availability: jobAvailability,
     }),
     [
-      automation.folderHasActiveJob,
       automation.startingJobType,
       folder,
       items.length,
@@ -164,6 +166,7 @@ export function useAutomationHost({
   const actions = useMemo<AutomationActions>(
     () => ({
       job: automation.folderJob,
+      queuedJobs: automation.queuedJobs,
       startingJobType: automation.startingJobType,
       startContext,
       onEditSysprompt,
@@ -184,6 +187,7 @@ export function useAutomationHost({
       automation.cancelFolderJob,
       automation.cancellingJob,
       automation.folderJob,
+      automation.queuedJobs,
       automation.startingJobType,
       startContext,
       reviewScope,
@@ -201,8 +205,11 @@ export function useAutomationHost({
   );
 
   const confirmScope = useMemo<DialogScopeInfo>(
-    () => pendingScope ?? { itemCount: jobItemCount, folderLabel, kind: scopeKind },
-    [folderLabel, jobItemCount, pendingScope, scopeKind],
+    () => ({
+      ...(pendingScope ?? { itemCount: jobItemCount, folderLabel, kind: scopeKind }),
+      queuedAfter,
+    }),
+    [folderLabel, jobItemCount, pendingScope, queuedAfter, scopeKind],
   );
 
   return {
@@ -216,4 +223,12 @@ export function useAutomationHost({
       onCancel: cancelPendingJobStart,
     },
   };
+}
+
+/** What a job started now waits for: the active job, or how many jobs are ahead of it. */
+function queuedAfterLabel(job: Job | null, queuedJobs: readonly Job[]): string | undefined {
+  const ahead = (job && isActiveJobStatus(job.status) ? 1 : 0) + queuedJobs.length;
+  if (ahead === 0) return undefined;
+  if (ahead === 1) return jobTypeLabel(job && isActiveJobStatus(job.status) ? job : queuedJobs[0]);
+  return `${ahead} jobs`;
 }

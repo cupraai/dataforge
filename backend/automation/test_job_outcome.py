@@ -4,6 +4,7 @@ from typing import get_args
 from automation.job_outcome import (
     completion_notification,
     effective_status,
+    finished_cleanly,
     job_response,
     shows_warning_state,
     warning_message,
@@ -186,6 +187,27 @@ class JobResponseTests(unittest.TestCase):
 class JobTypeLabelTests(unittest.TestCase):
     def test_every_job_type_has_a_user_facing_label(self) -> None:
         self.assertEqual(set(JOB_TYPE_LABELS), set(get_args(JobType.__value__)))
+
+
+class FinishedCleanlyTests(unittest.TestCase):
+    def test_a_completed_job_without_failed_files_finished_cleanly(self) -> None:
+        self.assertTrue(finished_cleanly("resize", "completed", {"success": 2}))
+        self.assertTrue(finished_cleanly("auto_caption", "completed", {"no_caption": 1}))
+
+    def test_failed_cancelled_and_interrupted_jobs_did_not(self) -> None:
+        for status in ("failed", "cancelled", "interrupted"):
+            with self.subTest(status=status):
+                self.assertFalse(finished_cleanly("resize", status, {}))
+
+    def test_a_failed_file_is_not_a_clean_finish(self) -> None:
+        for key in ("write_error", "busy", "too_short"):
+            with self.subTest(key=key):
+                stats = {"success": 4, key: 1}
+                self.assertFalse(finished_cleanly("set_captions", "completed", stats))
+
+    def test_a_failed_file_its_type_reports_as_a_warning_does_not_count(self) -> None:
+        stats = {"success": 4, "audio_error": 1}
+        self.assertTrue(finished_cleanly("auto_caption", "completed", stats))
 
 
 if __name__ == "__main__":

@@ -27,7 +27,8 @@ READING_JOBS: dict[str, JobType] = {
 
 def _locking_job_id(folder: Path, filename: str) -> str | None:
     for job in job_manager.active_jobs(READING_JOBS[filename]):
-        if instruction_file_reaches(folder, Path(job.folder), filename):
+        # A queued job reads the file when it starts, so an edit before then is what it should use.
+        if job.status == "running" and instruction_file_reaches(folder, Path(job.folder), filename):
             return job.id
     return None
 

@@ -268,7 +268,9 @@ The dialog shows the count and freezes the file list when it opens, previews inc
 
 ### Running and history
 
-Jobs run in the background, one per folder at a time. While one runs, **Cancel job** replaces Auto-caption and Tools, and the strip under the toolbar shows progress, the current file, and the time left. Cancelling keeps what was already written.
+Jobs run in the background, one per folder at a time; different folders run side by side. The strip under the toolbar shows progress, the current file, and the time left, and **Cancel job** appears beside Auto-caption and Tools. Cancelling keeps what was already written.
+
+**Queue jobs.** Starting a job while another runs in the same folder queues it: the dialog's scope line says what it is **queued after**, the strip counts the **queued** jobs (hover for their order), and each one starts as soon as the job before it finishes cleanly. If a job fails, is cancelled, is interrupted by a restart, or finishes with failed files, every job queued after it is cancelled, marked "Not run" in the Jobs drawer, and one notification says why. Cancelling the running job therefore cancels the queue too; cancelling a queued job from the Jobs drawer removes only that one. A queued job is checked again when it starts, so a folder an earlier step emptied fails it then. Edits to `.sysprompt` stay open until a queued Auto-caption starts, and it uses the saved text. Restarting DataForge drops the queue.
 
 A clean finish leaves no strip. After a failure, cancellation, warnings, or failed files, the strip stays until dismissed:
 

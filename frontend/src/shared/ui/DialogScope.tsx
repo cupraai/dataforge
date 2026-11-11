@@ -8,9 +8,11 @@ export interface DialogScopeInfo {
   folderLabel: string;
   kind: BulkScopeKind;
   note?: ReactNode;
+  /** The job, or count of jobs, a start now waits for; absent when it would start at once. */
+  queuedAfter?: string;
 }
 
-export function DialogScope({ itemCount, folderLabel, kind, note }: DialogScopeInfo) {
+export function DialogScope({ itemCount, folderLabel, kind, note, queuedAfter }: DialogScopeInfo) {
   const files = itemCount === 1 ? "file" : "files";
 
   return (
@@ -28,6 +30,11 @@ export function DialogScope({ itemCount, folderLabel, kind, note }: DialogScopeI
             </>
           )}{" "}
           in <strong className="dialog-scope__folder">{folderLabel}</strong>
+          {queuedAfter && (
+            <span className="dialog-scope__queue">
+              , queued after <strong>{queuedAfter}</strong>
+            </span>
+          )}
         </span>
       </p>
       {note && <p className="dialog-scope__note">{note}</p>}

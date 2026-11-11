@@ -31,15 +31,25 @@ export function selectFolderJob(
   );
   if (folderJobs.length === 0) return null;
 
-  const activeJobs = folderJobs.filter((job) => isActiveJobStatus(job.status));
-  const candidates = activeJobs.length > 0 ? activeJobs : folderJobs;
+  // A queued job is newer than the one running ahead of it, but the running one is what the
+  // folder is doing; between two jobs, the next to start.
+  const running = folderJobs.filter((job) => job.status === "running");
+  if (running.length > 0) return newestJob(running);
+  const queued = queuedFolderJobs(folderJobs, folderPath);
+  if (queued.length > 0) return queued[0];
+  return newestJob(folderJobs);
+}
 
-  return candidates.reduce<Job | null>((latest, job) => {
-    if (!latest || compareJobRecency(latest, job) > 0) {
-      return job;
-    }
-    return latest;
-  }, null);
+function newestJob(jobs: Job[]): Job {
+  return jobs.reduce((latest, job) => (compareJobRecency(latest, job) > 0 ? job : latest));
+}
+
+/** The folder's jobs waiting to start, in the order the server starts them. */
+export function queuedFolderJobs(jobs: readonly Job[], folderPath: string | undefined): Job[] {
+  if (!folderPath) return [];
+  return jobs
+    .filter((job) => job.status === "queued" && foldersMatch(job.folder, folderPath))
+    .sort((a, b) => compareJobRecency(b, a));
 }
 
 /** Earlier runs for the same folder and type stay: the server keeps them as history too. */

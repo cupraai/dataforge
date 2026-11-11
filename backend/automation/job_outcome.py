@@ -95,6 +95,24 @@ def _no_clips_warning(count: int) -> str | None:
     return f"{count} videos had no piece as long as the shortest clip, so they gave no clips."
 
 
+#: Per-file outcomes the jobs drawer counts as failed files, as ``failedCountFromStats`` does.
+_FAILED_FILE_KEYS = frozenset({"busy", "too_short"})
+#: Failed-file keys a type reports as a warning instead; they do not stop a queue.
+_WARNING_FILE_KEYS: dict[str, frozenset[str]] = {"auto_caption": frozenset({"audio_error"})}
+
+
+def finished_cleanly(job_type: str, status: str, stats: dict[str, int]) -> bool:
+    """Completed with no failed file: what lets the next job queued for the folder start."""
+    if effective_status(job_type, status, stats) != "completed":
+        return False
+    warnings = _WARNING_FILE_KEYS.get(_known_job_type(job_type), frozenset())
+    return not any(
+        count
+        for key, count in stats.items()
+        if (key.endswith("_error") or key in _FAILED_FILE_KEYS) and key not in warnings
+    )
+
+
 def shows_warning_state(job_type: str, status: str, stats: dict[str, int]) -> bool:
     if status != "completed" or effective_status(job_type, status, stats) != "completed":
         return False

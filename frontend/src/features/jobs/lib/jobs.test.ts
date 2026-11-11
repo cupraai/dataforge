@@ -21,6 +21,7 @@ import {
   jobTypeLabel,
   jobWarningMessage,
   progressPercent,
+  queuedFolderJobs,
   selectFolderJob,
   statusLabel,
   statusTone,
@@ -371,7 +372,67 @@ describe("statusLabel", () => {
   });
 });
 
+describe("queuedFolderJobs", () => {
+  it("lists the folder's queued jobs in the order they start", () => {
+    const folder = "C:\\Photos";
+    const later = makeJob({
+      id: "later",
+      folder,
+      status: "queued",
+      created_at: "2026-01-01T12:05:00.000Z",
+    });
+    const sooner = makeJob({
+      id: "sooner",
+      folder,
+      status: "queued",
+      created_at: "2026-01-01T12:00:00.000Z",
+    });
+    const running = makeJob({ id: "running", folder, status: "running" });
+    const elsewhere = makeJob({ id: "elsewhere", folder: "C:\\Other", status: "queued" });
+
+    expect(
+      queuedFolderJobs([later, running, elsewhere, sooner], folder).map((entry) => entry.id),
+    ).toEqual(["sooner", "later"]);
+  });
+});
+
 describe("selectFolderJob", () => {
+  it("shows the running job, not the newer job queued behind it", () => {
+    const folder = "C:\\Photos\\Dataset";
+    const running = makeJob({
+      id: "running",
+      folder,
+      status: "running",
+      created_at: "2026-01-01T12:00:00.000Z",
+    });
+    const queued = makeJob({
+      id: "queued",
+      folder,
+      status: "queued",
+      created_at: "2026-01-01T12:05:00.000Z",
+    });
+
+    expect(selectFolderJob([queued, running], folder)).toBe(running);
+  });
+
+  it("between two queued jobs, shows the one that starts next", () => {
+    const folder = "C:\\Photos\\Dataset";
+    const first = makeJob({
+      id: "first",
+      folder,
+      status: "queued",
+      created_at: "2026-01-01T12:00:00.000Z",
+    });
+    const second = makeJob({
+      id: "second",
+      folder,
+      status: "queued",
+      created_at: "2026-01-01T12:05:00.000Z",
+    });
+
+    expect(selectFolderJob([second, first], folder)).toBe(first);
+  });
+
   it("prefers an active job over an older cancelled job for the same folder", () => {
     const folder = "C:\\Photos\\Dataset";
     const cancelled = makeJob({

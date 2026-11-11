@@ -30,7 +30,7 @@ function setupHost(
 
   const automation = {
     folderJob: null,
-    folderHasActiveJob: false,
+    queuedJobs: [],
     startingJobType: null,
     isStarting: false,
     cancellingJob: false,

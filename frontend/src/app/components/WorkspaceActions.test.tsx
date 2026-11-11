@@ -28,10 +28,10 @@ function renderActions(
   const onRequestStart = vi.fn<(jobType: JobType) => void>();
   const panel: AutomationActions = {
     job: null,
+    queuedJobs: [],
     startingJobType: null,
     startContext: {
       hasFolder: true,
-      canStart: true,
       starting: false,
       itemCount: 1,
       folderCount: 1,
@@ -87,15 +87,40 @@ describe("Workspace tools", () => {
     );
   });
 
-  it("shows the running file and swaps the start actions for Cancel", () => {
-    renderActions(
-      { job: job({ status: "running", processed: 2, total: 8, current_name: "landscape.png" }) },
-      { canStart: false },
-    );
+  it("shows the running file and keeps the start actions beside Cancel for queueing", () => {
+    renderActions({
+      job: job({ status: "running", processed: 2, total: 8, current_name: "landscape.png" }),
+    });
     expect(screen.getByText("landscape.png")).toBeVisible();
     expect(screen.getByRole("button", { name: "Cancel job" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "Auto-caption" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Tools" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto-caption" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Tools" })).toBeEnabled();
+  });
+
+  it("counts the jobs queued behind the running one and names them in order", async () => {
+    const user = userEvent.setup();
+    renderActions({
+      job: job({ status: "running", processed: 2, total: 8 }),
+      queuedJobs: [
+        job({ id: "q1", status: "queued", job_type: "resize" }),
+        job({ id: "q2", status: "queued", job_type: "split_video" }),
+      ],
+    });
+
+    const chip = screen.getByText("2 queued");
+    await user.hover(chip);
+    expect(await screen.findByText("Then: Resize, Split into clips")).toBeInTheDocument();
+  });
+
+  it("warns that cancelling the running job cancels the queue too", async () => {
+    const user = userEvent.setup();
+    renderActions({
+      job: job({ status: "running", processed: 2, total: 8 }),
+      queuedJobs: [job({ id: "q1", status: "queued", job_type: "resize" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Cancel job" }));
+    expect(screen.getByText(/The job queued after it is cancelled too\./)).toBeInTheDocument();
   });
 
   it("asks before cancelling the running job", async () => {

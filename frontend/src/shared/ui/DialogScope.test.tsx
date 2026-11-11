@@ -3,6 +3,16 @@ import { describe, expect, it } from "vitest";
 import { DialogScope } from "./DialogScope";
 
 describe("DialogScope", () => {
+  it("says on the scope line which job a start now waits for", () => {
+    const { container } = render(
+      <DialogScope itemCount={4} folderLabel="Photos" kind="folder" queuedAfter="Auto-caption" />,
+    );
+
+    expect(container.querySelector(".dialog-scope__line")).toHaveTextContent(
+      "All 4 files in Photos, queued after Auto-caption",
+    );
+  });
+
   it("names the selection when one is narrowing the job", () => {
     const { container } = render(
       <DialogScope itemCount={23} folderLabel="Photos" kind="selected" />,

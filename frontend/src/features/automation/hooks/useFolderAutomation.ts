@@ -8,7 +8,7 @@ export function useFolderAutomation(
   reloadFolder: () => Promise<unknown>,
 ) {
   const { startJob, cancelJob, cancellingJobId, startingJob } = useJobs();
-  const { job: folderJob, folderHasActiveJob } = useFolderJob(folder);
+  const { job: folderJob, queuedJobs } = useFolderJob(folder);
 
   const handleTerminalJob = useCallback(
     (folderPath: string) => {
@@ -37,7 +37,7 @@ export function useFolderAutomation(
 
   return {
     folderJob,
-    folderHasActiveJob,
+    queuedJobs,
     startingJobType,
     isStarting: startingJobType !== null,
     cancellingJob: folderJob ? cancellingJobId === folderJob.id : false,

@@ -416,6 +416,18 @@
     color: var(--text-muted);
     @include tabular-nums;
   }
+  &__queue {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.3125rem;
+    color: var(--text-muted);
+    @include tabular-nums;
+    svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
   &__current {
     min-width: 0;
     max-width: 18rem;

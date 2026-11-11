@@ -25,6 +25,8 @@ import { useChanged } from "@/shared/hooks/useChanged";
 type UseAutomationDialogOverlaysOptions = {
   folderPath: string | undefined;
   folderLabel: string;
+  /** What a job started now waits for; see `DialogScopeInfo.queuedAfter`. */
+  queuedAfter?: string;
   startingJobType: JobType | null;
   /** Files a job will touch, before job-specific eligibility checks. */
   itemCount: number;
@@ -43,6 +45,7 @@ type UseAutomationDialogOverlaysOptions = {
 export function useAutomationDialogOverlays({
   folderPath,
   folderLabel,
+  queuedAfter,
   startingJobType,
   itemCount,
   folderItemCount,
@@ -90,9 +93,10 @@ export function useAutomationDialogOverlays({
     [closeDialog, folderPath, snapshot, startJob],
   );
 
+  // Live, not snapshotted: the job ahead can finish while the dialog is open.
   const scope = useMemo<DialogScopeInfo>(
-    () => snapshot?.scope ?? { itemCount, folderLabel, kind: scopeKind },
-    [folderLabel, itemCount, scopeKind, snapshot],
+    () => ({ ...(snapshot?.scope ?? { itemCount, folderLabel, kind: scopeKind }), queuedAfter }),
+    [folderLabel, itemCount, queuedAfter, scopeKind, snapshot],
   );
 
   const trainLoraScope = useMemo<DialogScopeInfo>(
@@ -101,8 +105,9 @@ export function useAutomationDialogOverlays({
       folderLabel,
       kind: "folder",
       note: "AI-Toolkit trains on the whole folder. Search, filters, and selection do not limit training.",
+      queuedAfter,
     }),
-    [folderItemCount, folderLabel],
+    [folderItemCount, folderLabel, queuedAfter],
   );
 
   const dialogs = useMemo<AutomationDialogsState>(() => {

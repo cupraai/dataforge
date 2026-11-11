@@ -242,8 +242,6 @@ export function jobMenuLabelFor(type: JobType): string {
 
 export interface JobStartContext {
   hasFolder: boolean;
-  /** False while a job runs in this folder. */
-  canStart: boolean;
   /** Another start request is in flight. */
   starting: boolean;
   /** Files in scope: the visible selection, or the visible results. */
@@ -272,12 +270,7 @@ export function jobStartBlock(type: JobType, context: JobStartContext): JobStart
       : null;
   return {
     blocked:
-      !context.hasFolder ||
-      !context.canStart ||
-      context.starting ||
-      emptyScope ||
-      unavailable ||
-      needsInstructions,
+      !context.hasFolder || context.starting || emptyScope || unavailable || needsInstructions,
     reason,
   };
 }

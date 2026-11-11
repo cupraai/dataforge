@@ -211,22 +211,20 @@ for (const width of [1024, 1440]) {
         animations: "disabled",
         path: testInfo.outputPath("system-specs.png"),
       });
-      // A running job replaces the start actions with Cancel.
-      await expect(page.getByRole("button", { name: "Tools", exact: true })).toHaveCount(
-        active ? 0 : 1,
+      // A running job keeps the start actions beside Cancel, so another job can be queued.
+      await expect(page.getByRole("button", { name: "Cancel job", exact: true })).toHaveCount(
+        active ? 1 : 0,
       );
-      if (!active) {
-        await page.getByRole("button", { name: "Tools", exact: true }).click();
-        const tools = page.getByRole("menu", { name: "Tools" });
-        await expect(tools).toBeVisible();
-        await expect(tools.getByRole("region", { name: "System specifications" })).toHaveCount(0);
-        const box = (await tools.boundingBox())!;
-        expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width).toBeLessThanOrEqual(width);
-        await page.screenshot({ animations: "disabled", path: testInfo.outputPath("tools.png") });
-        await page.keyboard.press("Escape");
-        await expect(page.getByRole("button", { name: "Tools", exact: true })).toBeFocused();
-      }
+      await page.getByRole("button", { name: "Tools", exact: true }).click();
+      const tools = page.getByRole("menu", { name: "Tools" });
+      await expect(tools).toBeVisible();
+      await expect(tools.getByRole("region", { name: "System specifications" })).toHaveCount(0);
+      const box = (await tools.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      await page.screenshot({ animations: "disabled", path: testInfo.outputPath("tools.png") });
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("button", { name: "Tools", exact: true })).toBeFocused();
       await page.locator(".main").evaluate((node) => {
         node.scrollTop = 850;
       });

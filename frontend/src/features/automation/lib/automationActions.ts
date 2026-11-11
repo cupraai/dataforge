@@ -5,7 +5,10 @@ import type { GalleryItemOpenOutcome } from "@/features/gallery/hooks/useGallery
 
 /** Folder automation state and handlers shared by the workspace actions and quick actions. */
 export interface AutomationActions {
+  /** The folder's running job, else its latest. */
   job: Job | null;
+  /** Jobs waiting behind `job`, in the order they start. */
+  queuedJobs: readonly Job[];
   startingJobType: JobType | null;
   /** Everything that decides whether a job can start; read through `jobStartBlock`. */
   startContext: JobStartContext;

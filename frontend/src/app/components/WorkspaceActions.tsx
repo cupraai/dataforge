@@ -15,6 +15,7 @@ import {
   jobIsCancelled,
   jobShowsErrorState,
   jobShowsWarningState,
+  jobTypeLabel,
   jobWarningMessage,
   progressPercent,
 } from "@/features/jobs/lib/jobs";
@@ -35,6 +36,7 @@ import {
   iconScanSquare,
   iconChevronDown,
   iconBan,
+  iconListOrdered,
   iconLoader2,
   iconCircleAlert,
   iconSearchCheck,
@@ -230,11 +232,14 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
     ? "Starting auto-caption job..."
     : panel.startingJobType !== null
       ? "Another job is starting..."
-      : (autoCaption.reason ?? "Generate captions for files in scope");
+      : (autoCaption.reason ??
+        (active
+          ? "Queue captions for files in scope; they start when the jobs ahead finish"
+          : "Generate captions for files in scope"));
 
   return (
     <div className="workspace-actions">
-      {active ? (
+      {active && (
         <button
           type="button"
           className="workspace-button workspace-button--warning"
@@ -244,31 +249,28 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
           <Icon icon={panel.cancellingJob ? iconLoader2 : iconBan} spin={panel.cancellingJob} />
           Cancel job
         </button>
-      ) : (
-        panel.startContext.canStart && (
-          <>
-            <Tooltip content={autoCaptionTooltip}>
-              <button
-                type="button"
-                className={classNames(
-                  "workspace-button workspace-button--accent",
-                  ROUND_WHEN_COMPACT_CLASS,
-                )}
-                aria-busy={startingPrimary || undefined}
-                disabled={autoCaption.blocked}
-                onClick={() => panel.onRequestStart(PRIMARY_JOB_TYPE)}
-              >
-                <Icon
-                  icon={startingPrimary ? iconLoader2 : jobTypeIconFor(PRIMARY_JOB_TYPE)}
-                  spin={startingPrimary}
-                />
-                <span className={COLLAPSIBLE_LABEL_CLASS}>{jobMenuLabelFor(PRIMARY_JOB_TYPE)}</span>
-              </button>
-            </Tooltip>
-            <ToolsMenu panel={panel} />
-          </>
-        )
       )}
+      <>
+        <Tooltip content={autoCaptionTooltip}>
+          <button
+            type="button"
+            className={classNames(
+              "workspace-button workspace-button--accent",
+              ROUND_WHEN_COMPACT_CLASS,
+            )}
+            aria-busy={startingPrimary || undefined}
+            disabled={autoCaption.blocked}
+            onClick={() => panel.onRequestStart(PRIMARY_JOB_TYPE)}
+          >
+            <Icon
+              icon={startingPrimary ? iconLoader2 : jobTypeIconFor(PRIMARY_JOB_TYPE)}
+              spin={startingPrimary}
+            />
+            <span className={COLLAPSIBLE_LABEL_CLASS}>{jobMenuLabelFor(PRIMARY_JOB_TYPE)}</span>
+          </button>
+        </Tooltip>
+        <ToolsMenu panel={panel} />
+      </>
       <ReviewMenu panel={panel} />
       <Tooltip content={showSpecs ? "Hide system specifications" : "Show system specifications"}>
         <button
@@ -285,6 +287,7 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
       {confirmingCancel && job && active && (
         <CancelJobDialog
           job={job}
+          queuedCount={panel.queuedJobs.length}
           onConfirm={() => {
             setConfirmingCancel(false);
             panel.onCancelJob();
@@ -314,6 +317,7 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
   const job = panel.job;
   const timeLabel = useJobTimeLabel(job);
   const active = Boolean(job && isActiveJobStatus(job.status));
+  const queued = panel.queuedJobs;
   const tone = jobTone(job);
   const failedCount = job && !active ? failedCountFromStats(job.stats) : 0;
   const needsAttention = tone !== null || failedCount > 0;
@@ -365,6 +369,14 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
             )}
             {active && <span className="workspace-activity__percent">{progressPercent(job)}%</span>}
             {active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
+            {queued.length > 0 && (
+              <Tooltip content={`Then: ${queued.map(jobTypeLabel).join(", ")}`}>
+                <span className="workspace-activity__queue">
+                  <Icon icon={iconListOrdered} />
+                  {queued.length} queued
+                </span>
+              </Tooltip>
+            )}
             {!active && (
               <button
                 type="button"
