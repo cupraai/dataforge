@@ -4,6 +4,7 @@ import { useLatestRef } from "@/shared/hooks/useLatestRef";
 
 export const STREAM_STALE_MS = 45_000;
 // Hidden tabs give up the stream so they do not consume a scarce per-origin EventSource slot.
+// The desktop notifier tab is the one exception: it must still hear job outcomes.
 export const HIDDEN_DISCONNECT_MS = 60_000;
 
 export interface ServerEventsContextValue {

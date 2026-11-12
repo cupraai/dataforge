@@ -13,11 +13,14 @@ version heading when a minor or major version is cut.
 - Workflows: save a chain of jobs with their own settings, edited in each job's usual dialog, and run it on the selection or folder from the toolbar or Quick actions. The steps queue back to back and stop at the first failure.
 - Jobs can be queued: starting a job while another runs in the same folder queues it to start when the one before it finishes cleanly. A job that fails, is cancelled or leaves failed files cancels everything queued after it.
 - The gallery lists, previews and captions more formats: AVIF, HEIC and TIFF images, WebM videos, and OGG, M4A and Opus audio. These are view-only: the editors, Resize, Watermark and Strip metadata skip them.
+- Desktop notifications: turn them on in **Settings → Notifications** to see finished jobs and other notifications on your desktop while DataForge is in the background. You can limit them to warnings and errors, or errors only. Clicking one brings DataForge back.
 
 ### Changed
 
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
+- **Save** in Settings no longer closes the dialog: the saved values show as saved and you can keep editing.
+- Settings: **Storage** and **Data & history** are now one section, **Data & storage**, with **History** and **Storage** tabs.
 
 ## 0.13.0 - 2026-11-10
 

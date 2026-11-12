@@ -1,7 +1,11 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryClient } from "@tanstack/react-query";
-import { installFakeEventSource } from "@/test/fakeEventSource";
+import {
+  DesktopNotifierContext,
+  type DesktopNotifier,
+} from "@/shared/notifications/desktopNotifications";
+import { installFakeEventSource, type FakeStream } from "@/test/fakeEventSource";
 import { queryWrapper } from "@/test/queryClient";
 import { ServerEventsProvider } from "./ServerEventsProvider";
 import {
@@ -31,6 +35,44 @@ function renderProvider(client?: QueryClient) {
     { wrapper: queryWrapper(client).wrapper },
   );
   return latest;
+}
+
+function renderWithNotifier(initial: DesktopNotifier) {
+  const latest = { current: { connected: false } };
+  const tree = (value: DesktopNotifier) => (
+    <DesktopNotifierContext value={value}>
+      <ServerEventsProvider>
+        <Probe
+          onState={(state) => {
+            latest.current = state;
+          }}
+        />
+      </ServerEventsProvider>
+    </DesktopNotifierContext>
+  );
+  const view = render(tree(initial), { wrapper: queryWrapper().wrapper });
+  return { latest, setNotifier: (value: DesktopNotifier) => view.rerender(tree(value)) };
+}
+
+const NOTIFIER: DesktopNotifier = { enabled: true, notifier: true, level: "all" };
+const OTHER_TAB: DesktopNotifier = { enabled: true, notifier: false, level: "all" };
+
+/** Hides the tab while the server keeps sending heartbeats, so only the hidden close can act. */
+async function hideFor(stream: FakeStream, ms: number) {
+  visibility.mockReturnValue("hidden");
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await liveFor(stream, ms);
+}
+
+async function liveFor(stream: FakeStream, ms: number) {
+  for (let elapsed = 0; elapsed < ms; elapsed += 10_000) {
+    await act(async () => {
+      stream.push({ type: "heartbeat" });
+      await vi.advanceTimersByTimeAsync(Math.min(10_000, ms - elapsed));
+    });
+  }
 }
 
 function seedQueries(client: QueryClient) {
@@ -195,5 +237,58 @@ describe("ServerEventsProvider", () => {
 
     expect(stream.source()).not.toBe(first);
     expect(latest.current.connected).toBe(true);
+  });
+
+  it("keeps the stream of the desktop notifier tab while it is hidden", async () => {
+    const stream = installFakeEventSource();
+    const { latest } = renderWithNotifier(NOTIFIER);
+    await act(async () => {
+      stream.open();
+    });
+    const first = stream.source();
+
+    await hideFor(stream, HIDDEN_DISCONNECT_MS * 3);
+
+    // Job outcomes still have to reach it to appear on the desktop.
+    expect(first.closed).toBe(false);
+    expect(latest.current.connected).toBe(true);
+  });
+
+  it("reopens a hidden tab's stream when it becomes the notifier", async () => {
+    const stream = installFakeEventSource();
+    const { latest, setNotifier } = renderWithNotifier(OTHER_TAB);
+    await act(async () => {
+      stream.open();
+    });
+    const first = stream.source();
+    await hideFor(stream, HIDDEN_DISCONNECT_MS + 1_000);
+    expect(first.closed).toBe(true);
+
+    await act(async () => {
+      setNotifier(NOTIFIER);
+    });
+    await act(async () => {
+      stream.open();
+    });
+
+    expect(stream.source()).not.toBe(first);
+    expect(latest.current.connected).toBe(true);
+  });
+
+  it("gives up a hidden stream a while after the tab stops being the notifier", async () => {
+    const stream = installFakeEventSource();
+    const { setNotifier } = renderWithNotifier(NOTIFIER);
+    await act(async () => {
+      stream.open();
+    });
+    const first = stream.source();
+    await hideFor(stream, HIDDEN_DISCONNECT_MS * 2);
+
+    act(() => setNotifier(OTHER_TAB));
+    await liveFor(stream, HIDDEN_DISCONNECT_MS - 1_000);
+    expect(first.closed).toBe(false);
+
+    await liveFor(stream, 2_000);
+    expect(first.closed).toBe(true);
   });
 });

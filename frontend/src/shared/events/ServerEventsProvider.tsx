@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { subscribeToServerEvents } from "@/shared/api/eventStream";
+import { useLatestRef } from "@/shared/hooks/useLatestRef";
+import { useDesktopNotifier } from "@/shared/notifications/desktopNotifications";
 import { isPushFed } from "@/shared/query/queryClient";
 import type { ServerEvent } from "@/shared/types";
 import {
@@ -17,6 +19,11 @@ export function ServerEventsProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const handlersRef = useRef(new Set<(event: ServerEvent) => void>());
   const lastFrameAtRef = useRef(0);
+  // The desktop notifier tab must still hear job outcomes while hidden.
+  const { enabled: desktopEnabled, notifier } = useDesktopNotifier();
+  const keepAlive = desktopEnabled && notifier;
+  const keepAliveRef = useLatestRef(keepAlive);
+  const applyVisibilityRef = useRef(() => {});
 
   // Nothing replays frames sent while the stream was down or dropped, so re-read whatever
   // pushes keep current, on every (re)connect and on every reported loss.
@@ -66,7 +73,7 @@ export function ServerEventsProvider({ children }: { children: ReactNode }) {
     const handleVisibility = () => {
       window.clearTimeout(hiddenTimer);
 
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" || keepAliveRef.current) {
         openStream();
         lastFrameAtRef.current = Date.now();
         return;
@@ -75,14 +82,11 @@ export function ServerEventsProvider({ children }: { children: ReactNode }) {
       hiddenTimer = window.setTimeout(closeStream, HIDDEN_DISCONNECT_MS);
     };
 
-    if (document.visibilityState === "visible") {
-      openStream();
-    } else {
-      hiddenTimer = window.setTimeout(closeStream, HIDDEN_DISCONNECT_MS);
-    }
+    handleVisibility();
+    applyVisibilityRef.current = handleVisibility;
 
     const watchdog = window.setInterval(() => {
-      if (!close || document.visibilityState !== "visible") return;
+      if (!close || (document.visibilityState !== "visible" && !keepAliveRef.current)) return;
       if (Date.now() - lastFrameAtRef.current <= STREAM_STALE_MS) return;
 
       closeStream();
@@ -93,12 +97,18 @@ export function ServerEventsProvider({ children }: { children: ReactNode }) {
 
     return () => {
       disposed = true;
+      applyVisibilityRef.current = () => {};
       window.clearTimeout(hiddenTimer);
       window.clearInterval(watchdog);
       document.removeEventListener("visibilitychange", handleVisibility);
       closeStream();
     };
-  }, [resync]);
+  }, [keepAliveRef, resync]);
+
+  // Becoming the notifier while hidden reopens the stream; losing it re-arms the hidden close.
+  useEffect(() => {
+    applyVisibilityRef.current();
+  }, [keepAlive]);
 
   const value = useMemo<ServerEventsContextValue>(
     () => ({ connected, subscribe }),

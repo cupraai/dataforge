@@ -56,7 +56,8 @@ describe("SettingsDialog: appearance", () => {
     await user.click(screen.getByRole("radio", { name: /^Light/ }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     expect(localStorage.getItem("ui-theme")).toBe("light");
     expect(document.documentElement.dataset.theme).toBe("light");
     await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
@@ -82,7 +83,8 @@ describe("SettingsDialog: appearance", () => {
     expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
     const [[, init]] = requests("/api/preferences/ui", "PUT");
     expect(JSON.parse(init?.body as string)).toEqual({
@@ -117,7 +119,8 @@ describe("SettingsDialog: appearance", () => {
     await user.click(folders.getByRole("checkbox", { name: "Hide hidden folders" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
     const [[, init]] = requests("/api/preferences/ui", "PUT");
     expect(JSON.parse(init?.body as string)).toEqual({ hide_hidden_folders: true });
@@ -134,7 +137,8 @@ describe("SettingsDialog: appearance", () => {
     await user.click(group.getByRole("checkbox", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
     const [[, init]] = requests("/api/preferences/ui", "PUT");
     expect(JSON.parse(init?.body as string).gallery_cards.card_actions).toEqual([
@@ -177,7 +181,8 @@ describe("SettingsDialog: appearance", () => {
     await user.click(screen.getByRole("checkbox", { name: "Suggest words while typing" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     await waitFor(() => expect(requests("/api/preferences/ui", "PUT")).toHaveLength(1));
     const [[, init]] = requests("/api/preferences/ui", "PUT");
     expect(JSON.parse(init?.body as string)).toEqual({

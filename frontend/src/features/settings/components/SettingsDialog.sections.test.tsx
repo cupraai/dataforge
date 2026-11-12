@@ -88,7 +88,7 @@ describe("SettingsDialog sections", () => {
 
   it("clears each kind of remembered data and says so", async () => {
     touchRecentFolder("C:\\Photos\\Lakes");
-    const user = await openSection("Data & history");
+    const user = await openSection("Data & storage");
     const remembered = groupNamed("Remembered data");
     const row = (label: string) => within(remembered).getByText(label).closest("li")!;
 

@@ -5,6 +5,7 @@ import { AppContent } from "./AppContent";
 import { createAppRouter } from "./router";
 import { BackendUnavailable } from "@/app/components/BackendUnavailable";
 import { JobsProvider } from "@/features/jobs/context/JobsContext";
+import { DesktopNotificationsProvider } from "@/shared/notifications/DesktopNotificationsProvider";
 import { NotificationsProvider } from "@/shared/notifications/NotificationsProvider";
 import { ServerEventsProvider } from "@/shared/events/ServerEventsProvider";
 import { EditorOptionsContext } from "@/shared/preferences/editorPreferences";
@@ -31,20 +32,22 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
       <EditorOptionsProvider>
-        <ServerEventsProvider>
-          <NotificationsProvider>
-            <JobsProvider>
-              <RouterContextProvider router={router}>
-                <DialogNavigationProvider>
-                  {/* Resolves each new location; the routes render nothing of their own. */}
-                  <Matches />
-                  <AppContent />
-                  <BackendUnavailable />
-                </DialogNavigationProvider>
-              </RouterContextProvider>
-            </JobsProvider>
-          </NotificationsProvider>
-        </ServerEventsProvider>
+        <DesktopNotificationsProvider>
+          <ServerEventsProvider>
+            <NotificationsProvider>
+              <JobsProvider>
+                <RouterContextProvider router={router}>
+                  <DialogNavigationProvider>
+                    {/* Resolves each new location; the routes render nothing of their own. */}
+                    <Matches />
+                    <AppContent />
+                    <BackendUnavailable />
+                  </DialogNavigationProvider>
+                </RouterContextProvider>
+              </JobsProvider>
+            </NotificationsProvider>
+          </ServerEventsProvider>
+        </DesktopNotificationsProvider>
       </EditorOptionsProvider>
     </QueryClientProvider>
   );

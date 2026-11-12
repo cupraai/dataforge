@@ -65,7 +65,7 @@ describe("SettingsDialog", () => {
     expect(settingsRequests("PUT")).toHaveLength(0);
   });
 
-  it("saves only the edited value and closes", async () => {
+  it("saves only the edited value and stays open", async () => {
     const { onClose, user } = await openDialog("Integrations");
 
     const comfy = screen.getByRole("textbox", { name: "ComfyUI URL" });
@@ -73,9 +73,36 @@ describe("SettingsDialog", () => {
     await user.type(comfy, "http://127.0.0.1:9100");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     const [[, init]] = settingsRequests("PUT");
     expect(JSON.parse(init?.body as string)).toEqual({ comfy_base_url: "http://127.0.0.1:9100" });
+  });
+
+  it("makes the saved values the new baseline", async () => {
+    const { user } = await openDialog("Integrations");
+    const comfy = screen.getByRole("textbox", { name: "ComfyUI URL" });
+    await user.clear(comfy);
+    await user.type(comfy, "http://127.0.0.1:9100");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByText(/^Settings saved\./);
+
+    expect(comfy).toHaveValue("http://127.0.0.1:9100");
+    expect(comfy).toHaveAccessibleDescription(/^Saved/);
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(
+      within(screen.getByRole("tab", { name: /^Integrations/ })).queryByLabelText("Unsaved"),
+    ).not.toBeInTheDocument();
+
+    await user.type(comfy, "1");
+    expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(settingsRequests("PUT")).toHaveLength(2));
+    const [, [, second]] = settingsRequests("PUT");
+    expect(JSON.parse(second?.body as string)).toEqual({
+      comfy_base_url: "http://127.0.0.1:91001",
+    });
   });
 
   it("marks the section holding an unsaved change", async () => {
@@ -149,7 +176,8 @@ describe("SettingsDialog", () => {
   });
 
   it("clears the thumbnail cache and moves thumbnails to a new epoch", async () => {
-    const { user } = await openDialog("Storage");
+    const { user } = await openDialog("Data & storage");
+    await user.click(screen.getByRole("tab", { name: "Storage" }));
     const epoch = getThumbnailEpoch();
 
     const stats = await screen.findByRole("status");
@@ -187,6 +215,62 @@ describe("SettingsDialog", () => {
     expect(settingsRequests("PUT")).toHaveLength(0);
   });
 
+  it("asks the browser before turning desktop notifications on", async () => {
+    const requestPermission = vi.fn<() => Promise<NotificationPermission>>(() =>
+      Promise.resolve("granted"),
+    );
+    vi.stubGlobal("Notification", { permission: "default", requestPermission });
+    const { user } = await openDialog("Notifications");
+    expect(screen.queryByLabelText("Send to the desktop")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Show desktop notifications" }));
+
+    expect(requestPermission).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("checkbox", { name: "Show desktop notifications" })).toBeChecked();
+    expect(screen.getByLabelText("Send to the desktop")).toHaveValue("all");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(backend.requestsTo("/api/preferences/ui", "PUT")).toHaveLength(1));
+    const [[, init]] = backend.requestsTo("/api/preferences/ui", "PUT");
+    expect(JSON.parse(init?.body as string)).toEqual({
+      desktop_notifications: true,
+      desktop_notification_level: "all",
+    });
+  });
+
+  it("narrows desktop notifications to errors", async () => {
+    vi.stubGlobal("Notification", {
+      permission: "granted",
+      requestPermission: () => Promise.resolve("granted"),
+    });
+    const { user } = await openDialog("Notifications");
+
+    await user.click(screen.getByRole("checkbox", { name: "Show desktop notifications" }));
+    await user.selectOptions(screen.getByLabelText("Send to the desktop"), "Errors only");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(backend.requestsTo("/api/preferences/ui", "PUT")).toHaveLength(1));
+    const [[, init]] = backend.requestsTo("/api/preferences/ui", "PUT");
+    expect(JSON.parse(init?.body as string)).toEqual({
+      desktop_notifications: true,
+      desktop_notification_level: "errors",
+    });
+  });
+
+  it("leaves desktop notifications off when the browser refuses them", async () => {
+    vi.stubGlobal("Notification", {
+      permission: "default",
+      requestPermission: () => Promise.resolve("denied"),
+    });
+    const { user } = await openDialog("Notifications");
+    const enable = screen.getByRole("checkbox", { name: "Show desktop notifications" });
+
+    await user.click(enable);
+
+    expect(enable).not.toBeChecked();
+    expect(screen.getByText(/blocks notifications from DataForge/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+
   it("edits the vocabulary on its own page and saves it with the dialog", async () => {
     localStorage.setItem("tagging-enabled", "true");
     const { onClose, user } = await openDialog("Tagging");
@@ -200,7 +284,8 @@ describe("SettingsDialog", () => {
     expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(await screen.findByText(/^Settings saved\./)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
     const [[, init]] = backend.requestsTo("/api/system/tagging/vocabulary", "PUT");
     expect(JSON.parse(init?.body as string)).toEqual({
       text: "# mine\nred dress\nhot air balloon",

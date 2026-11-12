@@ -94,6 +94,26 @@ class UiPreferencesEndpointTests(unittest.TestCase):
         self.assertTrue(client.get("/api/preferences/ui").json()["tagging_enabled"])
         self.assertTrue(tagging_enabled())
 
+    def test_desktop_notifications_are_off_by_default_and_the_choice_is_remembered(self) -> None:
+        self.assertFalse(client.get("/api/preferences/ui").json()["desktop_notifications"])
+
+        client.put("/api/preferences/ui", json={"desktop_notifications": True})
+
+        self.assertTrue(client.get("/api/preferences/ui").json()["desktop_notifications"])
+
+    def test_desktop_notifications_cover_everything_until_narrowed(self) -> None:
+        def level() -> str:
+            return client.get("/api/preferences/ui").json()["desktop_notification_level"]
+
+        self.assertEqual(level(), "all")
+
+        client.put("/api/preferences/ui", json={"desktop_notification_level": "errors"})
+        self.assertEqual(level(), "errors")
+
+        refused = client.put("/api/preferences/ui", json={"desktop_notification_level": "loud"})
+        self.assertEqual(refused.status_code, 422)
+        self.assertEqual(level(), "errors")
+
     def test_the_theme_follows_the_system_by_default(self) -> None:
         self.assertEqual(client.get("/api/preferences/ui").json()["theme"], "system")
 

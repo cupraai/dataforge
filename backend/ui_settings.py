@@ -5,6 +5,7 @@ from typing import get_args
 from constants import DEFAULT_GALLERY_SORT
 from preferences import JsonPreference
 from schemas import (
+    DesktopNotificationLevel,
     EditorSettings,
     GalleryCardSettings,
     GallerySort,
@@ -55,6 +56,8 @@ def update_ui_settings(
     editor: EditorSettings | None = None,
     hide_hidden_folders: bool | None = None,
     tagging_enabled: bool | None = None,
+    desktop_notifications: bool | None = None,
+    desktop_notification_level: DesktopNotificationLevel | None = None,
 ) -> UiSettingsResponse:
     global _tagging_enabled
     saved = _settings.update(
@@ -67,6 +70,8 @@ def update_ui_settings(
         editor=editor,
         hide_hidden_folders=hide_hidden_folders,
         tagging_enabled=tagging_enabled,
+        desktop_notifications=desktop_notifications,
+        desktop_notification_level=desktop_notification_level,
     )
     _tagging_enabled = saved.tagging_enabled
     return saved

@@ -23,7 +23,12 @@ import {
 } from "@/shared/preferences/editorPreferences";
 import { readStored, writeStored } from "@/shared/lib/storage";
 import { mirroredPreference } from "@/shared/query/refreshPolicies";
-import type { ThemePreference, UiSettingsResponse, UiSettingsUpdate } from "@/shared/types";
+import type {
+  DesktopNotificationLevel,
+  ThemePreference,
+  UiSettingsResponse,
+  UiSettingsUpdate,
+} from "@/shared/types";
 
 export interface UiSettings {
   sort: string;
@@ -37,6 +42,10 @@ export interface UiSettings {
   hideHiddenFolders: boolean;
   /** Background tagging; while off, nothing about tags is shown. */
   taggingEnabled: boolean;
+  /** Mirrors notifications to the desktop while DataForge is in the background. */
+  desktopNotifications: boolean;
+  /** Which variants reach the desktop. */
+  desktopNotificationLevel: DesktopNotificationLevel;
 }
 
 const SORT_CACHE_KEY = "gallery-sort";
@@ -44,6 +53,8 @@ const AUTOMATION_SPECS_CACHE_KEY = "automation-specs-visible";
 const KEEP_CANDIDATE_METADATA_CACHE_KEY = "keep-candidate-metadata";
 const HIDE_HIDDEN_FOLDERS_CACHE_KEY = "hide-hidden-folders";
 const TAGGING_ENABLED_CACHE_KEY = "tagging-enabled";
+const DESKTOP_NOTIFICATIONS_CACHE_KEY = "desktop-notifications";
+const DESKTOP_NOTIFICATION_LEVEL_CACHE_KEY = "desktop-notification-level";
 /** `index.html` reads this key before first paint; rename both together. */
 export const THEME_CACHE_KEY = "ui-theme";
 
@@ -54,6 +65,18 @@ const THEME_PREFERENCES: readonly string[] = [
   "light",
   "dark",
 ] satisfies ThemePreference[];
+
+const DESKTOP_NOTIFICATION_LEVELS: readonly string[] = [
+  "all",
+  "warnings",
+  "errors",
+] satisfies DesktopNotificationLevel[];
+
+function parseDesktopNotificationLevel(raw: string | null | undefined): DesktopNotificationLevel {
+  return raw != null && DESKTOP_NOTIFICATION_LEVELS.includes(raw)
+    ? (raw as DesktopNotificationLevel)
+    : "all";
+}
 
 export function parseThemePreference(raw: string | null): ThemePreference {
   return raw !== null && THEME_PREFERENCES.includes(raw) ? (raw as ThemePreference) : "system";
@@ -71,6 +94,10 @@ function readCachedUiSettings(): UiSettings {
     editor: readEditorOptions(),
     hideHiddenFolders: readStored(HIDE_HIDDEN_FOLDERS_CACHE_KEY) === "true",
     taggingEnabled: readStored(TAGGING_ENABLED_CACHE_KEY) === "true",
+    desktopNotifications: readStored(DESKTOP_NOTIFICATIONS_CACHE_KEY) === "true",
+    desktopNotificationLevel: parseDesktopNotificationLevel(
+      readStored(DESKTOP_NOTIFICATION_LEVEL_CACHE_KEY),
+    ),
   };
 }
 
@@ -83,6 +110,8 @@ function cacheUiSettings({
   editor,
   hideHiddenFolders,
   taggingEnabled,
+  desktopNotifications,
+  desktopNotificationLevel,
 }: Partial<UiSettings>): void {
   if (sort !== undefined) writeStored(SORT_CACHE_KEY, sort);
   if (showAutomationSpecs !== undefined) {
@@ -100,6 +129,12 @@ function cacheUiSettings({
   if (taggingEnabled !== undefined) {
     writeStored(TAGGING_ENABLED_CACHE_KEY, String(taggingEnabled));
   }
+  if (desktopNotifications !== undefined) {
+    writeStored(DESKTOP_NOTIFICATIONS_CACHE_KEY, String(desktopNotifications));
+  }
+  if (desktopNotificationLevel !== undefined) {
+    writeStored(DESKTOP_NOTIFICATION_LEVEL_CACHE_KEY, desktopNotificationLevel);
+  }
 }
 
 function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
@@ -113,6 +148,8 @@ function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
     editor: editorOptionsFromWire(data.editor),
     hideHiddenFolders: data.hide_hidden_folders,
     taggingEnabled: Boolean(data.tagging_enabled),
+    desktopNotifications: Boolean(data.desktop_notifications),
+    desktopNotificationLevel: parseDesktopNotificationLevel(data.desktop_notification_level),
   };
 }
 
@@ -153,6 +190,12 @@ export function updateUiSettings(partial: Partial<UiSettings>): Promise<UiSettin
     body.hide_hidden_folders = partial.hideHiddenFolders;
   }
   if (partial.taggingEnabled !== undefined) body.tagging_enabled = partial.taggingEnabled;
+  if (partial.desktopNotifications !== undefined) {
+    body.desktop_notifications = partial.desktopNotifications;
+  }
+  if (partial.desktopNotificationLevel !== undefined) {
+    body.desktop_notification_level = partial.desktopNotificationLevel;
+  }
 
   const save = pendingUiSave.then(async () =>
     parseUiSettingsResponse(await putJson<UiSettingsResponse>("/api/preferences/ui", body)),

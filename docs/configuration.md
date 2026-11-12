@@ -9,14 +9,14 @@ Use **Settings** (`Ctrl+,`) to connect services and tune AI jobs. Browsing, manu
 | Section | Contains |
 | --- | --- |
 | **Appearance** | **Color scheme:** Light, Dark, or System, previewed before saving; Quick actions can also switch it. **Gallery:** caption length on large and small cards, megapixels, aspect ratio and tags on large cards, which [card actions](user-guide.md#find-files) appear on hover, and the list's caption preview. **Editor:** line wrapping, line numbers, spell checking and its language, and word suggestions |
+| **Notifications** | **Show desktop notifications:** while DataForge is in the background, notifications also appear on your desktop; the browser asks for permission first. **Send to the desktop** narrows them to warnings and errors, or errors only. Clicking one brings DataForge back |
 | **Vision model** | **Server:** connection and limits. **Sampling:** separate Reasoning and Instruct profiles. **Media input:** image and video budgets |
 | **Tagging** | Turning [tagging](user-guide.md#tags) on, its status, files still waiting, minimum confidence, Re-tag everything, and your own vocabulary terms |
 | **Integrations** | ComfyUI URL, [generative fill](comfyui.md#generative-fill) model files and steps, and AI-Toolkit URL. Each service has **Test connection** |
-| **Storage** | Thumbnail-cache size and limit; **Clear cache** (thumbnails regenerate as you browse) |
-| **Data & history** | Job and notification retention; **Clear** for recent folders, recent quick actions, per-folder job options, and per-folder display modes |
+| **Data & storage** | **History:** job and notification retention; **Clear** for recent folders, recent quick actions, per-folder job options, and per-folder display modes. **Storage:** thumbnail-cache size and limit; **Clear cache** (thumbnails regenerate as you browse) |
 | **About** | Version, runtimes, GPU, and storage/config paths; **Copy diagnostics** leaves out the API key |
 
-- **Save** applies edited fields without a restart. A dot on a section marks unsaved changes.
+- **Save** applies edited fields without a restart and keeps Settings open, so you can go on editing. A dot on a section marks unsaved changes.
 - **Cancel** discards field changes, including a previewed color scheme.
 - Each field shows whether its value is saved, comes from the environment, or is the default. **Reset**, then **Save**, removes a saved value.
 - **Clear** actions apply immediately, even if you then cancel. They clear app history and cache, never dataset media or captions.
@@ -197,9 +197,9 @@ Default paths are relative to the project. A relative override resolves against 
 | `DATAFORGE_DB_PATH` | `backend/data/app.db` | env | SQLite file for settings, jobs, and notifications |
 | `DATAFORGE_THUMBNAIL_CACHE` | `backend/data/thumbnails/` | env | Thumbnail folder |
 | `DATAFORGE_FILL_RESULTS` | `backend/data/fill_results/` | env | Generative fill results not yet kept and applied; deleted a day after they were made |
-| `DATAFORGE_THUMBNAIL_CACHE_MAX_MB` | `2048` | Settings > Storage | Cache limit in MiB; least recently used thumbnails go first. `0` means no limit |
-| `DATAFORGE_JOB_HISTORY_DAYS` | `30` | Settings > Data & history | Days to keep finished jobs; running jobs are never removed. `0` keeps them forever |
-| `DATAFORGE_NOTIFICATION_HISTORY_DAYS` | `3` | Settings > Data & history | Days to keep notifications; the feed holds at most 50 either way. `0` turns off age pruning |
+| `DATAFORGE_THUMBNAIL_CACHE_MAX_MB` | `2048` | Settings > Data & storage > Storage | Cache limit in MiB; least recently used thumbnails go first. `0` means no limit |
+| `DATAFORGE_JOB_HISTORY_DAYS` | `30` | Settings > Data & storage > History | Days to keep finished jobs; running jobs are never removed. `0` keeps them forever |
+| `DATAFORGE_NOTIFICATION_HISTORY_DAYS` | `3` | Settings > Data & storage > History | Days to keep notifications; the feed holds at most 50 either way. `0` turns off age pruning |
 | `DATAFORGE_MODELS_DIR` | `backend/data/models/` | env | Folder for the [tagging](user-guide.md#tags) model |
 | `DATAFORGE_TAG_MIN_CONFIDENCE` | `0.25` | Settings > Tagging | 0.1 to 1; weaker tags are hidden from cards and search |
 | `DATAFORGE_LOG_LEVEL` | `INFO` | env | A standard level such as `DEBUG` or `WARNING`; unknown names use `INFO` |

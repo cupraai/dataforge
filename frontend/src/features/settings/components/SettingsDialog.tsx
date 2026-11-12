@@ -12,6 +12,7 @@ import { formatApiError } from "@/shared/api/http";
 import { useTabList } from "@/shared/hooks/useTabList";
 import {
   iconAiToolkit,
+  iconBell,
   iconBrain,
   iconComfyUi,
   iconFolder,
@@ -59,6 +60,7 @@ import { AboutSection } from "./AboutSection";
 import { ConnectionStatus, type ProbeState } from "./ConnectionStatus";
 import { EditorPreferenceSettings } from "./EditorPreferenceSettings";
 import { GalleryCardSettings } from "./GalleryCardSettings";
+import { NotificationsSection } from "./NotificationsSection";
 import { RememberedDataGroup } from "./RememberedDataGroup";
 import { SettingInput } from "./SettingInput";
 import { SettingsActionButton } from "./SettingsActionButton";
@@ -71,12 +73,13 @@ import { TagVocabularySection } from "./TagVocabularySection";
 import { ThemePicker } from "./ThemePicker";
 
 type SectionId =
-  "appearance" | "vision" | "tagging" | "integrations" | "storage" | "data" | "about";
+  "appearance" | "notifications" | "vision" | "tagging" | "integrations" | "data" | "about";
 
 type PageId =
   | "appearance"
   | "gallery"
   | "editor"
+  | "notifications"
   | "server"
   | "sampling"
   | "media"
@@ -145,6 +148,20 @@ const SECTIONS: Section[] = [
         id: "editor",
         label: "Editor",
         description: "How text editors lay out lines, and what the caption editor helps with.",
+        groups: [],
+      },
+    ],
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    caption: "Desktop alerts",
+    icon: iconBell,
+    pages: [
+      {
+        id: "notifications",
+        label: "Notifications",
+        description: "Where DataForge tells you about finished jobs and other news.",
         groups: [],
       },
     ],
@@ -268,30 +285,14 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "storage",
-    label: "Storage",
-    caption: "Thumbnail cache",
+    id: "data",
+    label: "Data & storage",
+    caption: "History and cache",
     icon: iconHardDrive,
     pages: [
       {
-        id: "storage",
-        label: "Storage",
-        description: "Disk space DataForge uses for itself.",
-        groups: [
-          { title: "Thumbnail cache", icon: iconHardDrive, rows: [["thumbnail_cache_max_mb"]] },
-        ],
-      },
-    ],
-  },
-  {
-    id: "data",
-    label: "Data & history",
-    caption: "Retention and history",
-    icon: iconHistory,
-    pages: [
-      {
         id: "data",
-        label: "Data & history",
+        label: "History",
         description: "How long DataForge keeps its history, and what it remembers between visits.",
         groups: [
           {
@@ -300,6 +301,14 @@ const SECTIONS: Section[] = [
             hint: "Finished jobs and notifications older than this are deleted; running jobs never are. 0 keeps everything.",
             rows: [["job_history_days", "notification_history_days"]],
           },
+        ],
+      },
+      {
+        id: "storage",
+        label: "Storage",
+        description: "Disk space DataForge uses for itself.",
+        groups: [
+          { title: "Thumbnail cache", icon: iconHardDrive, rows: [["thumbnail_cache_max_mb"]] },
         ],
       },
     ],
@@ -403,10 +412,14 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     editor: savedEditor,
     hideHiddenFolders: savedHideHidden,
     taggingEnabled: savedTagging,
+    desktopNotifications: savedDesktop,
+    desktopNotificationLevel: savedDesktopLevel,
   } = useUiSettings();
   const [cards, setCards] = useState(savedCards);
   const [hideHidden, setHideHidden] = useState(savedHideHidden);
   const [tagging, setTagging] = useState(savedTagging);
+  const [desktop, setDesktop] = useState(savedDesktop);
+  const [desktopLevel, setDesktopLevel] = useState(savedDesktopLevel);
   const vocabularyQuery = useQuery({
     queryKey: TAG_VOCABULARY_QUERY_KEY,
     queryFn: ({ signal }) => fetchTagVocabulary(signal),
@@ -427,6 +440,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [section, setSection] = useState<SectionId>("appearance");
   const [openPages, setOpenPages] = useState<Partial<Record<SectionId, PageId>>>({});
   const [error, setError] = useState<SaveError | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const [probes, setProbes] = useState<Partial<Record<ProbedService, ProbeState>>>({});
   const tabs = useTabList(SECTION_IDS, section, setSection, "vertical");
   const active = SECTIONS.find((entry) => entry.id === section) ?? SECTIONS[0];
@@ -435,6 +449,9 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     tagging ? entry.pages : entry.pages.filter((page) => page.id !== "vocabulary");
   const pageOf = (entry: Section) =>
     pagesOf(entry).find((page) => page.id === openPages[entry.id]) ?? entry.pages[0];
+  // Every page stays mounted, so data that is costly to read waits until its page is shown.
+  const isShown = (page: Page) =>
+    SECTIONS.some((entry) => entry.id === section && pageOf(entry).id === page.id);
   const showPage = (entry: SectionId, page: PageId) =>
     setOpenPages((current) => ({ ...current, [entry]: page }));
 
@@ -443,6 +460,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const hideHiddenEdited = hideHidden !== savedHideHidden;
   const editorEdited = !sameEditorOptions(editor, savedEditor);
   const taggingEdited = tagging !== savedTagging;
+  const desktopEdited = desktop !== savedDesktop || desktopLevel !== savedDesktopLevel;
   const vocabularyEdited =
     vocabularyDraft !== null &&
     savedVocabulary !== null &&
@@ -462,6 +480,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       hideHiddenEdited,
       editorEdited,
       taggingEdited,
+      desktopEdited,
       vocabularyEdited,
     ].filter(Boolean).length;
   const discard = useDiscardChanges({
@@ -476,6 +495,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     if (page.id === "appearance") return themeEdited;
     if (page.id === "gallery") return cardsEdited || hideHiddenEdited;
     if (page.id === "editor") return editorEdited;
+    if (page.id === "notifications") return desktopEdited;
     if (page.id === "tagging" && taggingEdited) return true;
     if (page.id === "vocabulary") return vocabularyEdited;
     return keysOf(page).some((key) => editedKeys.includes(key));
@@ -531,11 +551,18 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     }
 
     setError(null);
+    setJustSaved(false);
     try {
-      if (Object.keys(built.update).length > 0) await save.mutateAsync(built.update);
+      // Each part becomes the new baseline as soon as it is saved, so a later failure leaves
+      // only what is still unsaved marked as edited.
+      if (Object.keys(built.update).length > 0) {
+        const saved = await save.mutateAsync(built.update);
+        setLoaded({ settings: saved, draft: draftFromSettings(saved) });
+      }
       if (vocabularyEdited) {
         try {
           await saveVocabulary.mutateAsync(vocabularyDraft);
+          setVocabularyDraft(null);
         } catch (vocabularyError) {
           setSection("tagging");
           showPage("tagging", "vocabulary");
@@ -543,15 +570,19 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         }
       }
       if (themeEdited) setThemePreference(theme);
-      if (cardsEdited || hideHiddenEdited || editorEdited || taggingEdited) {
+      if (cardsEdited || hideHiddenEdited || editorEdited || taggingEdited || desktopEdited) {
         updateUiSettings({
           ...(cardsEdited && { galleryCards: cards }),
           ...(hideHiddenEdited && { hideHiddenFolders: hideHidden }),
           ...(editorEdited && { editor }),
           ...(taggingEdited && { taggingEnabled: tagging }),
+          ...(desktopEdited && {
+            desktopNotifications: desktop,
+            desktopNotificationLevel: desktopLevel,
+          }),
         });
       }
-      onClose();
+      setJustSaved(true);
     } catch (saveError) {
       setError({ message: formatApiError(saveError) });
     }
@@ -651,6 +682,17 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     if (page.id === "editor") {
       return <EditorPreferenceSettings value={editor} disabled={saving} onChange={setEditor} />;
     }
+    if (page.id === "notifications") {
+      return (
+        <NotificationsSection
+          desktop={desktop}
+          level={desktopLevel}
+          disabled={saving}
+          onDesktopChange={setDesktop}
+          onLevelChange={setDesktopLevel}
+        />
+      );
+    }
     if (page.id === "vocabulary") {
       return (
         <TagVocabularySection
@@ -687,7 +729,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     }
     if (page.id === "storage") {
       return (
-        <StorageSection visible={section === "storage"} disabled={saving}>
+        <StorageSection visible={isShown(page)} disabled={saving}>
           {renderRows(page.groups[0].rows)}
         </StorageSection>
       );
@@ -709,7 +751,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       return (
         <>
           {groups}
-          <RememberedDataGroup visible={section === "data"} disabled={saving} />
+          <RememberedDataGroup visible={isShown(page)} disabled={saving} />
         </>
       );
     }
@@ -807,13 +849,15 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               (error || editedCount > 0) && "settings-dialog__footer-status--pending",
               error && "settings-dialog__footer-status--error",
             )}
-            role={error ? "alert" : undefined}
+            role={error ? "alert" : justSaved && editedCount === 0 ? "status" : undefined}
           >
             {error
               ? error.message
               : editedCount > 0
                 ? `${editedCount} unsaved ${editedCount === 1 ? "change" : "changes"}`
-                : "Changes apply right away, without a restart."}
+                : justSaved
+                  ? "Settings saved. They apply right away, without a restart."
+                  : "Changes apply right away, without a restart."}
           </p>
           <div className="settings-dialog__actions">
             <DialogButton

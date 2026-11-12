@@ -41,6 +41,8 @@ def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
         editor=body.editor,
         hide_hidden_folders=body.hide_hidden_folders,
         tagging_enabled=body.tagging_enabled,
+        desktop_notifications=body.desktop_notifications,
+        desktop_notification_level=body.desktop_notification_level,
     )
     if body.tagging_enabled is not None:
         wake_tagging_worker()

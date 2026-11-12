@@ -42,6 +42,8 @@ const serverCopy = {
     caption_suggestions: false,
   },
   tagging_enabled: true,
+  desktop_notifications: true,
+  desktop_notification_level: "errors",
 };
 
 function respond(body: unknown) {
@@ -89,6 +91,8 @@ describe("useUiSettings", () => {
           captionSuggestions: false,
         },
         taggingEnabled: true,
+        desktopNotifications: true,
+        desktopNotificationLevel: "errors",
       }),
     );
     expect(JSON.parse(localStorage.getItem("editor-options") ?? "null")).toEqual(
@@ -101,6 +105,8 @@ describe("useUiSettings", () => {
     expect(localStorage.getItem("automation-specs-visible")).toBe("true");
     expect(localStorage.getItem("keep-candidate-metadata")).toBe("false");
     expect(localStorage.getItem("tagging-enabled")).toBe("true");
+    expect(localStorage.getItem("desktop-notifications")).toBe("true");
+    expect(localStorage.getItem("desktop-notification-level")).toBe("errors");
   });
 
   it("keeps candidate metadata until it is turned off", async () => {

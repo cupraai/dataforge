@@ -14,6 +14,7 @@ import {
   type NotificationActionFor,
 } from "./notifications";
 import { NotificationsProvider } from "./NotificationsProvider";
+import { DESKTOP_OFF, DesktopNotifierContext, type DesktopNotifier } from "./desktopNotifications";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { clearNotifications, markNotificationsRead } from "@/shared/api/notifications";
 
@@ -60,24 +61,26 @@ function NotifyButton({
 
 let emit: (event: ServerEvent) => void = () => {};
 
-function renderProvider(children: React.ReactNode) {
+function renderProvider(children: React.ReactNode, desktop = DESKTOP_OFF) {
   const handlers = new Set<(event: ServerEvent) => void>();
   emit = (event) => {
     for (const handler of handlers) handler(event);
   };
 
   return renderWithQueryClient(
-    <ServerEventsContext.Provider
-      value={{
-        connected: true,
-        subscribe: (handler) => {
-          handlers.add(handler);
-          return () => handlers.delete(handler);
-        },
-      }}
-    >
-      <NotificationsProvider>{children}</NotificationsProvider>
-    </ServerEventsContext.Provider>,
+    <DesktopNotifierContext value={desktop}>
+      <ServerEventsContext.Provider
+        value={{
+          connected: true,
+          subscribe: (handler) => {
+            handlers.add(handler);
+            return () => handlers.delete(handler);
+          },
+        }}
+      >
+        <NotificationsProvider>{children}</NotificationsProvider>
+      </ServerEventsContext.Provider>
+    </DesktopNotifierContext>,
   );
 }
 
@@ -458,5 +461,126 @@ describe("NotificationsProvider", () => {
     renderProvider(null);
 
     expect(fetchNotifications).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("desktop notifications", () => {
+  const shown: { title: string; options?: NotificationOptions }[] = [];
+
+  class FakeNotification {
+    static permission: NotificationPermission = "granted";
+    onclick: (() => void) | null = null;
+    constructor(title: string, options?: NotificationOptions) {
+      shown.push({ title, options });
+    }
+    close() {}
+  }
+
+  const NOTIFIER: DesktopNotifier = { enabled: true, notifier: true, level: "all" };
+  const OTHER_TAB: DesktopNotifier = { enabled: true, notifier: false, level: "all" };
+  let focused: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    shown.length = 0;
+    vi.stubGlobal("Notification", FakeNotification);
+    focused = vi.spyOn(document, "hasFocus").mockReturnValue(false);
+    fetchNotifications.mockResolvedValue([]);
+    postNotification.mockResolvedValue(record({ source: "client" }));
+  });
+
+  afterEach(() => {
+    focused.mockRestore();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  const emitJobOutcome = (overrides: Partial<NotificationRecord> = {}) =>
+    act(() => emit({ type: "notification", notification: record(overrides) }));
+
+  it("mirrors a job outcome to the desktop while no tab is focused", () => {
+    renderProvider(null, NOTIFIER);
+
+    emitJobOutcome({ count: 2 });
+
+    expect(shown).toEqual([
+      {
+        title: "DataForge",
+        options: { body: 'Auto-caption completed in "Photos".', tag: "notification-1:2" },
+      },
+    ]);
+  });
+
+  it("leaves job outcomes to the toast while DataForge is focused", () => {
+    focused.mockReturnValue(true);
+    renderProvider(null, NOTIFIER);
+
+    emitJobOutcome();
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(shown).toEqual([]);
+  });
+
+  it("leaves job outcomes to the notifier tab", () => {
+    renderProvider(null, OTHER_TAB);
+
+    emitJobOutcome();
+
+    expect(shown).toEqual([]);
+  });
+
+  it("does not mirror another tab's toasts", () => {
+    renderProvider(null, NOTIFIER);
+
+    emitJobOutcome({ source: "client" });
+
+    expect(shown).toEqual([]);
+  });
+
+  it("mirrors this tab's own toast while it is not focused, notifier or not", () => {
+    renderProvider(<NotifyButton message="Move failed" />, OTHER_TAB);
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /^Notify / }));
+    });
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0].options?.body).toBe("Move failed");
+  });
+
+  it("sends only errors to the desktop when narrowed to errors", () => {
+    renderProvider(<NotifyButton message="Move failed" variant="warning" />, {
+      ...NOTIFIER,
+      level: "errors",
+    });
+
+    emitJobOutcome({ id: "done", variant: "success" });
+    emitJobOutcome({ id: "partly", variant: "warning" });
+    emitJobOutcome({ id: "failed", variant: "danger" });
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /^Notify / }));
+    });
+
+    expect(shown.map(({ options }) => options?.tag)).toEqual(["failed:1"]);
+  });
+
+  it("sends warnings and errors, not successes, when narrowed to warnings", () => {
+    renderProvider(null, { ...NOTIFIER, level: "warnings" });
+
+    emitJobOutcome({ id: "done", variant: "success" });
+    emitJobOutcome({ id: "partly", variant: "warning" });
+    emitJobOutcome({ id: "failed", variant: "danger" });
+
+    expect(shown.map(({ options }) => options?.tag)).toEqual(["partly:1", "failed:1"]);
+  });
+
+  it("shows nothing on the desktop while turned off", () => {
+    renderProvider(<NotifyButton message="Move failed" />);
+
+    emitJobOutcome();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /^Notify / }));
+    });
+
+    expect(shown).toEqual([]);
   });
 });

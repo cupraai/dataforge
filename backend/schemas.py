@@ -410,6 +410,9 @@ type GallerySort = Literal[
 
 type ThemePreference = Literal["system", "light", "dark"]
 
+#: Which notification variants reach the desktop: everything, warnings and errors, or errors.
+type DesktopNotificationLevel = Literal["all", "warnings", "errors"]
+
 
 class JobsDialogFilters(BaseModel):
     #: Empty means every type.
@@ -500,6 +503,9 @@ class UiSettingsResponse(BaseModel):
     hide_hidden_folders: bool = False
     #: Off by default: the model is large, and turned off every tag disappears from the UI.
     tagging_enabled: bool = False
+    #: Off until the user allows them: browsers only ask for notification permission on a click.
+    desktop_notifications: bool = False
+    desktop_notification_level: DesktopNotificationLevel = "all"
 
 
 class UiSettingsUpdate(BaseModel):
@@ -513,6 +519,8 @@ class UiSettingsUpdate(BaseModel):
     editor: EditorSettings | None = None
     hide_hidden_folders: bool | None = None
     tagging_enabled: bool | None = None
+    desktop_notifications: bool | None = None
+    desktop_notification_level: DesktopNotificationLevel | None = None
 
 
 type AppSettingKey = Literal[

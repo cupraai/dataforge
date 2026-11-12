@@ -7,6 +7,7 @@ import {
   postNotification,
 } from "@/shared/api/notifications";
 import { useOptionalServerEvent } from "@/shared/events/serverEvents";
+import { desktopWants, showDesktopNotification, useDesktopNotifier } from "./desktopNotifications";
 import { NotificationContainer } from "./NotificationContainer";
 import {
   MAX_VISIBLE_TOASTS,
@@ -86,6 +87,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   // Collapse and cap decisions read committed toasts, never the value inside a state updater.
   const toastsRef = useRef<Toast[]>([]);
   const panelOpenRef = useLatestRef(panelOpen);
+  const desktopRef = useLatestRef(useDesktopNotifier());
 
   const applyToasts = useCallback((next: Toast[]) => {
     toastsRef.current = next;
@@ -165,13 +167,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (!trimmed) return;
 
       pushToast(trimmed, variant, action, durationMs);
+      // Only this tab shows the toast, so it is the one to mirror it while unseen.
+      if (desktopWants(desktopRef.current, variant) && !document.hasFocus()) {
+        showDesktopNotification(createToastId(), trimmed);
+      }
 
       // The toast must outlive a failed POST: most danger toasts report the backend being down.
       void postNotification(trimmed, variant)
         .then((record) => setHistory((current) => upsertNotification(current, record)))
         .catch(() => {});
     },
-    [pushToast, setHistory],
+    [desktopRef, pushToast, setHistory],
   );
 
   useOptionalServerEvent((event) => {
@@ -180,11 +186,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setHistory((current) => upsertNotification(current, event.notification));
     // A client toast already showed in the tab that raised it, and is not this tab's business.
     if (event.notification.source === "job") {
-      pushToast(
-        event.notification.message,
-        event.notification.variant,
-        actionFor(event.notification),
-      );
+      const { id, count, message, variant } = event.notification;
+      pushToast(message, variant, actionFor(event.notification));
+      // Every tab hears it; the notifier alone mirrors it, and only when no tab is focused.
+      const desktop = desktopRef.current;
+      if (desktopWants(desktop, variant) && desktop.notifier && !document.hasFocus()) {
+        showDesktopNotification(`${id}:${count}`, message);
+      }
     }
   });
 

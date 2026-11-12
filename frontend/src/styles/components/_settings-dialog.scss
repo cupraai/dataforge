@@ -23,7 +23,7 @@
     display: grid;
     grid-template-columns: 14.5rem minmax(0, 1fr);
     width: min($dialog-width-lg, 100%);
-    height: min(90vh, 40rem);
+    height: min(90vh, 42rem);
     overflow: clip;
     @include dialog-panel-surface;
   }
