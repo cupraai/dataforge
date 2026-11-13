@@ -177,15 +177,4 @@ $adjust-tab-size: var(--control-height-sm);
     gap: 0.375rem;
     margin-left: auto;
   }
-
-  &__action {
-    @include icon-btn-round($adjust-tab-size);
-    @include icon-scope-sm;
-  }
-
-  &__action--pressed {
-    border-color: var(--accent-border);
-    @include fade-bg(var(--accent-soft));
-    color: var(--accent);
-  }
 }

@@ -1,3 +1,6 @@
+import { Select } from "@/shared/ui/Select";
+import { TextInput } from "@/shared/ui/Field";
+import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatApiError } from "@/shared/api/http";
@@ -49,7 +52,8 @@ export function GradePresets({ current, onApply }: GradePresetsProps) {
   return (
     <div className="video-editor__grades">
       <div className="video-editor__grades-row">
-        <select
+        <Select
+          size="xs"
           aria-label="Saved grade"
           className="video-editor__grades-select"
           value={chosen}
@@ -62,35 +66,36 @@ export function GradePresets({ current, onApply }: GradePresetsProps) {
               {grade.name}
             </option>
           ))}
-        </select>
-        <button
-          type="button"
-          className="video-editor__text-btn"
+        </Select>
+        <Button
           disabled={!picked}
           onClick={() => picked && onApply(picked.adjust)}
+          variant="text"
+          size="xs"
         >
           Apply
-        </button>
-        <button
-          type="button"
-          className="video-editor__text-btn"
+        </Button>
+        <Button
           disabled={!picked}
           aria-label={picked ? `Delete grade ${picked.name}` : "Delete grade"}
           onClick={() =>
             picked && void run(() => deleteVideoProjectGrade(picked.id)).then(() => setChosen(""))
           }
+          variant="text"
+          size="xs"
         >
           Delete
-        </button>
+        </Button>
       </div>
       {current &&
         (name === null ? (
-          <button type="button" className="video-editor__text-btn" onClick={() => setName("")}>
+          <Button onClick={() => setName("")} variant="text" size="xs">
             Save this grade...
-          </button>
+          </Button>
         ) : (
           <div className="video-editor__grades-row">
-            <input
+            <TextInput
+              size="xs"
               className="video-editor__grades-name"
               value={name}
               maxLength={60}
@@ -109,14 +114,9 @@ export function GradePresets({ current, onApply }: GradePresetsProps) {
                 }
               }}
             />
-            <button
-              type="button"
-              className="video-editor__text-btn"
-              disabled={!name.trim()}
-              onClick={() => void save()}
-            >
+            <Button disabled={!name.trim()} onClick={() => void save()} variant="text" size="xs">
               Save
-            </button>
+            </Button>
           </div>
         ))}
       {error && <p className="video-editor__hint video-editor__hint--error">{error}</p>}

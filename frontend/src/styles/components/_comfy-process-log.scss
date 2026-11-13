@@ -5,20 +5,8 @@
   @include job-panel-card;
 
   &__toggle {
-    @include job-panel-toggle;
-  }
-
-  &__toggle-icon {
-    @include job-panel-toggle-icon;
-
-    &--open {
-      transform: rotate(180deg);
-    }
-  }
-
-  &__label {
-    @include section-label;
-    color: inherit;
+    width: 100%;
+    padding: 0.25rem 0;
   }
 
   &__panel {

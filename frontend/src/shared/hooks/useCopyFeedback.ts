@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_FEEDBACK_MS = 2000;
 
+export type CopyState = "idle" | "copied" | "error";
+
 export function useCopyFeedback(feedbackMs = DEFAULT_FEEDBACK_MS) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [copyState, setCopyState] = useState<CopyState>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

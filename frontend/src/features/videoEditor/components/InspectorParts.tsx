@@ -1,4 +1,4 @@
-import { Tooltip } from "@/shared/ui/Tooltip";
+import { IconButton } from "@/shared/ui/IconButton";
 import {
   createContext,
   useCallback,
@@ -9,12 +9,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { iconChevronDown, iconRotateCcw, type AppIcon } from "@/shared/icons";
+import { iconRotateCcw, type AppIcon } from "@/shared/icons";
+import { DisclosureButton } from "@/shared/ui/Disclosure";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { classNames } from "@/shared/lib/classNames";
 import { readStoredJson, writeStoredJson } from "@/shared/lib/storage";
 import { Icon } from "@/shared/ui/Icon";
-import { rangeFill } from "@/features/videoEditor/lib/rangeFill";
+import { rangeFill } from "@/shared/lib/rangeFill";
+import { Slider as RangeInput } from "@/shared/ui/Slider";
 import type { SliderUnit } from "@/features/videoEditor/lib/sliderUnits";
 import type { Clip } from "@/features/videoEditor/lib/timeline";
 
@@ -104,19 +106,14 @@ export function HeaderAction({
   onClick: () => void;
 }) {
   return (
-    <Tooltip content={label}>
-      <button
-        type="button"
-        className={classNames(
-          "video-editor__header-action",
-          danger && "video-editor__header-action--danger",
-        )}
-        aria-label={label}
-        onClick={onClick}
-      >
-        <Icon icon={icon} />
-      </button>
-    </Tooltip>
+    <IconButton
+      icon={icon}
+      label={label}
+      size="xs"
+      variant="ghost"
+      tone={danger ? "danger" : undefined}
+      onClick={onClick}
+    />
   );
 }
 
@@ -140,22 +137,22 @@ export function Panel({
   const open = isOpen(title, defaultOpen);
   const bodyId = useId();
   return (
-    <section className={classNames("video-editor__section", open && "video-editor__section--open")}>
+    <section className="video-editor__section">
       <header className="video-editor__section-header">
-        <button
-          type="button"
-          className="video-editor__section-toggle"
-          aria-expanded={open}
-          aria-controls={bodyId}
-          onClick={() => toggle(title, defaultOpen)}
-        >
-          <Icon icon={iconChevronDown} className="video-editor__section-chevron" />
-          {icon && <Icon icon={icon} className="video-editor__section-icon" />}
-          <h3 className="video-editor__section-title">{title}</h3>
-          {changed && (
-            <span className="video-editor__section-changed" title="Changed from the default" />
-          )}
-        </button>
+        <h3 className="video-editor__section-heading">
+          <DisclosureButton
+            className="video-editor__section-toggle"
+            open={open}
+            controls={bodyId}
+            label={title}
+            icon={icon}
+            onClick={() => toggle(title, defaultOpen)}
+          >
+            {changed && (
+              <span className="video-editor__section-changed" title="Changed from the default" />
+            )}
+          </DisclosureButton>
+        </h3>
         {action}
       </header>
       {open && (
@@ -185,21 +182,22 @@ export function Subgroup({
   const open = isOpen(memoryKey, true);
   const bodyId = useId();
   return (
-    <div className={classNames("video-editor__subgroup", open && "video-editor__subgroup--open")}>
+    <div className="video-editor__subgroup">
       <div className="video-editor__subgroup-header">
-        <button
-          type="button"
-          className="video-editor__subgroup-toggle"
-          aria-expanded={open}
-          aria-controls={bodyId}
-          onClick={() => toggle(memoryKey, true)}
-        >
-          <Icon icon={iconChevronDown} className="video-editor__section-chevron" />
-          <h4 className="video-editor__subgroup-title">{title}</h4>
-          {changed && (
-            <span className="video-editor__section-changed" title="Changed from the default" />
-          )}
-        </button>
+        <h4 className="video-editor__subgroup-heading">
+          <DisclosureButton
+            className="video-editor__subgroup-toggle"
+            variant="subsection"
+            open={open}
+            controls={bodyId}
+            label={title}
+            onClick={() => toggle(memoryKey, true)}
+          >
+            {changed && (
+              <span className="video-editor__section-changed" title="Changed from the default" />
+            )}
+          </DisclosureButton>
+        </h4>
         {action}
       </div>
       {open && (
@@ -213,11 +211,7 @@ export function Subgroup({
 
 export function ResetButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <Tooltip content={label}>
-      <button type="button" className="video-editor__icon-btn" onClick={onClick} aria-label={label}>
-        <Icon icon={iconRotateCcw} />
-      </button>
-    </Tooltip>
+    <IconButton icon={iconRotateCcw} label={label} onClick={onClick} size="xs" variant="ghost" />
   );
 }
 
@@ -321,9 +315,9 @@ export function Slider({
         )}
         style={rangeFill(clamped, min, max, origin)}
       >
-        <input
+        <RangeInput
           id={id}
-          type="range"
+          origin={origin}
           min={min}
           max={max}
           step={step}

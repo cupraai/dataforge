@@ -362,7 +362,7 @@ describe("GalleryItemDialog", () => {
       await user.click(within(dialog).getByRole("button", { name: "Save frame" }));
 
       await waitFor(() =>
-        expect(within(dialog).getByRole("button", { name: "Saving" })).toHaveAttribute(
+        expect(within(dialog).getByRole("button", { name: "Saving..." })).toHaveAttribute(
           "aria-busy",
           "true",
         ),

@@ -89,6 +89,10 @@
     }
   }
 
+  &__tab-dot {
+    @include unsaved-dot;
+  }
+
   &__tab-icon-wrap {
     display: grid;
     flex-shrink: 0;
@@ -138,10 +142,6 @@
     @include truncate;
     font-size: var(--text-2xs);
     color: var(--text-subtle);
-  }
-
-  &__tab-dot {
-    @include unsaved-dot;
   }
 
   &__shortcuts {
@@ -200,8 +200,6 @@
   }
 
   &__close {
-    @include dialog-close-btn;
-    flex-shrink: 0;
     margin: -0.25rem -0.5rem 0 0;
   }
 
@@ -227,10 +225,6 @@
 
   &__pages ~ &__body {
     padding-top: 1rem;
-  }
-
-  &__page-tab {
-    @include underline-tab;
   }
 
   // Last-resort fallback for short viewports; every section fits the panel at its own size.
@@ -328,17 +322,6 @@
     &__shortcuts {
       display: none;
     }
-  }
-}
-
-.settings-action {
-  @include pill-btn-compact(default);
-  height: var(--control-height-xs);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-
-  &__icon {
-    @include icon-size-sm;
   }
 }
 
@@ -453,14 +436,15 @@
     gap: 0.5rem;
   }
 
+  // The shared field label; the row beside the badge spaces it, not its own margin.
   &__label {
     @include truncate;
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--text);
+    margin-bottom: 0;
   }
 
   &__unit {
+    text-transform: none;
+    letter-spacing: normal;
     font-weight: var(--font-normal);
     color: var(--text-subtle);
   }
@@ -495,20 +479,10 @@
   }
 
   &__input {
-    @include dialog-form-input(2.5rem);
-    background: var(--bg-elevated);
-    font-variant-numeric: tabular-nums;
-
-    &::placeholder {
-      color: var(--text-subtle);
-    }
+    @include tabular-nums;
 
     &[type="number"] {
       text-align: right;
-    }
-
-    &[aria-invalid="true"] {
-      border-color: var(--danger);
     }
   }
 
@@ -524,15 +498,6 @@
     min-width: 0;
     font-size: var(--text-2xs);
     color: var(--text-muted);
-  }
-
-  &__reset {
-    @include text-btn;
-    flex-shrink: 0;
-    padding: 0.0625rem 0.375rem;
-    font: inherit;
-    font-size: var(--text-2xs);
-    font-weight: var(--font-medium);
   }
 }
 
@@ -782,7 +747,7 @@
     grid-template-columns: 1.75rem 1fr;
     grid-template-rows: 0.625rem 1fr;
     overflow: hidden;
-    border-radius: 0.375rem 0 0 0;
+    border-radius: var(--radius-sm) 0 0 0;
     background: var(--sketch-window);
   }
 

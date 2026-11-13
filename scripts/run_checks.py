@@ -428,7 +428,7 @@ def _check_steps(
         # Grouped with static checks so ``--lint-only`` still catches type errors; vitest does not.
         steps.append(Step("Frontend typecheck", [npm, "run", "typecheck"], FRONTEND))
         steps.append(Step("Theme colors", [str(interpreter), str(SCRIPTS / "check_colors.py")]))
-        steps.append(Step("Type scale", [str(interpreter), str(SCRIPTS / "check_tokens.py")]))
+        steps.append(Step("Design tokens", [str(interpreter), str(SCRIPTS / "check_tokens.py")]))
         steps.append(
             Step("Transitions", [str(interpreter), str(SCRIPTS / "check_transitions.py")])
         )

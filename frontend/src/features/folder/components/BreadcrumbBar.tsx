@@ -1,15 +1,15 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useCallback, useState } from "react";
 import { openFolderInExplorer } from "@/features/folder/api/folders";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
 import { driveRootOf } from "@/features/folder/lib/drives";
 import { formatApiError } from "@/shared/api/http";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
-import { iconArrowUpRight, iconCheck, iconCopy, iconLoader2, iconX } from "@/shared/icons";
+import { iconArrowUpRight, iconCheck, iconCopy, iconX } from "@/shared/icons";
 import type { Breadcrumb } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { BreadcrumbCrumbMenu } from "./BreadcrumbCrumbMenu";
 import { BreadcrumbDriveMenu } from "./BreadcrumbDriveMenu";
-import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface BreadcrumbBarProps {
@@ -108,42 +108,34 @@ export function BreadcrumbBar({
           content={folderNotFound ? "Folder not found" : copyPathLabel}
           open={copyState !== "idle"}
         >
-          <button
-            type="button"
+          {/* Its own tooltip, which stays open to confirm the copy. */}
+          <IconButton
+            icon={copyPathIcon}
+            label={copyPathLabel}
+            tooltip={false}
+            size="sm"
+            variant="ghost"
             className={classNames(
-              "breadcrumbs__explorer",
-              copyState === "copied" && "breadcrumbs__explorer--copied",
-              copyState === "error" && "breadcrumbs__explorer--error",
+              copyState === "copied" && "breadcrumbs__copy--copied",
+              copyState === "error" && "breadcrumbs__copy--error",
             )}
             onClick={handleCopyPath}
             disabled={folderNotFound || !currentFolder}
-            aria-label={copyPathLabel}
-          >
-            <Icon icon={copyPathIcon} className="breadcrumbs__explorer-icon" />
-          </button>
+          />
         </Tooltip>
 
-        <Tooltip
-          content={folderNotFound ? "Folder not found" : (explorerError ?? "Open in File Explorer")}
-        >
-          <button
-            type="button"
-            className="breadcrumbs__explorer"
-            onClick={() => {
-              void handleOpenInExplorer();
-            }}
-            disabled={openingInExplorer || folderNotFound}
-            aria-label="Open in File Explorer"
-          >
-            <Icon
-              icon={openingInExplorer ? iconLoader2 : iconArrowUpRight}
-              className={classNames(
-                "breadcrumbs__explorer-icon",
-                openingInExplorer && "breadcrumbs__explorer-icon--spin",
-              )}
-            />
-          </button>
-        </Tooltip>
+        <IconButton
+          icon={iconArrowUpRight}
+          label="Open in File Explorer"
+          tooltip={folderNotFound ? "Folder not found" : (explorerError ?? "Open in File Explorer")}
+          size="sm"
+          variant="ghost"
+          busy={openingInExplorer}
+          onClick={() => {
+            void handleOpenInExplorer();
+          }}
+          disabled={folderNotFound}
+        />
       </div>
     </nav>
   );

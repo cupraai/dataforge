@@ -1,4 +1,7 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
+import { IconButton } from "@/shared/ui/IconButton";
+import { useMemo, useRef, useState } from "react";
 import { CreationTimelineChart } from "@/features/gallery/components/CreationTimelineChart";
 import { useCountUp } from "@/features/gallery/hooks/useCountUp";
 import {
@@ -87,9 +90,7 @@ export function StatsDialog({
           <h2 id="stats-dialog-title">Dataset statistics</h2>
         </div>
 
-        <button type="button" className="stats-dialog__close" onClick={onClose} aria-label="Close">
-          <Icon icon={iconX} />
-        </button>
+        <IconButton icon={iconX} label="Close" onClick={onClose} tooltip={false} />
       </header>
 
       <div className="stats-dialog__content" data-scroll-lock-allow>
@@ -128,7 +129,6 @@ function StatsContent({
     () => pickedCreationPeriod ?? latestCreationDate(items),
     [pickedCreationPeriod, items],
   );
-  const groupingName = useId();
   const stats = useMemo(
     () => computeDatasetStats(items, creationGrouping, creationPeriod),
     [items, creationGrouping, creationPeriod],
@@ -136,15 +136,13 @@ function StatsContent({
 
   if (stats.total === 0) {
     return (
-      <div className="stats-dialog__empty">
-        <span className="stats-dialog__empty-icon" aria-hidden="true">
-          <Icon icon={iconImages} />
-        </span>
-        <p>No media in this folder.</p>
-        <p className="stats-dialog__empty-hint">
-          Open a folder with images or videos to see how it looks as a training set.
-        </p>
-      </div>
+      <EmptyState
+        size="sm"
+        variant="muted"
+        icon={iconImages}
+        title="No media in this folder."
+        description="Open a folder with images or videos to see how it looks as a training set."
+      />
     );
   }
 
@@ -154,28 +152,17 @@ function StatsContent({
 
       <Section title="Media created" icon={iconCalendar}>
         {stats.creationTimeline.length > 0 && (
-          <div
+          <SegmentedControl
+            label="Creation timeline grouping"
+            value={stats.creationTimelineGrouping}
+            options={CREATION_GROUPING_OPTIONS}
+            stretch
             className="stats-dialog__grouping"
-            role="radiogroup"
-            aria-label="Creation timeline grouping"
-          >
-            {CREATION_GROUPING_OPTIONS.map(({ value, label }) => (
-              <label key={value} className="stats-dialog__grouping-option">
-                <input
-                  className="stats-dialog__grouping-input"
-                  type="radio"
-                  name={groupingName}
-                  value={value}
-                  checked={stats.creationTimelineGrouping === value}
-                  onChange={() => {
-                    setCreationGrouping(value);
-                    writeStored(CREATION_GROUPING_KEY, value);
-                  }}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
+            onChange={(value) => {
+              setCreationGrouping(value);
+              writeStored(CREATION_GROUPING_KEY, value);
+            }}
+          />
         )}
         <CreationTimelineChart
           buckets={stats.creationTimeline}

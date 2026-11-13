@@ -1,3 +1,4 @@
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import type { SettleAllCandidatesAction } from "@/features/gallery/lib/settleAllCandidates";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
@@ -62,23 +63,14 @@ export function SettleAllCandidatesDialog({
       onClose={onCancel}
       footer={<DialogActions confirmLabel={busy ? "Accepting..." : "Accept"} onCancel={onCancel} />}
     >
-      <div className="dialog__field">
-        <label className="dialog__checkbox">
-          <input
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={keepMetadata}
-            onChange={(event) => onKeepMetadataChange(event.target.checked)}
-            disabled={busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Keep original metadata</span>
-        </label>
-        <p className="dialog__hint">
-          Each file keeps its original's EXIF, XMP and text metadata in place of what ComfyUI wrote.
-          A file whose metadata cannot be carried over is left staged.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Keep original metadata"
+        checked={keepMetadata}
+        disabled={busy}
+        onChange={onKeepMetadataChange}
+        hint="Each file keeps its original's EXIF, XMP and text metadata in place of what ComfyUI wrote. A file whose metadata cannot be carried over is left staged."
+      />
     </GuardedDialog>
   );
 }

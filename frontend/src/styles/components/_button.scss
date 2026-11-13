@@ -1,0 +1,187 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+// The app's buttons. Size follows the control-height scale; variant follows importance.
+
+@mixin pressed-surface {
+  &[aria-pressed="true"],
+  &[aria-expanded="true"] {
+    color: var(--accent);
+    border-color: var(--accent-border);
+    @include fade-bg(var(--accent-soft));
+  }
+}
+
+@mixin tone-hover($tone) {
+  &:hover:not(:disabled) {
+    color: var(--#{$tone});
+    border-color: var(--#{$tone}-border);
+    @include fade-bg(var(--#{$tone}-soft));
+  }
+}
+
+.button {
+  @include inline-flex-center;
+  @include control-interactive;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-medium);
+  line-height: 1;
+  white-space: nowrap;
+  @include btn-disabled;
+
+  &--md {
+    --button-height: var(--control-height);
+    gap: 0.4375rem;
+    height: var(--button-height);
+    padding: 0 0.875rem;
+    font-size: var(--text-sm);
+  }
+
+  &--sm {
+    --button-height: var(--control-height-sm);
+    gap: 0.375rem;
+    height: var(--button-height);
+    padding: 0 0.75rem;
+    font-size: var(--text-xs);
+    @include icon-scope-sm;
+  }
+
+  &--xs {
+    --button-height: var(--control-height-xs);
+    gap: 0.3125rem;
+    height: var(--button-height);
+    padding: 0 0.625rem;
+    font-size: var(--text-2xs);
+    font-weight: var(--font-semibold);
+    @include icon-scope-sm;
+  }
+
+  // After the sizes: the inline padding that centres a bare icon in a circle, borders included.
+  &--icon-only {
+    padding-inline: calc(
+      (var(--button-height) - var(--icon-size, var(--icon-size-base)) - 2px) / 2
+    );
+  }
+
+  &--primary {
+    @include btn-surface-accent;
+  }
+
+  &--secondary {
+    @include btn-surface-default;
+    @include pressed-surface;
+  }
+
+  &--danger {
+    @include btn-surface-danger;
+  }
+
+  &--warning {
+    @include btn-surface-warning;
+  }
+
+  &--text {
+    padding-inline: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    @include fade-bg(transparent);
+    color: var(--text-muted);
+    @include pressed-surface;
+
+    &:hover:not(:disabled) {
+      color: var(--text);
+      @include fade-bg(var(--accent-soft));
+    }
+  }
+
+  // Copy feedback, after the variants so it holds through their hover.
+  &--copied,
+  &--copied:hover:not(:disabled) {
+    color: var(--caption-saved);
+    border-color: var(--caption-saved);
+    @include fade-bg(color-mix(in srgb, var(--caption-saved) 12%, transparent));
+  }
+
+  &--error,
+  &--error:hover:not(:disabled) {
+    color: var(--caption-error);
+    border-color: var(--caption-error);
+    @include fade-bg(color-mix(in srgb, var(--caption-error) 12%, transparent));
+  }
+
+  &__icon {
+    @include icon-block;
+  }
+}
+
+.icon-button {
+  @include inline-flex-center;
+  @include control-interactive;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  @include btn-disabled;
+
+  &--lg {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  &--md {
+    width: var(--control-height);
+    height: var(--control-height);
+  }
+
+  &--sm {
+    width: var(--control-height-sm);
+    height: var(--control-height-sm);
+  }
+
+  &--xs {
+    width: var(--control-height-xs);
+    height: var(--control-height-xs);
+    @include icon-scope-sm;
+  }
+
+  &--2xs {
+    width: 1.25rem;
+    height: 1.25rem;
+    @include icon-scope-sm;
+  }
+
+  &--round {
+    border-radius: 50%;
+  }
+
+  &--surface {
+    @include btn-surface-default;
+  }
+
+  &--ghost {
+    border: 1px solid transparent;
+    @include fade-bg(transparent);
+    color: var(--text-muted);
+
+    &:hover:not(:disabled) {
+      color: var(--text);
+      @include fade-bg(var(--accent-soft));
+    }
+  }
+
+  // After the variants, so a toggled or toned button keeps its colour over the base hover.
+  @include pressed-surface;
+
+  &--accent {
+    @include tone-hover(accent);
+  }
+
+  &--danger {
+    @include tone-hover(danger);
+  }
+
+  &--warning {
+    @include tone-hover(warning);
+  }
+}

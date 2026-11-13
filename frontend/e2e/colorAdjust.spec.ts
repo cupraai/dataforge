@@ -178,10 +178,7 @@ test("the adjust preview matches the image Apply writes", async ({ page }) => {
 
   const heights = new Set<number>();
   for (const tool of ["Crop", "Size", "Rotate", "Blur", "Adjust"]) {
-    await page
-      .getByRole("button", { name: new RegExp(`^${tool}`) })
-      .first()
-      .click();
+    await page.getByRole("tab", { name: new RegExp(`^${tool}`) }).click();
     heights.add((await page.locator(".edit-panel").boundingBox())?.height ?? -1);
   }
   expect(heights.size).toBe(1);
@@ -212,7 +209,7 @@ test("the wand moves the tools it reads a fault in", async ({ page }) => {
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
   await page.getByRole("button", { name: "View dark.png" }).click();
   await page.getByRole("button", { name: "Edit dark.png" }).click();
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("tab", { name: "Adjust", exact: true }).click();
 
   await page.getByRole("tab", { name: "Auto" }).click();
 
@@ -226,7 +223,7 @@ test("the unadjusted video preview matches the video itself", async ({ page }) =
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
   await page.getByRole("button", { name: `View ${name}` }).click();
   await page.getByRole("button", { name: `Edit ${name}` }).click();
-  await page.getByRole("button", { name: "Adjust", exact: true }).click();
+  await page.getByRole("tab", { name: "Adjust", exact: true }).click();
 
   const preview = await blocks(page, "preview");
   const source = await blocks(page, { file: name });
@@ -257,7 +254,7 @@ for (const [index, { label, tools }] of videoAdjustments.entries()) {
     await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
     await page.getByRole("button", { name: `View ${name}` }).click();
     await page.getByRole("button", { name: `Edit ${name}` }).click();
-    await page.getByRole("button", { name: "Adjust", exact: true }).click();
+    await page.getByRole("tab", { name: "Adjust", exact: true }).click();
 
     for (const [tool, key, presses] of tools) await setTool(page, tool, key, presses);
     const [firstTool] = tools[0];

@@ -1,3 +1,6 @@
+import { Button } from "@/shared/ui/Button";
+import { SearchInput } from "@/shared/ui/SearchInput";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -14,8 +17,6 @@ import {
   iconImage,
   iconRefresh,
   iconRows3,
-  iconSearch,
-  iconX,
   type AppIcon,
 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
@@ -33,7 +34,7 @@ import {
   CaptionDiffView,
   type CaptionDiffLayout,
 } from "@/shared/ui/CaptionWordDiff";
-import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
+import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { Icon } from "@/shared/ui/Icon";
@@ -144,13 +145,13 @@ export function RestoreCaptionsDialog({
             title="Could not compare with the backup"
             description={`${formatApiError(preview.error)} You can still restore without reviewing.`}
             action={
-              <DialogButton
-                label="Try again"
-                variant="secondary"
+              <Button
                 icon={iconRefresh}
                 busy={preview.isFetching}
                 onClick={() => void preview.refetch()}
-              />
+              >
+                Try again
+              </Button>
             }
           />
         ) : !preview.data ? (
@@ -188,7 +189,6 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
   const filterName = useId();
-  const layoutName = useId();
 
   const reviewed = useMemo<ReviewedSample[]>(
     () =>
@@ -260,61 +260,31 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
         </div>
 
         <div className="restore-captions-dialog__tools">
-          <label className="restore-captions-dialog__search">
-            <Icon icon={iconSearch} className="restore-captions-dialog__search-icon" />
-            <input
-              type="search"
-              className="restore-captions-dialog__search-input"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                // Enter would otherwise confirm the dialog and start the restore.
-                if (event.key === "Enter") event.preventDefault();
-                // Escape clears the search before it closes the dialog.
-                if (event.key === "Escape" && query) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setQuery("");
-                }
-              }}
-              placeholder="Filter by file or caption..."
-              aria-label="Filter by file name or caption text"
-            />
-            {query && (
-              <button
-                type="button"
-                className="restore-captions-dialog__search-clear"
-                onClick={() => setQuery("")}
-                aria-label="Clear the filter"
-              >
-                <Icon icon={iconX} />
-              </button>
-            )}
-          </label>
+          <SearchInput
+            label="Filter by file name or caption text"
+            clearLabel="Clear the filter"
+            placeholder="Filter by file or caption..."
+            className="restore-captions-dialog__search"
+            value={query}
+            onChange={setQuery}
+            onKeyDown={(event) => {
+              // Enter would otherwise confirm the dialog and start the restore.
+              if (event.key === "Enter") event.preventDefault();
+              // Escape clears the search before it closes the dialog.
+              if (event.key === "Escape" && query) {
+                event.preventDefault();
+                event.stopPropagation();
+                setQuery("");
+              }
+            }}
+          />
 
-          <div className="restore-captions-dialog__views" role="radiogroup" aria-label="Diff view">
-            {LAYOUT_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className={classNames(
-                  "restore-captions-dialog__view",
-                  layout === option.value && "restore-captions-dialog__view--active",
-                )}
-                title={option.label}
-              >
-                <input
-                  type="radio"
-                  name={layoutName}
-                  className="restore-captions-dialog__radio"
-                  value={option.value}
-                  checked={layout === option.value}
-                  onChange={() => changeLayout(option.value)}
-                />
-                <Icon icon={option.icon} className="restore-captions-dialog__view-icon" />
-                <span className="restore-captions-dialog__view-label">{option.label}</span>
-              </label>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Diff view"
+            value={layout}
+            options={LAYOUT_OPTIONS}
+            onChange={changeLayout}
+          />
         </div>
       </div>
 
@@ -344,12 +314,9 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
               No differing caption matches
               {query.trim() ? <> “{query.trim()}”</> : " this filter"}.
             </p>
-            <DialogButton
-              label="Clear filters"
-              variant="secondary"
-              icon={iconFilterX}
-              onClick={clearFilters}
-            />
+            <Button icon={iconFilterX} onClick={clearFilters}>
+              Clear filters
+            </Button>
           </div>
         )}
       </div>

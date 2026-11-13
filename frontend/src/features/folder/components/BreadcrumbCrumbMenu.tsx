@@ -8,7 +8,7 @@ import { formatApiError } from "@/shared/api/http";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconChevronRight, iconFolder } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { Menu, MenuItem } from "@/shared/ui/Menu";
 import { Icon } from "@/shared/ui/Icon";
 
 interface BreadcrumbCrumbMenuProps {
@@ -27,7 +27,8 @@ export function BreadcrumbCrumbMenu({
   activeChildPath,
   onNavigate,
 }: BreadcrumbCrumbMenuProps) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { open, close, rootRef, triggerProps } = menu;
   const prefetch = useFolderPrefetch();
 
   // Re-read on every open: folders come and go, and a cached list shows while it loads.
@@ -60,15 +61,11 @@ export function BreadcrumbCrumbMenu({
         />
       </button>
 
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        placement="bottom-start"
-        id={menuId}
-        className="breadcrumbs__menu-panel"
-        role="menu"
+      <Menu
+        menu={menu}
         label={`Subfolders of ${label}`}
+        placement="bottom-start"
+        className="breadcrumbs__menu-panel"
       >
         {status && <p className="breadcrumbs__menu-status">{status}</p>}
         {showEmpty && <p className="breadcrumbs__menu-status">No subfolders</p>}
@@ -76,25 +73,18 @@ export function BreadcrumbCrumbMenu({
         {children?.map((child) => {
           const isActive = activeChildPath ? folderPathsEqual(child.path, activeChildPath) : false;
           return (
-            <button
+            <MenuItem
               key={child.path}
-              type="button"
-              role="menuitem"
-              className={classNames(
-                "breadcrumbs__menu-option",
-                isActive && "breadcrumbs__menu-option--active",
-              )}
-              aria-current={isActive ? "true" : undefined}
+              icon={iconFolder}
+              label={child.name}
+              current={isActive}
               title={child.path}
-              onClick={() => handleSelect(child.path)}
+              onSelect={() => handleSelect(child.path)}
               {...prefetch(child.path)}
-            >
-              <Icon icon={iconFolder} className="breadcrumbs__menu-option-icon" />
-              <span className="breadcrumbs__menu-option-label">{child.name}</span>
-            </button>
+            />
           );
         })}
-      </AnchoredLayer>
+      </Menu>
     </div>
   );
 }

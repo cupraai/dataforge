@@ -1,4 +1,4 @@
-"""The token check has to fail on a type size that bypasses the scale."""
+"""The token check has to fail on a type size or corner radius that bypasses the scale."""
 
 from __future__ import annotations
 
@@ -45,6 +45,31 @@ class TokenCheckTests(unittest.TestCase):
             "font-size: inherit;",
             "font-size: 100%;",
             "// font-size: 10px;",
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(self._problems(line), [])
+
+    def test_literal_radii_fail(self) -> None:
+        for line in (
+            "border-radius: 0.375rem;",
+            "border-radius: 6px;",
+            "border-top-left-radius: 0.25rem;",
+            "border-radius: var(--radius-sm) 0.25rem 0 0;",
+            "border-radius: 999px;",
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(len(self._problems(line)), 1)
+
+    def test_radius_tokens_and_shapes_pass(self) -> None:
+        for line in (
+            "border-radius: var(--radius-sm);",
+            "border-radius: var(--radius);",
+            "border-radius: var(--radius-sm) var(--radius-sm) 0 0;",
+            "border-radius: 50%;",
+            "border-radius: 0;",
+            "border-radius: 1px;",
+            "border-radius: $marker-radius;",
+            "border-radius: inherit;",
         ):
             with self.subTest(line=line):
                 self.assertEqual(self._problems(line), [])

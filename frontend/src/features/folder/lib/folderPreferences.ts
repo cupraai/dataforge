@@ -49,10 +49,6 @@ export function clearRecentFolders(): void {
   writeStoredJson(RECENT_FOLDERS_KEY, []);
 }
 
-export function restoreRecentFolders(paths: string[]): void {
-  writeRecentFolders(paths);
-}
-
 export function getRecentFoldersForPicker(
   currentFolder: string,
   favoritePaths: string[],

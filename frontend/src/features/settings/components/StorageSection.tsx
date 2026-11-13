@@ -6,7 +6,7 @@ import { formatCount, formatFileSize } from "@/shared/lib/format";
 import type { ThumbnailCacheStats } from "@/shared/types";
 import { fetchThumbnailCacheStats, settingsKeys } from "../api/settings";
 import { useClearThumbnailCache } from "../hooks/useClearThumbnailCache";
-import { SettingsActionButton } from "./SettingsActionButton";
+import { Button } from "@/shared/ui/Button";
 import { SettingsGroup } from "./SettingsGroup";
 
 interface StorageSectionProps {
@@ -43,13 +43,15 @@ export function StorageSection({ visible, disabled, children }: StorageSectionPr
       icon={iconHardDrive}
       hint="Recreated as you browse. Past the limit, the least recently used go first; 0 means no limit."
       action={
-        <SettingsActionButton
-          label="Clear cache"
+        <Button
+          size="xs"
           icon={iconTrash2}
           busy={clearing}
           disabled={disabled || !stats || stats.file_count === 0}
           onClick={() => void handleClear()}
-        />
+        >
+          Clear cache
+        </Button>
       }
     >
       {statsQuery.isError ? (

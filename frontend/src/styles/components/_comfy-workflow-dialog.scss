@@ -495,7 +495,7 @@ $map-chip-font-size: 0.59375rem;
     min-width: 0;
     padding: 0 0.25rem 0 0.1875rem;
     border: 1px solid color-mix(in srgb, var(--map-tone) 32%, var(--border));
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--map-tone) 7%, var(--bg-card));
     color: var(--text);
     font: inherit;
@@ -529,7 +529,7 @@ $map-chip-font-size: 0.59375rem;
     justify-content: center;
     width: 0.875rem;
     height: 0.875rem;
-    border-radius: 0.3125rem;
+    border-radius: var(--radius-xs);
     background: color-mix(in srgb, var(--map-tone) 20%, transparent);
     color: var(--map-tone);
     font-size: $map-chip-font-size;
@@ -591,29 +591,6 @@ $map-chip-font-size: 0.59375rem;
   }
 
   // ---- Chrome --------------------------------------------------------------------------------------
-
-  &__copy {
-    @include pill-btn-compact(default);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-
-    &--copied,
-    &--copied:hover:not(:disabled) {
-      color: var(--caption-saved);
-      border-color: var(--caption-saved);
-      @include fade-bg(color-mix(in srgb, var(--caption-saved) 12%, transparent));
-    }
-
-    &--error {
-      color: var(--caption-error);
-      border-color: var(--caption-error);
-      @include fade-bg(color-mix(in srgb, var(--caption-error) 12%, transparent));
-    }
-  }
-
-  &__copy-icon {
-    @include icon-size-sm;
-  }
 
   // ---- Loading skeleton ----------------------------------------------------------------------------
 
@@ -709,7 +686,7 @@ $map-chip-font-size: 0.59375rem;
     justify-content: center;
     width: 1.125rem;
     height: 1.125rem;
-    border-radius: 0.3125rem;
+    border-radius: var(--radius-xs);
     background: color-mix(in srgb, var(--map-tone) 20%, transparent);
     color: var(--map-tone);
     font-size: var(--text-2xs);

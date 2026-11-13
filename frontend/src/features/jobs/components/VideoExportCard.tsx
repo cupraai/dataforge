@@ -1,3 +1,5 @@
+import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { IconButton } from "@/shared/ui/IconButton";
 import { iconBan, iconClapperboard, iconLoader2 } from "@/shared/icons";
 import type { VideoProjectExportState } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
@@ -51,15 +53,14 @@ export function VideoExportCard({
             <span className="job-card__badge-label">Exporting</span>
           </span>
 
-          <button
-            type="button"
-            className="job-card__cancel"
+          <IconButton
+            icon={iconBan}
+            label={`Cancel export ${item.output_name}`}
+            tooltip="Cancel export"
             onClick={() => onCancel(item.id)}
-            aria-label={`Cancel export ${item.output_name}`}
-            title="Cancel export"
-          >
-            <Icon icon={iconBan} />
-          </button>
+            size="xs"
+            tone="warning"
+          />
         </div>
       </div>
 
@@ -69,16 +70,11 @@ export function VideoExportCard({
         <span className="job-card__meta-count">{progress}%</span>
       </div>
 
-      <div
+      <ProgressBar
         className="job-card__progress"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress}
-        aria-label={`Progress for ${item.output_name}`}
-      >
-        <div className="job-card__progress-bar" style={{ width: `${progress}%` }} />
-      </div>
+        value={progress}
+        label={`Progress for ${item.output_name}`}
+      />
     </article>
   );
 }

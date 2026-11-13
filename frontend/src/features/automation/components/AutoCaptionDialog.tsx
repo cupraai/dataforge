@@ -1,5 +1,6 @@
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { previewAutoCaption } from "@/features/automation/api/jobs";
 import { autoCaptionPlan } from "@/features/automation/lib/autoCaptionPlan";
@@ -53,8 +54,6 @@ export function AutoCaptionDialog({
     retry: false,
     gcTime: 0,
   });
-  const captionAudioId = useId();
-  const preserveThinkingId = useId();
 
   return (
     <GuardedDialog
@@ -117,41 +116,23 @@ export function AutoCaptionDialog({
         onChange={setReasoningEffort}
       />
 
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={preserveThinkingId}>
-          <input
-            id={preserveThinkingId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={preserveThinking}
-            onChange={(event) => setPreserveThinking(event.target.checked)}
-            disabled={mode === "instruct" || busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Preserve thinking</span>
-        </label>
-        <p className="dialog__hint">
-          Keeps earlier reasoning in the prompt instead of dropping it.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Preserve thinking"
+        checked={preserveThinking}
+        disabled={mode === "instruct" || busy}
+        onChange={setPreserveThinking}
+        hint="Keeps earlier reasoning in the prompt instead of dropping it."
+      />
 
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={captionAudioId}>
-          <input
-            id={captionAudioId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={captionAudio}
-            onChange={(event) => setCaptionAudio(event.target.checked)}
-            disabled={busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Caption audio</span>
-        </label>
-        <p className="dialog__hint">
-          Describes what is heard as well as what is seen. Needs a model with audio support.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Caption audio"
+        checked={captionAudio}
+        disabled={busy}
+        onChange={setCaptionAudio}
+        hint="Describes what is heard as well as what is seen. Needs a model with audio support."
+      />
 
       {!editingStep && state.status === "error" && (
         <p className="dialog__error" role="alert">

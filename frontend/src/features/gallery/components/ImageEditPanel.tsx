@@ -1,3 +1,4 @@
+import { useTabList } from "@/shared/hooks/useTabList";
 import { useEffect, useMemo, useState } from "react";
 import { isIdentityCrop } from "@/features/gallery/lib/crop";
 import {
@@ -97,19 +98,19 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
     setFillActive(activeTool === "fill");
   }, [activeTool, setAdjustActive, setCropActive, setFillActive, setMaskActive]);
 
+  const toolTabs = useTabList(
+    TOOLS.map((tool) => tool.id),
+    activeTool,
+    setActiveTool,
+  );
+
   return (
     <div className="edit-panel" role="group" aria-label="Image editing">
       <div className="edit-panel__tabs-bar">
-        <ToolTabs
-          tools={TOOLS}
-          activeTool={activeTool}
-          modified={modified}
-          disabled={locked}
-          onSelect={setActiveTool}
-        />
+        <ToolTabs tabs={toolTabs} tools={TOOLS} modified={modified} disabled={locked} />
       </div>
 
-      <div className="edit-panel__body">
+      <div className="edit-panel__body" {...toolTabs.panelProps(activeTool)}>
         <div className="edit-panel__tool-controls">
           {activeTool === "crop" && (
             <AspectTools aspectId={edit.aspectId} disabled={locked} onSelect={edit.selectAspect} />

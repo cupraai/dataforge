@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEventHandler,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -21,6 +22,7 @@ interface AnchoredLayerProps extends AnchoredOptions {
   id?: string;
   role?: string;
   label?: string;
+  onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
   children: ReactNode;
 }
 
@@ -33,6 +35,7 @@ export function AnchoredLayer({
   id,
   role,
   label,
+  onKeyDown,
   children,
   ...options
 }: AnchoredLayerProps) {
@@ -65,6 +68,7 @@ export function AnchoredLayer({
   if (!(open || exiting) || !portalTarget) return null;
 
   return createPortal(
+    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- keys come with a role
     <div
       ref={resolvedRef}
       id={id}
@@ -75,6 +79,7 @@ export function AnchoredLayer({
       aria-hidden={open ? undefined : true}
       tabIndex={-1}
       data-scroll-lock-allow
+      onKeyDown={onKeyDown}
     >
       {children}
     </div>,

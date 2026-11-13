@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { iconCircleAlert, iconCircleCheck, iconLoader2, iconPencil } from "@/shared/icons";
 import type { SaveState } from "@/shared/hooks/useDebouncedSave";
 import { classNames } from "@/shared/lib/classNames";
@@ -61,19 +62,19 @@ export function CaptionSaveStatus({
       )}
       <span className="caption-save-status__text">{text}</span>
       {state === "error" && (
-        <button type="button" className="caption-save-status__retry" onClick={onRetry}>
+        <Button className="caption-save-status__retry" onClick={onRetry} size="xs">
           Retry
-        </button>
+        </Button>
       )}
       {state === "conflict" && onReload && (
-        <button type="button" className="caption-save-status__retry" onClick={onReload}>
+        <Button className="caption-save-status__retry" onClick={onReload} size="xs">
           Reload
-        </button>
+        </Button>
       )}
       {state === "conflict" && onOverwrite && (
-        <button type="button" className="caption-save-status__retry" onClick={onOverwrite}>
+        <Button className="caption-save-status__retry" onClick={onOverwrite} size="xs">
           Overwrite
-        </button>
+        </Button>
       )}
     </p>
   );

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getThumbnailEpoch } from "@/features/gallery/lib/thumbnailEpoch";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import { SettingsDialog } from "./SettingsDialog";
@@ -178,7 +177,8 @@ describe("SettingsDialog", () => {
   it("clears the thumbnail cache and moves thumbnails to a new epoch", async () => {
     const { user } = await openDialog("Data & storage");
     await user.click(screen.getByRole("tab", { name: "Storage" }));
-    const epoch = getThumbnailEpoch();
+    const storedEpoch = () => Number(localStorage.getItem("thumbnail-epoch") ?? 0);
+    const epoch = storedEpoch();
 
     const stats = await screen.findByRole("status");
     expect(await within(stats).findByText("1,200")).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("SettingsDialog", () => {
     expect(within(stats).getByText("0")).toBeInTheDocument();
     expect(within(stats).getByText("0 B")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear cache" })).toBeDisabled();
-    expect(getThumbnailEpoch()).toBe(epoch + 1);
+    expect(storedEpoch()).toBe(epoch + 1);
   });
 
   it("leaves tagging off by default and saves turning it on as a UI preference", async () => {

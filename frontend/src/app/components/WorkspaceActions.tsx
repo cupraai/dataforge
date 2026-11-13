@@ -1,3 +1,6 @@
+import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import {
@@ -25,7 +28,7 @@ import { JobStatusBadge } from "@/features/jobs/components/JobStatusBadge";
 import { useJobTimeLabel } from "@/features/jobs/hooks/useJobTimeLabel";
 import { failedCountFromStats } from "@/features/jobs/lib/jobFileResults";
 import { dismissJob, readDismissedJobIds } from "@/features/jobs/lib/jobSeen";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { Menu, MenuItem } from "@/shared/ui/Menu";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
@@ -38,7 +41,6 @@ import {
   iconChevronDown,
   iconBan,
   iconListOrdered,
-  iconLoader2,
   iconCircleAlert,
   iconSearchCheck,
   iconTriangleAlert,
@@ -73,26 +75,22 @@ function ToolsGroup({
       {group.types.map((type) => {
         const { blocked, reason } = jobStartBlock(type, panel.startContext);
         return (
-          <button
+          <MenuItem
             key={type}
-            type="button"
-            role="menuitem"
-            className="workspace-tools__item"
+            icon={jobTypeIconFor(type)}
+            label={jobMenuLabelFor(type)}
+            description={
+              <>
+                {JOB_TYPE_META[type].menuDescription}
+                {reason && <span className="workspace-tools__reason">{reason}</span>}
+              </>
+            }
             disabled={blocked}
-            onClick={() => {
+            onSelect={() => {
               onPick();
               panel.onRequestStart(type);
             }}
-          >
-            <Icon icon={jobTypeIconFor(type)} className="workspace-tools__item-icon" />
-            <span className="workspace-tools__item-text">
-              <span className="workspace-tools__item-title">{jobMenuLabelFor(type)}</span>
-              <span className="workspace-tools__item-desc">
-                {JOB_TYPE_META[type].menuDescription}
-              </span>
-              {reason && <span className="workspace-tools__item-desc">{reason}</span>}
-            </span>
-          </button>
+          />
         );
       })}
     </div>
@@ -116,29 +114,19 @@ function ToolsMenuItems(props: ToolsMenuItemsProps) {
 }
 
 function ToolsMenu(props: ToolsMenuProps) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { close, rootRef, triggerProps } = menu;
   const compact = useToolbarCompact();
   return (
     <>
       <div ref={rootRef}>
         <Tooltip content="Tools" disabled={!compact}>
-          <button type="button" className="workspace-button" {...triggerProps}>
-            <Icon icon={iconHammer} />
+          <Button icon={iconHammer} iconEnd={iconChevronDown} {...triggerProps}>
             <span className={COLLAPSIBLE_LABEL_CLASS}>Tools</span>
-            <Icon icon={iconChevronDown} />
-          </button>
+          </Button>
         </Tooltip>
       </div>
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        placement="bottom-start"
-        className="workspace-tools"
-        role="menu"
-        label="Tools"
-      >
+      <Menu menu={menu} label="Tools" placement="bottom-start" className="workspace-tools">
         <ToolsMenuItems
           {...props}
           onPick={() => {
@@ -147,13 +135,14 @@ function ToolsMenu(props: ToolsMenuProps) {
             close();
           }}
         />
-      </AnchoredLayer>
+      </Menu>
     </>
   );
 }
 
 function ReviewMenu({ panel }: { panel: AutomationActions }) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { close, rootRef, triggerProps } = menu;
   const queues = [
     {
       label: "Caption issues",
@@ -183,41 +172,27 @@ function ReviewMenu({ panel }: { panel: AutomationActions }) {
   return (
     <>
       <div ref={rootRef}>
-        <button type="button" className="workspace-button" {...triggerProps}>
-          <Icon icon={iconSearchCheck} />
+        <Button icon={iconSearchCheck} iconEnd={iconChevronDown} {...triggerProps}>
           Review <span className="workspace-actions__count">{total}</span>
-          <Icon icon={iconChevronDown} />
-        </button>
+        </Button>
       </div>
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        placement="bottom-start"
-        className="workspace-review"
-        role="menu"
-        label="Review queues"
-      >
+      <Menu menu={menu} label="Review queues" placement="bottom-start" className="workspace-review">
         <p className="workspace-review__scope">{reviewScopeNote(panel.reviewScope)}</p>
         {queues.map((queue) => (
-          <button
+          <MenuItem
             key={queue.label}
-            type="button"
-            role="menuitem"
-            className={`workspace-review__item workspace-review__item--${queue.tone}`}
+            icon={queue.icon}
+            label={queue.label}
+            count={queue.count}
+            className={`workspace-review__item--${queue.tone}`}
             disabled={!queue.action || queue.count === 0}
-            onClick={() => {
+            onSelect={() => {
               close();
               queue.action?.();
             }}
-          >
-            <Icon icon={queue.icon} className="workspace-review__icon" />
-            <span className="workspace-review__label">{queue.label}</span>
-            <span className="workspace-review__count">{queue.count}</span>
-          </button>
+          />
         ))}
-      </AnchoredLayer>
+      </Menu>
     </>
   );
 }
@@ -232,31 +207,27 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
   return (
     <div className="workspace-actions">
       {active && (
-        <button
-          type="button"
-          className="workspace-button workspace-button--warning"
+        <Button
+          icon={iconBan}
+          busy={panel.cancellingJob}
+          variant="warning"
           onClick={() => setConfirmingCancel(true)}
-          disabled={panel.cancellingJob}
         >
-          <Icon icon={panel.cancellingJob ? iconLoader2 : iconBan} spin={panel.cancellingJob} />
           Cancel job
-        </button>
+        </Button>
       )}
       <ToolsMenu panel={panel} />
       <WorkflowsMenu actions={panel.workflows} />
       <ReviewMenu panel={panel} />
-      <Tooltip content={showSpecs ? "Hide system specifications" : "Show system specifications"}>
-        <button
-          type="button"
-          className="workspace-button workspace-button--icon"
-          onClick={toggleSpecs}
-          aria-label="Toggle system specifications"
-          aria-expanded={showSpecs}
-          aria-controls={showSpecs ? "workspace-system-specs" : undefined}
-        >
-          <Icon icon={iconCpu} />
-        </button>
-      </Tooltip>
+      <IconButton
+        icon={iconCpu}
+        label="Toggle system specifications"
+        shape="round"
+        tooltip={showSpecs ? "Hide system specifications" : "Show system specifications"}
+        onClick={toggleSpecs}
+        aria-expanded={showSpecs}
+        aria-controls={showSpecs ? "workspace-system-specs" : undefined}
+      />
       {confirmingCancel && job && active && (
         <CancelJobDialog
           job={job}
@@ -326,22 +297,12 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
               </span>
             )}
             {active && (
-              <div
+              <ProgressBar
                 className="workspace-activity__progress"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progressPercent(job)}
-                aria-label="Job progress"
-              >
-                <div
-                  className={classNames(
-                    "workspace-activity__progress-bar",
-                    tone && `workspace-activity__progress-bar--${tone}`,
-                  )}
-                  style={{ width: `${progressPercent(job)}%` }}
-                />
-              </div>
+                value={progressPercent(job)}
+                label="Job progress"
+                tone={tone}
+              />
             )}
             {active && <span className="workspace-activity__percent">{progressPercent(job)}%</span>}
             {active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
@@ -354,14 +315,14 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
               </Tooltip>
             )}
             {!active && (
-              <button
-                type="button"
-                className="workspace-button workspace-button--icon"
+              <IconButton
+                icon={iconX}
+                label="Dismiss job status"
+                size="sm"
+                tooltip={false}
+                className="workspace-activity__dismiss"
                 onClick={() => setDismissedJobIds(dismissJob(job.id))}
-                aria-label="Dismiss job status"
-              >
-                <Icon icon={iconX} />
-              </button>
+              />
             )}
           </div>
           {message && (

@@ -7,6 +7,8 @@ const STEP_KEYS: Record<Orientation, { previous: string; next: string }> = {
   vertical: { previous: "ArrowUp", next: "ArrowDown" },
 };
 
+export type TabListState<T extends string> = ReturnType<typeof useTabList<T>>;
+
 /** ARIA tabs with a roving tabindex; arrows wrap, Home and End jump. */
 export function useTabList<T extends string>(
   ids: readonly T[],

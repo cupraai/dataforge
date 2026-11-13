@@ -1,0 +1,76 @@
+@use "../abstracts/mixins" as *;
+
+// The surface's own class draws the rule under the row; the selected tab's bar overlaps it, so
+// the open tab reads as joined to what it shows.
+.tab-list {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.25rem;
+
+  &__tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: none;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: var(--font-medium);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--transition);
+    @include focus-ring;
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: var(--tab-padding-inline);
+      bottom: -1px;
+      left: var(--tab-padding-inline);
+      height: 2px;
+      border-radius: 1px;
+      background: transparent;
+    }
+
+    &:hover:not(:disabled),
+    &[aria-selected="true"] {
+      color: var(--text);
+    }
+
+    &[aria-selected="true"]::after {
+      background: var(--accent);
+    }
+
+    &:disabled {
+      @include disabled-state;
+    }
+  }
+
+  &--md &__tab {
+    --tab-padding-inline: 0.625rem;
+    padding: 0.5625rem var(--tab-padding-inline);
+    font-size: var(--text-sm);
+  }
+
+  &--sm &__tab {
+    --tab-padding-inline: 0.5rem;
+    padding: 0.4375rem var(--tab-padding-inline);
+    font-size: var(--text-xs);
+    @include icon-scope-sm;
+  }
+
+  &__icon {
+    @include icon-block;
+  }
+
+  &__dot {
+    @include unsaved-dot;
+
+    &--changed {
+      background: var(--accent);
+    }
+  }
+}

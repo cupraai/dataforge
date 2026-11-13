@@ -1,3 +1,7 @@
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { SearchInput } from "@/shared/ui/SearchInput";
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { useCallback, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutomationDialogOverlays } from "@/features/automation/components/AutomationDialogOverlays";
@@ -31,7 +35,6 @@ import {
   iconGripVertical,
   iconPlay,
   iconPlus,
-  iconSearch,
   iconSliders,
   iconTrash2,
   iconWorkflow,
@@ -40,7 +43,6 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import type { JobType, Workflow, WorkflowsResponse, WorkflowStep } from "@/shared/types";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { Icon } from "@/shared/ui/Icon";
@@ -294,15 +296,16 @@ export function WorkflowEditorDialog({
           <Icon icon={iconWorkflow} className="workflow-editor__brand-icon" />
           Workflows
         </h2>
-        <button
-          type="button"
+        <Button
+          icon={iconPlus}
           className="workflow-editor__new"
           disabled={savedName === null}
           onClick={() => requestOpen(null)}
+          variant="primary"
+          size="xs"
         >
-          <Icon icon={iconPlus} />
           New workflow
-        </button>
+        </Button>
         <nav className="workflow-editor__nav" aria-label="Saved workflows">
           {savedName === null && (
             <WorkflowNavItem
@@ -355,30 +358,25 @@ export function WorkflowEditorDialog({
               when it starts
             </p>
           </div>
-          <button
-            type="button"
+          <IconButton
+            icon={iconX}
+            label="Close workflows"
             className="workflow-editor__close"
             onClick={requestClose}
             disabled={busy}
-            aria-label="Close workflows"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </header>
 
         <div className="workflow-editor__body">
           <section className="workflow-editor__canvas" aria-label="Workflow steps">
             {draft.steps.length === 0 ? (
-              <div className="workflow-editor__empty">
-                <span className="workflow-editor__empty-icon">
-                  <Icon icon={iconWorkflow} />
-                </span>
-                <p className="workflow-editor__empty-title">No steps yet</p>
-                <p className="workflow-editor__empty-text">
-                  Pick jobs from the library. Each step keeps its own settings and starts when the
-                  one before it finishes cleanly.
-                </p>
-              </div>
+              <EmptyState
+                className="workflow-editor__empty"
+                icon={iconWorkflow}
+                title="No steps yet"
+                description="Pick jobs from the library. Each step keeps its own settings and starts when the one before it finishes cleanly."
+              />
             ) : (
               <ol className="workflow-timeline" aria-label="Steps">
                 {draft.steps.map((step, index) => {
@@ -438,49 +436,47 @@ export function WorkflowEditorDialog({
                         </span>
                         <span className="workflow-timeline__actions">
                           {stepHasSettings(step.job_type) && (
-                            <button
-                              type="button"
+                            <Button
+                              icon={iconSliders}
                               className="workflow-timeline__settings"
                               aria-label={`Edit ${label} settings`}
                               onClick={() => editStep(index)}
+                              size="xs"
                             >
-                              <Icon icon={iconSliders} />
                               <span className="workflow-timeline__settings-label">Settings</span>
-                            </button>
+                            </Button>
                           )}
-                          <button
-                            type="button"
-                            className="workflow-timeline__button"
-                            aria-label={`Move ${label} up`}
+                          <IconButton
+                            icon={iconArrowUp}
+                            label={`Move ${label} up`}
+                            tooltip="Move up (Alt+Up)"
                             aria-keyshortcuts="Alt+ArrowUp"
-                            title="Move up (Alt+Up)"
                             disabled={!canMove(index, index - 1)}
                             onClick={() => move(index, index - 1)}
-                          >
-                            <Icon icon={iconArrowUp} />
-                          </button>
-                          <button
-                            type="button"
-                            className="workflow-timeline__button"
-                            aria-label={`Move ${label} down`}
+                            size="xs"
+                            variant="ghost"
+                          />
+                          <IconButton
+                            icon={iconArrowDown}
+                            label={`Move ${label} down`}
+                            tooltip="Move down (Alt+Down)"
                             aria-keyshortcuts="Alt+ArrowDown"
-                            title="Move down (Alt+Down)"
                             disabled={!canMove(index, index + 1)}
                             onClick={() => move(index, index + 1)}
-                          >
-                            <Icon icon={iconArrowDown} />
-                          </button>
-                          <button
-                            type="button"
-                            className="workflow-timeline__button workflow-timeline__button--danger"
-                            aria-label={`Remove ${label}`}
-                            title="Remove step"
+                            size="xs"
+                            variant="ghost"
+                          />
+                          <IconButton
+                            icon={iconTrash2}
+                            label={`Remove ${label}`}
+                            tooltip="Remove step"
+                            tone="danger"
                             onClick={() =>
                               setSteps((steps) => steps.filter((_, at) => at !== index))
                             }
-                          >
-                            <Icon icon={iconTrash2} />
-                          </button>
+                            size="xs"
+                            variant="ghost"
+                          />
                         </span>
                       </div>
                     </li>
@@ -498,16 +494,13 @@ export function WorkflowEditorDialog({
               <p className="workflow-library__hint">
                 {addBlock ?? "Steps are added at the end. Jobs with settings open their dialog."}
               </p>
-              <label className="workflow-library__search">
-                <Icon icon={iconSearch} />
-                <input
-                  type="search"
-                  aria-label="Filter jobs"
-                  placeholder="Filter jobs"
-                  value={filter}
-                  onChange={(event) => setFilter(event.target.value)}
-                />
-              </label>
+              <SearchInput
+                label="Filter jobs"
+                placeholder="Filter jobs"
+                clearLabel="Clear the filter"
+                value={filter}
+                onChange={setFilter}
+              />
             </div>
             <div className="workflow-library__groups">
               {library.map((group) => (
@@ -561,37 +554,35 @@ export function WorkflowEditorDialog({
             {status}
           </p>
           <div className="workflow-editor__actions">
-            <DialogButton
-              label="Delete"
-              variant="secondary"
+            <Button
               icon={iconTrash2}
               disabled={busy || (savedName === null && draft.steps.length === 0 && !trimmedName)}
               onClick={() => setConfirmingDelete(true)}
-            />
+            >
+              Delete
+            </Button>
             {onRun && (
-              <DialogButton
-                label="Run..."
-                variant="secondary"
+              <Button
                 icon={iconPlay}
                 disabled={busy || savedName === null || dirty}
                 onClick={() => {
                   if (savedName) onRun(savedName);
                 }}
-              />
+              >
+                Run...
+              </Button>
             )}
-            <DialogButton
-              label="Close"
-              variant="secondary"
-              disabled={busy}
-              onClick={requestClose}
-            />
-            <DialogButton
-              label={save.isPending ? "Saving..." : "Save"}
+            <Button disabled={busy} onClick={requestClose}>
+              Close
+            </Button>
+            <Button
               variant="primary"
               busy={save.isPending}
               disabled={!canSave}
               onClick={() => save.mutate()}
-            />
+            >
+              {save.isPending ? "Saving..." : "Save"}
+            </Button>
           </div>
         </footer>
       </div>

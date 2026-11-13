@@ -16,7 +16,7 @@
   &__removed,
   &__added {
     padding: 0.0625rem 0.1875rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     // A mark that wraps keeps its padding and corners on every line.
     box-decoration-break: clone;
     text-decoration: none;
@@ -140,7 +140,7 @@
       flex-shrink: 0;
       width: 0.5rem;
       height: 0.5rem;
-      border-radius: 0.125rem;
+      border-radius: 2px;
     }
 
     &--removed::before {

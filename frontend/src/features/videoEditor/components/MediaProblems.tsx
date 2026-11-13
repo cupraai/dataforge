@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { iconLoader2, iconTriangleAlert } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
@@ -44,21 +45,21 @@ export function MediaProblems({
               <span>
                 <strong>{source.name}</strong> {MEDIA_PROBLEM_EXPLANATIONS[problem.kind]}
               </span>
-              <button
-                type="button"
-                className="video-editor__text-btn"
+              <Button
                 onClick={() => onRetry(problem.sourceId)}
                 disabled={busy}
+                variant="text"
+                size="xs"
               >
                 Retry
-              </button>
+              </Button>
               {source.kind === "video" && problem.kind !== "network" && (
                 <Tooltip content="Writes an H.264 copy beside the file and relinks this project to it">
-                  <button
-                    type="button"
-                    className="video-editor__text-btn"
+                  <Button
                     onClick={() => onConvert(problem.sourceId)}
                     disabled={busy}
+                    variant="text"
+                    size="xs"
                   >
                     {busy ? (
                       <>
@@ -67,7 +68,7 @@ export function MediaProblems({
                     ) : (
                       "Use an H.264 copy"
                     )}
-                  </button>
+                  </Button>
                 </Tooltip>
               )}
             </div>

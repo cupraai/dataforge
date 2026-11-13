@@ -45,10 +45,6 @@
     }
   }
 
-  &__axis-clear {
-    @include icon-btn-xs;
-  }
-
   // Chart and fields share a row; on a phone the fields drop below the chart.
   &__axis-body {
     display: flex;
@@ -74,7 +70,7 @@
     height: 100%;
     padding: 0;
     border: 0;
-    border-radius: 0.1875rem 0.1875rem 0 0;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
     background: transparent;
     cursor: pointer;
     @include focus-ring;
@@ -127,20 +123,11 @@
     text-transform: uppercase;
   }
 
+  // Right-aligned numbers, clear of the unit drawn over the field's end.
   &__input {
-    @include dialog-form-input(2.25rem);
-    padding: 0.25rem 2.75rem 0.25rem 0.5rem;
+    padding-right: 2.75rem;
     text-align: right;
     @include tabular-nums;
-    @include input-focus;
-
-    &::placeholder {
-      color: var(--text-subtle);
-    }
-
-    &[aria-invalid="true"] {
-      border-color: var(--danger);
-    }
   }
 
   // Sits inside the field's right edge, so the number and its unit read as one value.
@@ -150,7 +137,7 @@
     bottom: 0;
     display: flex;
     align-items: center;
-    height: 2.25rem;
+    height: 2.75rem;
     color: var(--text-subtle);
     font-size: var(--text-xs);
     pointer-events: none;

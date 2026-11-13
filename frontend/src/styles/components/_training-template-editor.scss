@@ -39,18 +39,6 @@
     @include dialog-editor-subtitle;
   }
 
-  &__reset {
-    @include pill-btn-ghost(0.4rem);
-  }
-
-  &__reset-icon {
-    @include icon-size-sm;
-  }
-
-  &__close {
-    @include dialog-close-btn;
-  }
-
   &__body {
     @include dialog-editor-body;
   }

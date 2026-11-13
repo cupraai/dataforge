@@ -1,3 +1,4 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import {
   useCallback,
   useEffect,
@@ -272,34 +273,25 @@ export function AdjustTools({ controls, disabled }: AdjustToolsProps) {
       </div>
 
       <div className="adjust-tools__actions">
-        <Tooltip content="Hold to see the original">
-          <button
-            type="button"
-            className={classNames(
-              "adjust-tools__action",
-              controls.comparing && "adjust-tools__action--pressed",
-            )}
-            aria-label="Hold to see the original"
-            aria-pressed={controls.comparing}
-            disabled={disabled || isAdjustIdentity(controls.values)}
-            {...holdToCompareProps(controls.setComparing)}
-          >
-            <Icon icon={iconSquareSplitHorizontal} />
-          </button>
-        </Tooltip>
-        <Tooltip content="Reset adjustments">
-          <button
-            type="button"
-            className="adjust-tools__action"
-            aria-label="Reset adjustments"
-            disabled={
-              disabled || (isAdjustIdentity(controls.values) && !autoOn && !controls.autoPending)
-            }
-            onClick={controls.reset}
-          >
-            <Icon icon={iconRotateCcw} />
-          </button>
-        </Tooltip>
+        <IconButton
+          icon={iconSquareSplitHorizontal}
+          label="Hold to see the original"
+          size="sm"
+          shape="round"
+          pressed={controls.comparing}
+          disabled={disabled || isAdjustIdentity(controls.values)}
+          {...holdToCompareProps(controls.setComparing)}
+        />
+        <IconButton
+          icon={iconRotateCcw}
+          label="Reset adjustments"
+          size="sm"
+          shape="round"
+          disabled={
+            disabled || (isAdjustIdentity(controls.values) && !autoOn && !controls.autoPending)
+          }
+          onClick={controls.reset}
+        />
       </div>
     </div>
   );

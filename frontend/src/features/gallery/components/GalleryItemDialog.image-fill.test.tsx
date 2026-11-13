@@ -146,7 +146,7 @@ describe("GalleryItemDialog", () => {
 
     async function openFillTool(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
       // The tools unlock once the saved edit has been read.
-      const tab = within(dialog).getByRole("button", { name: "Fill" });
+      const tab = within(dialog).getByRole("tab", { name: "Fill" });
       await waitFor(() => expect(tab).toBeEnabled());
       await user.click(tab);
     }

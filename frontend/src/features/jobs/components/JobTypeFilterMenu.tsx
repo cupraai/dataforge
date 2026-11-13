@@ -1,11 +1,10 @@
+import { Button } from "@/shared/ui/Button";
 import type { KeyboardEvent } from "react";
 import { JOB_TYPE_FILTER_OPTIONS, toggleJobType } from "@/features/jobs/lib/jobFilters";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
-import { iconCheck, iconChevronDown } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
+import { iconChevronDown } from "@/shared/icons";
 import type { JobType } from "@/shared/types";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
-import { Icon } from "@/shared/ui/Icon";
+import { Menu, MenuItem, MenuSeparator } from "@/shared/ui/Menu";
 
 interface JobTypeFilterMenuProps {
   /** Empty means every type. */
@@ -19,33 +18,10 @@ function summaryFor(value: readonly JobType[]): string {
   return JOB_TYPE_FILTER_OPTIONS.find((option) => option.value === value[0])?.title ?? value[0];
 }
 
-interface OptionProps {
-  checked: boolean;
-  title: string;
-  onClick: () => void;
-}
-
-function TypeOption({ checked, title, onClick }: OptionProps) {
-  return (
-    <button
-      type="button"
-      role="menuitemcheckbox"
-      aria-checked={checked}
-      className={classNames(
-        "jobs-dialog__type-option",
-        checked && "jobs-dialog__type-option--checked",
-      )}
-      onClick={onClick}
-    >
-      <Icon icon={iconCheck} className="jobs-dialog__type-option-check" />
-      {title}
-    </button>
-  );
-}
-
 /** Multi-select type filter; stays open on pick so several types can be toggled in a row. */
 export function JobTypeFilterMenu({ value, onChange }: JobTypeFilterMenuProps) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { open, close, rootRef, triggerProps } = menu;
   const summary = summaryFor(value);
 
   // The drawer closes on a window-level Escape too; stopping it here closes only the menu.
@@ -62,40 +38,41 @@ export function JobTypeFilterMenu({ value, onChange }: JobTypeFilterMenuProps) {
        jsx-a11y/no-static-element-interactions
        -- catches Escape from the trigger and menu */
     <div ref={rootRef} className="jobs-dialog__type" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        className={classNames(
-          "jobs-dialog__type-trigger",
-          value.length > 0 && "jobs-dialog__type-trigger--active",
-        )}
+      {/* Accent while a type filter is in force, like the pressed "This folder" beside it. */}
+      <Button
+        variant={value.length > 0 ? "primary" : "secondary"}
+        size="sm"
+        iconEnd={iconChevronDown}
+        className="jobs-dialog__type-trigger"
         aria-label={`Type: ${summary}`}
         {...triggerProps}
       >
         <span className="jobs-dialog__type-trigger-label">{summary}</span>
-        <Icon icon={iconChevronDown} className="jobs-dialog__type-trigger-icon" />
-      </button>
+      </Button>
 
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        className="jobs-dialog__type-panel"
-        placement="bottom-start"
-        role="menu"
+      <Menu
+        menu={menu}
         label="Job types"
+        placement="bottom-start"
+        className="jobs-dialog__type-panel"
       >
-        <TypeOption checked={value.length === 0} title="All types" onClick={() => onChange([])} />
-        <div className="jobs-dialog__type-divider" role="separator" />
+        <MenuItem
+          kind="checkbox"
+          checked={value.length === 0}
+          label="All types"
+          onSelect={() => onChange([])}
+        />
+        <MenuSeparator />
         {JOB_TYPE_FILTER_OPTIONS.map((option) => (
-          <TypeOption
+          <MenuItem
             key={option.value}
+            kind="checkbox"
             checked={value.includes(option.value)}
-            title={option.title}
-            onClick={() => onChange(toggleJobType(value, option.value))}
+            label={option.title}
+            onSelect={() => onChange(toggleJobType(value, option.value))}
           />
         ))}
-      </AnchoredLayer>
+      </Menu>
     </div>
   );
 }

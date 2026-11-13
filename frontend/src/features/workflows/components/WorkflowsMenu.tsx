@@ -1,3 +1,5 @@
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { Button } from "@/shared/ui/Button";
 import { Fragment } from "react";
 import { jobMenuLabelFor, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import type { WorkflowActions } from "@/features/workflows/hooks/useWorkflowHost";
@@ -13,13 +15,14 @@ import {
 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import type { Workflow } from "@/shared/types";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { Menu } from "@/shared/ui/Menu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 /** The toolbar's Workflows button: run a saved workflow on the current scope, or edit them. */
 export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { close, rootRef, triggerProps } = menu;
   const compact = useToolbarCompact();
   const { workflows, startingWorkflow } = actions;
   const edit = (name: string | null) => {
@@ -31,51 +34,40 @@ export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
     <>
       <div ref={rootRef}>
         <Tooltip content="Workflows" disabled={!compact}>
-          <button
-            type="button"
-            className="workspace-button"
+          {/* Not `busy`, which disables: the menu still opens while a run starts. */}
+          <Button
+            iconEnd={iconChevronDown}
             aria-busy={startingWorkflow ? true : undefined}
             {...triggerProps}
           >
             <Icon
               icon={startingWorkflow ? iconLoader2 : iconWorkflow}
               spin={Boolean(startingWorkflow)}
+              className="button__icon"
             />
             <span className={COLLAPSIBLE_LABEL_CLASS}>Workflows</span>
-            <Icon icon={iconChevronDown} />
-          </button>
+          </Button>
         </Tooltip>
       </div>
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        placement="bottom-start"
-        className="workspace-workflows"
-        role="menu"
-        label="Workflows"
-      >
+      <Menu menu={menu} label="Workflows" placement="bottom-start" className="workspace-workflows">
         {workflows.length === 0 ? (
-          <div className="workspace-workflows__empty">
-            <span className="workspace-workflows__empty-icon">
-              <Icon icon={iconWorkflow} />
-            </span>
-            <p className="workspace-workflows__empty-title">No workflows yet</p>
-            <p className="workspace-workflows__empty-text">
-              Chain jobs with their own settings, such as Resize, Auto-caption and Lint captions,
-              then run them on a folder in one click.
-            </p>
-            <button
-              type="button"
-              role="menuitem"
-              className="workspace-workflows__create"
-              onClick={() => edit(null)}
-            >
-              <Icon icon={iconPlus} />
-              Create a workflow
-            </button>
-          </div>
+          <EmptyState
+            size="sm"
+            icon={iconWorkflow}
+            title="No workflows yet"
+            description="Chain jobs with their own settings, such as Resize, Auto-caption and Lint captions, then run them on a folder in one click."
+            action={
+              <Button
+                icon={iconPlus}
+                role="menuitem"
+                onClick={() => edit(null)}
+                variant="primary"
+                size="xs"
+              >
+                Create a workflow
+              </Button>
+            }
+          />
         ) : (
           <>
             <div className="workspace-workflows__header" role="none">
@@ -83,15 +75,14 @@ export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
                 Run a workflow
                 <span className="workspace-workflows__count">{workflows.length}</span>
               </span>
-              <button
-                type="button"
+              <Button
+                icon={iconSettings}
                 role="menuitem"
-                className="workspace-workflows__manage"
                 onClick={() => edit(workflows[0].name)}
+                size="xs"
               >
-                <Icon icon={iconSettings} />
                 Manage
-              </button>
+              </Button>
             </div>
             <div className="workspace-workflows__list" role="none">
               {workflows.map((workflow) => (
@@ -108,19 +99,19 @@ export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
               ))}
             </div>
             <div className="workspace-workflows__footer" role="none">
-              <button
-                type="button"
+              <Button
+                icon={iconPlus}
                 role="menuitem"
                 className="workspace-workflows__new"
                 onClick={() => edit(null)}
+                size="sm"
               >
-                <Icon icon={iconPlus} />
                 New workflow
-              </button>
+              </Button>
             </div>
           </>
         )}
-      </AnchoredLayer>
+      </Menu>
     </>
   );
 }

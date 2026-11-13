@@ -1,3 +1,4 @@
+import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
@@ -27,7 +28,6 @@ export function RenameDialog({
   onCancel,
 }: RenameDialogProps) {
   const [name, setName] = useState(initialName);
-  const nameId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -54,23 +54,20 @@ export function RenameDialog({
       describedById={error ? errorId : undefined}
       footer={<DialogActions confirmLabel="Rename" busyLabel="Renaming..." onCancel={onCancel} />}
     >
-      <div className="dialog__field">
-        <label htmlFor={nameId} className="dialog__label">
-          {fieldLabel}
-        </label>
-        <input
-          ref={inputRef}
-          id={nameId}
-          type="text"
-          className="dialog__input"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onFocus={(event) => event.currentTarget.select()}
-          disabled={busy}
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
+      <Field label={fieldLabel}>
+        {(control) => (
+          <TextInput
+            {...control}
+            ref={inputRef}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
+            disabled={busy}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        )}
+      </Field>
 
       {error && (
         <p id={errorId} className="dialog__error" role="alert">

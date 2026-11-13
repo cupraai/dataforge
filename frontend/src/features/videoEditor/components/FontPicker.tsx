@@ -1,5 +1,7 @@
+import { Select } from "@/shared/ui/Select";
+import { SearchInput } from "@/shared/ui/SearchInput";
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
-import { iconCheck, iconChevronDown, iconSearch, iconTriangleAlert } from "@/shared/icons";
+import { iconCheck, iconChevronDown, iconTriangleAlert } from "@/shared/icons";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { classNames } from "@/shared/lib/classNames";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
@@ -50,8 +52,9 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
           }
         />
         {value && current && current.styles.length > 1 && (
-          <select
+          <Select
             id={styleId}
+            size="sm"
             className="video-editor__font-style"
             aria-label="Font style"
             value={styleIn(current, value.style)}
@@ -62,7 +65,7 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
                 {style}
               </option>
             ))}
-          </select>
+          </Select>
         )}
       </div>
       {missing && (
@@ -147,32 +150,28 @@ function FamilyMenu({
         label="Choose a font"
         placement="bottom-start"
       >
-        <label className="video-editor__search">
-          <Icon icon={iconSearch} />
-          <input
-            ref={searchRef}
-            type="search"
-            placeholder="Search fonts"
-            aria-label="Search fonts"
-            aria-controls={listId}
-            aria-activedescendant={options.length ? `${listId}-${active}` : undefined}
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setActive(0);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                event.preventDefault();
-                const step = event.key === "ArrowDown" ? 1 : -1;
-                setActive((index) => Math.min(options.length - 1, Math.max(0, index + step)));
-              } else if (event.key === "Enter" && options.length > 0) {
-                event.preventDefault();
-                pick(options[Math.min(active, options.length - 1)]);
-              }
-            }}
-          />
-        </label>
+        <SearchInput
+          ref={searchRef}
+          label="Search fonts"
+          placeholder="Search fonts"
+          aria-controls={listId}
+          aria-activedescendant={options.length ? `${listId}-${active}` : undefined}
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setActive(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              const step = event.key === "ArrowDown" ? 1 : -1;
+              setActive((index) => Math.min(options.length - 1, Math.max(0, index + step)));
+            } else if (event.key === "Enter" && options.length > 0) {
+              event.preventDefault();
+              pick(options[Math.min(active, options.length - 1)]);
+            }
+          }}
+        />
         <ul
           ref={listRef}
           id={listId}

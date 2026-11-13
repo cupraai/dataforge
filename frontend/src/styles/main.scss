@@ -12,6 +12,17 @@
 @use "utilities/skeleton";
 @use "utilities/sticky";
 @use "layout/app";
+// Shared controls first, so feature partials can adjust their layout.
+@use "components/button";
+@use "components/checkbox";
+@use "components/tabs";
+@use "components/segmented";
+@use "components/menu";
+@use "components/search-input";
+@use "components/slider";
+@use "components/select";
+@use "components/progress";
+@use "components/disclosure";
 @use "components/anchored";
 @use "components/automation";
 @use "components/backend-unavailable";

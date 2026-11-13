@@ -52,10 +52,6 @@
     flex-shrink: 0;
   }
 
-  &__step {
-    @include icon-btn-sm;
-  }
-
   &__header-actions {
     // A divider gets the same space on both sides: its padding inside, the gap plus a top-up
     // margin outside.
@@ -65,45 +61,6 @@
     flex-shrink: 0;
     align-items: center;
     gap: var(--header-gap);
-  }
-
-  &__preview,
-  &__convert,
-  &__copy,
-  &__move,
-  &__rename,
-  &__review-candidate,
-  &__resolve-duplicate,
-  &__frame-toggle,
-  &__video-editor,
-  &__edit-toggle {
-    @include dialog-close-btn;
-
-    &:hover:not(:disabled) {
-      color: var(--accent);
-      border-color: var(--accent-border);
-      @include fade-bg(var(--accent-soft));
-    }
-  }
-
-  &__edit-toggle--active,
-  &__frame-toggle--active {
-    @include btn-surface-success;
-  }
-
-  &__delete {
-    @include dialog-close-btn;
-
-    &:hover:not(:disabled) {
-      color: var(--danger);
-      border-color: var(--danger-border);
-      @include fade-bg(var(--danger-soft));
-    }
-  }
-
-  &__expand,
-  &__close {
-    @include dialog-close-btn;
   }
 
   &__presentation-actions {
@@ -142,15 +99,7 @@
   }
 
   &__nav {
-    @include dialog-nav-btn;
-
-    &--prev {
-      left: 0.875rem;
-    }
-
-    &--next {
-      right: 0.875rem;
-    }
+    @include dialog-media-nav;
   }
 
   &__media-wrap {
@@ -286,33 +235,6 @@
     letter-spacing: var(--tracking-caps);
   }
 
-  &__caption-action {
-    @include pill-btn-compact(default);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-
-    &--copied,
-    &--copied:hover:not(:disabled) {
-      color: var(--caption-saved);
-      border-color: var(--caption-saved);
-      @include fade-bg(color-mix(in srgb, var(--caption-saved) 12%, transparent));
-    }
-
-    &--error {
-      color: var(--caption-error);
-      border-color: var(--caption-error);
-      @include fade-bg(color-mix(in srgb, var(--caption-error) 12%, transparent));
-    }
-
-    &--issue {
-      @include btn-surface-warning;
-    }
-  }
-
-  &__caption-action-icon {
-    @include icon-size-sm;
-  }
-
   // Stands in for the caption editor, in its box and type, while comparing with the backup.
   &__caption-compare {
     @include app-scrollbar;
@@ -322,7 +244,7 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: var(--caption-input-bg);
 
     &:focus-visible {
@@ -394,25 +316,6 @@
     --header-divider-space: 0.375rem;
     flex-wrap: wrap;
     width: 100%;
-  }
-
-  // The side panel is narrow; its actions match the step buttons beside the counter.
-  .gallery-item-dialog__preview,
-  .gallery-item-dialog__convert,
-  .gallery-item-dialog__copy,
-  .gallery-item-dialog__move,
-  .gallery-item-dialog__rename,
-  .gallery-item-dialog__review-candidate,
-  .gallery-item-dialog__resolve-duplicate,
-  .gallery-item-dialog__frame-toggle,
-  .gallery-item-dialog__video-editor,
-  .gallery-item-dialog__edit-toggle,
-  .gallery-item-dialog__delete,
-  .gallery-item-dialog__close,
-  .gallery-item-dialog__expand {
-    width: var(--control-height-xs);
-    height: var(--control-height-xs);
-    @include icon-scope-sm;
   }
 
   // The header spans the panel here, so these sit at its right edge.

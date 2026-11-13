@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useMemo, type ReactNode } from "react";
 import { FolderErrorState } from "@/features/folder/components/FolderErrorState";
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
@@ -15,7 +16,6 @@ import { useUiSettings } from "@/shared/preferences/uiPreferences";
 import type { FolderResponse, GalleryDisplayMode, GalleryItem, Subfolder } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { Icon } from "@/shared/ui/Icon";
 import { SectionHeader } from "@/shared/ui/SectionHeader";
 import { VideoProjectGrid } from "@/features/videoEditor/components/VideoProjectGrid";
 import { AppInitialLoading } from "./AppInitialLoading";
@@ -178,24 +178,14 @@ export function AppFolderContent({
                       action={
                         <>
                           {onRenameFolder && (
-                            <button
-                              type="button"
-                              className="workspace-button"
-                              onClick={onRenameFolder}
-                            >
-                              <Icon icon={iconPencilLine} />
+                            <Button icon={iconPencilLine} onClick={onRenameFolder}>
                               Rename folder
-                            </button>
+                            </Button>
                           )}
                           {onDeleteFolder && (
-                            <button
-                              type="button"
-                              className="workspace-button"
-                              onClick={onDeleteFolder}
-                            >
-                              <Icon icon={iconTrash2} />
+                            <Button icon={iconTrash2} onClick={onDeleteFolder}>
                               Delete folder
-                            </button>
+                            </Button>
                           )}
                         </>
                       }

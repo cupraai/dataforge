@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import { swapsAxes } from "@/features/gallery/lib/imageEdit";
 import { classNames } from "@/shared/lib/classNames";
 import { iconMinimize2 } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
+import { Button } from "@/shared/ui/Button";
 import { imageOriginalUrl } from "@/features/gallery/api/imageEdit";
 import { fillPreviewUrl } from "@/features/gallery/api/imageFill";
 import { useStageZoom } from "@/features/gallery/hooks/useStageZoom";
@@ -143,10 +143,9 @@ export function ImageEditStage({ edit, path, alt, disabled }: ImageEditStageProp
       {zoomed && (
         <div className="image-edit-stage__zoom">
           <span className="image-edit-stage__zoom-level">{Math.round(zoom.view.scale * 100)}%</span>
-          <button type="button" className="image-edit-stage__zoom-fit" onClick={zoom.reset}>
-            <Icon icon={iconMinimize2} />
+          <Button icon={iconMinimize2} size="xs" onClick={zoom.reset}>
             Fit
-          </button>
+          </Button>
         </div>
       )}
     </div>

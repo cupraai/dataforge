@@ -1,9 +1,11 @@
+import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import {
   iconBan,
   iconCircleAlert,
   iconFolder,
   iconHourglass,
-  iconLoader2,
   iconTrash2,
   iconTriangleAlert,
   iconWorkflow,
@@ -195,31 +197,26 @@ export function JobCard({
           <JobStatusBadge job={job} />
 
           {active && onCancel && (
-            <button
-              type="button"
-              className="job-card__cancel"
+            <IconButton
+              icon={iconBan}
+              label={`Cancel job for ${folderLabel}`}
+              tooltip={cancelling ? "Cancelling job..." : "Cancel job"}
+              size="xs"
+              tone="warning"
+              busy={cancelling}
               onClick={() => onCancel(job.id)}
-              disabled={cancelling}
-              aria-label={`Cancel job for ${folderLabel}`}
-              title={cancelling ? "Cancelling job..." : "Cancel job"}
-            >
-              <Icon
-                icon={cancelling ? iconLoader2 : iconBan}
-                className={cancelling ? "job-card__cancel-icon--spin" : undefined}
-              />
-            </button>
+            />
           )}
 
           {!active && onDelete && (
-            <button
-              type="button"
-              className="job-card__delete"
+            <IconButton
+              icon={iconTrash2}
+              label={`Delete job for ${folderLabel}`}
+              tooltip="Delete job"
               onClick={() => onDelete(job.id)}
-              aria-label={`Delete job for ${folderLabel}`}
-              title="Delete job"
-            >
-              <Icon icon={iconTrash2} />
-            </button>
+              size="xs"
+              tone="danger"
+            />
           )}
         </div>
       </div>
@@ -261,24 +258,14 @@ export function JobCard({
             {timeLabel && <span className="job-card__remaining">{timeLabel}</span>}
             {job.total > 0 && <span className="job-card__percent">{percent}%</span>}
           </div>
-          <div
+          <ProgressBar
             className="job-card__progress"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={percent}
-            aria-label={`Progress for ${folderLabel}`}
-          >
-            <div
-              className={classNames(
-                "job-card__progress-bar",
-                showError && "job-card__progress-bar--error",
-                showWarning && "job-card__progress-bar--warning",
-                showCancelled && "job-card__progress-bar--cancelled",
-              )}
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+            value={percent}
+            label={`Progress for ${folderLabel}`}
+            tone={
+              showError ? "error" : showCancelled ? "cancelled" : showWarning ? "warning" : null
+            }
+          />
           {job.current_name && (
             <p className="job-card__current" title={job.current_name}>
               {job.current_name}
@@ -315,15 +302,15 @@ export function JobCard({
       {hasFollowUps && (
         <div className="job-card__follow-ups">
           {followUps.map((followUp) => (
-            <button
+            <Button
+              icon={followUp.icon}
               key={followUp.label}
-              type="button"
-              className="job-card__follow-up"
               onClick={followUp.onClick}
+              variant="primary"
+              size="xs"
             >
-              <Icon icon={followUp.icon} className="job-card__follow-up-icon" />
               {followUp.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}

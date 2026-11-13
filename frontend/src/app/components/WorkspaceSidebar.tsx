@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { useFavoriteDragOrder } from "@/features/folder/hooks/useFavoriteDragOrder";
 import {
@@ -34,6 +36,7 @@ import {
   iconClapperboard,
   iconHammer,
   iconX,
+  type AppIcon,
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
@@ -137,20 +140,18 @@ export function WorkspaceSidebar({
       { onError: (error) => notify({ variant: "danger", message: formatApiError(error) }) },
     );
   };
-  const rowAction = (label: string, icon: ReactNode, onClick: () => void, active = false) => (
-    <button
+  const rowAction = (label: string, icon: AppIcon, onClick: () => void, active = false) => (
+    <IconButton
       key={label}
-      type="button"
-      className={classNames(
-        "workspace-sidebar__row-action",
-        active && "workspace-sidebar__row-action--active",
-      )}
+      icon={icon}
+      label={label}
+      tooltip={false}
+      size="xs"
+      variant="ghost"
+      className={classNames(active && "workspace-sidebar__row-action--active")}
       tabIndex={-1}
-      aria-label={label}
       onClick={onClick}
-    >
-      {icon}
-    </button>
+    />
   );
   const folderRow = (key: string, button: ReactNode, actions: ReactNode[]) => (
     <div
@@ -225,22 +226,18 @@ export function WorkspaceSidebar({
               DataForge
             </strong>
           )}
-          <Tooltip content={toggleLabel} placement="right">
-            <button
-              type="button"
-              className="workspace-button workspace-button--icon"
-              onClick={toggle}
-              aria-label={toggleLabel}
-              aria-expanded={!hidden}
-            >
-              <Icon icon={hidden ? iconChevronRight : iconChevronLeft} />
-            </button>
-          </Tooltip>
+          <IconButton
+            icon={hidden ? iconChevronRight : iconChevronLeft}
+            label={toggleLabel}
+            shape="round"
+            tooltipPlacement="right"
+            onClick={toggle}
+            aria-expanded={!hidden}
+          />
         </div>
         <Tooltip content="Open the video editor on a new project in this folder" placement="right">
-          <button
-            type="button"
-            className="workspace-button"
+          <Button
+            icon={iconClapperboard}
             onClick={() => {
               onOpenVideoEditor();
               setShowNarrow(false);
@@ -248,9 +245,8 @@ export function WorkspaceSidebar({
             disabled={videoEditorDisabled}
             aria-label="Open video editor"
           >
-            <Icon icon={iconClapperboard} />
             {!hidden && "Open video editor"}
-          </button>
+          </Button>
         </Tooltip>
         <SettingsButton onOpen={onOpenSettings} showLabel={!hidden} />
         {hidden ? (
@@ -270,7 +266,7 @@ export function WorkspaceSidebar({
                     [
                       rowAction(
                         `Unfavorite ${entry.name}`,
-                        <Icon icon={iconHeart} />,
+                        iconHeart,
                         () => setFavorite(entry.path, true),
                         true,
                       ),
@@ -289,14 +285,12 @@ export function WorkspaceSidebar({
                 {recent.map((path) => {
                   const name = folderLeafName(path);
                   const actions = [
-                    rowAction(`Favorite ${name}`, <Icon icon={iconHeart} />, () =>
-                      setFavorite(path, false),
-                    ),
+                    rowAction(`Favorite ${name}`, iconHeart, () => setFavorite(path, false)),
                   ];
                   // The open folder heads the list whether stored or not, so it cannot be removed.
                   if (!folderPathsEqual(path, currentFolder ?? ""))
                     actions.push(
-                      rowAction(`Remove ${name} from recent folders`, <Icon icon={iconX} />, () => {
+                      rowAction(`Remove ${name} from recent folders`, iconX, () => {
                         forgetRecentFolder(path);
                         setRecentRevision((revision) => revision + 1);
                       }),
@@ -313,40 +307,33 @@ export function WorkspaceSidebar({
             content={<ShortcutHint shortcut={SHORTCUTS.newFolder}>New folder</ShortcutHint>}
             placement="right"
           >
-            <button
-              type="button"
-              className="workspace-button"
+            <Button
+              icon={iconFolderPlus}
               onClick={onCreateFolder}
               disabled={createDisabled}
               aria-label="New folder"
               aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.newFolder)}
             >
-              <Icon icon={iconFolderPlus} />
               {!hidden && "New folder"}
-            </button>
+            </Button>
           </Tooltip>
           {/* The label names the action; the accent heart shows the state in the rail. */}
           <Tooltip content={favoriteLabel} placement="right">
-            <button
-              type="button"
-              className={classNames(
-                "workspace-button",
-                currentFavorite && "workspace-sidebar__favorite--active",
-              )}
+            <Button
+              icon={iconHeart}
+              className={classNames(currentFavorite && "workspace-sidebar__favorite--active")}
               disabled={!currentFolder || toggleFavorite.isPending}
               aria-label={favoriteLabel}
               onClick={() => {
                 if (currentFolder) setFavorite(currentFolder, currentFavorite);
               }}
             >
-              <Icon icon={iconHeart} />
               {!hidden && favoriteLabel}
-            </button>
+            </Button>
           </Tooltip>
           <Tooltip content="Show a note above this folder's gallery" placement="right">
-            <button
-              type="button"
-              className="workspace-button"
+            <Button
+              icon={note ? iconStickyNote : iconStickyNotePlus}
               disabled={!currentFolder}
               aria-label={noteLabel}
               onClick={() => {
@@ -354,9 +341,8 @@ export function WorkspaceSidebar({
                 setShowNarrow(false);
               }}
             >
-              <Icon icon={note ? iconStickyNote : iconStickyNotePlus} />
               {!hidden && noteLabel}
-            </button>
+            </Button>
           </Tooltip>
           <Tooltip
             content={
@@ -366,9 +352,8 @@ export function WorkspaceSidebar({
             }
             placement="right"
           >
-            <button
-              type="button"
-              className="workspace-button"
+            <Button
+              icon={iconFileCog}
               disabled={!currentFolder}
               aria-label={instructionsLabel}
               onClick={() => {
@@ -376,9 +361,8 @@ export function WorkspaceSidebar({
                 setShowNarrow(false);
               }}
             >
-              <Icon icon={iconFileCog} />
               {!hidden && instructionsLabel}
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </div>

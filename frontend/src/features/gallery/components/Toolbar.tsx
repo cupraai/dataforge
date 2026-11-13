@@ -1,3 +1,4 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   type FileFilter,
@@ -182,42 +183,40 @@ function ToolbarSearch({
               {errorText}
             </span>
           )}
-          <button
-            type="button"
-            className={classNames(
-              "toolbar__search-names",
-              names && "toolbar__search-names--active",
-            )}
+          {/* No tooltips of their own: the whole field is one tooltip's trigger. */}
+          <IconButton
+            icon={iconFile}
+            label="Match file and folder names"
+            tooltip={false}
+            size="2xs"
+            variant="ghost"
+            className="toolbar__search-button"
+            pressed={names}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onNamesChange(!names)}
-            aria-label="Match file and folder names"
-            aria-pressed={names}
-          >
-            <Icon icon={iconFile} className="toolbar__search-names-icon" />
-          </button>
-          <button
-            type="button"
-            className={classNames(
-              "toolbar__search-regex",
-              regex && "toolbar__search-regex--active",
-            )}
+          />
+          <IconButton
+            icon={iconRegex}
+            label="Toggle regular expression search"
+            tooltip={false}
+            size="2xs"
+            variant="ghost"
+            className="toolbar__search-button toolbar__search-regex"
+            pressed={regex}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onRegexChange(!regex)}
-            aria-label="Toggle regular expression search"
-            aria-pressed={regex}
-          >
-            <Icon icon={iconRegex} className="toolbar__search-regex-icon" />
-          </button>
+          />
           {hasValue && (
-            <button
-              type="button"
-              className="toolbar__search-clear"
+            <IconButton
+              icon={iconX}
+              label="Clear search"
+              tooltip={false}
+              size="2xs"
+              variant="ghost"
+              className="toolbar__search-button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onQueryChange("")}
-              aria-label="Clear search"
-            >
-              <Icon icon={iconX} className="toolbar__search-clear-icon" />
-            </button>
+            />
           )}
         </span>
       </label>

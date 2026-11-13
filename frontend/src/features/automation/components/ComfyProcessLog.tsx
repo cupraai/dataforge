@@ -1,9 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useComfyProcessLogs } from "@/features/automation/hooks/useComfyProcessLogs";
 import { shouldStickToBottom } from "@/features/automation/lib/comfyProcessLog";
-import { iconChevronDown } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
+import { DisclosureButton } from "@/shared/ui/Disclosure";
 import type { Job } from "@/shared/types";
 
 interface ComfyProcessLogProps {
@@ -33,23 +31,14 @@ export function ComfyProcessLog({ job }: ComfyProcessLogProps) {
 
   return (
     <div className="comfy-process-log">
-      <button
-        type="button"
+      <DisclosureButton
         className="comfy-process-log__toggle"
+        open={expanded}
+        controls={panelId}
+        label="ComfyUI output"
         onClick={() => setExpandedJobId(expanded ? null : (job?.id ?? null))}
         tabIndex={-1}
-        aria-expanded={expanded}
-        aria-controls={panelId}
-      >
-        <Icon
-          icon={iconChevronDown}
-          className={classNames(
-            "comfy-process-log__toggle-icon",
-            expanded && "comfy-process-log__toggle-icon--open",
-          )}
-        />
-        <span className="comfy-process-log__label">ComfyUI output</span>
-      </button>
+      />
 
       <div id={panelId} hidden={!expanded}>
         {expanded && (

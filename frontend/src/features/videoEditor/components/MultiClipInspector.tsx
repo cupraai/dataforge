@@ -1,3 +1,4 @@
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import type { ReactNode } from "react";
 import {
   iconClipboardPaste,
@@ -7,7 +8,6 @@ import {
   iconTimer,
   iconVolume2,
 } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
 import { percent, seconds } from "@/features/videoEditor/lib/sliderUnits";
 import { restingAdjust, type Clip, type Project } from "@/features/videoEditor/lib/timeline";
 import { GradePresets } from "./GradePresets";
@@ -161,36 +161,28 @@ export function MultiClipInspector({
         <Panel title="Transform" icon={iconScaling}>
           {placed.length > 0 && (
             <>
-              <div
-                className="video-editor__segmented video-editor__segmented--wide"
-                role="radiogroup"
-                aria-label="Fit"
-              >
-                {(["fit", "fill"] as const).map((mode) => {
-                  const on = placed.every((clip) => clip.fit === mode);
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      className={classNames(
-                        "video-editor__segment",
-                        on && "video-editor__segment--on",
-                      )}
-                      onClick={() =>
-                        onBatchEdit(
-                          (clip) =>
-                            clip.kind === "audio" || clip.kind === "title" ? null : { fit: mode },
-                          true,
-                        )
-                      }
-                    >
-                      {mode === "fit" ? "Fit" : "Fill"}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedControl
+                label="Fit"
+                size="sm"
+                stretch
+                value={
+                  placed.every((clip) => clip.fit === "fit")
+                    ? "fit"
+                    : placed.every((clip) => clip.fit === "fill")
+                      ? "fill"
+                      : null
+                }
+                options={[
+                  { value: "fit", label: "Fit" },
+                  { value: "fill", label: "Fill" },
+                ]}
+                onChange={(fit) =>
+                  onBatchEdit(
+                    (clip) => (clip.kind === "audio" || clip.kind === "title" ? null : { fit }),
+                    true,
+                  )
+                }
+              />
               <Slider
                 label="Scale"
                 mixed={shared(placed, (clip) => clip.transform.scale).mixed}

@@ -956,6 +956,7 @@ function TrackHeader({
     >
       <div className="video-timeline__header-row">
         <ToolButton
+          size="2xs"
           icon={track.collapsed ? iconChevronRight : iconChevronDown}
           label={track.collapsed ? `Expand ${track.name}` : `Collapse ${track.name}`}
           tooltip={
@@ -1003,16 +1004,19 @@ function TrackHeader({
         )}
         <div className="video-timeline__header-manage">
           <ToolButton
+            size="2xs"
             icon={iconChevronUp}
             label={`Move ${track.name} up`}
             onClick={() => swap(-1)}
           />
           <ToolButton
+            size="2xs"
             icon={iconChevronDown}
             label={`Move ${track.name} down`}
             onClick={() => swap(1)}
           />
           <ToolButton
+            size="2xs"
             icon={iconTrash2}
             label={`Remove ${track.name}`}
             tooltip={empty ? `Remove ${track.name}` : "Only an empty track can be removed"}
@@ -1024,6 +1028,7 @@ function TrackHeader({
       <div className="video-timeline__header-toggles">
         {track.kind === "video" ? (
           <ToolButton
+            size="2xs"
             icon={track.hidden ? iconEyeOff : iconEye}
             label={track.hidden ? `Show ${track.name}` : `Hide ${track.name}`}
             pressed={track.hidden}
@@ -1033,6 +1038,7 @@ function TrackHeader({
         ) : (
           <>
             <ToolButton
+              size="2xs"
               icon={track.muted ? iconVolumeX : iconVolume2}
               label={track.muted ? `Unmute ${track.name}` : `Mute ${track.name}`}
               pressed={track.muted}
@@ -1040,6 +1046,7 @@ function TrackHeader({
               onClick={() => update({ muted: !track.muted })}
             />
             <ToolButton
+              size="2xs"
               icon={iconHeadphones}
               label={track.solo ? `Stop soloing ${track.name}` : `Solo ${track.name}`}
               pressed={track.solo}
@@ -1049,6 +1056,7 @@ function TrackHeader({
           </>
         )}
         <ToolButton
+          size="2xs"
           icon={track.sync_lock ? iconLink2 : iconLink2Off}
           label={
             track.sync_lock
@@ -1065,6 +1073,7 @@ function TrackHeader({
           onClick={() => update({ sync_lock: !track.sync_lock })}
         />
         <ToolButton
+          size="2xs"
           icon={track.locked ? iconLock : iconLockOpen}
           label={track.locked ? `Unlock ${track.name}` : `Lock ${track.name}`}
           pressed={track.locked}

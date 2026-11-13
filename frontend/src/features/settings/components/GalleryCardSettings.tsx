@@ -6,7 +6,7 @@ import {
 } from "@/features/gallery/lib/cardOptions";
 import { iconGrid2x2, iconMousePointer, iconRows3 } from "@/shared/icons";
 import { DialogSelect, type DialogSelectOption } from "@/shared/ui/DialogSelect";
-import { SettingsCheckbox } from "./SettingsCheckbox";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
 
 function lineOptions(counts: readonly number[]): DialogSelectOption<string>[] {
@@ -63,20 +63,23 @@ export function GalleryCardSettings({
           />
         </div>
         <div className="settings-group__checks">
-          <SettingsCheckbox
+          <Checkbox
+            className="dialog__field"
             label="Show megapixels"
             checked={value.megapixels}
             disabled={disabled}
             onChange={(megapixels) => change({ megapixels })}
           />
-          <SettingsCheckbox
+          <Checkbox
+            className="dialog__field"
             label="Show the aspect ratio on large cards"
             checked={value.largeAspectRatio}
             disabled={disabled}
             onChange={(largeAspectRatio) => change({ largeAspectRatio })}
           />
           {taggingEnabled && (
-            <SettingsCheckbox
+            <Checkbox
+              className="dialog__field"
               label="Show tags on large cards"
               hint="The strongest tags from background tagging. Only favorite folders are tagged."
               checked={value.largeTags}
@@ -93,7 +96,8 @@ export function GalleryCardSettings({
       >
         <div className="settings-group__checks settings-group__checks--columns">
           {CARD_ACTION_IDS.map((action) => (
-            <SettingsCheckbox
+            <Checkbox
+              className="dialog__field"
               key={action}
               label={CARD_ACTIONS[action].label}
               checked={value.cardActions.includes(action)}
@@ -106,7 +110,8 @@ export function GalleryCardSettings({
         </div>
       </SettingsGroup>
       <SettingsGroup title="List" icon={iconRows3}>
-        <SettingsCheckbox
+        <Checkbox
+          className="dialog__field"
           label="Show a caption preview"
           hint="The start of each caption follows the file name, cut to one line."
           checked={value.listCaptionPreview}

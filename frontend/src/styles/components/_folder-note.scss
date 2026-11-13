@@ -24,33 +24,8 @@
     overflow-wrap: anywhere;
   }
 
-  // Quiet until hovered: the note is the content, deleting it is the rare case.
-  &__delete {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.25rem;
-    height: 1.25rem;
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--text-subtle);
-    cursor: pointer;
-
-    svg {
-      width: 0.875rem;
-      height: 0.875rem;
-    }
-
-    &:hover,
-    &:focus-visible {
-      color: var(--danger);
-    }
-  }
-
-  // Touch screens cannot hover, so they keep the button; focus still reveals it for keyboards.
+  // Deleting is the rare case, so the button stays quiet until hovered. Touch screens cannot
+  // hover, so they keep it; focus still reveals it for keyboards.
   @media (hover: hover) {
     &:not(:hover, :focus-within) &__delete {
       opacity: 0;

@@ -1,3 +1,7 @@
+import { Button } from "@/shared/ui/Button";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { TabList } from "@/shared/ui/TabList";
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { useCallback, useState } from "react";
 import { saveInstructionFile, type InstructionKind } from "@/shared/api/folderInstructions";
@@ -11,7 +15,6 @@ import { iconFileText, iconListChecks, iconLoader2, iconLock, iconX } from "@/sh
 import type { InstructionFileResponse, JobType } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { formatCount } from "@/shared/lib/format";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
 import { Icon } from "@/shared/ui/Icon";
 import { MarkdownEditor } from "@/shared/ui/MarkdownEditor";
@@ -178,59 +181,55 @@ export function FolderInstructionsDialog({
           source.origin === "inherited" &&
           source.status !== "unreadable" &&
           !reverting && (
-            <DialogButton
-              label="Customize for this folder"
-              variant="secondary"
-              disabled={saving}
-              onClick={() => setDraft(kind, source.text)}
-            />
+            <Button disabled={saving} onClick={() => setDraft(kind, source.text)}>
+              Customize for this folder
+            </Button>
           )}
         {empty && (
-          <DialogButton
-            label="Create instructions"
+          <Button
             variant={kind === "sysprompt" ? "primary" : "secondary"}
             disabled={saving}
             onClick={() => setDraft(kind, "")}
-          />
+          >
+            Create instructions
+          </Button>
         )}
         {file.has_file && file.parent_state && !reverting && (
-          <DialogButton
-            label="Use inherited instructions"
-            variant="secondary"
+          <Button
             disabled={saving}
             onClick={() => {
               setDraft(kind, "");
               setInherit((current) => ({ ...current, [kind]: true }));
             }}
-          />
+          >
+            Use inherited instructions
+          </Button>
         )}
         {source.status === "unreadable" && !localDraft && (
           <>
-            <DialogButton
-              label="Retry"
-              variant="secondary"
+            <Button
               disabled={saving}
               onClick={() => {
                 void retry();
               }}
-            />
+            >
+              Retry
+            </Button>
             {preview && (
-              <DialogButton
-                label={file.has_file ? "Replace unreadable file" : "Create local instructions"}
-                variant="secondary"
-                disabled={saving}
-                onClick={() => setDraft(kind, "")}
-              />
+              <Button disabled={saving} onClick={() => setDraft(kind, "")}>
+                {file.has_file ? "Replace unreadable file" : "Create local instructions"}
+              </Button>
             )}
           </>
         )}
         {kind === "caption_rules" && textOf(kind).trim() === "" && !file.parent_state && (
-          <DialogButton
-            label="Use template"
+          <Button
             variant={empty ? "primary" : "secondary"}
             disabled={saving}
             onClick={() => setDraft(kind, instructions.caption_rules_template)}
-          />
+          >
+            Use template
+          </Button>
         )}
       </div>
     );
@@ -305,19 +304,18 @@ export function FolderInstructionsDialog({
           )}
         </div>
         {empty ? (
-          <div className="folder-instructions-dialog__empty">
-            <Icon
-              icon={kind === "sysprompt" ? iconFileText : iconListChecks}
-              className="folder-instructions-dialog__empty-icon"
-            />
-            <strong className="folder-instructions-dialog__empty-title">
-              No {details.label.toLowerCase()} yet
-            </strong>
-            <p className="folder-instructions-dialog__empty-text">
-              {kind === "sysprompt"
+          <EmptyState
+            size="sm"
+            variant="muted"
+            className="folder-instructions-dialog__empty"
+            icon={kind === "sysprompt" ? iconFileText : iconListChecks}
+            title={`No ${details.label.toLowerCase()} yet`}
+            description={
+              kind === "sysprompt"
                 ? "Create a prompt to guide Auto-caption, for example:"
-                : "Create YAML rules or start from the template, for example:"}
-            </p>
+                : "Create YAML rules or start from the template, for example:"
+            }
+          >
             <pre className="folder-instructions-dialog__example">
               <code>
                 {kind === "sysprompt"
@@ -326,7 +324,7 @@ export function FolderInstructionsDialog({
               </code>
             </pre>
             {actions}
-          </div>
+          </EmptyState>
         ) : preview || locked ? (
           <CodeMirrorEditor
             {...editorProps}
@@ -361,39 +359,26 @@ export function FolderInstructionsDialog({
           </div>
         </div>
         <div className="folder-instructions-dialog__header-actions">
-          <button
-            type="button"
-            className="folder-instructions-dialog__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
             onClick={requestClose}
             disabled={saving}
-            aria-label="Close"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </div>
       </header>
 
-      <div
-        {...tabs.tabListProps}
-        aria-label="Folder instructions"
+      <TabList
+        tabs={tabs}
+        label="Folder instructions"
+        items={KINDS.map((kind) => ({
+          id: kind,
+          label: DOCUMENTS[kind].label,
+          mark: editedKinds.includes(kind) ? "unsaved" : undefined,
+        }))}
         className="folder-instructions-dialog__tabs"
-      >
-        {KINDS.map((kind) => (
-          <button
-            key={kind}
-            {...tabs.tabProps(kind)}
-            className={classNames(
-              "folder-instructions-dialog__tab",
-              kind === tab && "folder-instructions-dialog__tab--active",
-            )}
-          >
-            {DOCUMENTS[kind].label}
-            {editedKinds.includes(kind) && (
-              <span className="folder-instructions-dialog__tab-dot" aria-hidden="true" />
-            )}
-          </button>
-        ))}
-      </div>
+      />
 
       {KINDS.map((kind) => (
         <div key={kind} {...tabs.panelProps(kind)} className="folder-instructions-dialog__body">
@@ -410,13 +395,13 @@ export function FolderInstructionsDialog({
               role="alert"
             >
               Could not load the folder instructions. {state.message}
-              <DialogButton
-                label="Retry"
-                variant="secondary"
+              <Button
                 onClick={() => {
                   void retry();
                 }}
-              />
+              >
+                Retry
+              </Button>
             </p>
           )}
 
@@ -444,21 +429,19 @@ export function FolderInstructionsDialog({
           )}
         </div>
 
-        <DialogButton
-          label="Reset"
-          variant="secondary"
-          disabled={saving || !editedKinds.includes(tab)}
-          onClick={() => setDraft(tab, null)}
-        />
-        <DialogButton
-          label={saving ? "Saving..." : "Save"}
+        <Button disabled={saving || !editedKinds.includes(tab)} onClick={() => setDraft(tab, null)}>
+          Reset
+        </Button>
+        <Button
           variant="primary"
           busy={saving}
           disabled={!edited}
           onClick={() => {
             void handleSave();
           }}
-        />
+        >
+          {saving ? "Saving..." : "Save"}
+        </Button>
       </footer>
 
       {discard.promptProps && <DiscardChangesDialog {...discard.promptProps} />}

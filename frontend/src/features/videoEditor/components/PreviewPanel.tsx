@@ -1,3 +1,6 @@
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import {
   useCallback,
   useEffect,
@@ -46,7 +49,8 @@ import {
 import { placement } from "@/features/videoEditor/lib/composition";
 import { transformAt } from "@/features/videoEditor/lib/keyframes";
 import { MAX_ADJUST_WIDTH, type PreviewEngine } from "@/features/videoEditor/lib/previewEngine";
-import { rangeFill } from "@/features/videoEditor/lib/rangeFill";
+import { rangeFill } from "@/shared/lib/rangeFill";
+import { Slider } from "@/shared/ui/Slider";
 import {
   formatTimecode,
   projectDuration,
@@ -132,24 +136,16 @@ export function PreviewPanel({
   return (
     <section className="video-editor__preview video-editor__pane" aria-label="Preview">
       <div className="video-editor__pane-header">
-        <div className="video-editor__segmented" role="tablist" aria-label="Preview source">
-          {(["source", "timeline"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={mode === value}
-              className={classNames(
-                "video-editor__segment",
-                mode === value && "video-editor__segment--on",
-              )}
-              disabled={value === "source" && !sourceItem}
-              onClick={() => onModeChange(value)}
-            >
-              {value === "source" ? "Source" : "Timeline"}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Preview source"
+          size="sm"
+          value={mode}
+          options={[
+            { value: "source", label: "Source", disabled: !sourceItem },
+            { value: "timeline", label: "Timeline" },
+          ]}
+          onChange={onModeChange}
+        />
         <span className="video-editor__pane-caption">
           {mode === "source" ? (sourceItem?.name ?? "Pick a file in Media") : project.name}
         </span>
@@ -426,8 +422,7 @@ function TimelinePreview({
         </div>
       </div>
       <div className="video-editor__monitor-controls">
-        <input
-          type="range"
+        <Slider
           className="video-editor__scrubber"
           min={0}
           max={lastFrame}
@@ -462,11 +457,12 @@ function TimelinePreview({
                 engine.seek(snapToFrame(engine.currentTime - step, project.frame_rate))
               }
             />
-            <ToolButton
+            <IconButton
               icon={playing ? iconPause : iconPlay}
               label={playing ? "Pause" : "Play"}
               shortcut={SHORTCUTS.editorPlayPause}
-              className="video-editor__play"
+              shape="round"
+              tooltipPlacement="top"
               onClick={() => engine.toggle()}
               disabled={duration <= 0}
             />
@@ -766,14 +762,12 @@ function SourcePreview({
                 aria-hidden="true"
               />
             )}
-            <input
-              type="range"
+            <Slider
               className="video-editor__scrubber"
               min={0}
               max={lastFrame}
               step={1}
               value={frameValue}
-              style={rangeFill(frameValue, 0, lastFrame)}
               aria-label="Source position"
               aria-valuetext={formatTimecode(time, frameRate)}
               onChange={(event) => seek(Number(event.target.value) / frameRate)}
@@ -801,11 +795,12 @@ function SourcePreview({
                   seek(snapToFrame(current() - 1 / frameRate, frameRate));
                 }}
               />
-              <ToolButton
+              <IconButton
                 icon={playing ? iconPause : iconPlay}
                 label={playing ? "Pause source" : "Play source"}
                 shortcut={SHORTCUTS.editorPlayPause}
-                className="video-editor__play"
+                shape="round"
+                tooltipPlacement="top"
                 onClick={toggle}
               />
               <ToolButton
@@ -833,16 +828,15 @@ function SourcePreview({
                 Out <b>{end === null ? "end" : formatTimecode(end, frameRate)}</b>
               </span>
               {marked && (
-                <Tooltip content="Clear in and out, to use the whole file" placement="top">
-                  <button
-                    type="button"
-                    className="video-editor__icon-btn"
-                    aria-label="Clear in and out"
-                    onClick={() => onRange({ start: 0, end: null })}
-                  >
-                    <Icon icon={iconX} />
-                  </button>
-                </Tooltip>
+                <IconButton
+                  icon={iconX}
+                  label="Clear in and out"
+                  tooltip="Clear in and out, to use the whole file"
+                  tooltipPlacement="top"
+                  onClick={() => onRange({ start: 0, end: null })}
+                  size="xs"
+                  variant="ghost"
+                />
               )}
             </span>
           )}
@@ -897,13 +891,9 @@ function SourceAction({
 }) {
   return (
     <Tooltip content={tip} placement="top" bubbleClassName="video-editor__source-tip">
-      <button
-        type="button"
-        className={primary ? "video-editor__primary-btn" : "video-editor__secondary-btn"}
-        onClick={onClick}
-      >
+      <Button variant={primary ? "primary" : "secondary"} size="sm" onClick={onClick}>
         {children}
-      </button>
+      </Button>
     </Tooltip>
   );
 }
@@ -923,15 +913,15 @@ function MarkButton({
       content={<ShortcutHint shortcut={shortcut}>{label} at this frame</ShortcutHint>}
       placement="top"
     >
-      <button
-        type="button"
+      <Button
+        size="xs"
         className="video-editor__mark"
         aria-label={label}
         aria-keyshortcuts={ariaKeyShortcuts(shortcut)}
         onClick={onClick}
       >
         {label === "Mark in" ? "In" : "Out"}
-      </button>
+      </Button>
     </Tooltip>
   );
 }

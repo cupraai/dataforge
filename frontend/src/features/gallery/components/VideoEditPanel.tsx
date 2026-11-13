@@ -1,3 +1,5 @@
+import { useTabList } from "@/shared/hooks/useTabList";
+import { Button } from "@/shared/ui/Button";
 import { useEffect, useMemo, useState } from "react";
 import { isIdentityCrop } from "@/features/gallery/lib/crop";
 import { isAdjustIdentity } from "@/features/gallery/lib/colorAdjust";
@@ -120,6 +122,12 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
     setAdjustActive(activeTool === "adjust");
   }, [activeTool, setAdjustActive, setCropActive, setMaskActive]);
 
+  const toolTabs = useTabList(
+    TOOLS.map((tool) => tool.id),
+    activeTool,
+    setActiveTool,
+  );
+
   return (
     <div className="edit-panel" role="group" aria-label="Video editing">
       <VideoEditTimeline
@@ -142,36 +150,20 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
       />
 
       <div className="edit-panel__tabs-bar">
-        <ToolTabs
-          tools={TOOLS}
-          activeTool={activeTool}
-          modified={modified}
-          disabled={locked}
-          onSelect={setActiveTool}
-        />
+        <ToolTabs tabs={toolTabs} tools={TOOLS} modified={modified} disabled={locked} />
       </div>
 
-      <div className="edit-panel__body">
+      <div className="edit-panel__body" {...toolTabs.panelProps(activeTool)}>
         <div className="edit-panel__tool-controls">
           {activeTool === "trim" && (
             <>
               <ToolGroup label="Trim points" className="edit-panel__tool-actions">
-                <button
-                  type="button"
-                  className="edit-panel__control"
-                  disabled={locked}
-                  onClick={edit.setTrimStartAtPlayhead}
-                >
+                <Button disabled={locked} onClick={edit.setTrimStartAtPlayhead} size="sm">
                   Set in
-                </button>
-                <button
-                  type="button"
-                  className="edit-panel__control"
-                  disabled={locked}
-                  onClick={edit.setTrimEndAtPlayhead}
-                >
+                </Button>
+                <Button disabled={locked} onClick={edit.setTrimEndAtPlayhead} size="sm">
                   Set out
-                </button>
+                </Button>
               </ToolGroup>
               <ToolPresets label="Length">
                 {TRIM_LENGTH_PRESETS.map((seconds) => (
@@ -312,9 +304,9 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
               <Icon icon={iconLoader2} spin />
               {edit.progress == null ? "Rendering" : `${Math.round(edit.progress * 100)}%`}
             </span>
-            <button type="button" className="edit-panel__control" onClick={edit.cancel}>
+            <Button onClick={edit.cancel} size="sm">
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
           <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />

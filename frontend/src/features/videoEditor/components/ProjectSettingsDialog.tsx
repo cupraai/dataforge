@@ -1,11 +1,11 @@
+import { Field, TextInput } from "@/shared/ui/Field";
+import { IconButton } from "@/shared/ui/IconButton";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
 import { VIDEO_PROJECT_SIZE_PRESET_SHORT_SIDES } from "@/shared/constants";
 import { iconArrowLeftRight } from "@/shared/icons";
 import { DialogActions } from "@/shared/ui/Dialog";
 import { DialogSelect } from "@/shared/ui/DialogSelect";
-import { Icon } from "@/shared/ui/Icon";
-import { Tooltip } from "@/shared/ui/Tooltip";
 import {
   even,
   frameFromShortSide,
@@ -51,9 +51,6 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
   const [height, setHeight] = useState(String(project.height));
   const [rate, setRate] = useState(savedRate);
   const [background, setBackground] = useState(project.background);
-  const widthId = useId();
-  const heightId = useId();
-  const rateId = useId();
   const backgroundId = useId();
 
   const parsed = {
@@ -201,55 +198,47 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
           ]}
           onChange={chooseRate}
         />
-        <div className="dialog__field">
-          <label className="dialog__label" htmlFor={widthId}>
-            Width
-          </label>
-          <input
-            id={widthId}
-            className="dialog__input"
-            inputMode="numeric"
-            value={width}
-            onChange={(event) => setWidth(event.target.value)}
-          />
-        </div>
-        <Tooltip content="Swap width and height" className="video-settings-dialog__swap">
-          <button
-            type="button"
-            className="video-editor__icon-btn"
-            aria-label="Swap width and height"
-            onClick={() => {
-              setWidth(height);
-              setHeight(width);
-            }}
-          >
-            <Icon icon={iconArrowLeftRight} />
-          </button>
-        </Tooltip>
-        <div className="dialog__field">
-          <label className="dialog__label" htmlFor={heightId}>
-            Height
-          </label>
-          <input
-            id={heightId}
-            className="dialog__input"
-            inputMode="numeric"
-            value={height}
-            onChange={(event) => setHeight(event.target.value)}
-          />
-        </div>
-        <div className="dialog__field">
-          <label className="dialog__label" htmlFor={rateId}>
-            FPS
-          </label>
-          <input
-            id={rateId}
-            className="dialog__input"
-            inputMode="decimal"
-            value={rate}
-            onChange={(event) => setRate(event.target.value)}
-          />
-        </div>
+        <Field label="Width">
+          {(control) => (
+            <TextInput
+              {...control}
+              inputMode="numeric"
+              value={width}
+              onChange={(event) => setWidth(event.target.value)}
+            />
+          )}
+        </Field>
+        <IconButton
+          icon={iconArrowLeftRight}
+          label="Swap width and height"
+          tooltipClassName="video-settings-dialog__swap"
+          onClick={() => {
+            setWidth(height);
+            setHeight(width);
+          }}
+          size="xs"
+          variant="ghost"
+        />
+        <Field label="Height">
+          {(control) => (
+            <TextInput
+              {...control}
+              inputMode="numeric"
+              value={height}
+              onChange={(event) => setHeight(event.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="FPS">
+          {(control) => (
+            <TextInput
+              {...control}
+              inputMode="decimal"
+              value={rate}
+              onChange={(event) => setRate(event.target.value)}
+            />
+          )}
+        </Field>
       </div>
       <div className="dialog__field">
         <span className="dialog__label" id={backgroundId}>

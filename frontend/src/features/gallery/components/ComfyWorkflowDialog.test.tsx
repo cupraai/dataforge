@@ -482,9 +482,7 @@ describe("ComfyWorkflowDialog", () => {
 
     expect(fetchWorkflow).toHaveBeenCalledWith(expect.stringMatching(/scenery_00002_\.png$/), "9");
     expect(writeText).toHaveBeenCalledWith(workflow);
-    expect(await screen.findByRole("button", { name: "Copied!" })).toHaveClass(
-      "comfy-workflow-dialog__copy--copied",
-    );
+    expect(await screen.findByRole("button", { name: "Copied!" })).toHaveClass("button--copied");
   });
 
   it("reports a workflow that could not be fetched as a failed copy", async () => {
@@ -495,9 +493,7 @@ describe("ComfyWorkflowDialog", () => {
 
     await user.click(await screen.findByRole("button", { name: "Copy workflow" }));
 
-    expect(await screen.findByRole("button", { name: "Failed!" })).toHaveClass(
-      "comfy-workflow-dialog__copy--error",
-    );
+    expect(await screen.findByRole("button", { name: "Failed!" })).toHaveClass("button--error");
     expect(writeText).not.toHaveBeenCalled();
   });
 

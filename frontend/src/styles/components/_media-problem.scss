@@ -37,8 +37,4 @@
     flex-wrap: wrap;
     gap: 0.375rem;
   }
-
-  &__button {
-    @include pill-btn-compact(default);
-  }
 }

@@ -6,15 +6,6 @@
   flex: none;
   margin-left: auto;
 
-  // Train LoRA's "Add prompt" is the same kind of field-header action.
-  &__trigger {
-    @include pill-btn-compact(default);
-  }
-
-  &__trigger-icon {
-    @include icon-size-sm;
-  }
-
   // Sized and laid out like the toolbar's Review menu.
   &__panel {
     @include dropdown-menu-surface(null);
@@ -98,21 +89,6 @@
     font-weight: var(--font-normal);
   }
 
-  // Train LoRA's prompt remove button.
-  &__remove {
-    @include icon-btn-sm;
-    flex: none;
-    border-color: transparent;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-
-    &:hover:not(:disabled) {
-      color: var(--danger);
-      border-color: var(--danger-border);
-      @include fade-bg(var(--danger-soft));
-    }
-  }
-
   &__divider {
     margin: 0.25rem 0;
     border-top: 1px solid var(--border);
@@ -126,18 +102,8 @@
   }
 
   &__input {
-    @include dialog-form-input(var(--control-height-sm));
     flex: 1;
     min-width: 0;
-    padding-block: 0;
-  }
-
-  &__save-button {
-    @include pill-btn-compact(accent);
-  }
-
-  &__cancel-button {
-    @include pill-btn-compact(default);
   }
 
   &__error {

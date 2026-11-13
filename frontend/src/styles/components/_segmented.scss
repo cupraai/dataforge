@@ -1,0 +1,90 @@
+@use "../abstracts/mixins" as *;
+
+// A pill track; the checked option takes the accent surface every chosen filter or toggle uses.
+.segmented {
+  --segmented-inset: 0.1875rem;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: var(--segmented-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-soft);
+
+  &--md {
+    --segmented-height: var(--control-height);
+  }
+
+  &--sm {
+    --segmented-height: var(--control-height-sm);
+    @include icon-scope-sm;
+  }
+
+  &--stretch {
+    display: flex;
+  }
+
+  // An option with a hint arrives wrapped in its tooltip's trigger.
+  > .tooltip {
+    display: flex;
+  }
+
+  &__option {
+    @include inline-flex-center(0.375rem);
+    @include control-interactive;
+    @include fade-bg(transparent);
+    // The track's height, less its inset and border on both sides.
+    height: calc(var(--segmented-height) - 2 * var(--segmented-inset) - 2px);
+    padding: 0 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    line-height: 1;
+    white-space: nowrap;
+
+    &:hover:not(:disabled, :has(:disabled)) {
+      @include fade-bg(var(--surface-hover));
+      color: var(--text);
+    }
+
+    &:has(:focus-visible) {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    &:has(:checked),
+    &:has(:checked):hover,
+    &[aria-pressed="true"],
+    &[aria-pressed="true"]:hover {
+      @include fade-bg(var(--accent-soft));
+      border-color: var(--accent-border);
+      color: var(--accent);
+      font-weight: var(--font-semibold);
+    }
+
+    &:disabled,
+    &:has(:disabled) {
+      @include disabled-state;
+    }
+  }
+
+  &--stretch &__option,
+  &--stretch > .tooltip {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  &__input {
+    @include visually-hidden;
+  }
+
+  &__icon {
+    @include icon-block;
+  }
+
+  &__count {
+    @include tabular-nums;
+    opacity: 0.75;
+  }
+}

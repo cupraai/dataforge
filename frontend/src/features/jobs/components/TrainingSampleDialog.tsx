@@ -1,3 +1,4 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useCallback, useEffect } from "react";
 import { optionalMediaUrl } from "@/features/gallery/api/media";
 import { ZoomableImage } from "@/features/gallery/components/ZoomableImage";
@@ -10,7 +11,6 @@ import { iconChevronLeft, iconChevronRight, iconX } from "@/shared/icons";
 import { isEditableTarget } from "@/shared/lib/isEditableTarget";
 import { queueIndexAfter, queueStepFor } from "@/shared/lib/shortcuts";
 import type { OstrisTrainingSample } from "@/shared/types";
-import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 
 interface TrainingSampleDialogProps {
@@ -93,26 +93,20 @@ export function TrainingSampleDialog({
             {index + 1} / {samples.length}
           </span>
         </div>
-        <button
-          type="button"
-          className="training-sample-dialog__close"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <Icon icon={iconX} />
-        </button>
+        <IconButton icon={iconX} label="Close" onClick={onClose} tooltip={false} />
       </header>
 
       <div className="training-sample-dialog__stage">
         {hasSiblings && (
-          <button
-            type="button"
+          <IconButton
+            icon={iconChevronLeft}
+            label="Previous sample"
             className="training-sample-dialog__nav training-sample-dialog__nav--prev"
             onClick={() => goTo(-1)}
-            aria-label="Previous sample"
-          >
-            <Icon icon={iconChevronLeft} />
-          </button>
+            size="lg"
+            shape="round"
+            tooltip={false}
+          />
         )}
 
         {isVideoName(sample.name) ? (
@@ -138,14 +132,15 @@ export function TrainingSampleDialog({
         )}
 
         {hasSiblings && (
-          <button
-            type="button"
+          <IconButton
+            icon={iconChevronRight}
+            label="Next sample"
             className="training-sample-dialog__nav training-sample-dialog__nav--next"
             onClick={() => goTo(1)}
-            aria-label="Next sample"
-          >
-            <Icon icon={iconChevronRight} />
-          </button>
+            size="lg"
+            shape="round"
+            tooltip={false}
+          />
         )}
       </div>
 

@@ -1,3 +1,5 @@
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,6 +15,7 @@ import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconBookmark, iconBookmarkPlus, iconChevronDown, iconTrash2 } from "@/shared/icons";
 import type { InstructionSnippetsResponse } from "@/shared/types";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { TextInput } from "@/shared/ui/Field";
 import { Icon } from "@/shared/ui/Icon";
 
 interface InstructionSnippetMenuProps {
@@ -113,18 +116,18 @@ export function InstructionSnippetMenu({
                 <span className="instruction-snippets__preview">{snippet.text}</span>
               </span>
             </button>
-            <button
-              type="button"
-              className="instruction-snippets__remove"
-              aria-label={`Delete "${snippet.name}"`}
+            <IconButton
+              icon={iconTrash2}
+              label={`Delete "${snippet.name}"`}
               disabled={remove.isPending}
               onClick={() => {
                 save.reset();
                 remove.mutate(snippet.name);
               }}
-            >
-              <Icon icon={iconTrash2} />
-            </button>
+              size="xs"
+              variant="ghost"
+              tone="danger"
+            />
           </li>
         ))}
       </ul>
@@ -136,17 +139,16 @@ export function InstructionSnippetMenu({
        jsx-a11y/no-static-element-interactions
        -- catches Escape from the trigger and panel */
     <div ref={rootRef} className="instruction-snippets" onKeyDown={handleKeyDown}>
-      <button
-        type="button"
-        className="instruction-snippets__trigger"
+      <Button
+        icon={iconBookmark}
+        iconEnd={iconChevronDown}
         disabled={disabled}
         {...triggerProps}
         aria-haspopup="dialog"
+        size="xs"
       >
-        <Icon icon={iconBookmark} className="instruction-snippets__trigger-icon" />
         Saved
-        <Icon icon={iconChevronDown} className="instruction-snippets__trigger-icon" />
-      </button>
+      </Button>
 
       <AnchoredLayer
         anchorRef={rootRef}
@@ -167,8 +169,9 @@ export function InstructionSnippetMenu({
 
         {naming ? (
           <div className="instruction-snippets__save">
-            <input
+            <TextInput
               ref={nameRef}
+              size="sm"
               className="instruction-snippets__input"
               aria-label="Name for the instruction"
               placeholder="Name"
@@ -182,21 +185,12 @@ export function InstructionSnippetMenu({
                 handleSave();
               }}
             />
-            <button
-              type="button"
-              className="instruction-snippets__save-button"
-              disabled={!canSave}
-              onClick={handleSave}
-            >
+            <Button disabled={!canSave} onClick={handleSave} variant="primary" size="xs">
               {replaces ? "Replace" : "Save"}
-            </button>
-            <button
-              type="button"
-              className="instruction-snippets__cancel-button"
-              onClick={stopNaming}
-            >
+            </Button>
+            <Button onClick={stopNaming} size="xs">
               Cancel
-            </button>
+            </Button>
           </div>
         ) : (
           <button

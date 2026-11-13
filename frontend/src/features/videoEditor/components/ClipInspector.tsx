@@ -1,3 +1,5 @@
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
+import { Button } from "@/shared/ui/Button";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { Fragment, useId } from "react";
 import {
@@ -8,7 +10,6 @@ import {
   iconImage,
   iconKeyboard,
   iconLink,
-  iconLoader2,
   iconMusic,
   iconPalette,
   iconScaling,
@@ -19,9 +20,7 @@ import {
   iconVolume2,
   iconWandSparkles,
 } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
 import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
 import { ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 import { AUTO_ADJUST_DEFAULT_AMOUNT } from "@/shared/constants";
 import type { VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
@@ -175,6 +174,17 @@ const QUICK_KEYS: { label: string; shortcuts: ShortcutDefinition[] }[] = [
 ];
 
 /** A row has room for one way to press each action. */
+const FIT_OPTIONS = [
+  { value: "fit", label: "Fit" },
+  { value: "fill", label: "Fill" },
+] as const;
+
+const ALIGN_OPTIONS: ReadonlyArray<{ value: VideoProjectTitleAlign; label: string }> = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" },
+];
+
 function firstChord(shortcut: ShortcutDefinition): ShortcutDefinition {
   return { ...shortcut, chords: shortcut.chords.slice(0, 1) };
 }
@@ -449,28 +459,15 @@ function InspectorContent({
         </div>
         {timed && (
           <div className="video-editor__field video-editor__field--stacked">
-            <span id={`speed-${clip.id}`}>Speed</span>
-            <div
-              className="video-editor__chips"
-              role="radiogroup"
-              aria-labelledby={`speed-${clip.id}`}
-            >
-              {SPEED_PRESETS.map((speed) => (
-                <button
-                  key={speed}
-                  type="button"
-                  role="radio"
-                  aria-checked={clip.speed === speed}
-                  className={classNames(
-                    "video-editor__chip",
-                    clip.speed === speed && "video-editor__chip--on",
-                  )}
-                  onClick={() => onSpeed(speed)}
-                >
-                  {speed}×
-                </button>
-              ))}
-            </div>
+            <span>Speed</span>
+            <SegmentedControl
+              label="Speed"
+              size="sm"
+              stretch
+              value={SPEED_PRESETS.find((speed) => speed === clip.speed) ?? null}
+              options={SPEED_PRESETS.map((speed) => ({ value: speed, label: `${speed}×` }))}
+              onChange={onSpeed}
+            />
           </div>
         )}
         {timed && clip.speed !== 1 && (
@@ -531,30 +528,15 @@ function InspectorContent({
           />
           <div className="video-editor__field">
             <Tooltip content="The shape of its fades and crossfades">
-              <span id={`curve-${clip.id}`}>Fades</span>
+              <span>Fades</span>
             </Tooltip>
-            <div
-              className="video-editor__segmented"
-              role="radiogroup"
-              aria-labelledby={`curve-${clip.id}`}
-            >
-              {FADE_CURVES.map((curve) => (
-                <Tooltip key={curve.value} content={curve.hint} placement="top">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={clip.fade_curve === curve.value}
-                    className={classNames(
-                      "video-editor__segment",
-                      clip.fade_curve === curve.value && "video-editor__segment--on",
-                    )}
-                    onClick={() => onEdit({ fade_curve: curve.value }, true)}
-                  >
-                    {curve.label}
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Fades"
+              size="sm"
+              value={clip.fade_curve}
+              options={FADE_CURVES}
+              onChange={(fade_curve) => onEdit({ fade_curve }, true)}
+            />
           </div>
         </Panel>
       )}
@@ -605,27 +587,14 @@ function InspectorContent({
           }
         >
           {clip.kind !== "title" && (
-            <div
-              className="video-editor__segmented video-editor__segmented--wide"
-              role="radiogroup"
-              aria-label="Fit"
-            >
-              {(["fit", "fill"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={clip.fit === mode}
-                  className={classNames(
-                    "video-editor__segment",
-                    clip.fit === mode && "video-editor__segment--on",
-                  )}
-                  onClick={() => onEdit({ fit: mode }, true)}
-                >
-                  {mode === "fit" ? "Fit" : "Fill"}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Fit"
+              size="sm"
+              stretch
+              value={clip.fit}
+              options={FIT_OPTIONS}
+              onChange={(fit) => onEdit({ fit }, true)}
+            />
           )}
           <KeyframeBar
             clip={clip}
@@ -661,14 +630,9 @@ function InspectorContent({
                   : "Needs a following clip on the same track."}
               </p>
               <div className="video-editor__inspector-actions">
-                <button
-                  type="button"
-                  className="video-editor__secondary-btn"
-                  onClick={onAddDissolve}
-                  disabled={!neighbour}
-                >
-                  <Icon icon={iconBlend} /> Add cross-dissolve
-                </button>
+                <Button icon={iconBlend} onClick={onAddDissolve} disabled={!neighbour} size="xs">
+                  Add cross-dissolve
+                </Button>
               </div>
             </>
           )}
@@ -841,20 +805,20 @@ function ColorPanel({
         <Tooltip
           content={auto ? "Turn Auto off" : "Fix levels and color cast from this clip's frames"}
         >
-          <button
-            type="button"
-            className={classNames("video-editor__auto-btn", auto && "video-editor__auto-btn--on")}
-            aria-pressed={auto !== null}
-            aria-busy={autoPending || undefined}
-            disabled={autoPending}
+          <Button
+            icon={iconWandSparkles}
+            size="xs"
+            className="video-editor__auto-btn"
+            pressed={auto !== null}
+            busy={autoPending}
+            busyLabel="Reading frames..."
             onClick={() => {
               if (!auto) onAuto();
               else onEdit({ adjust: withoutAuto(clip.adjust, auto), auto_adjust: null }, true);
             }}
           >
-            <Icon icon={autoPending ? iconLoader2 : iconWandSparkles} spin={autoPending} />
-            {autoPending ? "Reading frames..." : "Auto"}
-          </button>
+            Auto
+          </Button>
         </Tooltip>
         {auto ? (
           <Slider
@@ -946,27 +910,14 @@ function TitlePanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
         <span>Font</span>
         <FontPicker value={title.font ?? null} onChange={(font) => set({ font }, true)} />
       </div>
-      <div
-        className="video-editor__segmented video-editor__segmented--wide"
-        role="radiogroup"
-        aria-label="Alignment"
-      >
-        {(["left", "center", "right"] as VideoProjectTitleAlign[]).map((align) => (
-          <button
-            key={align}
-            type="button"
-            role="radio"
-            aria-checked={title.align === align}
-            className={classNames(
-              "video-editor__segment",
-              title.align === align && "video-editor__segment--on",
-            )}
-            onClick={() => set({ align }, true)}
-          >
-            {align[0].toUpperCase() + align.slice(1)}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Alignment"
+        size="sm"
+        stretch
+        value={title.align}
+        options={ALIGN_OPTIONS}
+        onChange={(align) => set({ align }, true)}
+      />
       <Slider
         label="Size"
         value={title.size}

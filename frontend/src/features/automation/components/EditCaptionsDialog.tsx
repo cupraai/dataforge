@@ -1,3 +1,6 @@
+import { Button } from "@/shared/ui/Button";
+import { TextArea } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +15,7 @@ import { VisionModelBadge } from "@/features/automation/components/VisionModelBa
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { CAPTION_EDIT_PREVIEW_LIMIT } from "@/shared/constants";
-import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
+import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { EditCaptionsRunSettings } from "@/shared/types";
 
@@ -50,8 +53,6 @@ export function EditCaptionsDialog({
   const [error, setError] = useState<string | null>(null);
   const instructionRef = useRef<HTMLTextAreaElement>(null);
   const instructionId = useId();
-  const preserveThinkingId = useId();
-  const visionId = useId();
   const errorId = useId();
 
   const settings = {
@@ -154,16 +155,16 @@ export function EditCaptionsDialog({
       footer={
         <>
           <div className="edit-captions-dialog__dry-run-action">
-            <DialogButton
-              label={preview.isFetching ? "Running..." : "Dry run"}
-              variant="secondary"
+            <Button
               busy={preview.isFetching}
               disabled={busy}
               onClick={handlePreview}
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.stopPropagation();
               }}
-            />
+            >
+              {preview.isFetching ? "Running..." : "Dry run"}
+            </Button>
           </div>
           <DialogActions
             confirmLabel={confirmLabel ?? "Start edit captions"}
@@ -191,37 +192,21 @@ export function EditCaptionsDialog({
         />
 
         <div className="dialog__field edit-captions-dialog__toggles">
-          <div>
-            <label className="dialog__checkbox" htmlFor={preserveThinkingId}>
-              <input
-                id={preserveThinkingId}
-                type="checkbox"
-                className="dialog__checkbox-input"
-                checked={preserveThinking}
-                onChange={(event) => setPreserveThinking(event.target.checked)}
-                disabled={mode === "instruct" || controlsBusy}
-              />
-              <span className="dialog__checkbox-box" aria-hidden="true" />
-              <span className="dialog__checkbox-label">Preserve thinking</span>
-            </label>
-            <p className="dialog__hint">Keeps earlier reasoning in the prompt.</p>
-          </div>
+          <Checkbox
+            label="Preserve thinking"
+            checked={preserveThinking}
+            disabled={mode === "instruct" || controlsBusy}
+            onChange={setPreserveThinking}
+            hint="Keeps earlier reasoning in the prompt."
+          />
 
-          <div>
-            <label className="dialog__checkbox" htmlFor={visionId}>
-              <input
-                id={visionId}
-                type="checkbox"
-                className="dialog__checkbox-input"
-                checked={vision}
-                onChange={(event) => setVision(event.target.checked)}
-                disabled={controlsBusy}
-              />
-              <span className="dialog__checkbox-box" aria-hidden="true" />
-              <span className="dialog__checkbox-label">Send media</span>
-            </label>
-            <p className="dialog__hint">Edits can check what the media shows.</p>
-          </div>
+          <Checkbox
+            label="Send media"
+            checked={vision}
+            disabled={controlsBusy}
+            onChange={setVision}
+            hint="Edits can check what the media shows."
+          />
         </div>
 
         <div className="dialog__field">
@@ -243,10 +228,11 @@ export function EditCaptionsDialog({
               }}
             />
           </div>
-          <textarea
+          <TextArea
             id={instructionId}
             ref={instructionRef}
-            className="dialog__input dialog__input--multiline dialog__input--grow edit-captions-dialog__instruction"
+            grow
+            className="edit-captions-dialog__instruction"
             value={instruction}
             onChange={(event) => {
               setInstruction(event.target.value);

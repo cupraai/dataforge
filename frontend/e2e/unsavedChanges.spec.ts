@@ -14,7 +14,7 @@ async function openPhoto(page: Page, parent = WORKSPACE) {
 
 async function rotate(page: Page) {
   await page.getByRole("button", { name: "Edit photo.png", exact: true }).click();
-  await page.getByRole("button", { name: "Rotate", exact: true }).click();
+  await page.getByRole("tab", { name: "Rotate", exact: true }).click();
   await page.getByRole("button", { name: "Rotate right", exact: true }).click();
   await expect(page.locator(".image-edit-stage__canvas")).toHaveCSS("--edit-rotate", "90deg");
 }

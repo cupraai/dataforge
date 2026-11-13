@@ -1,6 +1,6 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { iconArrowUp } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
 
 interface GalleryBackToTopProps {
   visible: boolean;
@@ -10,15 +10,16 @@ interface GalleryBackToTopProps {
 export function GalleryBackToTop({ visible, onClick }: GalleryBackToTopProps) {
   return (
     <div className="gallery-back-to-top-anchor">
-      <button
-        type="button"
+      <IconButton
+        icon={iconArrowUp}
+        label="Back to top"
+        tooltip={false}
+        size="lg"
+        shape="round"
         className={classNames("gallery-back-to-top", visible && "gallery-back-to-top--visible")}
         onClick={onClick}
-        aria-label="Back to top"
         tabIndex={visible ? 0 : -1}
-      >
-        <Icon icon={iconArrowUp} className="gallery-back-to-top__icon" />
-      </button>
+      />
     </div>
   );
 }

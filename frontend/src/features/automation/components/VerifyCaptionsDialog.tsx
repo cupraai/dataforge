@@ -1,5 +1,7 @@
+import { Field, TextArea } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
@@ -31,8 +33,6 @@ export function VerifyCaptionsDialog({
   const [context, setContext] = useState(initialSettings.context);
   const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
-  const contextId = useId();
-  const preserveThinkingId = useId();
 
   return (
     <GuardedDialog
@@ -85,39 +85,28 @@ export function VerifyCaptionsDialog({
         onChange={setReasoningEffort}
       />
 
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={preserveThinkingId}>
-          <input
-            id={preserveThinkingId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={preserveThinking}
-            onChange={(event) => setPreserveThinking(event.target.checked)}
-            disabled={mode === "instruct" || busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Preserve thinking</span>
-        </label>
-        <p className="dialog__hint">
-          Keeps earlier reasoning in the prompt instead of dropping it.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Preserve thinking"
+        checked={preserveThinking}
+        disabled={mode === "instruct" || busy}
+        onChange={setPreserveThinking}
+        hint="Keeps earlier reasoning in the prompt instead of dropping it."
+      />
 
-      <div className="dialog__field">
-        <label htmlFor={contextId} className="dialog__label">
-          Additional context
-        </label>
-        <textarea
-          id={contextId}
-          className="dialog__input dialog__input--multiline"
-          value={context}
-          onChange={(event) => setContext(event.target.value)}
-          placeholder="Optional notes about the dataset, e.g. typical poses or recurring subjects"
-          rows={2}
-          disabled={busy}
-          data-scroll-lock-allow
-        />
-      </div>
+      <Field label="Additional context">
+        {(control) => (
+          <TextArea
+            {...control}
+            value={context}
+            onChange={(event) => setContext(event.target.value)}
+            placeholder="Optional notes about the dataset, e.g. typical poses or recurring subjects"
+            rows={2}
+            disabled={busy}
+            data-scroll-lock-allow
+          />
+        )}
+      </Field>
     </GuardedDialog>
   );
 }

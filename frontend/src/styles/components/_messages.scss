@@ -8,17 +8,4 @@
   border-radius: var(--radius);
   font-weight: var(--font-medium);
   line-height: var(--leading-snug);
-
-  &__icon {
-    flex-shrink: 0;
-    @include icon-size(var(--icon-size-base));
-  }
-
-  &__dismiss {
-    @include dismiss-btn;
-
-    &:hover {
-      @include fade-bg(var(--danger-hover));
-    }
-  }
 }

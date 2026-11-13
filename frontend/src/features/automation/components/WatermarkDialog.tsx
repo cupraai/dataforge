@@ -1,3 +1,6 @@
+import { Button } from "@/shared/ui/Button";
+import { FieldGroup, TextInput } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +11,7 @@ import { formatApiError } from "@/shared/api/http";
 import { iconImage } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { RadioTileGroup, type RadioTileOption } from "@/shared/ui/RadioTileGroup";
-import { DialogActions, DialogButton } from "@/shared/ui/Dialog";
+import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Icon } from "@/shared/ui/Icon";
 import type { WatermarkOpacity, WatermarkPosition, WatermarkSizeName } from "@/shared/types";
@@ -65,8 +68,7 @@ function PositionPicker({
 }) {
   const current = POSITIONS.find((option) => option.value === value);
   return (
-    <div className="dialog__field">
-      <div className="dialog__label">Position</div>
+    <FieldGroup label="Position">
       <div className="watermark-dialog__position">
         <div className="watermark-dialog__frame" role="radiogroup" aria-label={groupLabel}>
           {POSITIONS.map((option) => (
@@ -100,7 +102,7 @@ function PositionPicker({
           {current?.title}
         </span>
       </div>
-    </div>
+    </FieldGroup>
   );
 }
 
@@ -182,22 +184,16 @@ function MarkColumn({
   errorId: string;
   children: ReactNode;
 }) {
-  const toggleId = useId();
   return (
     <section className="watermark-dialog__column" aria-label={`${title} watermark`}>
       <div className="dialog__field">
-        <label className="dialog__checkbox watermark-dialog__toggle" htmlFor={toggleId}>
-          <input
-            id={toggleId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={enabled}
-            onChange={(event) => onToggle(event.target.checked)}
-            disabled={toggleDisabled}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">{title}</span>
-        </label>
+        <Checkbox
+          className="watermark-dialog__toggle"
+          label={title}
+          checked={enabled}
+          disabled={toggleDisabled}
+          onChange={onToggle}
+        />
         {control}
         {error ? (
           <p id={errorId} className="dialog__hint watermark-dialog__error" role="alert">
@@ -235,7 +231,6 @@ export function WatermarkDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const errorId = useId();
   const groupId = useId();
-  const stripId = useId();
 
   useEffect(() => {
     if (!picked) return;
@@ -346,9 +341,7 @@ export function WatermarkDialog({
           error={error?.mark === "text" ? error.message : null}
           errorId={errorId}
           control={
-            <input
-              type="text"
-              className="dialog__input"
+            <TextInput
               aria-label="Watermark text"
               value={draft.text}
               onChange={(event) => update({ text: event.target.value })}
@@ -398,12 +391,9 @@ export function WatermarkDialog({
                   <Icon icon={iconImage} className="watermark-dialog__thumb-icon" />
                 )}
               </div>
-              <DialogButton
-                label={hasImage ? "Replace PNG..." : "Choose PNG..."}
-                variant="secondary"
-                disabled={imageDisabled}
-                onClick={() => fileInputRef.current?.click()}
-              />
+              <Button disabled={imageDisabled} onClick={() => fileInputRef.current?.click()}>
+                {hasImage ? "Replace PNG..." : "Choose PNG..."}
+              </Button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -438,22 +428,13 @@ export function WatermarkDialog({
         </MarkColumn>
       </div>
 
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={stripId}>
-          <input
-            id={stripId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={draft.strip_metadata}
-            onChange={(event) => update({ strip_metadata: event.target.checked })}
-            disabled={working}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">
-            Strip metadata (EXIF, XMP, video tags) from the copies
-          </span>
-        </label>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Strip metadata (EXIF, XMP, video tags) from the copies"
+        checked={draft.strip_metadata}
+        disabled={working}
+        onChange={(checked) => update({ strip_metadata: checked })}
+      />
     </GuardedDialog>
   );
 }

@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { deleteFolder } from "@/features/folder/api/folders";
 import type * as FoldersApi from "@/features/folder/api/folders";
 import {
+  clearRecentFolders,
   readRecentFolderPaths,
-  restoreRecentFolders,
+  touchRecentFolder,
 } from "@/features/folder/lib/folderPreferences";
 import { AppProviders } from "@/test/AppProviders";
 import { useDeleteFolderDialog } from "./useDeleteFolderDialog";
@@ -35,7 +36,7 @@ function renderDialog({
 describe("useDeleteFolderDialog", () => {
   afterEach(() => {
     deleteFolderMock.mockReset();
-    restoreRecentFolders([]);
+    clearRecentFolders();
   });
 
   it("offers nothing to open while the folder is not empty", () => {
@@ -46,7 +47,8 @@ describe("useDeleteFolderDialog", () => {
   });
 
   it("deletes the folder, forgets it, and lands on the parent", async () => {
-    restoreRecentFolders(["C:\\Photos\\Empty", "C:\\Photos"]);
+    touchRecentFolder("C:\\Photos");
+    touchRecentFolder("C:\\Photos\\Empty");
     deleteFolderMock.mockResolvedValue({
       path: "C:\\Photos\\Empty",
       parent: "C:\\Photos",

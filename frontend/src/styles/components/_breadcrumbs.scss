@@ -17,34 +17,17 @@
     margin-left: auto;
   }
 
-  &__explorer {
-    @include text-btn;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    padding: 0.375rem;
-
-    &--copied,
-    &--copied:hover:not(:disabled) {
-      color: var(--success);
-      @include fade-bg(var(--success-soft));
-    }
-
-    &--error,
-    &--error:hover:not(:disabled) {
-      color: var(--danger);
-      @include fade-bg(var(--danger-soft));
-    }
+  // The copy button confirms in colour while its tooltip says what happened.
+  &__copy--copied,
+  &__copy--copied:hover:not(:disabled) {
+    color: var(--success);
+    @include fade-bg(var(--success-soft));
   }
 
-  &__explorer-icon {
-    @include icon-block;
-    @include icon-size(var(--icon-size-base));
-
-    &--spin {
-      @include spin;
-    }
+  &__copy--error,
+  &__copy--error:hover:not(:disabled) {
+    color: var(--danger);
+    @include fade-bg(var(--danger-soft));
   }
 
   &__list {
@@ -93,37 +76,12 @@
   }
 
   &__menu-panel {
-    @include dropdown-menu-surface(13rem);
+    min-width: min(13rem, calc(100vw - 2rem));
     // Caps at ~ten rows so a folder with hundreds of children stays a menu. Declared here so the placement pass measures a settled panel.
     max-height: 20rem;
-    gap: 0.125rem;
   }
 
-  &__menu-option {
-    @include dropdown-menu-option;
-    min-width: 0;
-
-    &--active {
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
-  }
-
-  &__menu-option-icon {
-    @include dropdown-menu-option-icon;
-  }
-
-  &__menu-option--active &__menu-option-icon {
-    opacity: 1;
-  }
-
-  &__menu-option-label {
-    @include truncate;
-    // Taller than the option's line-height: 1 so descenders survive overflow: hidden from truncate.
-    line-height: var(--leading-snug);
-  }
-
-  &__menu-option-detail {
+  &__drive-label {
     color: var(--text-subtle);
   }
 

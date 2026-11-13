@@ -266,18 +266,6 @@
   // The grid gap, so the button reads as one more row rather than a detached control.
   margin-top: 0.75rem;
 
-  &__btn {
-    @include pill-btn-compact(default);
-    --bg-elevated: var(--bg-soft);
-    gap: 0.375rem;
-    padding: 0.1875rem 0.5rem;
-    min-height: 1.5rem;
-  }
-
-  &__icon {
-    @include icon-size-sm;
-  }
-
   &__findings {
     display: inline-flex;
     align-items: center;

@@ -27,8 +27,6 @@ function applyTheme(): void {
 
 saved.subscribe(applyTheme);
 
-export const getThemePreference = saved.get;
-
 export function useThemePreference(): ThemePreference {
   return useStoredStore(saved);
 }

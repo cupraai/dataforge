@@ -1,3 +1,4 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import {
   iconArrowLeftRight,
   iconArrowRightFromLine,
@@ -18,9 +19,8 @@ import {
   iconZoomOut,
 } from "@/shared/icons";
 import { SHORTCUTS } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
-import { rangeFill } from "@/features/videoEditor/lib/rangeFill";
+import { Slider } from "@/shared/ui/Slider";
 import {
   formatTimecode,
   rippleTouchedTracks,
@@ -214,19 +214,14 @@ export function TimelineToolbar({
           shortcut={SHORTCUTS.editorZoomOut}
           onClick={() => onZoom(pxPerSecond / 1.5)}
         />
-        <input
-          type="range"
+        <Slider
+          size="sm"
           className="video-editor__zoom"
           aria-label="Timeline zoom"
           min={Math.log(MIN_PX_PER_SECOND)}
           max={Math.log(MAX_PX_PER_SECOND)}
           step={0.01}
           value={Math.log(pxPerSecond)}
-          style={rangeFill(
-            Math.log(pxPerSecond),
-            Math.log(MIN_PX_PER_SECOND),
-            Math.log(MAX_PX_PER_SECOND),
-          )}
           onChange={(event) => onZoom(Math.exp(Number(event.target.value)))}
         />
         <ToolButton
@@ -273,14 +268,7 @@ function RangeChip({
         </span>
         <span className="video-editor__range-length">{(range.end - range.start).toFixed(2)} s</span>
         {locked.length > 0 && <span className="video-editor__range-locked">locked track</span>}
-        <button
-          type="button"
-          className="video-editor__icon-btn"
-          aria-label="Clear range"
-          onClick={onClear}
-        >
-          <Icon icon={iconX} />
-        </button>
+        <IconButton icon={iconX} label="Clear range" onClick={onClear} size="xs" variant="ghost" />
       </span>
     </Tooltip>
   );

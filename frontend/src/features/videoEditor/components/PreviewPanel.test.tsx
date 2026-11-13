@@ -108,10 +108,10 @@ describe("PreviewPanel", () => {
   it("offers Source only once a file is picked, and switches between the two", async () => {
     const user = userEvent.setup();
     const { onModeChange, rerender, ...props } = renderPanel();
-    expect(screen.getByRole("tab", { name: "Source" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Source" })).toBeDisabled();
 
     rerender(<PreviewPanel {...props} onModeChange={onModeChange} sourceItem={clip} />);
-    await user.click(screen.getByRole("tab", { name: "Source" }));
+    await user.click(screen.getByRole("radio", { name: "Source" }));
 
     expect(onModeChange).toHaveBeenCalledWith("source");
   });

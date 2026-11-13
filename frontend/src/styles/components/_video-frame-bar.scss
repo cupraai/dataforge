@@ -1,30 +1,6 @@
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
-$track-height: 4px;
-$thumb-size: 0.85rem;
-
-// Vendor pseudo-elements cannot share a selector list: an engine that does not recognise one discards the whole rule. Hence two mixins and four separate blocks.
-@mixin frame-slider-track {
-  height: $track-height;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(
-    to right,
-    var(--accent) 0 var(--frame-progress, 0%),
-    var(--border) var(--frame-progress, 0%) 100%
-  );
-}
-
-@mixin frame-slider-thumb {
-  width: $thumb-size;
-  height: $thumb-size;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  transition: transform var(--transition);
-}
-
 .video-frame-bar {
   display: flex;
   flex-direction: column;
@@ -37,10 +13,6 @@ $thumb-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-  }
-
-  &__step {
-    @include icon-btn-sm;
   }
 
   &__meta {
@@ -76,56 +48,13 @@ $thumb-size: 0.85rem;
   }
 
   &__save {
-    @include pill-btn-compact(accent);
-    flex-shrink: 0;
-    @include icon-scope-sm;
     width: 6.25rem;
   }
 
+  // Tall as the buttons beside it, so the whole row is a target for the thumb.
   &__slider {
     flex: 1;
     min-width: 0;
     height: var(--control-height-sm);
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    accent-color: var(--accent);
-    -webkit-appearance: none;
-    appearance: none;
-    @include focus-ring;
-
-    &:disabled {
-      @include disabled-state;
-    }
   }
-}
-
-.video-frame-bar__slider::-webkit-slider-runnable-track {
-  @include frame-slider-track;
-}
-
-.video-frame-bar__slider::-moz-range-track {
-  @include frame-slider-track;
-}
-
-.video-frame-bar__slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  // Webkit lays the thumb on the track's top edge; Firefox centres it.
-  margin-top: calc((#{$track-height} - #{$thumb-size}) / 2);
-  @include frame-slider-thumb;
-}
-
-.video-frame-bar__slider::-moz-range-thumb {
-  @include frame-slider-thumb;
-}
-
-.video-frame-bar__slider:hover:not(:disabled)::-webkit-slider-thumb {
-  transform: scale(1.15);
-}
-
-.video-frame-bar__slider:hover:not(:disabled)::-moz-range-thumb {
-  transform: scale(1.15);
 }

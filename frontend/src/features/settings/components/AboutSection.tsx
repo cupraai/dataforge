@@ -6,7 +6,7 @@ import { iconCopy, iconFolder, iconInfo } from "@/shared/icons";
 import { formatFileSize } from "@/shared/lib/format";
 import type { AboutResponse, AppSettingsResponse, SystemSpecs } from "@/shared/types";
 import { fetchAbout, settingsKeys } from "../api/settings";
-import { SettingsActionButton } from "./SettingsActionButton";
+import { Button } from "@/shared/ui/Button";
 import { SettingsGroup } from "./SettingsGroup";
 
 const FFMPEG_SOURCES = {
@@ -94,14 +94,16 @@ export function AboutSection({ settings, visible }: AboutSectionProps) {
         title="Installation"
         icon={iconInfo}
         action={
-          <SettingsActionButton
-            label={copyLabel === "Copy" ? "Copy diagnostics" : copyLabel}
+          <Button
+            size="xs"
             icon={iconCopy}
             disabled={!about}
             onClick={() => {
               if (about) void copyText(diagnosticsText(about, specs, settings));
             }}
-          />
+          >
+            {copyLabel === "Copy" ? "Copy diagnostics" : copyLabel}
+          </Button>
         }
       >
         <dl className="settings-facts">

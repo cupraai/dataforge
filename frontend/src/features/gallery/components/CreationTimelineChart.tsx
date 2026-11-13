@@ -1,9 +1,9 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useRef } from "react";
 import { useCountUp } from "@/features/gallery/hooks/useCountUp";
 import type { CreationTimelineGrouping, StatBucket } from "@/features/gallery/lib/datasetStats";
 import { iconChevronLeft, iconChevronRight } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 const countFormatter = new Intl.NumberFormat("en", {
@@ -127,27 +127,27 @@ export function CreationTimelineChart({
         <div className="stats-dialog__timeline-navigation">
           {peak === 0 && <p className="stats-dialog__note">No media created in this period.</p>}
           {grouping !== "year" && (
-            <button
-              type="button"
-              className="stats-dialog__timeline-step"
-              aria-label={`Previous ${navigationUnit}`}
+            <IconButton
+              icon={iconChevronLeft}
+              label={`Previous ${navigationUnit}`}
               onClick={() => onNavigatePeriod(-1)}
-            >
-              <Icon icon={iconChevronLeft} />
-            </button>
+              size="xs"
+              variant="ghost"
+              tooltip={false}
+            />
           )}
           <span aria-live="polite" aria-atomic="true">
             {period}
           </span>
           {grouping !== "year" && (
-            <button
-              type="button"
-              className="stats-dialog__timeline-step"
-              aria-label={`Next ${navigationUnit}`}
+            <IconButton
+              icon={iconChevronRight}
+              label={`Next ${navigationUnit}`}
               onClick={() => onNavigatePeriod(1)}
-            >
-              <Icon icon={iconChevronRight} />
-            </button>
+              size="xs"
+              variant="ghost"
+              tooltip={false}
+            />
           )}
         </div>
       </figcaption>

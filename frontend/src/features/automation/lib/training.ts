@@ -20,10 +20,6 @@ export const TRAINING_MODEL_OPTIONS: ReadonlyArray<DialogSelectOption<TrainingMo
     ...entry,
   }));
 
-export const TRAINING_MODELS: readonly TrainingModel[] = TRAINING_MODEL_OPTIONS.map(
-  (option) => option.value,
-);
-
 export const DEFAULT_TRAINING_MODEL: TrainingModel = "krea2_turbo";
 
 export function trainingModelLabel(model: TrainingModel): string {

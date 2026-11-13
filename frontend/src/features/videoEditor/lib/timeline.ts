@@ -657,13 +657,6 @@ export function setClipSpeed(project: Project, id: string, speed: number): EditR
     : result;
 }
 
-/** For stills and titles, whose length is not bound to a source. */
-export function setClipDuration(project: Project, id: string, duration: number): EditResult {
-  const clip = project.clips.find((item) => item.id === id);
-  if (!clip) return { error: "That clip is gone." };
-  return trimClip(project, id, "end", clip.start + Math.max(MIN_CLIP_SECONDS, duration));
-}
-
 export function updateClip(project: Project, id: string, patch: Partial<Clip>): EditResult {
   const clip = project.clips.find((item) => item.id === id);
   if (!clip) return { error: "That clip is gone." };

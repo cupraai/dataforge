@@ -1,4 +1,7 @@
+import { Button } from "@/shared/ui/Button";
 import { useId, type ReactNode } from "react";
+import type { TabListState } from "@/shared/hooks/useTabList";
+import { TabList } from "@/shared/ui/TabList";
 import { CROP_ASPECTS } from "@/features/gallery/lib/crop";
 import { SCALE_PRESETS, formatScale } from "@/features/gallery/lib/editSpec";
 import { MASK_MODES, MASK_STRENGTHS } from "@/features/gallery/lib/mask";
@@ -10,7 +13,6 @@ import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { formatSizeFit } from "@/shared/lib/sizeFit";
 import type { SizeFit } from "@/shared/types";
-import { Icon } from "@/shared/ui/Icon";
 import { SizeNumberField } from "./SizeNumberField";
 import type { ToolHintEntry } from "@/features/gallery/lib/toolHints";
 import { StageHint } from "./StageHint";
@@ -24,39 +26,24 @@ export interface EditTool<T extends string> {
 }
 
 export function ToolTabs<T extends string>({
+  tabs,
   tools,
-  activeTool,
   modified,
   disabled,
-  onSelect,
 }: {
+  /** From `useTabList`; the panel's body takes `tabs.panelProps(activeTool)`. */
+  tabs: TabListState<T>;
   tools: ReadonlyArray<EditTool<T>>;
-  activeTool: T;
   modified: Record<T, boolean>;
   disabled: boolean;
-  onSelect: (tool: T) => void;
 }) {
   return (
-    <div className="edit-panel__tools" role="group" aria-label="Editing tool">
-      {tools.map((tool) => (
-        <button
-          key={tool.id}
-          type="button"
-          className={classNames(
-            "edit-panel__tool",
-            activeTool === tool.id && "edit-panel__tool--active",
-            modified[tool.id] && "edit-panel__tool--modified",
-          )}
-          aria-pressed={activeTool === tool.id}
-          aria-label={modified[tool.id] ? `${tool.label}, changed` : tool.label}
-          disabled={disabled}
-          onClick={() => onSelect(tool.id)}
-        >
-          <Icon icon={tool.icon} />
-          {tool.label}
-        </button>
-      ))}
-    </div>
+    <TabList
+      tabs={tabs}
+      label="Editing tool"
+      items={tools.map((tool) => ({ ...tool, mark: modified[tool.id] ? "changed" : undefined }))}
+      disabled={disabled}
+    />
   );
 }
 
@@ -103,7 +90,8 @@ export function ToolGroup({
 
 export function ToolPresets({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <ToolGroup label={label} className="edit-panel__presets">
+    // Pressed buttons on the segmented track: each preset can carry its own shortcut.
+    <ToolGroup label={label} className="segmented segmented--sm">
       {children}
     </ToolGroup>
   );
@@ -141,7 +129,7 @@ export function PresetButton({
   const button = (
     <button
       type="button"
-      className={classNames("edit-panel__preset", active && "edit-panel__preset--active")}
+      className="segmented__option edit-panel__preset"
       aria-pressed={active}
       aria-keyshortcuts={shortcut ? ariaKeyShortcuts(shortcut.definition) : undefined}
       disabled={disabled}
@@ -294,24 +282,22 @@ export function BlurTools({
   return (
     <>
       <ToolGroup label="Regions" className="edit-panel__tool-actions">
-        <button
-          type="button"
-          className="edit-panel__control"
+        <Button
+          icon={iconPlus}
           disabled={disabled || masks.maskLimitReached}
           onClick={masks.addMask}
+          size="sm"
         >
-          <Icon icon={iconPlus} />
           Add
-        </button>
-        <button
-          type="button"
-          className="edit-panel__control"
+        </Button>
+        <Button
+          icon={iconTrash2}
           disabled={disabled || !hasRegions}
           onClick={masks.clearMasks}
+          size="sm"
         >
-          <Icon icon={iconTrash2} />
           Clear
-        </button>
+        </Button>
       </ToolGroup>
       <ToolPresets label="Blur style">
         {MASK_MODES.map((mode) => (
@@ -365,32 +351,32 @@ export function EditActions({
   return (
     <div className="edit-panel__actions">
       {edit.hasBackup && (
-        <button
-          type="button"
-          className="edit-panel__control edit-panel__control--revert"
+        <Button
+          icon={iconUndo2}
+          variant="warning"
           disabled={disabled}
           onClick={onRevertRequested}
+          size="sm"
         >
-          <Icon icon={iconUndo2} />
           Revert original
-        </button>
+        </Button>
       )}
-      <button
-        type="button"
-        className="edit-panel__control"
+      <Button
         disabled={disabled || (!edit.dirty && !edit.pending)}
         onClick={edit.resetDraft}
+        size="sm"
       >
         Reset
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
         className="edit-panel__apply"
         disabled={disabled || !edit.dirty || edit.pending}
         onClick={edit.apply}
+        variant="primary"
+        size="sm"
       >
         Apply
-      </button>
+      </Button>
     </div>
   );
 }

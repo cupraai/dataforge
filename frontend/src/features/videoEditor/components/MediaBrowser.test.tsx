@@ -48,10 +48,7 @@ describe("MediaBrowser", () => {
     renderWithProviders(<Harness />);
 
     expect(media()).toHaveLength(3);
-    expect(screen.getByRole("radio", { name: /^All\s*3$/ })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    expect(screen.getByRole("radio", { name: /^All\s*3$/ })).toBeChecked();
     await user.click(screen.getByRole("radio", { name: /^Audio\s*1$/ }));
     expect(media().map((button) => button.getAttribute("aria-label"))).toEqual([
       "Preview tone.wav",

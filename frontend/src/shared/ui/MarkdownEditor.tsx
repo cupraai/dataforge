@@ -1,7 +1,7 @@
+import { IconButton } from "./IconButton";
 import { useCallback, useRef, type ReactNode } from "react";
 import type { EditorView, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { CodeMirrorEditor, type CodeMirrorEditorProps } from "./CodeMirrorEditor";
-import { Icon } from "./Icon";
 import {
   iconHeading1,
   iconHeading2,
@@ -26,25 +26,21 @@ export type MarkdownEditorProps = Omit<CodeMirrorEditorProps, "language"> & {
 };
 
 interface ToolbarButtonProps {
-  children?: ReactNode;
   icon: AppIcon;
-  title?: string;
+  title: string;
   onClick?: () => void;
 }
 
 function ToolbarButton({ icon, title, onClick }: ToolbarButtonProps) {
   return (
-    <button
-      className="code-editor-wrapper__toolbar-button"
-      type="button"
+    <IconButton
+      icon={icon}
+      label={title}
+      size="xs"
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      title={title}
-      aria-label={title}
       tabIndex={-1}
-    >
-      <Icon icon={icon} />
-    </button>
+    />
   );
 }
 
@@ -70,7 +66,7 @@ export function MarkdownEditor({ toolbarAside, ...props }: MarkdownEditorProps) 
   return (
     <div className="code-editor-wrapper">
       <div className="code-editor-wrapper__toolbar">
-        <div className="code-editor-wrapper__toolbar-button-group code-editor-wrapper__toolbar-button-group--tweak">
+        <div className="code-editor-wrapper__toolbar-button-group">
           <ToolbarButton
             icon={iconHeading1}
             title="Heading 1"

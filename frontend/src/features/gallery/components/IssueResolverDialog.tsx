@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DialogSuspendedContext } from "@/shared/ui/dialogSuspendedContext";
@@ -19,21 +21,13 @@ import {
 } from "@/features/gallery/lib/dialogMediaPrefetch";
 import type { CaptionSaveResponse, GalleryItem } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
-import {
-  iconArrowUpRight,
-  iconCircleCheck,
-  iconLoader2,
-  iconTriangleAlert,
-  iconX,
-} from "@/shared/icons";
+import { iconArrowUpRight, iconCircleCheck, iconTriangleAlert, iconX } from "@/shared/icons";
 import { buildCaptionVocabulary } from "@/features/gallery/lib/captionVocabulary";
 import { CaptionEditor } from "@/shared/ui/CaptionEditor";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { TokenEstimate } from "@/shared/ui/TokenEstimate";
-import { Tooltip } from "@/shared/ui/Tooltip";
 import { ZoomableImage } from "./ZoomableImage";
 import { MediaInfoBar } from "./MediaInfoBar";
 import { ComfyWorkflowDialog } from "./ComfyWorkflowDialog";
@@ -276,32 +270,25 @@ export function IssueResolverDialog({
         </div>
         <div className="issue-resolver-dialog__header-actions">
           {!isMotion(item) && (
-            <Tooltip content={viewerError ?? "Open in image preview"}>
-              <button
-                type="button"
-                className="issue-resolver-dialog__preview"
-                onClick={() => {
-                  void handleOpenInViewer();
-                }}
-                disabled={openingInViewer || saving}
-                aria-label="Open in image preview"
-              >
-                <Icon
-                  icon={openingInViewer ? iconLoader2 : iconArrowUpRight}
-                  spin={openingInViewer}
-                />
-              </button>
-            </Tooltip>
+            <IconButton
+              icon={iconArrowUpRight}
+              label="Open in image preview"
+              tooltip={viewerError ?? "Open in image preview"}
+              busy={openingInViewer}
+              onClick={() => {
+                void handleOpenInViewer();
+              }}
+              disabled={saving}
+              tone="accent"
+            />
           )}
-          <button
-            type="button"
-            className="issue-resolver-dialog__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
             onClick={closeDialog}
             disabled={saving}
-            aria-label="Close"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </div>
       </header>
 
@@ -424,26 +411,21 @@ export function IssueResolverDialog({
       </div>
 
       <footer className="issue-resolver-dialog__footer">
-        <DialogButton
-          label="Back"
-          variant="secondary"
-          disabled={saving || index === 0}
-          onClick={handlePrevious}
-        />
-        <DialogButton
-          label="Skip"
-          variant="secondary"
-          disabled={saving || index === queue.length - 1}
-          onClick={handleNext}
-        />
-        <DialogButton
-          label={saving ? "Resolving..." : "Resolve"}
+        <Button disabled={saving || index === 0} onClick={handlePrevious}>
+          Back
+        </Button>
+        <Button disabled={saving || index === queue.length - 1} onClick={handleNext}>
+          Skip
+        </Button>
+        <Button
           variant="primary"
           busy={saving}
           onClick={() => {
             void handleResolve();
           }}
-        />
+        >
+          {saving ? "Resolving..." : "Resolve"}
+        </Button>
       </footer>
       {comfyWorkflowOpen && (
         <ComfyWorkflowDialog

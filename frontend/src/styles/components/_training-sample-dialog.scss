@@ -42,10 +42,6 @@
     flex-shrink: 0;
   }
 
-  &__close {
-    @include dialog-close-btn;
-  }
-
   &__stage {
     @include dialog-stage($dialog-stage-padding-block 3.75rem);
     flex: 0 1 auto;
@@ -53,15 +49,7 @@
   }
 
   &__nav {
-    @include dialog-nav-btn;
-
-    &--prev {
-      left: 0.875rem;
-    }
-
-    &--next {
-      right: 0.875rem;
-    }
+    @include dialog-media-nav;
   }
 
   &__media-wrap {

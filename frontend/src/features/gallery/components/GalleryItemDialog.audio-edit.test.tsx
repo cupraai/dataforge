@@ -112,7 +112,7 @@ describe("GalleryItemDialog audio editing", () => {
     const dialog = await screen.findByRole("dialog", { name: "Viewing voice.wav" });
     await user.click(within(dialog).getByRole("button", { name: "Edit voice.wav" }));
     const panel = await within(dialog).findByRole("group", { name: "Audio editing" });
-    await waitFor(() => expect(within(panel).getByRole("button", { name: /^Trim/ })).toBeEnabled());
+    await waitFor(() => expect(within(panel).getByRole("tab", { name: /^Trim/ })).toBeEnabled());
     return { dialog, panel };
   }
 
@@ -127,7 +127,7 @@ describe("GalleryItemDialog audio editing", () => {
     expect(audio).not.toHaveAttribute("controls");
     expect(audio.getAttribute("src")).toContain("original=1");
     for (const tool of ["Trim", "Fades", "Volume", "Speed", "EQ", "Clean"]) {
-      expect(within(panel).getByRole("button", { name: tool })).toBeInTheDocument();
+      expect(within(panel).getByRole("tab", { name: tool })).toBeInTheDocument();
     }
     expect(within(panel).getByRole("slider", { name: "Trim end" })).toHaveAttribute(
       "aria-valuenow",
@@ -173,13 +173,13 @@ describe("GalleryItemDialog audio editing", () => {
     const { panel } = await openEditMode(user);
 
     expect(within(panel).getByRole("button", { name: "Apply" })).toBeDisabled();
-    await user.click(within(panel).getByRole("button", { name: "Fades" }));
+    await user.click(within(panel).getByRole("tab", { name: "Fades" }));
     await user.click(
       within(within(panel).getByRole("group", { name: "Fade out" })).getByRole("button", {
         name: "2s",
       }),
     );
-    await user.click(within(panel).getByRole("button", { name: "Volume" }));
+    await user.click(within(panel).getByRole("tab", { name: "Volume" }));
     await user.click(within(panel).getByRole("button", { name: "Limit peaks" }));
     await user.click(within(panel).getByRole("button", { name: "Apply" }));
 
@@ -219,7 +219,7 @@ describe("GalleryItemDialog audio editing", () => {
     renderDialog();
     const { dialog, panel } = await openEditMode(user);
 
-    await user.click(within(panel).getByRole("button", { name: "Clean" }));
+    await user.click(within(panel).getByRole("tab", { name: "Clean" }));
     const dial = within(panel).getByRole("slider", { name: "Noise reduction" });
     dial.focus();
     await user.keyboard("{ArrowRight}");

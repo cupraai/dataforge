@@ -89,7 +89,7 @@ describe("FrameCaptureBar in time mode", () => {
   it("fills the track up to the scrubbed position", () => {
     renderTimeBar({ max: 8, value: 2 });
 
-    expect(slider().style.getPropertyValue("--frame-progress")).toBe("25%");
+    expect(slider().style.getPropertyValue("--fill-to")).toBe("25.00%");
   });
 
   it("waits for metadata before offering the controls", () => {
@@ -149,7 +149,7 @@ describe("FrameCaptureBar in index mode", () => {
   it("fills the track across the frame range", () => {
     renderIndexBar({ max: 20, value: 5 });
 
-    expect(slider().style.getPropertyValue("--frame-progress")).toBe("25%");
+    expect(slider().style.getPropertyValue("--fill-to")).toBe("25.00%");
   });
 
   it("still allows saving a single-frame source", () => {

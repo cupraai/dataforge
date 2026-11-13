@@ -1,3 +1,5 @@
+import { TextInput } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -139,7 +141,6 @@ export function ComfyProcessDialog({
   const promptId = useId();
   const seedId = useId();
   const [overwrite, setOverwrite] = useState(initialSettings.overwrite_candidates);
-  const overwriteId = useId();
   const errorId = useId();
 
   const selected = state.status === "ready" ? state.presets.find((e) => e.name === preset) : null;
@@ -270,10 +271,8 @@ export function ComfyProcessDialog({
           <label htmlFor={promptId} className="dialog__label">
             Prompt
           </label>
-          <input
+          <TextInput
             id={promptId}
-            type="text"
-            className="dialog__input"
             value={promptBlocked ? "" : promptText}
             onChange={(event) => {
               updateDraft({ promptText: event.target.value });
@@ -292,10 +291,9 @@ export function ComfyProcessDialog({
           <label htmlFor={seedId} className="dialog__label">
             Seed
           </label>
-          <input
+          <TextInput
             id={seedId}
             type="number"
-            className="dialog__input"
             value={seedBlocked ? "" : seedText}
             onChange={(event) => {
               updateDraft({ seedText: event.target.value });
@@ -356,22 +354,17 @@ export function ComfyProcessDialog({
         </p>
       )}
 
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={overwriteId}>
-          <input
-            id={overwriteId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={overwrite}
-            disabled={busy}
-            onChange={(event) => setOverwrite(event.target.checked)}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">
+      <Checkbox
+        className="dialog__field"
+        label={
+          <>
             Replace candidates already waiting in <strong>staging</strong>
-          </span>
-        </label>
-      </div>
+          </>
+        }
+        checked={overwrite}
+        disabled={busy}
+        onChange={setOverwrite}
+      />
     </GuardedDialog>
   );
 }
@@ -414,11 +407,10 @@ function CustomInputField({ input, text, disabled, onChange }: CustomInputFieldP
       <label htmlFor={id} className="dialog__label">
         {input.name}
       </label>
-      <input
+      <TextInput
         id={id}
         type={numeric ? "number" : "text"}
         step={input.kind === "integer" ? 1 : numeric ? "any" : undefined}
-        className="dialog__input"
         value={text}
         onChange={(event) => onChange(event.target.value)}
         placeholder={String(input.default)}

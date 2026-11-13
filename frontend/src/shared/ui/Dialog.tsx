@@ -1,15 +1,8 @@
-import {
-  useContext,
-  useId,
-  useLayoutEffect,
-  useRef,
-  type ReactNode,
-  type RefObject,
-  type KeyboardEventHandler,
-} from "react";
-import { iconLoader2, iconX } from "@/shared/icons";
+import { useContext, useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { iconX } from "@/shared/icons";
+import { Button } from "./Button";
+import { IconButton } from "./IconButton";
 import { DialogScope, type DialogScopeInfo } from "./DialogScope";
-import { Icon } from "./Icon";
 import { DialogShell } from "./DialogShell";
 import type { GuardedAction } from "@/shared/hooks/useDiscardChanges";
 import { DialogSubmissionContext } from "./dialogSubmissionContext";
@@ -111,15 +104,13 @@ export function Dialog({
           <h2 id={titleId} className="dialog__title">
             {title}
           </h2>
-          <button
-            type="button"
-            className="dialog__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
+            tooltip={false}
             onClick={onClose}
-            aria-label="Close"
             disabled={busy}
-          >
-            <Icon icon={iconX} />
-          </button>
+          />
         </header>
 
         {scope && <DialogScope {...scope} />}
@@ -135,42 +126,6 @@ export function Dialog({
         {footer && <footer className="dialog__actions">{footer}</footer>}
       </DialogSubmissionContext.Provider>
     </DialogShell>
-  );
-}
-
-interface DialogButtonProps {
-  label: string;
-  variant: "primary" | "secondary" | "danger" | "warning";
-  icon?: typeof iconLoader2;
-  busy?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
-}
-
-export function DialogButton({
-  label,
-  variant,
-  icon,
-  busy = false,
-  disabled = false,
-  onClick,
-  onKeyDown,
-}: DialogButtonProps) {
-  const displayIcon = busy ? iconLoader2 : icon;
-
-  return (
-    <button
-      type="button"
-      className={`dialog__btn dialog__btn--${variant}`}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
-      disabled={disabled || busy}
-      aria-busy={busy || undefined}
-    >
-      {displayIcon && <Icon icon={displayIcon} spin={busy} className="dialog__btn-icon" />}
-      {label}
-    </button>
   );
 }
 
@@ -201,22 +156,24 @@ export function DialogActions({
   const confirmDisabled = submission?.disabled ?? standaloneDisabled;
   return (
     <>
-      <DialogButton
-        label={cancelLabel}
-        variant="secondary"
+      <Button
         disabled={busy}
         onClick={() => {
           if (request) void request(onCancel);
           else onCancel();
         }}
-      />
-      <DialogButton
-        label={busy ? (busyLabel ?? confirmLabel) : confirmLabel}
+      >
+        {cancelLabel}
+      </Button>
+      <Button
         variant={confirmVariant}
         busy={busy}
         disabled={confirmDisabled}
+        busyLabel={busyLabel}
         onClick={submission?.confirm ?? (() => onConfirm?.())}
-      />
+      >
+        {confirmLabel}
+      </Button>
     </>
   );
 }

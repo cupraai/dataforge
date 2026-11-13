@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import type { ReactNode } from "react";
 import { iconTriangleAlert } from "@/shared/icons";
 import {
@@ -23,9 +24,9 @@ export function MediaProblemNotice({ problem, onRetry, action }: MediaProblemNot
         <strong>{MEDIA_PROBLEM_LABELS[problem]}.</strong> {MEDIA_PROBLEM_EXPLANATIONS[problem]}
       </p>
       <div className="media-problem__actions">
-        <button type="button" className="media-problem__button" onClick={onRetry}>
+        <Button onClick={onRetry} size="xs">
           Retry
-        </button>
+        </Button>
         {action}
       </div>
     </div>

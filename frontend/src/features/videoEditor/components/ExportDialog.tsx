@@ -1,3 +1,5 @@
+import { TextInput } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
 import {
@@ -98,7 +100,6 @@ export function ExportDialog({
   const [copyCaption, setCopyCaption] = useState(saved.copy_caption);
   const [audioLevel, setAudioLevel] = useState<AudioLevel>(saved.audio_level);
   const nameId = useId();
-  const captionId = useId();
 
   const settings: VideoProjectExportSettings = {
     filename: filename.trim(),
@@ -144,9 +145,8 @@ export function ExportDialog({
           File name
         </label>
         <div className="video-export-dialog__name">
-          <input
+          <TextInput
             id={nameId}
-            className="dialog__input"
             value={filename}
             maxLength={200}
             onChange={(event) => setFilename(event.target.value)}
@@ -251,21 +251,14 @@ export function ExportDialog({
           </p>
         )}
       </div>
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={captionId}>
-          <input
-            id={captionId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={copyCaption}
-            onChange={(event) => setCopyCaption(event.target.checked)}
-            disabled={busy || span !== null}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Copy initial video's caption</span>
-        </label>
-        <p className="dialog__hint">Unticked, the new video starts without a caption.</p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Copy initial video's caption"
+        checked={copyCaption}
+        disabled={busy || span !== null}
+        onChange={setCopyCaption}
+        hint="Unticked, the new video starts without a caption."
+      />
       <p className="video-export-dialog__summary" aria-live="polite">
         MP4 · {frame.width} × {frame.height} · {Number(project.frame_rate.toFixed(3))} fps ·{" "}
         {formatTimecode(duration, project.frame_rate)}

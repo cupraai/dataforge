@@ -43,10 +43,6 @@
     flex-shrink: 0;
   }
 
-  &__close {
-    @include dialog-close-btn;
-  }
-
   &__body {
     @include app-scrollbar;
     display: flex;

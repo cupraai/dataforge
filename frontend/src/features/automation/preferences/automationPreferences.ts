@@ -29,8 +29,6 @@ export type JobSettingsByType = {
   comfy_process: AutomationSettings["comfy_process"];
 };
 
-export type JobSettingsType = keyof JobSettingsByType;
-
 const DEFAULT_REASONING_EFFORT: ReasoningEffort = "medium";
 const DEFAULT_PRESERVE_THINKING = true;
 const DEFAULT_WATERMARK_SIZE: WatermarkSizeName = "medium";

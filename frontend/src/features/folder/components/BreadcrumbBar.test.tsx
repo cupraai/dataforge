@@ -54,7 +54,7 @@ describe("BreadcrumbBar", () => {
     expect(writeText).toHaveBeenCalledWith(homeFolder.path);
 
     const copied = screen.getByRole("button", { name: "Copied!" });
-    expect(copied).toHaveClass("breadcrumbs__explorer--copied");
+    expect(copied).toHaveClass("breadcrumbs__copy--copied");
     expect(copied.querySelector(".lucide-check")).not.toBeNull();
     expect(screen.getByRole("tooltip")).toHaveTextContent("Copied!");
   });
@@ -68,7 +68,7 @@ describe("BreadcrumbBar", () => {
     await user.click(screen.getByRole("button", { name: "Copy path" }));
 
     const failed = screen.getByRole("button", { name: "Failed!" });
-    expect(failed).toHaveClass("breadcrumbs__explorer--error");
+    expect(failed).toHaveClass("breadcrumbs__copy--error");
     expect(screen.getByRole("tooltip")).toHaveTextContent("Failed!");
   });
 

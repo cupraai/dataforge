@@ -1,6 +1,6 @@
+import { Button } from "@/shared/ui/Button";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { iconAlertTriangle } from "@/shared/icons";
-import { DialogButton } from "@/shared/ui/Dialog";
 
 type FileImportOverwriteDialogProps = {
   conflicts: string[];
@@ -52,19 +52,17 @@ export function FileImportOverwriteDialog({
       onClose={onCancel}
       footer={
         <>
-          <DialogButton
-            label="Replace existing"
+          <Button
             variant="warning"
             icon={iconAlertTriangle}
             disabled={busy}
             onClick={onReplaceExisting}
-          />
-          <DialogButton
-            label={skipLabel}
-            variant="primary"
-            disabled={busy}
-            onClick={onCopyNewOnly}
-          />
+          >
+            Replace existing
+          </Button>
+          <Button variant="primary" disabled={busy} onClick={onCopyNewOnly}>
+            {skipLabel}
+          </Button>
         </>
       }
     />

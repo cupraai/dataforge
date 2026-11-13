@@ -1,3 +1,5 @@
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import { useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { iconX } from "@/shared/icons";
@@ -69,27 +71,28 @@ function NotificationToast({
         </span>
       )}
       {toast.action && (
-        <button
-          type="button"
+        <Button
           className="notifications__action"
           disabled={toast.exiting}
           onClick={() => {
             toast.action?.run();
             onDismiss(toast.id);
           }}
+          size="xs"
         >
           {toast.action.label}
-        </button>
+        </Button>
       )}
-      <button
-        type="button"
+      <IconButton
+        icon={iconX}
+        label="Dismiss notification"
         className="notifications__dismiss"
         onClick={() => onDismiss(toast.id)}
-        aria-label="Dismiss notification"
         disabled={toast.exiting}
-      >
-        <Icon icon={iconX} />
-      </button>
+        size="xs"
+        variant="ghost"
+        tooltip={false}
+      />
       {!toast.exiting && (
         <span className="notifications__progress" aria-hidden="true">
           <span key={toast.count} className="notifications__progress-fill" />

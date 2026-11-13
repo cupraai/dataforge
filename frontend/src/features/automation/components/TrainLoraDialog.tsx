@@ -1,3 +1,6 @@
+import { TextInput } from "@/shared/ui/Field";
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useRef, useState } from "react";
 import type { TrainLoraSettings } from "@/features/automation/api/jobs";
@@ -134,15 +137,13 @@ export function TrainLoraDialog({
         />
 
         <div className="train-lora-dialog__template">
-          <button
-            type="button"
-            className="train-lora-dialog__template-button"
+          <Button
+            icon={iconFilePen}
             onClick={() => void templateDraft.openEditor()}
             disabled={busy || templateDraft.loading}
           >
-            <Icon icon={iconFilePen} className="train-lora-dialog__template-icon" />
             {templateDraft.loading ? "Opening..." : "Edit template"}
-          </button>
+          </Button>
           {templateDraft.edited ? (
             <span className="train-lora-dialog__template-note train-lora-dialog__template-note--edited">
               <Icon icon={iconTriangleAlert} className="train-lora-dialog__template-note-icon" />
@@ -160,11 +161,9 @@ export function TrainLoraDialog({
             <label htmlFor={nameId} className="dialog__label">
               LoRA name
             </label>
-            <input
+            <TextInput
               id={nameId}
               ref={nameRef}
-              type="text"
-              className="dialog__input"
               value={loraName}
               onChange={(event) => {
                 setLoraName(event.target.value);
@@ -181,10 +180,8 @@ export function TrainLoraDialog({
             <label htmlFor={triggerWordId} className="dialog__label">
               Trigger word (optional)
             </label>
-            <input
+            <TextInput
               id={triggerWordId}
-              type="text"
-              className="dialog__input"
               value={triggerWord}
               onChange={(event) => setTriggerWord(event.target.value)}
               placeholder="e.g. mtnstyle"
@@ -200,15 +197,15 @@ export function TrainLoraDialog({
             <span id={promptsId} className="dialog__label">
               Sample prompts
             </span>
-            <button
-              type="button"
+            <Button
+              icon={iconPlus}
               className="train-lora-dialog__add-prompt"
               onClick={addPrompt}
               disabled={busy}
+              size="xs"
             >
-              <Icon icon={iconPlus} className="train-lora-dialog__add-prompt-icon" />
               Add prompt
-            </button>
+            </Button>
           </div>
 
           {prompts.length === 0 ? (
@@ -237,15 +234,15 @@ export function TrainLoraDialog({
                     autoComplete="off"
                     disabled={busy}
                   />
-                  <button
-                    type="button"
-                    className="train-lora-dialog__prompt-remove"
+                  <IconButton
+                    icon={iconTrash2}
+                    label={`Remove Sample prompt ${index + 1}`}
                     onClick={() => removePrompt(row.id)}
-                    aria-label={`Remove Sample prompt ${index + 1}`}
                     disabled={busy}
-                  >
-                    <Icon icon={iconTrash2} />
-                  </button>
+                    size="xs"
+                    variant="ghost"
+                    tone="danger"
+                  />
                 </li>
               ))}
             </ul>

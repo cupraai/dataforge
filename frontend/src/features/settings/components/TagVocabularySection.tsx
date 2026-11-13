@@ -1,3 +1,4 @@
+import { TextArea } from "@/shared/ui/Field";
 import { useId } from "react";
 import { iconList } from "@/shared/icons";
 import { formatCount } from "@/shared/lib/format";
@@ -47,9 +48,8 @@ export function TagVocabularySection({
             <label htmlFor={textId} className="dialog__label">
               Terms
             </label>
-            <textarea
+            <TextArea
               id={textId}
-              className="dialog__input dialog__input--multiline"
               value={value}
               placeholder={saved ? "red dress\nhot air balloon" : "Loading..."}
               spellCheck={false}

@@ -1,3 +1,4 @@
+import { Field, TextArea } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useRef, useState } from "react";
 import { useSaveFolderNote } from "@/features/folder/hooks/useSaveFolderNote";
@@ -14,7 +15,6 @@ interface FolderNoteDialogProps {
 export function FolderNoteDialog({ folderPath, initialText, onClose }: FolderNoteDialogProps) {
   const [text, setText] = useState(initialText);
   const save = useSaveFolderNote();
-  const textId = useId();
   const errorId = useId();
   const textRef = useRef<HTMLTextAreaElement>(null);
   const adding = initialText === "";
@@ -40,20 +40,18 @@ export function FolderNoteDialog({ folderPath, initialText, onClose }: FolderNot
       describedById={save.error ? errorId : undefined}
       footer={<DialogActions confirmLabel="Save note" busyLabel="Saving..." onCancel={onClose} />}
     >
-      <div className="dialog__field">
-        <label htmlFor={textId} className="dialog__label">
-          Note
-        </label>
-        <textarea
-          ref={textRef}
-          id={textId}
-          className="dialog__input dialog__input--multiline"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          rows={5}
-          disabled={busy}
-        />
-      </div>
+      <Field label="Note">
+        {(control) => (
+          <TextArea
+            {...control}
+            ref={textRef}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            rows={5}
+            disabled={busy}
+          />
+        )}
+      </Field>
 
       {save.error && (
         <p id={errorId} className="dialog__error" role="alert">

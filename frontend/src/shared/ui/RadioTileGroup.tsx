@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { classNames } from "@/shared/lib/classNames";
+import { FieldGroup } from "./Field";
 
 export interface RadioTileOption<T extends string> {
   value: T;
@@ -34,8 +35,7 @@ export function RadioTileGroup<T extends string>({
   const idPrefix = useId();
 
   return (
-    <div className="dialog__field">
-      <div className="dialog__label">{label}</div>
+    <FieldGroup label={label}>
       <div className="dialog__options" role="radiogroup" aria-label={groupLabel}>
         {options.map((option) => {
           const inputId = `${idPrefix}-${option.value}`;
@@ -70,6 +70,6 @@ export function RadioTileGroup<T extends string>({
           );
         })}
       </div>
-    </div>
+    </FieldGroup>
   );
 }

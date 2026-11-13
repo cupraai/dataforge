@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useId, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
@@ -186,14 +187,13 @@ export function FolderGrid({ folders, folderPath, totalCount, onOpen }: FolderGr
       )}
       {clamp.hidden > 0 && (
         <div className="folder-more">
-          <button
-            type="button"
-            className="folder-more__btn"
+          <Button
+            icon={expanded ? iconChevronUp : iconChevronDown}
             aria-expanded={expanded}
             aria-controls={gridId}
             onClick={toggleExpanded}
+            size="xs"
           >
-            <Icon icon={expanded ? iconChevronUp : iconChevronDown} className="folder-more__icon" />
             {expanded ? "Show fewer folders" : `Show ${clamp.hidden} more folders`}
             {!expanded && clamp.hiddenFlagged > 0 && (
               <span className="folder-more__findings">
@@ -201,7 +201,7 @@ export function FolderGrid({ folders, folderPath, totalCount, onOpen }: FolderGr
                 {clamp.hiddenFlagged} need review
               </span>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </section>

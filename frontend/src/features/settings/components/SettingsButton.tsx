@@ -1,6 +1,6 @@
+import { Button } from "@/shared/ui/Button";
 import { iconSettings } from "@/shared/icons";
 import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
@@ -16,16 +16,14 @@ export function SettingsButton({ onOpen, showLabel }: SettingsButtonProps) {
       content={<ShortcutHint shortcut={SHORTCUTS.settings}>Settings</ShortcutHint>}
       placement="right"
     >
-      <button
-        type="button"
-        className="workspace-button"
+      <Button
+        icon={iconSettings}
         onClick={onOpen}
         aria-label="Open settings"
         aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.settings)}
       >
-        <Icon icon={iconSettings} />
         {showLabel && "Settings"}
-      </button>
+      </Button>
     </Tooltip>
   );
 }

@@ -49,10 +49,6 @@
     white-space: nowrap;
   }
 
-  &__close {
-    @include dialog-close-btn;
-  }
-
   &__meta {
     display: flex;
     flex: 1;
@@ -75,14 +71,6 @@
     padding: 0 calc(1.125rem - 0.625rem);
     border-bottom: 1px solid var(--border);
     background: var(--bg-card);
-  }
-
-  &__tab {
-    @include underline-tab;
-  }
-
-  &__tab-dot {
-    @include unsaved-dot;
   }
 
   &__body {
@@ -216,39 +204,16 @@
     color: var(--caption-error);
   }
 
+  // An EmptyState filling the tab, centred in it.
   &__empty {
-    display: flex;
     flex: 1;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    gap: 0.5rem;
     min-height: 0;
-    padding: 1.5rem 1.125rem;
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    text-align: center;
 
     .folder-instructions-dialog__source-actions {
       justify-content: center;
       margin-top: 0.5rem;
     }
-  }
-
-  &__empty-icon {
-    margin-bottom: 0.25rem;
-    color: var(--text-subtle);
-    @include icon-size(2rem);
-  }
-
-  &__empty-title {
-    color: var(--text);
-    font-size: var(--text-md);
-    font-weight: var(--font-semibold);
-  }
-
-  &__empty-text {
-    margin: 0;
   }
 
   &__example {

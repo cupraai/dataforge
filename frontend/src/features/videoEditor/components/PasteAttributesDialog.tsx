@@ -1,3 +1,5 @@
+import { FieldGroup } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
@@ -40,28 +42,23 @@ export function PasteAttributesDialog({
       onClose={onCancel}
       footer={<DialogActions confirmLabel="Paste" onCancel={onCancel} />}
     >
-      <fieldset className="dialog__field video-editor__attribute-list">
-        <legend className="dialog__label">Settings</legend>
+      <FieldGroup label="Settings" className="video-editor__attribute-list">
         {groups.map((group) => (
-          <label key={group} className="dialog__checkbox">
-            <input
-              type="checkbox"
-              className="dialog__checkbox-input"
-              checked={chosen.has(group)}
-              onChange={(event) =>
-                setChosen((current) => {
-                  const next = new Set(current);
-                  if (event.target.checked) next.add(group);
-                  else next.delete(group);
-                  return next;
-                })
-              }
-            />
-            <span className="dialog__checkbox-box" aria-hidden="true" />
-            <span className="dialog__checkbox-label">{ATTRIBUTE_LABELS[group]}</span>
-          </label>
+          <Checkbox
+            key={group}
+            label={ATTRIBUTE_LABELS[group]}
+            checked={chosen.has(group)}
+            onChange={(checked) =>
+              setChosen((current) => {
+                const next = new Set(current);
+                if (checked) next.add(group);
+                else next.delete(group);
+                return next;
+              })
+            }
+          />
         ))}
-      </fieldset>
+      </FieldGroup>
     </GuardedDialog>
   );
 }

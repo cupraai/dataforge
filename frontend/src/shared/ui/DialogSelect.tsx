@@ -1,5 +1,6 @@
-import { useId, useRef } from "react";
-import type { MouseEvent } from "react";
+import type { ReactNode } from "react";
+import { Field } from "./Field";
+import { Select } from "./Select";
 
 export interface DialogSelectOption<T extends string> {
   value: T;
@@ -41,6 +42,8 @@ interface DialogSelectProps<T extends string> {
   label: string;
   value: T;
   options: ReadonlyArray<DialogSelectOption<T>>;
+  /** Under the control, and read out as its description. */
+  hint?: ReactNode;
   disabled?: boolean;
   onChange: (value: T) => void;
 }
@@ -50,37 +53,15 @@ export function DialogSelect<T extends string>({
   label,
   value,
   options,
+  hint,
   disabled = false,
   onChange,
 }: DialogSelectProps<T>) {
-  const selectRef = useRef<HTMLSelectElement>(null);
-  const selectId = useId();
-
-  // The wrap carries the padding that keeps the UA arrow off the border, so a click in that
-  // gutter lands on the div and never reaches the select. Open the picker by hand instead.
-  const handleWrapMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    const select = selectRef.current;
-    if (!select || select.disabled || event.target === select) return;
-
-    // Otherwise the div takes focus off the select.
-    event.preventDefault();
-    select.focus();
-    if (typeof select.showPicker === "function") select.showPicker();
-  };
-
   return (
-    <div className="dialog__field">
-      <label htmlFor={selectId} className="dialog__label">
-        {label}
-      </label>
-      {/* oxlint-disable-next-line
-          jsx-a11y/no-static-element-interactions
-          -- forwards gutter clicks; the select takes keys */}
-      <div className="dialog__select-wrap" onMouseDown={handleWrapMouseDown}>
-        <select
-          id={selectId}
-          ref={selectRef}
-          className="dialog__select"
+    <Field label={label} hint={hint}>
+      {(control) => (
+        <Select
+          {...control}
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value as T)}
@@ -94,8 +75,8 @@ export function DialogSelect<T extends string>({
               renderOptions(run.options)
             ),
           )}
-        </select>
-      </div>
-    </div>
+        </Select>
+      )}
+    </Field>
   );
 }

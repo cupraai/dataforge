@@ -1,4 +1,9 @@
-import { Tooltip } from "@/shared/ui/Tooltip";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { SearchInput } from "@/shared/ui/SearchInput";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
+import { useTabList } from "@/shared/hooks/useTabList";
+import { TabList } from "@/shared/ui/TabList";
+import { IconButton } from "@/shared/ui/IconButton";
 import { useMemo, useState } from "react";
 import {
   iconCheck,
@@ -10,7 +15,7 @@ import {
   iconMusic,
   iconPlus,
   iconSearch,
-  iconX,
+  iconTriangleAlert,
 } from "@/shared/icons";
 import { formatApiError } from "@/shared/api/http";
 import { classNames } from "@/shared/lib/classNames";
@@ -57,6 +62,8 @@ interface MediaBrowserProps {
   onOpenProject: (path: string) => void;
 }
 
+const BROWSER_TABS = ["media", "projects"] as const;
+
 export function MediaBrowser({
   tab,
   onTab,
@@ -70,26 +77,20 @@ export function MediaBrowser({
   onAdd,
   onOpenProject,
 }: MediaBrowserProps) {
+  const tabs = useTabList(BROWSER_TABS, tab, onTab);
   return (
     <aside className="video-editor__browser video-editor__pane" aria-label="Media and projects">
       <div className="video-editor__pane-header">
-        <div className="video-editor__tabs" role="tablist" aria-label="Browser">
-          {(["media", "projects"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              className={classNames(
-                "video-editor__tab",
-                tab === value && "video-editor__tab--active",
-              )}
-              onClick={() => onTab(value)}
-            >
-              {value === "media" ? "Media" : "Projects"}
-            </button>
-          ))}
-        </div>
+        <TabList
+          tabs={tabs}
+          label="Browser"
+          size="sm"
+          items={[
+            { id: "media", label: "Media" },
+            { id: "projects", label: "Projects" },
+          ]}
+          className="video-editor__tabs"
+        />
         {tab === "media" && (
           <ToolButton
             icon={view === "grid" ? iconList : iconLayoutGrid}
@@ -98,18 +99,20 @@ export function MediaBrowser({
           />
         )}
       </div>
-      {tab === "media" ? (
-        <MediaList
-          items={items}
-          usedPaths={usedPaths}
-          view={view}
-          previewing={previewing}
-          onPreview={onPreview}
-          onAdd={onAdd}
-        />
-      ) : (
-        <ProjectList currentProjectPath={currentProjectPath} onOpen={onOpenProject} />
-      )}
+      <div className="video-editor__browser-panel" {...tabs.panelProps(tab)}>
+        {tab === "media" ? (
+          <MediaList
+            items={items}
+            usedPaths={usedPaths}
+            view={view}
+            previewing={previewing}
+            onPreview={onPreview}
+            onAdd={onAdd}
+          />
+        ) : (
+          <ProjectList currentProjectPath={currentProjectPath} onOpen={onOpenProject} />
+        )}
+      </div>
     </aside>
   );
 }
@@ -156,45 +159,25 @@ function MediaList({
   return (
     <div className="video-editor__browser-body">
       <div className="video-editor__browser-tools">
-        <label className="video-editor__search">
-          <Icon icon={iconSearch} />
-          <input
-            type="search"
-            placeholder="Search filenames"
-            aria-label="Search filenames"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          {search && (
-            <button
-              type="button"
-              className="video-editor__icon-btn"
-              aria-label="Clear the search"
-              onClick={() => setSearch("")}
-            >
-              <Icon icon={iconX} />
-            </button>
-          )}
-        </label>
-        <div className="video-editor__filters" role="radiogroup" aria-label="Show">
-          {FILTERS.map(({ kind, label }) => (
-            <button
-              key={kind}
-              type="button"
-              role="radio"
-              aria-checked={filter === kind}
-              className={classNames(
-                "video-editor__filter",
-                filter === kind && "video-editor__filter--on",
-              )}
-              onClick={() => setFilter(kind)}
-              disabled={kind !== "all" && counts[kind] === 0}
-            >
-              {label}
-              <span className="video-editor__filter-count">{counts[kind]}</span>
-            </button>
-          ))}
-        </div>
+        <SearchInput
+          label="Search filenames"
+          placeholder="Search filenames"
+          value={search}
+          onChange={setSearch}
+        />
+        <SegmentedControl
+          label="Show"
+          size="sm"
+          stretch
+          value={filter}
+          options={FILTERS.map(({ kind, label }) => ({
+            value: kind,
+            label,
+            count: counts[kind],
+            disabled: kind !== "all" && counts[kind] === 0,
+          }))}
+          onChange={setFilter}
+        />
       </div>
       <ul
         className={classNames("video-editor__media-list", `video-editor__media-list--${view}`)}
@@ -213,14 +196,17 @@ function MediaList({
         ))}
       </ul>
       {shown.length === 0 && (
-        <div className="video-editor__empty">
-          <Icon icon={usable.length === 0 ? iconFilm : iconSearch} />
-          <p>
-            {usable.length === 0
+        <EmptyState
+          size="sm"
+          variant="muted"
+          icon={usable.length === 0 ? iconFilm : iconSearch}
+          title={usable.length === 0 ? "No usable media here" : "No matches"}
+          description={
+            usable.length === 0
               ? "This folder has no MP4, MOV, M4V, image or WAV/MP3 files."
-              : "Nothing matches the search and filter."}
-          </p>
-        </div>
+              : "Nothing matches the search and filter."
+          }
+        />
       )}
       {shown.length > 0 && (
         <p className="video-editor__browser-hint">
@@ -296,16 +282,16 @@ function MediaRow({
           </span>
         </span>
       </button>
-      <Tooltip content="Add at the playhead" className="video-editor__media-add-tip">
-        <button
-          type="button"
-          className="video-editor__media-add"
-          onClick={onAdd}
-          aria-label={`Add ${item.name} to the timeline`}
-        >
-          <Icon icon={iconPlus} />
-        </button>
-      </Tooltip>
+      <IconButton
+        icon={iconPlus}
+        label={`Add ${item.name} to the timeline`}
+        tooltip="Add at the playhead"
+        tooltipClassName="video-editor__media-add-tip"
+        size="xs"
+        shape="round"
+        className="video-editor__media-add"
+        onClick={onAdd}
+      />
     </li>
   );
 }
@@ -361,15 +347,22 @@ function ProjectList({
         })}
       </ul>
       {query.isSuccess && query.data.length === 0 && (
-        <div className="video-editor__empty">
-          <Icon icon={iconClapperboard} />
-          <p>No saved drafts yet.</p>
-        </div>
+        <EmptyState
+          size="sm"
+          variant="muted"
+          icon={iconClapperboard}
+          title="No saved drafts yet."
+        />
       )}
       {query.isError && (
-        <div className="video-editor__empty">
-          <p>{formatApiError(query.error)}</p>
-        </div>
+        <EmptyState
+          size="sm"
+          variant="error"
+          role="alert"
+          icon={iconTriangleAlert}
+          title="Drafts could not be listed"
+          description={formatApiError(query.error)}
+        />
       )}
     </div>
   );

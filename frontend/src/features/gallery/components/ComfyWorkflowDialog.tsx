@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useMemo, useState, type ReactNode } from "react";
 import { fetchComfyEditorWorkflow } from "@/features/gallery/api/captions";
 import { ComfyWorkflowMap } from "@/features/gallery/components/ComfyWorkflowMap";
@@ -140,28 +141,19 @@ function CopyWorkflowButton({ mediaPath, nodeId }: { mediaPath: string; nodeId: 
     copyState === "copied" ? "Copied!" : copyState === "error" ? "Failed!" : "Copy workflow";
 
   return (
-    <button
-      type="button"
-      className={classNames(
-        "comfy-workflow-dialog__copy",
-        copyState === "copied" && "comfy-workflow-dialog__copy--copied",
-        copyState === "error" && "comfy-workflow-dialog__copy--error",
-      )}
-      disabled={busy}
-      aria-busy={busy || undefined}
+    <Button
+      icon={iconCopy}
+      busy={busy}
+      feedback={copyState}
       onClick={() => {
         setBusy(true);
         // Fetched on demand: a workflow can run to megabytes, and most opens never copy it.
         void copyText(fetchComfyEditorWorkflow(mediaPath, nodeId)).finally(() => setBusy(false));
       }}
+      size="xs"
     >
-      <Icon
-        icon={busy ? iconLoader2 : iconCopy}
-        spin={busy}
-        className="comfy-workflow-dialog__copy-icon"
-      />
       {label}
-    </button>
+    </Button>
   );
 }
 

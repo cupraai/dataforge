@@ -1,7 +1,7 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useCallback, useRef, type CSSProperties, type PointerEvent, type RefObject } from "react";
 import { iconPause, iconPlay, iconVolume2, iconVolumeX } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
 import { formatFrameTime } from "@/features/gallery/lib/videoFrameCapture";
 import { outputTime, trackPercent } from "@/features/gallery/lib/videoEdit";
 import { AudioWaveform } from "./AudioWaveform";
@@ -137,25 +137,23 @@ export function VideoEditTimeline({
 
   return (
     <div className={classNames("video-edit-timeline", waveformUrl && "video-edit-timeline--sound")}>
-      <button
-        type="button"
-        className="video-edit-timeline__play"
+      <IconButton
+        icon={playing ? iconPause : iconPlay}
+        label={playing ? "Pause preview" : "Play preview"}
+        shape="round"
         onClick={onTogglePlay}
         disabled={locked}
-        aria-label={playing ? "Pause preview" : "Play preview"}
-      >
-        <Icon icon={playing ? iconPause : iconPlay} />
-      </button>
+      />
 
       {onToggleMuted && (
-        <button
-          type="button"
+        <IconButton
+          icon={muted ? iconVolumeX : iconVolume2}
+          label={muted ? "Unmute preview" : "Mute preview"}
+          size="xs"
+          shape="round"
           className="video-edit-timeline__mute"
           onClick={onToggleMuted}
-          aria-label={muted ? "Unmute preview" : "Mute preview"}
-        >
-          <Icon icon={muted ? iconVolumeX : iconVolume2} />
-        </button>
+        />
       )}
 
       <div

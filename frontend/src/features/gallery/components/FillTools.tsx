@@ -1,3 +1,5 @@
+import { IconButton } from "@/shared/ui/IconButton";
+import { Button } from "@/shared/ui/Button";
 import type { KeyboardEvent } from "react";
 import type { ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import {
@@ -21,6 +23,8 @@ import {
 import type { FillPreset } from "@/shared/types";
 import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
 import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
+import { TextInput } from "@/shared/ui/Field";
+import { Slider } from "@/shared/ui/Slider";
 import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
@@ -103,9 +107,9 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
                 </ShortcutHint>
               }
             >
-              <input
+              <Slider
+                size="sm"
                 className="edit-panel__range"
-                type="range"
                 aria-label="Brush size"
                 aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.fillBrushSize)}
                 min={BRUSH_MIN_FRACTION}
@@ -124,39 +128,29 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
           </ToolGroup>
 
           <ToolGroup label="Selection" className="edit-panel__tool-actions">
-            <Tooltip
-              content={<ShortcutHint shortcut={SHORTCUTS.fillUndoStroke}>Undo stroke</ShortcutHint>}
-            >
-              <button
-                type="button"
-                className="edit-panel__control edit-panel__control--icon"
-                aria-label="Undo stroke"
-                aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.fillUndoStroke)}
-                disabled={!canUndoStroke}
-                onClick={fill.undoStroke}
-              >
-                <Icon icon={iconUndo2} />
-              </button>
-            </Tooltip>
-            <Tooltip content="Clear selection">
-              <button
-                type="button"
-                className="edit-panel__control edit-panel__control--icon"
-                aria-label="Clear selection"
-                disabled={paintLocked || fill.strokes.length === 0}
-                onClick={fill.clearStrokes}
-              >
-                <Icon icon={iconTrash2} />
-              </button>
-            </Tooltip>
+            <IconButton
+              icon={iconUndo2}
+              label="Undo stroke"
+              shortcut={SHORTCUTS.fillUndoStroke}
+              size="sm"
+              disabled={!canUndoStroke}
+              onClick={fill.undoStroke}
+            />
+            <IconButton
+              icon={iconTrash2}
+              label="Clear selection"
+              size="sm"
+              tone="danger"
+              disabled={paintLocked || fill.strokes.length === 0}
+              onClick={fill.clearStrokes}
+            />
           </ToolGroup>
         </>
       )}
 
       <ToolGroup label="Instruction" className="edit-panel__tool-actions" grow>
-        <input
-          className="edit-panel__text"
-          type="text"
+        <TextInput
+          size="sm"
           aria-label="Instruction"
           placeholder="What goes there, e.g. a wooden bench. Blank removes it."
           maxLength={MAX_FILL_INSTRUCTION_LENGTH}
@@ -184,81 +178,73 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
 
       <ToolGroup label={deciding ? "Result" : "Generate"} className="edit-panel__tool-actions">
         {fill.generating ? (
-          <button
-            type="button"
-            className="edit-panel__control"
+          <Button
             disabled={disabled || fill.progress === "starting"}
             onClick={fill.cancel}
+            size="sm"
           >
             <Icon icon={iconLoader2} spin />
             Cancel
-          </button>
+          </Button>
         ) : deciding ? (
           <>
-            <button
-              type="button"
+            <Button
+              icon={iconCheck}
               className="edit-panel__apply"
               disabled={disabled || fill.candidateStale}
               onClick={fill.keep}
+              variant="primary"
+              size="sm"
             >
-              <Icon icon={iconCheck} />
               Keep fill
-            </button>
-            <button
-              type="button"
-              className="edit-panel__control"
-              disabled={disabled}
-              onClick={fill.discard}
-            >
-              <Icon icon={iconX} />
+            </Button>
+            <Button icon={iconX} disabled={disabled} onClick={fill.discard} size="sm">
               Discard
-            </button>
+            </Button>
             <Tooltip content="Hold to see the original">
-              <button
-                type="button"
-                className="edit-panel__control"
+              <Button
+                icon={iconSquareSplitHorizontal}
                 aria-pressed={fill.showBefore}
                 disabled={disabled || fill.candidateStale}
                 {...holdToCompareProps(fill.setShowBefore)}
+                size="sm"
               >
-                <Icon icon={iconSquareSplitHorizontal} />
                 Before
-              </button>
+              </Button>
             </Tooltip>
-            <button
-              type="button"
-              className="edit-panel__control"
+            <Button
+              icon={iconRefresh}
               disabled={disabled || !fill.canGenerate}
               onClick={fill.generate}
+              size="sm"
             >
-              <Icon icon={iconRefresh} />
               Regenerate
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            type="button"
+          <Button
+            icon={iconWandSparkles}
             className="edit-panel__apply"
             disabled={disabled || !fill.canGenerate}
             onClick={fill.generate}
+            variant="primary"
+            size="sm"
           >
-            <Icon icon={iconWandSparkles} />
             Generate
-          </button>
+          </Button>
         )}
       </ToolGroup>
 
       {keptFills > 0 && (
         <ToolGroup label="Kept" className="edit-panel__tool-actions">
-          <button
-            type="button"
-            className="edit-panel__control"
+          <Button
+            icon={iconUndo2}
             disabled={disabled || fill.generating || deciding}
             onClick={onUndoFill}
+            size="sm"
           >
-            <Icon icon={iconUndo2} />
             Undo last fill
-          </button>
+          </Button>
         </ToolGroup>
       )}
     </>

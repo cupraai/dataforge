@@ -1,0 +1,55 @@
+@use "../abstracts/mixins" as *;
+
+// A show/hide trigger. Callers set its width, height and padding; the look stays here.
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-subtle);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--transition);
+  @include focus-ring;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &__chevron {
+    @include icon-size-sm;
+    flex-shrink: 0;
+    transition: transform var(--transition);
+  }
+
+  &[aria-expanded="false"] &__chevron {
+    transform: rotate(-90deg);
+  }
+
+  &__icon {
+    @include icon-size-sm;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    @include truncate;
+    min-width: 0;
+    line-height: 1;
+  }
+
+  &--section &__label {
+    @include section-label;
+    @include truncate;
+    display: block;
+    color: inherit;
+  }
+
+  &--subsection &__label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+  }
+}

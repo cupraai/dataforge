@@ -544,14 +544,15 @@ describe("FolderInstructionsDialog", () => {
     await user.type(await editor("sysprompt"), " more");
     await user.click(screen.getByRole("tab", { name: "Caption rules" }));
     await user.type(await editor("caption_rules"), "colour: blue");
-    await user.click(screen.getByRole("tab", { name: "System prompt" }));
+    await user.click(screen.getByRole("tab", { name: "System prompt, unsaved" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("colour: unknown setting");
-    expect(screen.getByRole("tab", { name: "Caption rules" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Caption rules, unsaved" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+    expect(screen.getByRole("tab", { name: "System prompt, unsaved" })).toBeInTheDocument();
     expect(saveInstructionFile).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
   });

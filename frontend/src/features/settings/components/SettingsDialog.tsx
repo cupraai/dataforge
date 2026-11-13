@@ -1,3 +1,4 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,6 @@ import {
   useThemePreference,
 } from "@/shared/theme/theme";
 import type { AppSettingKey, AppSettingsResponse, ProbedService } from "@/shared/types";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
@@ -63,8 +63,8 @@ import { GalleryCardSettings } from "./GalleryCardSettings";
 import { NotificationsSection } from "./NotificationsSection";
 import { RememberedDataGroup } from "./RememberedDataGroup";
 import { SettingInput } from "./SettingInput";
-import { SettingsActionButton } from "./SettingsActionButton";
-import { SettingsCheckbox } from "./SettingsCheckbox";
+import { Button } from "@/shared/ui/Button";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsPageTabs } from "./SettingsPageTabs";
 import { StorageSection } from "./StorageSection";
@@ -634,13 +634,15 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         hint={group.hint}
         action={
           probe && (
-            <SettingsActionButton
-              label="Test connection"
+            <Button
+              size="xs"
               icon={iconPlug}
               busy={probeState?.status === "testing"}
               disabled={saving}
               onClick={() => void testConnection(probe)}
-            />
+            >
+              Test connection
+            </Button>
           )
         }
       >
@@ -668,7 +670,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             onChange={setCards}
           />
           <SettingsGroup title="Folders" icon={iconFolder}>
-            <SettingsCheckbox
+            <Checkbox
+              className="dialog__field"
               label="Hide hidden folders"
               hint="Folders named with a leading dot, or marked hidden in Windows."
               checked={hideHidden}
@@ -814,15 +817,14 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             <h2 className="settings-dialog__title">{active.label}</h2>
             <p className="settings-dialog__description">{pageOf(active).description}</p>
           </div>
-          <button
-            type="button"
+          <IconButton
+            icon={iconX}
+            label="Close settings"
             className="settings-dialog__close"
             onClick={requestClose}
             disabled={saving}
-            aria-label="Close settings"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </header>
 
         {SECTIONS.map((entry) => (
@@ -860,19 +862,17 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                   : "Changes apply right away, without a restart."}
           </p>
           <div className="settings-dialog__actions">
-            <DialogButton
-              label="Close"
-              variant="secondary"
-              disabled={saving}
-              onClick={requestClose}
-            />
-            <DialogButton
-              label={saving ? "Saving..." : "Save"}
+            <Button disabled={saving} onClick={requestClose}>
+              Close
+            </Button>
+            <Button
               variant="primary"
               busy={saving}
               disabled={editedCount === 0}
               onClick={() => void handleSave()}
-            />
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
           </div>
         </footer>
       </div>

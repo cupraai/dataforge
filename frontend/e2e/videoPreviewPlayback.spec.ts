@@ -133,11 +133,11 @@ for (const overlays of [false, true]) {
       .poll(async () => Number(await start.getAttribute("aria-valuenow")))
       .toBeCloseTo(IN_POINT + 1 / RATE, 6);
     if (overlays) {
-      await page.getByRole("button", { name: "Adjust", exact: true }).click();
+      await page.getByRole("tab", { name: "Adjust", exact: true }).click();
       await page.getByRole("tab", { name: /^Exposure/ }).click();
       await page.getByRole("slider", { name: "Exposure", exact: true }).press("Shift+ArrowRight");
       await expect(page.locator("canvas.adjust-canvas")).toBeVisible();
-      await page.getByRole("button", { name: "Blur", exact: true }).click();
+      await page.getByRole("tab", { name: "Blur", exact: true }).click();
       await page.getByRole("button", { name: "Add", exact: true }).click();
       await expect(page.getByRole("group", { name: "Blur regions" })).toBeVisible();
     }

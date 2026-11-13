@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import {
   useCallback,
@@ -59,7 +61,6 @@ import {
   iconFileDiff,
   iconFiles,
   iconFolderInput,
-  iconLoader2,
   iconMessageWarning,
   iconScanSquare,
   iconSquarePen,
@@ -112,7 +113,6 @@ import { FileRenameDialog } from "./FileRenameDialog";
 import { MediaInfoBar } from "./MediaInfoBar";
 import { ModelInfoStage, ModelMetadataList } from "./ModelInfoPanel";
 import { MediaTagList } from "./MediaTagList";
-import { Icon } from "@/shared/ui/Icon";
 import { TokenEstimate } from "@/shared/ui/TokenEstimate";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { ComfyWorkflowDialog } from "./ComfyWorkflowDialog";
@@ -663,6 +663,8 @@ export function GalleryItemDialog({
   const editing = editMode && (canEditVideoItem || canEditImageItem || canEditAudioItem);
   const inline =
     Boolean(onFocusViewChange) && !focusView && !narrow && !editing && !frameCapture.frameMode;
+  // The docked panel is narrow; its actions match the step buttons beside the counter.
+  const headerActionSize = inline ? "xs" : "md";
   const editExpanded = editing || frameCapture.frameMode;
 
   useEffect(() => {
@@ -920,275 +922,207 @@ export function GalleryItemDialog({
               {item.name}
             </h2>
             {inline && (
-              <button
-                type="button"
-                className="gallery-item-dialog__step"
+              <IconButton
+                icon={iconChevronLeft}
+                label="Previous item"
                 onClick={() => void leave(onPrevious)}
                 disabled={busy}
-                aria-label="Previous item"
-              >
-                <Icon icon={iconChevronLeft} />
-              </button>
+                size="xs"
+              />
             )}
             <span className="gallery-item-dialog__counter">
               {index + 1} / {items.length}
             </span>
             {selected && <span className="gallery-item-dialog__selected">Selected</span>}
             {inline && (
-              <button
-                type="button"
-                className="gallery-item-dialog__step"
+              <IconButton
+                icon={iconChevronRight}
+                label="Next item"
                 onClick={() => void leave(onNext)}
                 disabled={busy}
-                aria-label="Next item"
-              >
-                <Icon icon={iconChevronRight} />
-              </button>
+                size="xs"
+              />
             )}
           </div>
           <div className="gallery-item-dialog__header-actions">
             {(canReviewCandidate || canResolveDuplicate) && (
               <div className="gallery-item-dialog__review-actions">
                 {canReviewCandidate && (
-                  <Tooltip content="Review candidate">
-                    <button
-                      type="button"
-                      className="gallery-item-dialog__review-candidate"
-                      onClick={handleReviewCandidate}
-                      disabled={busy}
-                      aria-label={`Review candidate for ${item.name}`}
-                    >
-                      <Icon icon={iconScanSquare} />
-                    </button>
-                  </Tooltip>
+                  <IconButton
+                    size={headerActionSize}
+                    icon={iconScanSquare}
+                    label={`Review candidate for ${item.name}`}
+                    tooltip="Review candidate"
+                    tone="accent"
+                    onClick={handleReviewCandidate}
+                    disabled={busy}
+                  />
                 )}
                 {canResolveDuplicate && (
-                  <Tooltip content="Resolve duplicate">
-                    <button
-                      type="button"
-                      className="gallery-item-dialog__resolve-duplicate"
-                      onClick={handleResolveDuplicate}
-                      disabled={busy}
-                      aria-label={`Resolve duplicate for ${item.name}`}
-                    >
-                      <Icon icon={iconFiles} />
-                    </button>
-                  </Tooltip>
+                  <IconButton
+                    size={headerActionSize}
+                    icon={iconFiles}
+                    label={`Resolve duplicate for ${item.name}`}
+                    tooltip="Resolve duplicate"
+                    tone="accent"
+                    onClick={handleResolveDuplicate}
+                    disabled={busy}
+                  />
                 )}
               </div>
             )}
             {canOpenInVideoEditor && (
-              <Tooltip content="Open in video editor">
-                <button
-                  type="button"
-                  className="gallery-item-dialog__video-editor"
-                  onClick={() => void leave(() => videoEditor?.open(item.path))}
-                  disabled={busy || editing}
-                  aria-label={`Open ${item.name} in the video editor`}
-                >
-                  <Icon icon={iconClapperboard} />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconClapperboard}
+                label={`Open ${item.name} in the video editor`}
+                tooltip="Open in video editor"
+                tone="accent"
+                onClick={() => void leave(() => videoEditor?.open(item.path))}
+                disabled={busy || editing}
+              />
             )}
             {canEditVideoItem && (
-              <Tooltip content={editMode ? "Exit video editing" : "Edit video"}>
-                <button
-                  type="button"
-                  className={classNames(
-                    "gallery-item-dialog__edit-toggle",
-                    editMode && "gallery-item-dialog__edit-toggle--active",
-                  )}
-                  onClick={toggleVideoEditMode}
-                  // Editing needs a picture to draw on; the notice over the video says why.
-                  disabled={busy || (playback.problem !== null && !editMode)}
-                  aria-pressed={editMode}
-                  aria-label={
-                    editMode ? `Exit video editing for ${item.name}` : `Edit ${item.name}`
-                  }
-                >
-                  <Icon icon={iconSquarePen} />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconSquarePen}
+                label={editMode ? `Exit video editing for ${item.name}` : `Edit ${item.name}`}
+                tooltip={editMode ? "Exit video editing" : "Edit video"}
+                tone="accent"
+                pressed={editMode}
+                onClick={toggleVideoEditMode}
+                // Editing needs a picture to draw on; the notice over the video says why.
+                disabled={busy || (playback.problem !== null && !editMode)}
+              />
             )}
             {canEditAudioItem && (
-              <Tooltip content={editMode ? "Exit audio editing" : "Edit audio"}>
-                <button
-                  type="button"
-                  className={classNames(
-                    "gallery-item-dialog__edit-toggle",
-                    editMode && "gallery-item-dialog__edit-toggle--active",
-                  )}
-                  onClick={toggleAudioEditMode}
-                  disabled={busy}
-                  aria-pressed={editMode}
-                  aria-label={
-                    editMode ? `Exit audio editing for ${item.name}` : `Edit ${item.name}`
-                  }
-                >
-                  <Icon icon={iconSquarePen} />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconSquarePen}
+                label={editMode ? `Exit audio editing for ${item.name}` : `Edit ${item.name}`}
+                tooltip={editMode ? "Exit audio editing" : "Edit audio"}
+                tone="accent"
+                pressed={editMode}
+                onClick={toggleAudioEditMode}
+                disabled={busy}
+              />
             )}
             {canEditImageItem && (
-              <Tooltip content={editMode ? "Exit image editing" : "Edit image"}>
-                <button
-                  type="button"
-                  className={classNames(
-                    "gallery-item-dialog__edit-toggle",
-                    editMode && "gallery-item-dialog__edit-toggle--active",
-                  )}
-                  onClick={toggleImageEditMode}
-                  disabled={busy}
-                  aria-pressed={editMode}
-                  aria-label={
-                    editMode ? `Exit image editing for ${item.name}` : `Edit ${item.name}`
-                  }
-                >
-                  <Icon icon={iconSquarePen} />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconSquarePen}
+                label={editMode ? `Exit image editing for ${item.name}` : `Edit ${item.name}`}
+                tooltip={editMode ? "Exit image editing" : "Edit image"}
+                tone="accent"
+                pressed={editMode}
+                onClick={toggleImageEditMode}
+                disabled={busy}
+              />
             )}
             {!isMotion(item) && !itemIsAudio && !itemIsModel && (
-              <Tooltip content={viewerError ?? "Open in image preview"}>
-                <button
-                  type="button"
-                  className="gallery-item-dialog__preview"
-                  onClick={() => {
-                    void handleOpenInViewer();
-                  }}
-                  disabled={openingInViewer || busy}
-                  aria-label="Open in image preview"
-                >
-                  <Icon
-                    icon={openingInViewer ? iconLoader2 : iconArrowUpRight}
-                    spin={openingInViewer}
-                  />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconArrowUpRight}
+                label="Open in image preview"
+                tooltip={viewerError ?? "Open in image preview"}
+                tone="accent"
+                busy={openingInViewer}
+                onClick={() => {
+                  void handleOpenInViewer();
+                }}
+                disabled={busy}
+              />
             )}
             {itemIsGif && (
-              <Tooltip content={`Convert to MP4 (${GIF_MP4_FRAME_RATE} fps)`}>
-                <button
-                  type="button"
-                  className="gallery-item-dialog__convert"
-                  onClick={gifToMp4.convert}
-                  disabled={busy}
-                  aria-busy={gifToMp4.converting || undefined}
-                  aria-label={`Convert ${item.name} to MP4`}
-                >
-                  <Icon
-                    icon={gifToMp4.converting ? iconLoader2 : iconVideo}
-                    spin={gifToMp4.converting}
-                  />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconVideo}
+                label={`Convert ${item.name} to MP4`}
+                tooltip={`Convert to MP4 (${GIF_MP4_FRAME_RATE} fps)`}
+                tone="accent"
+                busy={gifToMp4.converting}
+                onClick={gifToMp4.convert}
+                disabled={busy}
+              />
             )}
             {canCaptureFrame && (
-              <Tooltip
-                content={frameCapture.frameMode ? "Exit frame capture" : "Save a frame as JPG"}
-              >
-                <button
-                  type="button"
-                  className={classNames(
-                    "gallery-item-dialog__frame-toggle",
-                    frameCapture.frameMode && "gallery-item-dialog__frame-toggle--active",
-                  )}
-                  onClick={toggleFrameMode}
-                  disabled={busy || (playback.problem !== null && !frameCapture.frameMode)}
-                  aria-pressed={frameCapture.frameMode}
-                  aria-label={
-                    frameCapture.frameMode
-                      ? `Exit frame capture for ${item.name}`
-                      : `Save a frame from ${item.name}`
-                  }
-                >
-                  <Icon icon={iconCamera} />
-                </button>
-              </Tooltip>
+              <IconButton
+                size={headerActionSize}
+                icon={iconCamera}
+                label={
+                  frameCapture.frameMode
+                    ? `Exit frame capture for ${item.name}`
+                    : `Save a frame from ${item.name}`
+                }
+                tooltip={frameCapture.frameMode ? "Exit frame capture" : "Save a frame as JPG"}
+                tone="accent"
+                pressed={frameCapture.frameMode}
+                onClick={toggleFrameMode}
+                disabled={busy || (playback.problem !== null && !frameCapture.frameMode)}
+              />
             )}
             {canTransfer && (
               <>
-                <Tooltip content={"Copy file"}>
-                  <button
-                    type="button"
-                    className="gallery-item-dialog__copy"
-                    onClick={() => void flushAndLeave(() => transfer.openTransferPicker("copy"))}
-                    disabled={busy}
-                    aria-busy={transferring === "copy" || undefined}
-                    aria-label={`Copy ${item.name} to another folder`}
-                  >
-                    <Icon
-                      icon={transferring === "copy" ? iconLoader2 : iconCopyPlus}
-                      spin={transferring === "copy"}
-                    />
-                  </button>
-                </Tooltip>
-                <Tooltip content={"Move file"}>
-                  <button
-                    type="button"
-                    className="gallery-item-dialog__move"
-                    onClick={() => void leave(() => transfer.openTransferPicker("move"))}
-                    disabled={busy}
-                    aria-busy={transferring === "move" || undefined}
-                    aria-label={`Move ${item.name} to another folder`}
-                  >
-                    <Icon
-                      icon={transferring === "move" ? iconLoader2 : iconFolderInput}
-                      spin={transferring === "move"}
-                    />
-                  </button>
-                </Tooltip>
+                <IconButton
+                  size={headerActionSize}
+                  icon={iconCopyPlus}
+                  label={`Copy ${item.name} to another folder`}
+                  tooltip="Copy file"
+                  tone="accent"
+                  busy={transferring === "copy"}
+                  onClick={() => void flushAndLeave(() => transfer.openTransferPicker("copy"))}
+                  disabled={busy}
+                />
+                <IconButton
+                  size={headerActionSize}
+                  icon={iconFolderInput}
+                  label={`Move ${item.name} to another folder`}
+                  tooltip="Move file"
+                  tone="accent"
+                  busy={transferring === "move"}
+                  onClick={() => void leave(() => transfer.openTransferPicker("move"))}
+                  disabled={busy}
+                />
               </>
             )}
             {onRenamed && (
-              <Tooltip content={"Rename file"}>
-                <button
-                  type="button"
-                  className="gallery-item-dialog__rename"
-                  onClick={openRename}
-                  disabled={busy}
-                  aria-label={`Rename ${item.name}`}
-                >
-                  <Icon icon={iconPencilLine} />
-                </button>
-              </Tooltip>
-            )}
-            <Tooltip content={"Delete file"}>
-              <button
-                type="button"
-                className="gallery-item-dialog__delete"
-                onClick={openDeleteConfirm}
+              <IconButton
+                size={headerActionSize}
+                icon={iconPencilLine}
+                label={`Rename ${item.name}`}
+                tooltip="Rename file"
+                tone="accent"
+                onClick={openRename}
                 disabled={busy}
-                aria-label={`Delete ${item.name}`}
-              >
-                <Icon icon={iconTrash2} />
-              </button>
-            </Tooltip>
+              />
+            )}
+            <IconButton
+              size={headerActionSize}
+              icon={iconTrash2}
+              label={`Delete ${item.name}`}
+              tooltip="Delete file"
+              tone="danger"
+              onClick={openDeleteConfirm}
+              disabled={busy}
+            />
             <div className="gallery-item-dialog__presentation-actions">
               {onFocusViewChange && !itemIsModel && (
-                <Tooltip
-                  content={focusView ? "Minimize to caption inspector" : "Expand media view"}
-                >
-                  <button
-                    type="button"
-                    className="gallery-item-dialog__expand"
-                    aria-label={focusView ? "Minimize to caption inspector" : "Expand media view"}
-                    disabled={busy || editing || frameCapture.frameMode}
-                    onClick={() => onFocusViewChange(!focusView)}
-                  >
-                    <Icon icon={focusView ? iconMinimize2 : iconExpand} />
-                  </button>
-                </Tooltip>
+                <IconButton
+                  size={headerActionSize}
+                  icon={focusView ? iconMinimize2 : iconExpand}
+                  label={focusView ? "Minimize to caption inspector" : "Expand media view"}
+                  disabled={busy || editing || frameCapture.frameMode}
+                  onClick={() => onFocusViewChange(!focusView)}
+                />
               )}
-              <button
-                type="button"
-                className="gallery-item-dialog__close"
+              <IconButton
+                size={headerActionSize}
+                icon={iconX}
+                label="Close"
+                tooltip={false}
                 onClick={closeDialog}
                 disabled={busy}
-                aria-label="Close"
-              >
-                <Icon icon={iconX} />
-              </button>
+              />
             </div>
           </div>
         </header>
@@ -1200,15 +1134,16 @@ export function GalleryItemDialog({
           )}
         >
           {!inline && (
-            <button
-              type="button"
+            <IconButton
+              icon={iconChevronLeft}
+              label="Previous item"
               className="gallery-item-dialog__nav gallery-item-dialog__nav--prev"
               onClick={() => void leave(onPrevious)}
               disabled={busy}
-              aria-label="Previous item"
-            >
-              <Icon icon={iconChevronLeft} />
-            </button>
+              size="lg"
+              shape="round"
+              tooltip={false}
+            />
           )}
 
           {itemIsVideo ? (
@@ -1266,14 +1201,13 @@ export function GalleryItemDialog({
                     action={
                       canEditVideoItem && !editMode && canTranscodeAway(playback.problem) ? (
                         <Tooltip content="Re-encodes it in place; Revert original brings it back">
-                          <button
-                            type="button"
-                            className="media-problem__button"
+                          <Button
+                            size="xs"
                             onClick={() => void convertToPlayable()}
                             disabled={busy}
                           >
                             {converting ? "Converting..." : "Convert to H.264"}
-                          </button>
+                          </Button>
                         </Tooltip>
                       ) : undefined
                     }
@@ -1373,15 +1307,16 @@ export function GalleryItemDialog({
           {editMode && <div ref={setHintSlot} className="gallery-item-dialog__hint-slot" />}
 
           {!inline && (
-            <button
-              type="button"
+            <IconButton
+              icon={iconChevronRight}
+              label="Next item"
               className="gallery-item-dialog__nav gallery-item-dialog__nav--next"
               onClick={() => void leave(onNext)}
               disabled={busy}
-              aria-label="Next item"
-            >
-              <Icon icon={iconChevronRight} />
-            </button>
+              size="lg"
+              shape="round"
+              tooltip={false}
+            />
           )}
         </div>
 
@@ -1479,24 +1414,20 @@ export function GalleryItemDialog({
                     </div>
                     <div className="gallery-item-dialog__caption-actions">
                       {canResolveIssue && comparedBackup === null && (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action gallery-item-dialog__caption-action--issue"
+                        <Button
+                          variant="warning"
+                          icon={iconMessageWarning}
                           onClick={handleResolveIssue}
                           disabled={busy}
                           aria-label={`Resolve caption issue for ${item.name}`}
+                          size="xs"
                         >
-                          <Icon
-                            icon={iconMessageWarning}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
                           Resolve
-                        </button>
+                        </Button>
                       )}
                       {backupCaption !== null && (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action"
+                        <Button
+                          icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
                           onClick={() => setComparingBackup((current) => !current)}
                           // The label names the action, not a state: a toggle that renames itself
                           // would contradict aria-pressed.
@@ -1510,20 +1441,16 @@ export function GalleryItemDialog({
                               ? "Close the comparison and edit the caption"
                               : "Show what restoring the copy in .backup would change"
                           }
+                          size="xs"
                         >
-                          <Icon
-                            icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
                           {showingBackupDiff ? "Back to editing" : "Compare"}
-                        </button>
+                        </Button>
                       )}
                       {/* Copy acts on the editor's text, which the comparison hides. Restoring
                           takes its slot. */}
                       {comparedBackup !== null ? (
-                        <button
-                          type="button"
-                          className="gallery-item-dialog__caption-action"
+                        <Button
+                          icon={iconArchiveRestore}
                           onClick={() => {
                             handleCaptionChange(comparedBackup);
                             setComparingBackup(false);
@@ -1531,33 +1458,23 @@ export function GalleryItemDialog({
                           disabled={busy || !canRestoreBackup}
                           aria-label={`Restore the backed up caption for ${item.name}`}
                           title="Replace this caption with the copy in .backup"
+                          size="xs"
                         >
-                          <Icon
-                            icon={iconArchiveRestore}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
                           Restore
-                        </button>
+                        </Button>
                       ) : (
-                        <button
-                          type="button"
-                          className={classNames(
-                            "gallery-item-dialog__caption-action",
-                            copyState === "copied" && "gallery-item-dialog__caption-action--copied",
-                            copyState === "error" && "gallery-item-dialog__caption-action--error",
-                          )}
+                        <Button
+                          icon={iconCopy}
+                          feedback={copyState}
                           onClick={() => {
                             void copyText(copyContent);
                           }}
                           disabled={!canCopyCaption}
                           aria-label={copyLabel}
+                          size="xs"
                         >
-                          <Icon
-                            icon={iconCopy}
-                            className="gallery-item-dialog__caption-action-icon"
-                          />
                           {copyLabel}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1610,21 +1527,9 @@ export function GalleryItemDialog({
                           : "Close the program that has it open, then try again."}
                       </p>
                       {captionReadError === "encoding" ? (
-                        <button
-                          type="button"
-                          className="workspace-button"
-                          onClick={replaceUnreadableCaption}
-                        >
-                          Replace caption
-                        </button>
+                        <Button onClick={replaceUnreadableCaption}>Replace caption</Button>
                       ) : (
-                        <button
-                          type="button"
-                          className="workspace-button"
-                          onClick={() => void reloadCaption()}
-                        >
-                          Try again
-                        </button>
+                        <Button onClick={() => void reloadCaption()}>Try again</Button>
                       )}
                     </div>
                   )}
@@ -1642,9 +1547,7 @@ export function GalleryItemDialog({
                           ? "The caption changed elsewhere since it was loaded. Overwrite it with yours or discard your changes to continue."
                           : "The caption could not be saved. Retry saving or discard the unsaved changes to continue."}
                       </p>
-                      <button
-                        type="button"
-                        className="workspace-button"
+                      <Button
                         disabled={leaving}
                         onClick={async () => {
                           if (leavingRef.current) return;
@@ -1660,10 +1563,8 @@ export function GalleryItemDialog({
                         }}
                       >
                         {captionConflict ? "Overwrite and continue" : "Retry and continue"}
-                      </button>
-                      <button
-                        type="button"
-                        className="workspace-button"
+                      </Button>
+                      <Button
                         disabled={leaving || captionSaving}
                         onClick={() => {
                           if (captionSaving) return;
@@ -1675,17 +1576,15 @@ export function GalleryItemDialog({
                         }}
                       >
                         Discard and continue
-                      </button>
-                      <button
-                        type="button"
-                        className="workspace-button"
+                      </Button>
+                      <Button
                         onClick={() => {
                           pendingActionRef.current = null;
                           setLeaveFailed(false);
                         }}
                       >
                         Keep editing
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>

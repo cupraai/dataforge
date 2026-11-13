@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { iconBellOff } from "@/shared/icons";
 import { useTicker } from "@/shared/hooks/useTicker";
 import { formatRelativeTime } from "@/shared/lib/format";
@@ -28,6 +29,7 @@ export function NotificationsPanel({
     return (
       <div className="notifications-panel__empty">
         <EmptyState
+          size="sm"
           icon={iconBellOff}
           title="No notifications"
           description="Job results and errors show up here."
@@ -41,9 +43,9 @@ export function NotificationsPanel({
     <>
       <div className="notifications-panel__header">
         <h2 className="notifications-panel__title">Notifications</h2>
-        <button type="button" className="notifications-panel__clear" onClick={onClear}>
+        <Button onClick={onClear} variant="danger" size="xs">
           Clear all
-        </button>
+        </Button>
       </div>
 
       <ul className="notifications-panel__list">
@@ -69,16 +71,15 @@ export function NotificationsPanel({
                 </span>
               </div>
               {action && (
-                <button
-                  type="button"
-                  className="notifications-panel__row-action"
+                <Button
                   onClick={() => {
                     action.run();
                     onActionDone();
                   }}
+                  size="xs"
                 >
                   {action.label}
-                </button>
+                </Button>
               )}
             </li>
           );

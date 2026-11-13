@@ -29,7 +29,7 @@ function renderSelect(props: Partial<Parameters<typeof DialogSelect<string>>[0]>
     onChange,
     select,
     showPicker,
-    wrap: container.querySelector(".dialog__select-wrap") as HTMLElement,
+    wrap: container.querySelector(".select") as HTMLElement,
   };
 }
 

@@ -1,3 +1,6 @@
+import { Button } from "@/shared/ui/Button";
+import { TextInput } from "@/shared/ui/Field";
+import { IconButton } from "@/shared/ui/IconButton";
 import { useId, useMemo, useRef, useState } from "react";
 import { BUCKET_RANGES } from "@/features/gallery/lib/datasetStats";
 import {
@@ -12,8 +15,7 @@ import {
 import { iconX } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { formatCount } from "@/shared/lib/format";
-import { Dialog, DialogActions, DialogButton } from "@/shared/ui/Dialog";
-import { Icon } from "@/shared/ui/Icon";
+import { Dialog, DialogActions } from "@/shared/ui/Dialog";
 import type { GalleryItem } from "@/shared/types";
 
 const AXIS_FIELDS: Record<RangeAxis, { label: string; unit: string; none: string }> = {
@@ -188,11 +190,7 @@ export function FilterRangesDialog({
       initialFocusRef={focusRef}
       footer={
         <>
-          <DialogButton
-            label="Clear all"
-            variant="secondary"
-            onClick={() => setDrafts(draftsFrom({}))}
-          />
+          <Button onClick={() => setDrafts(draftsFrom({}))}>Clear all</Button>
           <DialogActions confirmLabel="Apply" onCancel={onClose} />
         </>
       }
@@ -224,15 +222,14 @@ export function FilterRangesDialog({
                   {previewLabel ?? (range ? formatRange(axis, range) : "Any")}
                 </span>
                 {drafted && (
-                  <button
-                    type="button"
-                    className="filter-ranges-dialog__axis-clear"
-                    aria-label={`Any ${label.toLowerCase()}`}
-                    title="Any"
+                  <IconButton
+                    icon={iconX}
+                    label={`Any ${label.toLowerCase()}`}
+                    tooltip="Any"
                     onClick={() => setDraft(axis, draftFrom(null))}
-                  >
-                    <Icon icon={iconX} />
-                  </button>
+                    size="xs"
+                    variant="ghost"
+                  />
                 )}
               </header>
               <div className="filter-ranges-dialog__axis-body">
@@ -249,9 +246,8 @@ export function FilterRangesDialog({
                       <span className="filter-ranges-dialog__field-name">
                         {side === "min" ? "From" : "Below"}
                       </span>
-                      <input
+                      <TextInput
                         ref={axis === focusAxis && side === "min" ? focusRef : undefined}
-                        type="text"
                         inputMode="decimal"
                         autoComplete="off"
                         className="filter-ranges-dialog__input"

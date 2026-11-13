@@ -1,6 +1,6 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { iconX } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
 
 export interface RenderedFrameState {
   url: string;
@@ -33,16 +33,13 @@ export function RenderedFrame({
             Full size
           </a>
         </Tooltip>
-        <Tooltip content="Back to the live preview">
-          <button
-            type="button"
-            className="video-editor__icon-btn"
-            aria-label="Back to the live preview"
-            onClick={onClose}
-          >
-            <Icon icon={iconX} />
-          </button>
-        </Tooltip>
+        <IconButton
+          icon={iconX}
+          label="Back to the live preview"
+          onClick={onClose}
+          size="xs"
+          variant="ghost"
+        />
       </span>
     </>
   );

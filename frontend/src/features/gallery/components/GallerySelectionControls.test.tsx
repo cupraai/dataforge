@@ -285,7 +285,7 @@ describe("GallerySelectionControls", () => {
       "aria-busy",
       "true",
     );
-    expect(document.querySelector(".gallery-controls__btn-icon.app-icon--spin")).toBeTruthy();
+    expect(document.querySelector(".app-icon--spin")).toBeTruthy();
 
     resolveDeleted!();
 

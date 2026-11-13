@@ -7,7 +7,7 @@ import {
 } from "@/shared/notifications/desktopNotifications";
 import type { DesktopNotificationLevel } from "@/shared/types";
 import { DialogSelect, type DialogSelectOption } from "@/shared/ui/DialogSelect";
-import { SettingsCheckbox } from "./SettingsCheckbox";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
 
 const LEVEL_OPTIONS: DialogSelectOption<DesktopNotificationLevel>[] = [
@@ -61,7 +61,8 @@ export function NotificationsSection({
 
   return (
     <SettingsGroup title="Desktop" icon={iconBell}>
-      <SettingsCheckbox
+      <Checkbox
+        className="dialog__field"
         label="Show desktop notifications"
         hint={desktopHint(permission, desktop)}
         checked={desktop}

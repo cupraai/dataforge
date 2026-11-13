@@ -83,28 +83,6 @@
   border-top: 1px solid var(--border);
 }
 
-@mixin job-panel-toggle {
-  @include control-interactive;
-  display: flex;
-  align-items: center;
-  gap: 0.4375rem;
-  width: 100%;
-  padding: 0.25rem 0;
-  background: none;
-  border: 0;
-  color: var(--text-subtle);
-
-  &:hover {
-    color: var(--text-muted);
-  }
-}
-
-@mixin job-panel-toggle-icon {
-  @include icon-size-sm;
-  flex-shrink: 0;
-  transition: transform var(--transition);
-}
-
 @mixin section-label {
   margin: 0;
   display: inline-flex;
@@ -330,14 +308,6 @@
   }
 }
 
-@mixin btn-hover-success {
-  &:hover:not(:disabled) {
-    @include fade-bg(var(--success));
-    color: var(--bg);
-    border-color: var(--success);
-  }
-}
-
 @mixin btn-hover-warning {
   &:hover:not(:disabled) {
     @include fade-bg(var(--warning));
@@ -366,13 +336,6 @@
   @include fade-bg(var(--accent-soft));
   color: var(--accent);
   @include btn-hover-accent;
-}
-
-@mixin btn-surface-success {
-  border: 1px solid var(--success-border);
-  @include fade-bg(var(--success-soft));
-  color: var(--success);
-  @include btn-hover-success;
 }
 
 @mixin btn-surface-warning {
@@ -405,124 +368,6 @@
   }
 }
 
-@mixin pill-btn($gap: null) {
-  @include inline-flex-center;
-  @include control-interactive;
-  height: var(--control-height);
-  padding: 0 0.875rem;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  line-height: 1;
-
-  @if $gap {
-    gap: $gap;
-  }
-}
-
-@mixin pill-btn-ghost($gap: null) {
-  @include pill-btn($gap);
-  @include btn-surface-default;
-  @include btn-disabled;
-}
-
-@mixin pill-btn-accent($gap: null) {
-  @include pill-btn($gap);
-  @include btn-surface-accent;
-  @include btn-disabled;
-}
-
-@mixin pill-btn-danger($gap: null) {
-  @include pill-btn($gap);
-  @include btn-surface-danger;
-  @include btn-disabled;
-}
-
-@mixin pill-btn-warning($gap: null) {
-  @include pill-btn($gap);
-  @include btn-surface-warning;
-  @include btn-disabled;
-}
-
-@mixin pill-btn-compact($variant: accent) {
-  @include control-interactive;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3125rem;
-  padding: 0.3125rem 0.625rem;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-2xs);
-  font-weight: var(--font-semibold);
-  white-space: nowrap;
-  line-height: 1;
-  @include btn-disabled;
-
-  @if $variant == accent {
-    @include btn-surface-accent;
-  } @else if $variant == danger {
-    @include btn-surface-danger;
-  } @else {
-    @include btn-surface-default;
-  }
-}
-
-@mixin icon-btn($size: var(--control-height)) {
-  @include inline-flex-center;
-  @include control-interactive;
-  flex-shrink: 0;
-  width: $size;
-  height: $size;
-  border-radius: var(--radius-sm);
-  line-height: 1;
-  @include btn-surface-default;
-  @include btn-disabled;
-}
-
-@mixin icon-btn-sm {
-  @include icon-btn(var(--control-height-xs));
-  @include icon-scope-sm;
-}
-
-@mixin icon-btn-xs($border: false) {
-  @include control-interactive;
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  padding: 0;
-  border-radius: var(--radius-pill);
-  @include fade-bg(transparent);
-  color: var(--text-subtle);
-  @include icon-scope-sm;
-  @include btn-disabled;
-
-  @if $border == true {
-    @include btn-surface-default;
-  } @else {
-    border: 1px solid transparent;
-  }
-
-  &:hover:not(:disabled) {
-    color: var(--text);
-    border-color: var(--border);
-    @include fade-bg(var(--accent-soft));
-  }
-}
-
-@mixin icon-btn-round($size: 2.75rem) {
-  @include inline-flex-center;
-  @include control-interactive;
-  width: $size;
-  height: $size;
-  border-radius: 50%;
-  --icon-size: #{$icon-size-base};
-  @include btn-surface-default;
-  @include btn-disabled;
-}
-
 @mixin text-btn {
   @include control-interactive;
   border: none;
@@ -535,64 +380,6 @@
     color: var(--text);
     @include fade-bg(var(--accent-soft));
   }
-}
-
-// Sits on the tab row's border, so the active tab reads as attached to what it shows.
-@mixin underline-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5625rem 0.625rem;
-  border: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: color var(--transition);
-  @include focus-ring;
-
-  &::after {
-    content: "";
-    position: absolute;
-    right: 0.625rem;
-    bottom: -1px;
-    left: 0.625rem;
-    height: 2px;
-    border-radius: 1px;
-    background: transparent;
-  }
-
-  &:hover {
-    color: var(--text);
-  }
-
-  &--active {
-    color: var(--text);
-
-    &::after {
-      background: var(--accent);
-    }
-  }
-}
-
-@mixin dialog-close-btn {
-  @include icon-btn;
-}
-
-@mixin dismiss-btn {
-  @include icon-btn-sm;
-  margin-left: auto;
-  color: inherit;
-}
-
-@mixin dialog-btn {
-  @include pill-btn(0.4rem);
-  padding: 0 0.9375rem;
-  @include btn-disabled;
 }
 
 @mixin dialog-form-field {
@@ -767,16 +554,6 @@
   }
 }
 
-@mixin status-panel-danger {
-  border-color: var(--danger-border);
-  background: linear-gradient(180deg, var(--danger-soft), var(--bg-sticky) 60%);
-}
-
-@mixin status-panel-warning {
-  border-color: var(--warning-border);
-  background: linear-gradient(180deg, var(--warning-soft), var(--bg-sticky) 60%);
-}
-
 @mixin alert-banner {
   display: flex;
   align-items: center;
@@ -915,13 +692,21 @@
     var(--bg-media);
 }
 
-@mixin dialog-nav-btn {
-  @include icon-btn-round;
+/// Prev/next arrows over a paging dialog's media, on `--prev`/`--next`; IconButton draws them.
+@mixin dialog-media-nav {
   --icon-size: var(--icon-size-xl);
   position: absolute;
   top: 50%;
   z-index: 1;
   transform: translateY(-50%);
+
+  &--prev {
+    left: 0.875rem;
+  }
+
+  &--next {
+    right: 0.875rem;
+  }
 }
 
 /// Bordered header/footer bars. `.dialog` is a padded card and does not use these.
@@ -1043,44 +828,6 @@
   font-weight: var(--font-medium);
   line-height: var(--leading-tight);
   @include tabular-nums;
-}
-
-@mixin progress-track {
-  height: var(--progress-height);
-  overflow: hidden;
-  background: var(--bg-card);
-  border-radius: var(--radius-pill);
-}
-
-@mixin progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--success));
-  border-radius: inherit;
-  transition: width var(--duration-slow) var(--ease-standard);
-
-  &--error {
-    background: linear-gradient(90deg, var(--danger), var(--danger-deep));
-  }
-
-  &--warning,
-  &--cancelled {
-    background: linear-gradient(
-      90deg,
-      var(--warning),
-      color-mix(in srgb, var(--warning) 55%, transparent)
-    );
-  }
-}
-
-// The round icon badge that heads a compact empty state in a drawer or panel.
-@mixin empty-state-badge {
-  @include flex-center;
-  width: 2.75rem;
-  height: 2.75rem;
-  margin-bottom: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--surface-hover);
-  color: var(--text-subtle);
 }
 
 @mixin skeleton-shimmer {

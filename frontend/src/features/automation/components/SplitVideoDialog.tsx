@@ -1,3 +1,4 @@
+import { TextInput } from "@/shared/ui/Field";
 import { useId, useState } from "react";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { CLIPS_DIR_NAME, MAX_SPLIT_CLIP_SECONDS, MIN_SPLIT_CLIP_SECONDS } from "@/shared/constants";
@@ -173,10 +174,10 @@ export function SplitVideoDialog({
             <label htmlFor={lengthId} className="dialog__label">
               {scenes ? "Longest clip (s)" : "Clip length (s)"}
             </label>
-            <input
+            <TextInput
               id={lengthId}
               type="number"
-              className="dialog__input split-video-dialog__number"
+              className="split-video-dialog__number"
               value={length}
               min={MIN_SPLIT_CLIP_SECONDS}
               max={MAX_SPLIT_CLIP_SECONDS}
@@ -190,10 +191,10 @@ export function SplitVideoDialog({
             <label htmlFor={shortestId} className="dialog__label">
               Shortest clip (s)
             </label>
-            <input
+            <TextInput
               id={shortestId}
               type="number"
-              className="dialog__input split-video-dialog__number"
+              className="split-video-dialog__number"
               value={shortest}
               min={0}
               max={MAX_SPLIT_CLIP_SECONDS}

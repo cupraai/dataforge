@@ -84,4 +84,40 @@
     justify-content: center;
     margin-top: 1.25rem;
   }
+
+  // Inside a drawer, panel or menu: no frame of its own, and a smaller badge and type.
+  &--sm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 1.75rem 1rem;
+    border: 0;
+    background: none;
+
+    .empty-state__icon-wrap {
+      width: 2.75rem;
+      height: 2.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .empty-state__icon {
+      @include icon-size(1.375rem);
+    }
+
+    .empty-state__title {
+      margin: 0;
+      font-size: var(--text-sm);
+      letter-spacing: normal;
+    }
+
+    .empty-state__description {
+      max-width: 22rem;
+      font-size: var(--text-xs);
+    }
+
+    .empty-state__action {
+      margin-top: 0.5rem;
+    }
+  }
 }

@@ -1,8 +1,8 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { VideoProjectMix } from "@/shared/types";
 import { iconMic, iconSliders } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
 import { percent } from "@/features/videoEditor/lib/sliderUnits";
 import type { Project, Track } from "@/features/videoEditor/lib/timeline";
 import { Panel, Slider } from "./InspectorParts";
@@ -47,18 +47,18 @@ export function MixPanel({
               }
               placement="top"
             >
-              <button
-                type="button"
+              <IconButton
+                icon={iconMic}
+                label={`${track.name} is speech`}
                 className={classNames(
                   "video-editor__key-btn",
                   track.speech && "video-editor__key-btn--on",
                 )}
                 aria-pressed={track.speech}
-                aria-label={`${track.name} is speech`}
                 onClick={() => onTrackEdit(track.id, { speech: !track.speech }, true)}
-              >
-                <Icon icon={iconMic} />
-              </button>
+                size="2xs"
+                variant="ghost"
+              />
             </Tooltip>
           }
         />

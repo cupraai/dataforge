@@ -1,13 +1,7 @@
 import { act, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "@/test/queryClient";
-import {
-  getThemePreference,
-  resolveTheme,
-  setThemePreference,
-  useThemePreference,
-  useThemeSync,
-} from "./theme";
+import { resolveTheme, setThemePreference, useThemePreference, useThemeSync } from "./theme";
 
 function stubSystemScheme(light: boolean) {
   const listeners = new Set<() => void>();
@@ -86,10 +80,13 @@ describe("theme", () => {
     const system = stubSystemScheme(false);
     const server = holdServerTheme();
 
-    renderHookWithQueryClient(() => useThemeSync());
+    const { result } = renderHookWithQueryClient(() => {
+      useThemeSync();
+      return useThemePreference();
+    });
     await act(async () => server.answer("system"));
 
-    await waitFor(() => expect(getThemePreference()).toBe("system"));
+    await waitFor(() => expect(result.current).toBe("system"));
     expect(document.documentElement.dataset.theme).toBe("dark");
     act(() => system.change(true));
     expect(document.documentElement.dataset.theme).toBe("light");
@@ -114,12 +111,15 @@ describe("theme", () => {
   it("a choice made here is applied, cached, persisted, and outranks a late server answer", async () => {
     stubSystemScheme(false);
     const server = holdServerTheme();
-    renderHookWithQueryClient(() => useThemeSync());
+    const { result } = renderHookWithQueryClient(() => {
+      useThemeSync();
+      return useThemePreference();
+    });
 
     act(() => setThemePreference("dark"));
     await act(async () => server.answer("light"));
 
-    expect(getThemePreference()).toBe("dark");
+    expect(result.current).toBe("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("ui-theme")).toBe("dark");
     await waitFor(() =>

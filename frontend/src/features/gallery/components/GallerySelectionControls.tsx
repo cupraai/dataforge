@@ -1,15 +1,9 @@
+import { Button } from "@/shared/ui/Button";
 import type { MediaTransferMode } from "@/features/gallery/api/media";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
 import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
-import {
-  iconCopyPlus,
-  iconFolderInput,
-  iconLoader2,
-  iconTrash2,
-  type AppIcon,
-} from "@/shared/icons";
+import { iconCopyPlus, iconFolderInput, iconTrash2, type AppIcon } from "@/shared/icons";
 import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
@@ -34,21 +28,16 @@ function TransferButton({
 
   return (
     <Tooltip content={label}>
-      <button
-        type="button"
-        className="gallery-controls__btn gallery-controls__btn--icon"
+      <Button
+        icon={icon}
+        busy={active}
         onClick={onClick}
         disabled={disabled}
-        aria-busy={active || undefined}
         aria-label={label}
+        size="xs"
       >
-        <Icon
-          icon={active ? iconLoader2 : icon}
-          spin={active}
-          className="gallery-controls__btn-icon"
-        />
         {mode === "copy" ? "Copy" : "Move"}
-      </button>
+      </Button>
     </Tooltip>
   );
 }
@@ -96,54 +85,42 @@ export function GallerySelectionControls({ totalCount }: GallerySelectionControl
   if (!selectionMode) {
     return (
       <div className="gallery-controls">
-        <button
-          type="button"
-          className="gallery-controls__btn"
+        <Button
           onClick={enterSelectionMode}
           aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.selectAll)}
+          size="xs"
         >
           Select
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="gallery-controls">
-      <button
-        type="button"
-        className="gallery-controls__btn gallery-controls__btn--accent"
+      <Button
+        variant="primary"
         onClick={exitSelectionMode}
         disabled={busy}
         aria-label="Exit selection mode"
+        size="xs"
       >
         Done
-      </button>
-      <button
-        type="button"
-        className="gallery-controls__btn"
+      </Button>
+      <Button
         onClick={selectAllPaths}
         disabled={busy || visibleSelectedCount === totalCount}
         aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.selectAll)}
+        size="xs"
       >
         All
-      </button>
-      <button
-        type="button"
-        className="gallery-controls__btn"
-        onClick={invertSelectedPaths}
-        disabled={busy || totalCount === 0}
-      >
+      </Button>
+      <Button onClick={invertSelectedPaths} disabled={busy || totalCount === 0} size="xs">
         Invert
-      </button>
-      <button
-        type="button"
-        className="gallery-controls__btn"
-        onClick={clearSelectedPaths}
-        disabled={busy || visibleSelectedCount === 0}
-      >
+      </Button>
+      <Button onClick={clearSelectedPaths} disabled={busy || visibleSelectedCount === 0} size="xs">
         None
-      </button>
+      </Button>
       <TransferButton
         mode="copy"
         icon={iconCopyPlus}
@@ -165,22 +142,18 @@ export function GallerySelectionControls({ totalCount }: GallerySelectionControl
           <ShortcutHint shortcut={SHORTCUTS.deleteSelection}>Delete selected files</ShortcutHint>
         }
       >
-        <button
-          type="button"
-          className="gallery-controls__btn gallery-controls__btn--icon gallery-controls__btn--danger"
+        <Button
+          icon={iconTrash2}
+          busy={deleting}
+          variant="danger"
           onClick={openDeleteConfirm}
           disabled={visibleSelectedCount === 0 || busy}
-          aria-busy={deleting || undefined}
           aria-label="Delete selected files"
           aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.deleteSelection)}
+          size="xs"
         >
-          <Icon
-            icon={deleting ? iconLoader2 : iconTrash2}
-            spin={deleting}
-            className="gallery-controls__btn-icon"
-          />
           Delete
-        </button>
+        </Button>
       </Tooltip>
     </div>
   );

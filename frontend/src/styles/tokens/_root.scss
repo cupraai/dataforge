@@ -135,6 +135,7 @@
   color-scheme: dark;
 
   --radius: #{$radius};
+  --radius-xs: #{$radius-xs};
   --radius-sm: #{$radius-sm};
   --radius-md: #{$radius-md};
   --radius-lg: calc(var(--radius) + #{$radius-lg-offset});

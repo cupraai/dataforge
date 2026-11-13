@@ -3,7 +3,6 @@
 
 // Toolbar menu: each saved workflow runs on click, with its steps as a chain of job icons.
 .workspace-workflows {
-  @include dropdown-menu-surface(null);
   gap: 0;
   width: min(25rem, calc(100vw - 2rem));
   padding: 0;
@@ -29,10 +28,6 @@
     color: var(--text-muted);
     font-size: var(--text-2xs);
     @include tabular-nums;
-  }
-
-  &__manage {
-    @include pill-btn-compact(default);
   }
 
   &__list {
@@ -158,63 +153,7 @@
   }
 
   &__new {
-    @include dropdown-menu-option;
-    justify-content: center;
-    padding-block: 0.5rem;
-    border: 1px dashed var(--border);
-    color: var(--text-muted);
-
-    svg {
-      @include icon-size-sm;
-    }
-
-    &:hover {
-      border-color: var(--accent-border);
-      color: var(--accent);
-    }
-  }
-
-  &__empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 1.5rem 1.25rem 1.25rem;
-    text-align: center;
-  }
-
-  &__empty-icon {
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    margin-bottom: 0.25rem;
-    border-radius: var(--radius-md);
-    background: var(--accent-soft);
-    color: var(--accent);
-
-    svg {
-      width: 1.375rem;
-      height: 1.375rem;
-    }
-  }
-
-  &__empty-title {
-    margin: 0;
-    color: var(--text);
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-  }
-
-  &__empty-text {
-    margin: 0 0 0.5rem;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    line-height: var(--leading-relaxed);
-  }
-
-  &__create {
-    @include pill-btn-compact(accent);
+    width: 100%;
   }
 }
 
@@ -263,7 +202,7 @@
     width: 1.75rem;
     height: 1.75rem;
     border: 1px solid var(--accent-border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     // Opaque, so the rail behind it stops at the edge instead of crossing the number.
     background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--bg-elevated);
     color: var(--accent);
@@ -355,7 +294,6 @@
   }
 
   &__settings {
-    @include pill-btn-compact(default);
     margin-right: 0.25rem;
   }
 
@@ -363,30 +301,6 @@
   @container workflow-canvas (max-width: 38rem) {
     &__settings-label {
       @include visually-hidden;
-    }
-  }
-
-  &__button {
-    @include icon-btn-sm;
-    border-color: transparent;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-
-    &:hover:not(:disabled) {
-      color: var(--text);
-      border-color: var(--border);
-      @include fade-bg(var(--bg));
-    }
-
-    &:disabled {
-      cursor: default;
-      opacity: 0.35;
-    }
-
-    &--danger:hover:not(:disabled) {
-      color: var(--danger);
-      border-color: var(--danger-border);
-      @include fade-bg(var(--danger-soft));
     }
   }
 }
@@ -517,8 +431,6 @@
   }
 
   &__new {
-    @include pill-btn-compact(accent);
-    justify-content: center;
     margin: 0 0.25rem;
   }
 
@@ -664,8 +576,6 @@
   }
 
   &__close {
-    @include dialog-close-btn;
-    flex-shrink: 0;
     margin: 0 -0.5rem 0 0;
   }
 
@@ -685,48 +595,13 @@
     @include app-scrollbar;
   }
 
+  // An EmptyState that fills the canvas, centred in it.
   &__empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
     min-height: 100%;
-    padding: 2rem;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-md);
-    text-align: center;
-  }
-
-  &__empty-icon {
-    display: grid;
-    place-items: center;
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 0.25rem;
-    border-radius: var(--radius-md);
-    background: var(--accent-soft);
-    color: var(--accent);
-
-    svg {
-      width: 1.5rem;
-      height: 1.5rem;
-    }
-  }
-
-  &__empty-title {
-    margin: 0;
-    color: var(--text);
-    font-size: var(--text-md);
-    font-weight: var(--font-semibold);
-  }
-
-  &__empty-text {
-    max-width: 26rem;
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
   }
 
   &__footer {
@@ -816,35 +691,6 @@
     color: var(--text-muted);
     font-size: var(--text-xs);
     line-height: var(--leading-snug);
-  }
-
-  &__search {
-    @include dialog-form-input(var(--control-height-sm));
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-block: 0;
-
-    svg {
-      flex: none;
-      width: 0.875rem;
-      height: 0.875rem;
-      color: var(--text-muted);
-    }
-
-    input {
-      flex: 1;
-      min-width: 0;
-      border: 0;
-      outline: none;
-      background: transparent;
-      color: var(--text);
-      font: inherit;
-    }
-
-    &:focus-within {
-      border-color: var(--accent);
-    }
   }
 
   &__groups {

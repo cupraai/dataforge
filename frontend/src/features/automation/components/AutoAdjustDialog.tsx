@@ -1,5 +1,6 @@
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { AutoAdjustRunSettings } from "@/shared/types";
@@ -26,8 +27,6 @@ export function AutoAdjustDialog({
   // Never remembered: discarding earlier adjustments is destructive, so it is re-chosen every run.
   const [replace, setReplace] = useState(initialSettings?.replace_adjustments ?? false);
   const [reset, setReset] = useState(initialSettings?.reset_adjustments ?? false);
-  const replaceId = useId();
-  const resetId = useId();
 
   const handleConfirm = useCallback(() => {
     if (busy) return;
@@ -61,42 +60,22 @@ export function AutoAdjustDialog({
         />
       }
     >
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={replaceId}>
-          <input
-            id={replaceId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={replace}
-            onChange={(event) => setReplace(event.target.checked)}
-            disabled={busy || reset}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Replace earlier adjustments</span>
-        </label>
-        <p className="dialog__hint">
-          When ticked, every adjust tool goes back to zero first, discarding changes made by hand.
-          When unticked, those changes stay and the wand's result is added on top.
-        </p>
-      </div>
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={resetId}>
-          <input
-            id={resetId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={reset}
-            onChange={(event) => setReset(event.target.checked)}
-            disabled={busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Reset all color adjustments to zero</span>
-        </label>
-        <p className="dialog__hint">
-          Clears manual and automatic color adjustments without applying the wand. Crops, masks and
-          all other edits are kept.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Replace earlier adjustments"
+        checked={replace}
+        disabled={busy || reset}
+        onChange={setReplace}
+        hint="When ticked, every adjust tool goes back to zero first, discarding changes made by hand. When unticked, those changes stay and the wand's result is added on top."
+      />
+      <Checkbox
+        className="dialog__field"
+        label="Reset all color adjustments to zero"
+        checked={reset}
+        disabled={busy}
+        onChange={setReset}
+        hint="Clears manual and automatic color adjustments without applying the wand. Crops, masks and all other edits are kept."
+      />
     </GuardedDialog>
   );
 }

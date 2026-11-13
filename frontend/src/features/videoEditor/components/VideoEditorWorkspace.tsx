@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import {
   useCallback,
   useContext,
@@ -22,7 +24,7 @@ import { formatApiError } from "@/shared/api/http";
 import { isEditableTarget, isTextEntryTarget } from "@/shared/lib/isEditableTarget";
 import { matchesShortcut, SHORTCUTS } from "@/shared/lib/shortcuts";
 import { readStoredJson, writeStored } from "@/shared/lib/storage";
-import { Dialog, DialogButton } from "@/shared/ui/Dialog";
+import { Dialog } from "@/shared/ui/Dialog";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { DialogNavigationContext } from "@/shared/ui/dialogNavigationContext";
@@ -252,9 +254,9 @@ export function VideoEditorWorkspace({
                   The editor could not open{" "}
                   {request.kind === "video" ? "this video" : "the project"}: {error}
                 </p>
-                <button type="button" className="video-editor__primary-btn" onClick={onExit}>
-                  <Icon icon={iconArrowLeft} /> Back to gallery
-                </button>
+                <Button icon={iconArrowLeft} onClick={onExit} variant="primary" size="sm">
+                  Back to gallery
+                </Button>
               </>
             ) : (
               <p role="status">
@@ -1336,14 +1338,13 @@ function EditorSession({
               <p className="video-editor__toast" role="alert">
                 <Icon icon={iconTriangleAlert} />
                 <span>{message}</span>
-                <button
-                  type="button"
-                  className="video-editor__icon-btn"
-                  aria-label="Dismiss"
+                <IconButton
+                  icon={iconX}
+                  label="Dismiss"
                   onClick={() => setMessage(null)}
-                >
-                  <Icon icon={iconX} />
-                </button>
+                  size="xs"
+                  variant="ghost"
+                />
               </p>
             )}
             <Timeline
@@ -1453,17 +1454,17 @@ function EditorSession({
           onClose={cancelLeave}
           footer={
             <>
-              <DialogButton
-                label="Exit"
+              <Button
                 variant="danger"
                 onClick={() => {
                   cancelLeave();
                   onExit();
                 }}
-              />
-              <DialogButton label="Cancel" variant="secondary" onClick={cancelLeave} />
-              <DialogButton
-                label={state.saveState === "conflict" ? "Save as new" : "Retry save"}
+              >
+                Exit
+              </Button>
+              <Button onClick={cancelLeave}>Cancel</Button>
+              <Button
                 variant="primary"
                 busy={leaveRetrying}
                 onClick={() => {
@@ -1477,7 +1478,9 @@ function EditorSession({
                     if (saved) onExit();
                   });
                 }}
-              />
+              >
+                {state.saveState === "conflict" ? "Save as new" : "Retry save"}
+              </Button>
             </>
           }
         />

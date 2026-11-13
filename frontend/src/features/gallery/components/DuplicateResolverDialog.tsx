@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { dismissDuplicateGroup, resolveDuplicateGroup } from "@/features/gallery/api/duplicates";
@@ -20,7 +22,6 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import { iconCheck, iconTrash2, iconTriangleAlert, iconX } from "@/shared/icons";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
@@ -192,15 +193,13 @@ export function DuplicateResolverDialog({
               Group {index + 1} / {queue.length}
             </span>
           </div>
-          <button
-            type="button"
-            className="duplicate-resolver-dialog__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
             onClick={closeDialog}
             disabled={busy}
-            aria-label="Close"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </header>
 
         <div className="duplicate-resolver-dialog__body" data-scroll-lock-allow>
@@ -233,34 +232,30 @@ export function DuplicateResolverDialog({
         </div>
 
         <footer className="duplicate-resolver-dialog__footer">
-          <DialogButton
-            label="Back"
-            variant="secondary"
-            disabled={busy || index === 0}
-            onClick={() => goTo(index - 1)}
-          />
-          <DialogButton
-            label="Skip"
-            variant="secondary"
-            disabled={busy || index === queue.length - 1}
-            onClick={() => goTo(index + 1)}
-          />
-          <DialogButton
-            label={pending === "dismiss" ? "Clearing..." : "Not duplicates"}
+          <Button disabled={busy || index === 0} onClick={() => goTo(index - 1)}>
+            Back
+          </Button>
+          <Button disabled={busy || index === queue.length - 1} onClick={() => goTo(index + 1)}>
+            Skip
+          </Button>
+          <Button
             variant="warning"
             busy={pending === "dismiss"}
             disabled={busy || alreadySettled}
             onClick={() => {
               void handleDismiss();
             }}
-          />
-          <DialogButton
-            label={pending === "resolve" ? "Deleting..." : "Resolve"}
+          >
+            {pending === "dismiss" ? "Clearing..." : "Not duplicates"}
+          </Button>
+          <Button
             variant="primary"
             busy={pending === "resolve"}
             disabled={busy || alreadySettled || discard.length === 0}
             onClick={requestResolve}
-          />
+          >
+            {pending === "resolve" ? "Deleting..." : "Resolve"}
+          </Button>
         </footer>
       </DialogShell>
 

@@ -46,9 +46,9 @@ test("free crop readouts reflect the visible image and video rectangles", async 
   await expect(page.locator(".crop-overlay__readout")).toHaveText("640 × 480 · 4:3");
   await page.screenshot({ path: testInfo.outputPath("image-crop.png") });
 
-  await page.getByRole("button", { name: "Rotate", exact: true }).click();
+  await page.getByRole("tab", { name: "Rotate", exact: true }).click();
   await page.getByRole("button", { name: "Rotate right" }).click();
-  await page.getByRole("button", { name: "Crop", exact: true }).click();
+  await page.getByRole("tab", { name: "Crop", exact: true }).click();
   await expect(page.locator(".crop-overlay__readout")).toHaveText("480 × 640 · 3:4");
   await page.screenshot({ path: testInfo.outputPath("rotated-image-crop.png") });
 
@@ -70,14 +70,14 @@ test("free crop readouts reflect the visible image and video rectangles", async 
   await page.mouse.up();
   await expect(readout).toHaveCSS("opacity", "0");
 
-  await page.locator(".gallery-item-dialog__close").click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await page
     .getByRole("alertdialog", { name: "Discard changes?" })
     .getByRole("button", { name: "Discard", exact: true })
     .click();
   await page.getByRole("button", { name: "View landscape.mp4" }).click();
   await page.getByRole("button", { name: "Edit landscape.mp4" }).click();
-  await page.getByRole("button", { name: "Crop", exact: true }).click();
+  await page.getByRole("tab", { name: "Crop", exact: true }).click();
   await expect(page.locator(".crop-overlay__readout")).toHaveText("320 × 180 · 16:9");
   await page.screenshot({ path: testInfo.outputPath("video-crop.png") });
 });

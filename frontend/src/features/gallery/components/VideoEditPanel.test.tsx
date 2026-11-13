@@ -99,15 +99,15 @@ function renderPanel(
 }
 
 /** Matches on the prefix: a tool holding a value reads "Speed, changed". */
-const tool = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name}`) });
+const tool = (name: string) => screen.getByRole("tab", { name: new RegExp(`^${name}`) });
 
 describe("VideoEditPanel", () => {
   describe("tools", () => {
     it("opens on the trim tool with the others collapsed", () => {
       renderPanel(makeEdit());
 
-      expect(tool("Trim")).toHaveAttribute("aria-pressed", "true");
-      expect(tool("Speed")).toHaveAttribute("aria-pressed", "false");
+      expect(tool("Trim")).toHaveAttribute("aria-selected", "true");
+      expect(tool("Speed")).toHaveAttribute("aria-selected", "false");
       expect(screen.queryByRole("button", { name: "2x" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Set in" })).toBeInTheDocument();
     });
@@ -173,7 +173,7 @@ describe("VideoEditPanel", () => {
       const draft = { ...emptyDraft(12), speed: 2 };
       renderPanel(makeEdit({ draft }));
 
-      expect(screen.getByRole("button", { name: "Speed, changed" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Speed, changed" })).toBeInTheDocument();
       expect(tool("Size")).toBeInTheDocument();
     });
 
@@ -187,7 +187,7 @@ describe("VideoEditPanel", () => {
     ])("marks %s when it holds a value", (label, overrides) => {
       renderPanel(makeEdit({ draft: { ...emptyDraft(12), ...overrides } }));
 
-      expect(screen.getByRole("button", { name: `${label}, changed` })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: `${label}, changed` })).toBeInTheDocument();
     });
   });
 

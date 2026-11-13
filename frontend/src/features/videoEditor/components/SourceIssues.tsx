@@ -1,3 +1,5 @@
+import { Select } from "@/shared/ui/Select";
+import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
 import { iconTriangleAlert } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
@@ -85,12 +87,14 @@ function SourceIssue({
           : "has changed since it was added (size or date differ)."}
       </span>
       {status.state === "changed" && (
-        <button type="button" className="video-editor__text-btn" onClick={onAccept} disabled={busy}>
+        <Button onClick={onAccept} disabled={busy} variant="text" size="xs">
           Use the changed file
-        </button>
+        </Button>
       )}
       <span className="video-editor__relink">
-        <select
+        <Select
+          size="xs"
+          className="video-editor__relink-select"
           aria-label={`Replacement for ${name}`}
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
@@ -104,18 +108,18 @@ function SourceIssue({
               {item.name}
             </option>
           ))}
-        </select>
-        <button
-          type="button"
-          className="video-editor__text-btn"
+        </Select>
+        <Button
           disabled={busy || !choice}
           onClick={() => {
             const item = candidates.find((candidate) => candidate.path === choice);
             if (item) onRelink(item);
           }}
+          variant="text"
+          size="xs"
         >
           Relink
-        </button>
+        </Button>
       </span>
     </div>
   );

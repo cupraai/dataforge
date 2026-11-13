@@ -1,3 +1,5 @@
+import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { IconButton } from "@/shared/ui/IconButton";
 import { iconBan, iconBrain, iconDot, iconHourglass, iconLoader2 } from "@/shared/icons";
 import type { ExternalOstrisJob } from "@/shared/types";
 import {
@@ -75,25 +77,21 @@ export function ExternalJobCard({
           </span>
 
           {onStop && (
-            <button
-              type="button"
-              className="job-card__cancel"
-              onClick={() => onStop(job.id)}
-              disabled={stopping}
-              aria-label={`Stop job ${job.name}`}
-              title={
+            <IconButton
+              icon={iconBan}
+              label={`Stop job ${job.name}`}
+              tooltip={
                 stopping
                   ? job.save_now
                     ? "Saving checkpoint..."
                     : "Stopping job..."
                   : "Stop job and save checkpoint"
               }
-            >
-              <Icon
-                icon={stopping ? iconLoader2 : iconBan}
-                className={stopping ? "job-card__cancel-icon--spin" : undefined}
-              />
-            </button>
+              size="xs"
+              tone="warning"
+              busy={stopping}
+              onClick={() => onStop(job.id)}
+            />
           )}
         </div>
       </div>
@@ -111,16 +109,11 @@ export function ExternalJobCard({
         {remainingTime && <span className="job-card__remaining">{remainingTime}</span>}
       </div>
 
-      <div
+      <ProgressBar
         className="job-card__progress"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress}
-        aria-label={`Progress for ${job.name}`}
-      >
-        <div className="job-card__progress-bar" style={{ width: `${progress}%` }} />
-      </div>
+        value={progress}
+        label={`Progress for ${job.name}`}
+      />
 
       <TrainingSamples samples={samples} compact onLightboxOpenChange={onLightboxOpenChange} />
     </article>

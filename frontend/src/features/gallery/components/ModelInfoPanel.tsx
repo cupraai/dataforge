@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useModelInfo } from "@/features/gallery/hooks/useModelInfo";
 import {
   metadataAsJson,
@@ -135,20 +136,16 @@ export function ModelMetadataList({ item }: { item: ModelItem }) {
           Metadata
           {metadata && <span className="model-metadata__count">{entries.length}</span>}
         </h3>
-        <button
-          type="button"
-          className={classNames(
-            "gallery-item-dialog__caption-action",
-            copyState === "copied" && "gallery-item-dialog__caption-action--copied",
-            copyState === "error" && "gallery-item-dialog__caption-action--error",
-          )}
+        <Button
+          icon={iconCopy}
+          feedback={copyState}
           onClick={() => metadata && void copyText(metadataAsJson(metadata))}
           disabled={entries.length === 0}
           aria-label={`Copy the metadata of ${item.name} as JSON`}
+          size="xs"
         >
-          <Icon icon={iconCopy} className="gallery-item-dialog__caption-action-icon" />
           {copyState === "idle" ? "Copy JSON" : copyLabel}
-        </button>
+        </Button>
       </div>
       {/* Scrolls on its own, so it takes focus for keyboard scrolling. */}
       <div

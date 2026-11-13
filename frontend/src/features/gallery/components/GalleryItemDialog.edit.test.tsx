@@ -299,7 +299,7 @@ describe("GalleryItemDialog", () => {
         );
       });
       // Collapsed, but the tool says it holds a value - that is what makes hiding it safe.
-      expect(within(dialog).getByRole("button", { name: "Speed, changed" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("tab", { name: "Speed, changed" })).toBeInTheDocument();
     });
 
     it("locks a crop shape, and Free releases it again", async () => {
@@ -307,7 +307,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Crop/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
       const square = within(dialog).getByRole("button", { name: "1:1" });
       const free = within(dialog).getByRole("button", { name: "Free" });
 
@@ -400,7 +400,7 @@ describe("GalleryItemDialog", () => {
       // 3 and 9 of source, halved: this clip's stored spec doubles the speed.
       await waitFor(() => expect(trimStart()).toHaveAttribute("aria-valuenow", "1.5"));
       expect(trimEnd()).toHaveAttribute("aria-valuenow", "4.5");
-      expect(within(dialog).getByRole("button", { name: "Speed, changed" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("tab", { name: "Speed, changed" })).toBeInTheDocument();
 
       // ...and back the other way: the second clip's values must not follow the first.
       rerender(<GalleryItemDialog {...props} index={0} />);
@@ -408,7 +408,7 @@ describe("GalleryItemDialog", () => {
 
       await waitFor(() => expect(trimEnd()).toHaveAttribute("aria-valuenow", "12"));
       expect(trimStart()).toHaveAttribute("aria-valuenow", "0");
-      expect(within(dialog).getByRole("button", { name: "Speed" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("tab", { name: "Speed" })).toBeInTheDocument();
     });
 
     it("restores the shape a stored crop was framed with", async () => {
@@ -432,7 +432,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem({ has_backup: true }));
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Crop/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
 
       await waitFor(() => {
         expect(within(dialog).getByRole("button", { name: "1:1" })).toHaveAttribute(
@@ -458,7 +458,7 @@ describe("GalleryItemDialog", () => {
       const { rerender } = renderWithProviders(<GalleryItemDialog {...props} />);
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Crop/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
       await user.click(within(dialog).getByRole("button", { name: "1:1" }));
       expect(within(dialog).getByRole("button", { name: "1:1" })).toHaveAttribute(
         "aria-pressed",
@@ -475,7 +475,7 @@ describe("GalleryItemDialog", () => {
           "true",
         );
       });
-      expect(within(dialog).getByRole("button", { name: /^Crop/ })).toHaveAccessibleName("Crop");
+      expect(within(dialog).getByRole("tab", { name: /^Crop/ })).toHaveAccessibleName("Crop");
     });
 
     it("puts the original back when every value is dialled to where it started", async () => {
@@ -499,7 +499,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem({ has_backup: true }));
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Speed/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await waitFor(() => {
         expect(within(dialog).getByRole("button", { name: "2x" })).toHaveAttribute(
           "aria-pressed",
@@ -580,7 +580,7 @@ describe("GalleryItemDialog", () => {
       const props = renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Speed/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await user.click(within(dialog).getByRole("button", { name: "0.5x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
@@ -612,7 +612,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Adjust/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Adjust/ }));
       await user.click(within(dialog).getByRole("tab", { name: "Warmth" }));
       fireEvent.keyDown(within(dialog).getByRole("slider", { name: "Warmth" }), {
         key: "ArrowRight",
@@ -632,7 +632,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Adjust/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Adjust/ }));
       fireEvent.keyDown(within(dialog).getByRole("slider", { name: "Exposure" }), {
         key: "ArrowRight",
       });
@@ -647,7 +647,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Speed/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await user.click(within(dialog).getByRole("button", { name: "0.5x" }));
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeEnabled();
 
@@ -697,7 +697,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Speed/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await user.click(within(dialog).getByRole("button", { name: "2x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
@@ -716,7 +716,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("button", { name: /^Speed/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await user.click(within(dialog).getByRole("button", { name: "2x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 

@@ -219,7 +219,7 @@ describe("GalleryItemDialog", () => {
         renderDialog(imageItem());
         const dialog = await openEditMode(user);
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
 
         expect(dialog.querySelector(".image-edit-stage__canvas")).toHaveStyle({
@@ -236,7 +236,7 @@ describe("GalleryItemDialog", () => {
 
         expect(stage).not.toHaveClass("image-edit-stage--turned");
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
         expect(stage).toHaveClass("image-edit-stage--turned");
 
@@ -250,7 +250,7 @@ describe("GalleryItemDialog", () => {
         renderDialog(imageItem());
         const dialog = await openEditMode(user);
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Flip horizontal" }));
 
         expect(dialog.querySelector(".image-edit-stage__canvas")).toHaveStyle({
@@ -326,7 +326,7 @@ describe("GalleryItemDialog", () => {
         const onGoTo = vi.fn<(index: number) => void>();
         renderDialog(imageItem(), { items: [imageItem(), other], index, onGoTo });
         const dialog = await openEditMode(user, index === 0 ? "sunset.png" : "other.png");
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
         await user.keyboard(`{${key}}`);
         expect(onGoTo).not.toHaveBeenCalled();
@@ -344,7 +344,7 @@ describe("GalleryItemDialog", () => {
           const user = userEvent.setup();
           const { props } = renderDialog(imageItem());
           const dialog = await openEditMode(user);
-          await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+          await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
           await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
           const leave = async () => {
             if (exit === "Escape") await user.keyboard("{Escape}");
@@ -432,7 +432,7 @@ describe("GalleryItemDialog", () => {
         const { props } = renderDialog(imageItem());
         const dialog = await openEditMode(user);
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
         await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
@@ -468,7 +468,7 @@ describe("GalleryItemDialog", () => {
         renderDialog(imageItem());
         const dialog = await openEditMode(user);
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
         await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
@@ -489,7 +489,7 @@ describe("GalleryItemDialog", () => {
         renderDialog(imageItem());
         const dialog = await openEditMode(user);
 
-        await user.click(within(dialog).getByRole("button", { name: /^Rotate$/ }));
+        await user.click(within(dialog).getByRole("tab", { name: /^Rotate$/ }));
         await user.click(within(dialog).getByRole("button", { name: "Rotate right" }));
         await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 

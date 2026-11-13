@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { formatCount } from "@/shared/lib/format";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -10,7 +12,6 @@ import { classNames } from "@/shared/lib/classNames";
 import type { TrainingModel } from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
-import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { YamlEditor } from "@/shared/ui/YamlEditor";
 
@@ -93,15 +94,13 @@ export function TrainingTemplateEditorDialog({
           </p>
         </div>
         <div className="training-template-editor__header-actions">
-          <button
-            type="button"
-            className="training-template-editor__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
             onClick={close}
-            aria-label="Close"
             disabled={checking}
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </div>
       </header>
 
@@ -141,15 +140,9 @@ export function TrainingTemplateEditorDialog({
           </div>
         </div>
         <div className="dialog__actions training-template-editor__footer-actions">
-          <button
-            type="button"
-            className="training-template-editor__reset"
-            onClick={handleReset}
-            disabled={checking || !edited}
-          >
-            <Icon icon={iconRotateCcw} className="training-template-editor__reset-icon" />
+          <Button icon={iconRotateCcw} onClick={handleReset} disabled={checking || !edited}>
             Reset
-          </button>
+          </Button>
           <DialogActions
             confirmLabel="Use for this run"
             busyLabel="Checking..."

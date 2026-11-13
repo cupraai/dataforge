@@ -64,24 +64,6 @@
     text-align: right;
   }
 
-  &__zoom-fit {
-    @include control-interactive;
-    @include inline-flex-center;
-    @include icon-scope-sm;
-    gap: 0.25rem;
-    height: 1.5rem;
-    padding: 0 0.5rem;
-    border: 0;
-    border-radius: var(--radius-pill);
-    @include fade-bg(var(--media-key-bg));
-    color: var(--media-text);
-    font: inherit;
-
-    &:hover {
-      @include fade-bg(var(--media-key-border));
-    }
-  }
-
   &__img--covered {
     visibility: hidden;
   }

@@ -1,3 +1,5 @@
+import { TextInput } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
@@ -68,7 +70,6 @@ export function ResizeDialog({
   );
   const megapixelsId = useId();
   const multipleId = useId();
-  const resetId = useId();
   const errorId = useId();
 
   const parsedMegapixels = parseMegapixels(megapixels);
@@ -151,10 +152,10 @@ export function ResizeDialog({
             <label htmlFor={megapixelsId} className="dialog__label">
               Megapixels
             </label>
-            <input
+            <TextInput
               id={megapixelsId}
               type="number"
-              className="dialog__input resize-dialog__number"
+              className="resize-dialog__number"
               value={megapixels}
               min={0.1}
               max={MAX_RESIZE_MEGAPIXELS}
@@ -171,10 +172,10 @@ export function ResizeDialog({
             <label htmlFor={multipleId} className="dialog__label">
               Multiple of (px)
             </label>
-            <input
+            <TextInput
               id={multipleId}
               type="number"
-              className="dialog__input resize-dialog__number"
+              className="resize-dialog__number"
               value={multiple}
               min={1}
               max={MAX_RESIZE_MULTIPLE}
@@ -209,27 +210,17 @@ export function ResizeDialog({
         disabled={busy || reset}
         onChange={setFrameRate}
       />
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={resetId}>
-          <input
-            id={resetId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={reset}
-            onChange={(event) => {
-              setReset(event.target.checked);
-              setError(null);
-            }}
-            disabled={busy}
-          />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Reset size to the original</span>
-        </label>
-        <p className="dialog__hint">
-          Clears earlier resizes and manual scaling without applying the budget. Crops, masks, frame
-          rates and all other edits are kept.
-        </p>
-      </div>
+      <Checkbox
+        className="dialog__field"
+        label="Reset size to the original"
+        checked={reset}
+        disabled={busy}
+        onChange={(checked) => {
+          setReset(checked);
+          setError(null);
+        }}
+        hint="Clears earlier resizes and manual scaling without applying the budget. Crops, masks, frame rates and all other edits are kept."
+      />
     </GuardedDialog>
   );
 }

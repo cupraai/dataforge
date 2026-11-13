@@ -11,121 +11,10 @@ $ruler-height: 1.75rem;
 $clip-head-height: 1.0625rem;
 $lane-inset: 4px;
 
-@mixin editor-range-track($track) {
-  height: $track;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(
-    to right,
-    var(--range-track) var(--fill-from, 0%),
-    var(--range-fill) var(--fill-from, 0%),
-    var(--range-fill) var(--fill-to, 0%),
-    var(--range-track) var(--fill-to, 0%)
-  );
-}
-
-@mixin editor-range-thumb($thumb) {
-  width: $thumb;
-  height: $thumb;
-  border: 0;
-  border-radius: 50%;
-  background: var(--media-text);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--text) 28%, transparent),
-    var(--elevation-1);
-  transition: transform var(--transition);
-}
-
-/// The editor's range inputs: a thin track painted from `--fill-from` to `--fill-to`, and a
-/// light thumb that reads on both themes.
-@mixin editor-range($track: 4px, $thumb: 12px) {
-  --range-track: color-mix(in srgb, var(--text) 14%, transparent);
-  --range-fill: var(--accent);
-  appearance: none;
-  height: $thumb + 4px;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-
-  &::-webkit-slider-runnable-track {
-    @include editor-range-track($track);
-  }
-
-  &::-moz-range-track {
-    @include editor-range-track($track);
-  }
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    margin-top: calc((#{$track} - #{$thumb}) / 2);
-    @include editor-range-thumb($thumb);
-  }
-
-  &::-moz-range-thumb {
-    @include editor-range-thumb($thumb);
-  }
-
-  &:hover::-webkit-slider-thumb {
-    transform: scale(1.15);
-  }
-
-  &:hover::-moz-range-thumb {
-    transform: scale(1.15);
-  }
-
-  &:focus-visible {
-    outline: none;
-
-    &::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px var(--accent-border);
-    }
-
-    &::-moz-range-thumb {
-      box-shadow: 0 0 0 3px var(--accent-border);
-    }
-  }
-
-  &:disabled {
-    @include disabled-state;
-  }
-}
-
-/// A quiet square button that lights up on hover; the accent marks it pressed.
-@mixin editor-tool($size: 1.875rem) {
-  @include inline-flex-center;
-  @include control-interactive;
-  flex-shrink: 0;
-  width: $size;
-  height: $size;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 0.375rem;
-  @include fade-bg(transparent);
-  color: var(--text-muted);
-  line-height: 1;
-  --icon-size: #{$icon-size-base};
-  --icon-stroke: 1.75px;
-  @include btn-disabled;
-
-  &:hover:not(:disabled) {
-    color: var(--text);
-    @include fade-bg(var(--surface-hover));
-  }
-}
-
-@mixin editor-solid-accent {
-  @include fade-bg(var(--accent));
-  border: 1px solid transparent;
-  color: var(--bg);
-
-  &:hover:not(:disabled) {
-    @include fade-bg(color-mix(in srgb, var(--accent) 86%, var(--text)));
-  }
-}
-
 /// A well behind a group of controls, so the group reads as one thing.
 @mixin editor-well {
   background: color-mix(in srgb, var(--text) 5%, transparent);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
 }
 
 // Fills the window; the gallery stays mounted underneath with its scroll position held.
@@ -278,21 +167,12 @@ $lane-inset: 4px;
     background: var(--border);
   }
 
-  &__back {
-    @include editor-tool;
-    width: auto;
-    gap: 0.375rem;
-    padding: 0 0.625rem 0 0.5rem;
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-  }
-
   &__project-mark {
     @include flex-center;
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: var(--accent-soft);
     color: var(--accent);
   }
@@ -308,7 +188,7 @@ $lane-inset: 4px;
     margin-left: -0.375rem;
     padding: 0.0625rem 0.375rem;
     border: 1px solid transparent;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text);
     font: inherit;
@@ -364,7 +244,7 @@ $lane-inset: 4px;
     @include control-interactive;
     padding: 0 0.25rem;
     border: none;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     @include fade-bg(transparent);
     color: var(--accent);
     font: inherit;
@@ -377,25 +257,7 @@ $lane-inset: 4px;
   }
 
   &__format {
-    @include control-interactive;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 1.875rem;
-    padding: 0 0.875rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    @include fade-bg(var(--bg-elevated));
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-    white-space: nowrap;
     @include tabular-nums;
-
-    &:hover {
-      border-color: var(--accent-border);
-      color: var(--text);
-    }
   }
 
   &__format-dot {
@@ -413,27 +275,13 @@ $lane-inset: 4px;
     @include editor-well;
   }
 
-  &__export-btn {
-    @include inline-flex-center(0.375rem);
-    @include control-interactive;
-    @include editor-solid-accent;
-    flex-shrink: 0;
-    height: 2rem;
-    padding: 0 0.875rem;
-    border-radius: 0.5rem;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    @include icon-scope-sm;
-    @include btn-disabled;
-  }
-
   &__export {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
     max-width: 24rem;
-    height: 1.875rem;
+    height: var(--control-height-sm);
     padding: 0 0.25rem 0 0.75rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
@@ -470,170 +318,15 @@ $lane-inset: 4px;
   &__export-bar {
     flex-shrink: 0;
     width: 3.5rem;
-    @include progress-track;
-
-    span {
-      display: block;
-      height: 100%;
-      @include progress-bar-fill;
-    }
   }
 
   &__menu-panel {
-    @include dropdown-menu-surface(14rem);
-    gap: 0.125rem;
-  }
-
-  &__menu-item {
-    @include dropdown-menu-option;
-    @include btn-disabled;
-
-    .lucide {
-      @include dropdown-menu-option-icon;
-    }
-
-    &--danger:hover:not(:disabled) {
-      color: var(--danger);
-      @include fade-bg(var(--danger-soft));
-    }
-  }
-
-  &__menu-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  &__menu-hint {
-    color: var(--text-subtle);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-normal);
-  }
-
-  &__menu-divider {
-    height: 1px;
-    margin: 0.25rem 0.375rem;
-    background: var(--border);
+    min-width: min(14rem, calc(100vw - 2rem));
   }
 
   // Shared controls
   &__spacer {
     flex: 1;
-  }
-
-  &__tool {
-    @include editor-tool;
-
-    &--labelled {
-      width: auto;
-      gap: 0.375rem;
-      padding: 0 0.5rem;
-      font-size: var(--text-xs);
-      font-weight: var(--font-medium);
-    }
-
-    &--pressed,
-    &--pressed:hover:not(:disabled) {
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
-  }
-
-  &__primary-btn {
-    @include inline-flex-center(0.375rem);
-    @include control-interactive;
-    @include editor-solid-accent;
-    flex-shrink: 0;
-    height: 1.875rem;
-    padding: 0 0.75rem;
-    border-radius: 0.5rem;
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    white-space: nowrap;
-    @include icon-scope-sm;
-    @include btn-disabled;
-  }
-
-  &__secondary-btn {
-    @include inline-flex-center(0.375rem);
-    @include control-interactive;
-    height: 1.75rem;
-    padding: 0 0.625rem;
-    border: 1px solid var(--border);
-    border-radius: 0.4375rem;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-    white-space: nowrap;
-    @include icon-scope-sm;
-    @include btn-disabled;
-
-    &:hover:not(:disabled) {
-      border-color: var(--accent-border);
-      color: var(--text);
-      @include fade-bg(var(--surface-hover));
-    }
-
-    &--danger:hover:not(:disabled) {
-      border-color: var(--danger-border);
-      color: var(--danger);
-      @include fade-bg(var(--danger-soft));
-    }
-  }
-
-  &__text-btn {
-    @include text-btn;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3125rem;
-    padding: 0.25rem 0.5rem;
-    font-size: var(--text-xs);
-    white-space: nowrap;
-    @include icon-scope-sm;
-  }
-
-  &__icon-btn {
-    @include icon-btn-xs;
-  }
-
-  &__segmented {
-    display: inline-flex;
-    flex-shrink: 0;
-    gap: 0.125rem;
-    padding: 0.125rem;
-    @include editor-well;
-
-    &--wide {
-      display: flex;
-
-      .video-editor__segment {
-        flex: 1;
-      }
-    }
-  }
-
-  &__segment {
-    @include control-interactive;
-    height: 1.5rem;
-    padding: 0 0.75rem;
-    border: none;
-    border-radius: 0.375rem;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-    @include btn-disabled;
-
-    &:hover:not(:disabled) {
-      color: var(--text);
-    }
-
-    &--on,
-    &--on:hover:not(:disabled) {
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
   }
 
   &__workarea {
@@ -741,41 +434,12 @@ $lane-inset: 4px;
     margin-left: -0.25rem;
   }
 
-  &__tab {
-    position: relative;
-    padding: 0 0.5rem;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font: inherit;
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    cursor: pointer;
-    transition: color var(--transition);
-    @include focus-ring;
-
-    &::after {
-      content: "";
-      position: absolute;
-      right: 0.375rem;
-      bottom: -1px;
-      left: 0.375rem;
-      height: 2px;
-      border-radius: 1px;
-      background: transparent;
-    }
-
-    &:hover {
-      color: var(--text);
-    }
-
-    &--active {
-      color: var(--text);
-
-      &::after {
-        background: var(--accent);
-      }
-    }
+  // The tab panel; the list or project body inside it scrolls.
+  &__browser-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
   }
 
   &__browser-body {
@@ -791,78 +455,6 @@ $lane-inset: 4px;
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
-  }
-
-  &__search {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    height: 1.875rem;
-    padding: 0 0.25rem 0 0.5rem;
-    border: 1px solid transparent;
-    border-radius: 0.4375rem;
-    background: color-mix(in srgb, var(--text) 5%, transparent);
-    color: var(--text-subtle);
-    transition: border-color var(--transition);
-    @include icon-scope-sm;
-
-    &:focus-within {
-      border-color: var(--accent-border);
-    }
-
-    input {
-      flex: 1;
-      min-width: 0;
-      height: 100%;
-      border: 0;
-      background: transparent;
-      color: var(--text);
-      font-size: var(--text-xs);
-      outline: none;
-
-      &::-webkit-search-cancel-button {
-        display: none;
-      }
-    }
-  }
-
-  &__filters {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  &__filter {
-    @include inline-flex-center(0.3125rem);
-    @include control-interactive;
-    flex: 1;
-    height: 1.5rem;
-    padding: 0 0.375rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-semibold);
-    white-space: nowrap;
-    @include btn-disabled;
-
-    &:hover:not(:disabled) {
-      color: var(--text);
-      @include fade-bg(var(--surface-hover));
-    }
-
-    &--on,
-    &--on:hover:not(:disabled) {
-      border-color: var(--accent-border);
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
-  }
-
-  &__filter-count {
-    opacity: 0.7;
-    font-weight: var(--font-medium);
-    @include tabular-nums;
   }
 
   &__media-list {
@@ -892,7 +484,7 @@ $lane-inset: 4px;
     display: flex;
     align-items: center;
     min-width: 0;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
   }
 
   &__media-open {
@@ -903,7 +495,7 @@ $lane-inset: 4px;
     min-width: 0;
     padding: 0.25rem;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     @include fade-bg(transparent);
     color: inherit;
     text-align: left;
@@ -928,7 +520,7 @@ $lane-inset: 4px;
     display: block;
     flex-shrink: 0;
     overflow: hidden;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: var(--bg-media);
     aspect-ratio: 16 / 9;
 
@@ -958,7 +550,7 @@ $lane-inset: 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     color: var(--media-text);
     pointer-events: none;
     --icon-size: 0.625rem;
@@ -1013,17 +605,6 @@ $lane-inset: 4px;
     @include tabular-nums;
   }
 
-  &__media-add {
-    @include inline-flex-center;
-    @include control-interactive;
-    flex-shrink: 0;
-    width: 1.5rem;
-    height: 1.5rem;
-    padding: 0;
-    border-radius: 50%;
-    @include icon-scope-sm;
-  }
-
   // Tiles: the + floats on the picture and shows on hover; the name sits under it.
   &__media-list--grid &__media-open {
     flex-direction: column;
@@ -1046,7 +627,6 @@ $lane-inset: 4px;
   }
 
   &__media-list--grid &__media-add {
-    @include editor-solid-accent;
     box-shadow: var(--elevation-1);
     opacity: 0;
     transition:
@@ -1076,15 +656,6 @@ $lane-inset: 4px;
 
   &__media-list--list &__media-add {
     margin-right: 0.25rem;
-    border: 1px solid var(--border);
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-
-    &:hover {
-      border-color: var(--accent);
-      color: var(--bg);
-      @include fade-bg(var(--accent));
-    }
   }
 
   &__browser-hint,
@@ -1100,25 +671,6 @@ $lane-inset: 4px;
     margin-top: auto;
     padding-top: 0.25rem;
     text-align: center;
-  }
-
-  &__empty {
-    @include flex-center(column, 0.5rem);
-    padding: 1.5rem 0.75rem;
-    color: var(--text-subtle);
-    text-align: center;
-    --icon-size: #{$icon-size-lg};
-    --icon-stroke: 1.5px;
-
-    .lucide {
-      opacity: 0.6;
-    }
-
-    p {
-      margin: 0;
-      font-size: var(--text-xs);
-      line-height: var(--leading-normal);
-    }
   }
 
   &__project-list {
@@ -1141,7 +693,7 @@ $lane-inset: 4px;
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     @include fade-bg(transparent);
     color: inherit;
     text-align: left;
@@ -1165,7 +717,7 @@ $lane-inset: 4px;
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: var(--accent-soft);
     color: var(--accent);
     @include icon-scope-sm;
@@ -1315,7 +867,7 @@ $lane-inset: 4px;
     gap: 0.375rem;
     padding: 0.375rem;
     border: 1px solid var(--media-scrim-border);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: var(--media-scrim);
     pointer-events: none;
   }
@@ -1417,9 +969,11 @@ $lane-inset: 4px;
       display: inline-flex;
       padding: 0;
       border: 0;
+      border-radius: var(--radius-pill);
       background: none;
       color: inherit;
       cursor: pointer;
+      @include focus-ring;
     }
   }
 
@@ -1475,7 +1029,6 @@ $lane-inset: 4px;
 
   &__scrubber {
     width: 100%;
-    @include editor-range(4px, 12px);
   }
 
   &__source-scrub {
@@ -1489,7 +1042,7 @@ $lane-inset: 4px;
     height: 0.75rem;
     transform: translateY(-50%);
     border: 1px solid var(--accent-border);
-    border-radius: 0.1875rem;
+    border-radius: var(--radius-xs);
     background: var(--accent-soft);
     pointer-events: none;
   }
@@ -1518,36 +1071,8 @@ $lane-inset: 4px;
     background: var(--border);
   }
 
-  &__play {
-    width: 2.25rem;
-    height: 2.25rem;
-    margin: 0 0.25rem;
-    border-radius: 50%;
-    @include editor-solid-accent;
-  }
-
-  &__mark {
-    @include control-interactive;
-    height: 1.625rem;
-    padding: 0 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-
-    & + & {
-      margin-left: 0.25rem;
-    }
-
-    &:hover {
-      border-color: var(--accent-border);
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
+  &__mark + &__mark {
+    margin-left: 0.25rem;
   }
 
   &__timecode {
@@ -1658,25 +1183,12 @@ $lane-inset: 4px;
     gap: 0.125rem;
   }
 
-  &__header-action {
-    @include icon-btn-xs;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 0.4375rem;
-
-    &--danger:hover:not(:disabled) {
-      border-color: var(--danger-border);
-      color: var(--danger);
-      @include fade-bg(var(--danger-soft));
-    }
-  }
-
   &__clip-icon {
     @include flex-center;
     flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--kind-color) 18%, transparent);
     color: var(--kind-color);
   }
@@ -1722,45 +1234,24 @@ $lane-inset: 4px;
     background: var(--bg-elevated);
   }
 
-  &__section-toggle {
+  // The heading holds the disclosure button, which fills the header row up to the action.
+  &__section-heading,
+  &__subgroup-heading {
     display: flex;
     flex: 1;
-    align-items: center;
-    gap: 0.375rem;
     min-width: 0;
     height: 100%;
+    margin: 0;
+  }
+
+  &__section-toggle,
+  &__subgroup-toggle {
+    flex: 1;
+    height: 100%;
+  }
+
+  &__section-toggle {
     padding: 0 0.375rem;
-    border: none;
-    background: transparent;
-    color: var(--text-subtle);
-    cursor: pointer;
-    @include focus-ring;
-
-    &:hover {
-      color: var(--text);
-    }
-  }
-
-  &__section-chevron {
-    @include icon-size-sm;
-    transform: rotate(-90deg);
-    transition: transform var(--transition);
-  }
-
-  &__section--open > &__section-header &__section-chevron,
-  &__subgroup--open > &__subgroup-header &__section-chevron {
-    transform: none;
-  }
-
-  &__section-icon {
-    @include icon-size-sm;
-    flex-shrink: 0;
-  }
-
-  &__section-title {
-    @include section-label;
-    @include truncate;
-    color: inherit;
   }
 
   &__section-changed {
@@ -1792,32 +1283,6 @@ $lane-inset: 4px;
     align-items: center;
     gap: 0.25rem;
     height: 1.25rem;
-  }
-
-  &__subgroup-toggle {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    gap: 0.375rem;
-    min-width: 0;
-    height: 100%;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: var(--text-subtle);
-    cursor: pointer;
-    @include focus-ring;
-
-    &:hover {
-      color: var(--text);
-    }
-  }
-
-  &__subgroup-title {
-    margin: 0;
-    color: inherit;
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
   }
 
   &__subgroup-body {
@@ -1879,7 +1344,7 @@ $lane-inset: 4px;
     height: 1.375rem;
     padding: 0 0.3125rem;
     border: 1px solid transparent;
-    border-radius: 0.3125rem;
+    border-radius: var(--radius-xs);
     background: transparent;
     color: var(--text-subtle);
     font-family: var(--font-mono);
@@ -1921,10 +1386,9 @@ $lane-inset: 4px;
     position: relative;
     display: flex;
 
-    input {
+    .slider {
       flex: 1;
       width: 100%;
-      @include editor-range(4px, 14px);
     }
 
     // The resting point of a control that rests mid-scale, such as Rotation.
@@ -1968,20 +1432,17 @@ $lane-inset: 4px;
     }
   }
 
+  // Accent once a property is animated; filled on a frame that holds a keyframe.
   &__key-btn {
-    @include icon-btn-xs;
     color: var(--text-subtle);
 
-    &--animated {
+    &--animated,
+    &--on {
       color: var(--accent);
     }
 
-    &--on {
-      color: var(--accent);
-
-      svg {
-        fill: currentColor;
-      }
+    &--on svg {
+      fill: currentColor;
     }
   }
 
@@ -2061,63 +1522,11 @@ $lane-inset: 4px;
     }
   }
 
-  &__number {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--text-subtle);
-
-    input {
-      width: 4.5rem;
-      height: 1.625rem;
-      padding: 0 0.375rem;
-      border: 1px solid var(--border);
-      border-radius: 0.375rem;
-      background: color-mix(in srgb, var(--text) 4%, transparent);
-      color: var(--text);
-      font-size: var(--text-xs);
-      text-align: right;
-      @include tabular-nums;
-      @include focus-ring;
-    }
-  }
-
-  &__chips {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.25rem;
-  }
-
-  &__chip {
-    @include control-interactive;
-    height: 1.5rem;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-medium);
-    @include tabular-nums;
-
-    &:hover {
-      color: var(--text);
-      @include fade-bg(var(--surface-hover));
-    }
-
-    &--on,
-    &--on:hover {
-      border-color: var(--accent-border);
-      color: var(--accent);
-      @include fade-bg(var(--accent-soft));
-    }
-  }
-
   &__textarea {
     width: 100%;
     padding: 0.375rem 0.5rem;
     border: 1px solid var(--border);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--text) 4%, transparent);
     color: var(--text);
     font: inherit;
@@ -2138,7 +1547,7 @@ $lane-inset: 4px;
     gap: 0.5rem;
     padding: 0.25rem 0.5rem 0.25rem 0.25rem;
     border: 1px solid var(--border);
-    border-radius: 0.4375rem;
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
     font-size: var(--text-xs);
     cursor: pointer;
@@ -2148,7 +1557,7 @@ $lane-inset: 4px;
       height: 1.375rem;
       padding: 0;
       border: 0;
-      border-radius: 0.3125rem;
+      border-radius: var(--radius-xs);
       background: none;
       cursor: pointer;
 
@@ -2158,12 +1567,12 @@ $lane-inset: 4px;
 
       &::-webkit-color-swatch {
         border: 1px solid var(--border);
-        border-radius: 0.3125rem;
+        border-radius: var(--radius-xs);
       }
 
       &::-moz-color-swatch {
         border: 1px solid var(--border);
-        border-radius: 0.3125rem;
+        border-radius: var(--radius-xs);
       }
     }
   }
@@ -2178,28 +1587,7 @@ $lane-inset: 4px;
   }
 
   &__auto-btn {
-    @include inline-flex-center(0.375rem);
-    @include control-interactive;
     align-self: flex-start;
-    height: 1.75rem;
-    padding: 0 0.75rem;
-    border: 1px solid var(--accent-border);
-    border-radius: 0.4375rem;
-    @include fade-bg(var(--accent-soft));
-    color: var(--accent);
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    @include icon-scope-sm;
-    @include btn-disabled;
-
-    &:hover:not(:disabled) {
-      @include fade-bg(var(--accent-hover));
-    }
-
-    &--on,
-    &--on:hover:not(:disabled) {
-      @include editor-solid-accent;
-    }
   }
 
   &__font {
@@ -2218,18 +1606,15 @@ $lane-inset: 4px;
     min-width: 0;
   }
 
-  &__font-trigger,
-  &__font-style {
-    height: 1.875rem;
+  // A listbox trigger, as tall as the sm style select beside it.
+  &__font-trigger {
+    height: var(--control-height-sm);
     border: 1px solid var(--border);
-    border-radius: 0.4375rem;
-    background: color-mix(in srgb, var(--text) 4%, transparent);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
     color: var(--text);
     font-size: var(--text-xs);
     @include focus-ring;
-  }
-
-  &__font-trigger {
     display: flex;
     align-items: center;
     gap: 0.375rem;
@@ -2260,9 +1645,8 @@ $lane-inset: 4px;
 
   &__font-style {
     flex-shrink: 0;
+    width: auto;
     max-width: 45%;
-    padding: 0 0.375rem;
-    cursor: pointer;
   }
 
   &__font-missing {
@@ -2302,7 +1686,7 @@ $lane-inset: 4px;
     gap: 0.375rem;
     min-height: 2rem;
     padding: 0 0.5rem 0 0.25rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     color: var(--text);
     cursor: pointer;
 
@@ -2358,7 +1742,7 @@ $lane-inset: 4px;
     margin: 0.75rem;
     padding: 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--text) 3%, transparent);
   }
 
@@ -2472,7 +1856,6 @@ $lane-inset: 4px;
 
   &__zoom {
     width: 6.5rem;
-    @include editor-range(3px, 11px);
   }
 
   &__range-chip {
@@ -2526,7 +1909,7 @@ $lane-inset: 4px;
     padding: 0.375rem 0.375rem 0.375rem 0.75rem;
     transform: translateX(-50%);
     border: 1px solid var(--danger-border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
     background: var(--bg-card);
     color: var(--text);
     font-size: var(--text-xs);
@@ -2584,15 +1967,10 @@ $lane-inset: 4px;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+  }
 
-    select {
-      height: var(--control-height-xs);
-      border: 1px solid var(--border);
-      border-radius: 0.375rem;
-      background: var(--bg-elevated);
-      color: var(--text);
-      font-size: var(--text-xs);
-    }
+  &__relink-select {
+    width: auto;
   }
 }
 
@@ -2863,7 +2241,7 @@ $lane-inset: 4px;
     min-width: 0;
     padding: 0 0.25rem;
     border: none;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     background: transparent;
     color: var(--text);
     font-size: var(--text-xs);
@@ -2880,7 +2258,7 @@ $lane-inset: 4px;
     height: 1.25rem;
     padding: 0 0.25rem;
     border: 1px solid var(--accent-border);
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     background: var(--bg);
     color: var(--text);
     font-size: var(--text-xs);
@@ -2891,13 +2269,6 @@ $lane-inset: 4px;
     display: flex;
     flex-shrink: 0;
     gap: 0.125rem;
-
-    .video-editor__tool {
-      width: 1.375rem;
-      height: 1.375rem;
-      border-radius: 0.3125rem;
-      @include icon-scope-sm;
-    }
   }
 
   // Ordering and removal stay out of sight until the header is pointed at or tabbed into.
@@ -2919,42 +2290,36 @@ $lane-inset: 4px;
     padding-left: 0;
   }
 
-  .video-editor__tool.video-timeline__fold {
-    flex: none;
-    width: 1.125rem;
-    height: 1.375rem;
+  &__fold {
     margin-left: -0.25rem;
-    border-radius: 0.3125rem;
-    color: var(--text-subtle);
-    @include icon-scope-sm;
   }
 
   // Pressed toggles say what they do: mute in red, solo in amber, hide and lock in grey.
-  &__toggle.video-editor__tool--pressed,
-  &__toggle.video-editor__tool--pressed:hover:not(:disabled) {
+  &__toggle[aria-pressed="true"],
+  &__toggle[aria-pressed="true"]:hover:not(:disabled) {
     color: var(--text);
     @include fade-bg(color-mix(in srgb, var(--text) 14%, transparent));
   }
 
-  &__toggle--mute.video-editor__tool--pressed,
-  &__toggle--mute.video-editor__tool--pressed:hover:not(:disabled) {
+  &__toggle--mute[aria-pressed="true"],
+  &__toggle--mute[aria-pressed="true"]:hover:not(:disabled) {
     color: var(--danger);
     @include fade-bg(var(--danger-soft));
   }
 
-  &__toggle--solo.video-editor__tool--pressed,
-  &__toggle--solo.video-editor__tool--pressed:hover:not(:disabled) {
+  &__toggle--solo[aria-pressed="true"],
+  &__toggle--solo[aria-pressed="true"]:hover:not(:disabled) {
     color: var(--warning);
     @include fade-bg(var(--warning-border));
   }
 
   // Sync lock is on by default, so it stays quiet when on and speaks up once turned off.
-  &__toggle--sync.video-editor__tool--pressed {
+  &__toggle--sync[aria-pressed="true"] {
     color: var(--text-subtle);
     @include fade-bg(transparent);
   }
 
-  &__toggle--sync:not(.video-editor__tool--pressed) {
+  &__toggle--sync[aria-pressed="false"] {
     color: var(--warning);
   }
 
@@ -3059,7 +2424,7 @@ $lane-inset: 4px;
     flex-direction: column;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--clip-color) 60%, transparent);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--clip-color) 20%, var(--bg-elevated));
     cursor: grab;
     user-select: none;
@@ -3147,7 +2512,7 @@ $lane-inset: 4px;
     flex-shrink: 0;
     margin-left: auto;
     padding: 0.0625rem 0.25rem;
-    border-radius: 0.1875rem;
+    border-radius: var(--radius-xs);
     background: var(--media-scrim);
     color: var(--media-warning);
     font-size: var(--text-3xs);
@@ -3305,7 +2670,7 @@ $lane-inset: 4px;
     top: $lane-inset;
     bottom: $lane-inset;
     z-index: 2;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     background:
       linear-gradient(
         to top right,
@@ -3329,7 +2694,7 @@ $lane-inset: 4px;
     z-index: 2;
     padding: 0;
     border: 1px solid var(--media-outline);
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     background:
       linear-gradient(
         to top right,
@@ -3547,7 +2912,7 @@ $lane-inset: 4px;
     right: 0.25rem;
     bottom: 0.25rem;
     padding: 0.125rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-xs);
     background: var(--media-scrim);
     color: var(--media-text);
     @include icon-size-sm;
@@ -3591,7 +2956,7 @@ $lane-inset: 4px;
   gap: 0.375rem;
   padding: 0.125rem 0.25rem;
   border: none;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-xs);
   @include fade-bg(transparent);
   color: var(--text-subtle);
   font-family: var(--font-mono);
@@ -3847,23 +3212,8 @@ $lane-inset: 4px;
     @include tabular-nums;
   }
 
-  &__restore {
-    @include pill-btn-compact(default);
-    font-size: var(--text-xs);
-  }
-
   &__delete {
-    @include icon-btn-sm;
     grid-column: 4;
-    border-color: transparent;
-    @include fade-bg(transparent);
-    color: var(--text-muted);
-
-    &:hover:not(:disabled) {
-      color: var(--danger);
-      border-color: var(--danger-border);
-      @include fade-bg(var(--danger-soft));
-    }
   }
 }
 
@@ -3873,7 +3223,7 @@ $lane-inset: 4px;
   height: var(--control-height-xs);
   padding: 0 0.375rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   color: var(--text);
   font-family: var(--font-mono);
@@ -3928,20 +3278,9 @@ $lane-inset: 4px;
 }
 
 .video-editor__grades-select,
-.video-editor__easing-select,
 .video-editor__grades-name {
   flex: 1;
   min-width: 0;
-  height: var(--control-height-xs);
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  background: var(--bg-elevated);
-  color: var(--text);
-  font-size: var(--text-xs);
-}
-
-.video-editor__grades-name {
-  padding: 0 0.375rem;
 }
 
 .video-editor__hint--error {
@@ -4012,7 +3351,7 @@ $lane-inset: 4px;
   height: var(--control-height-xs);
   padding: 0 0.375rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   color: var(--text);
   font: inherit;

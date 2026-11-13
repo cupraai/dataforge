@@ -21,6 +21,7 @@ version heading when a minor or major version is cut.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
 - **Save** in Settings no longer closes the dialog: the saved values show as saved and you can keep editing.
 - Settings: **Storage** and **Data & history** are now one section, **Data & storage**, with **History** and **Storage** tabs.
+- Buttons, tabs, menus, checkboxes, form fields, dropdowns, sliders, progress bars, folding sections and empty lists look and behave the same across the gallery, dialogs and the video editor. Menus can be moved through with the arrow keys, and the editing tools are tabs that screen readers announce as such.
 
 ## 0.13.0 - 2026-11-10
 

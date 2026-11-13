@@ -88,13 +88,13 @@ describe("JobCard", () => {
   );
 
   it("shows a spinner on the cancel button while cancellation is in flight", () => {
-    const { container } = renderWithQueryClient(
+    renderWithQueryClient(
       <JobCard job={runningJob} onCancel={vi.fn<(jobId: string) => void>()} cancelling />,
     );
 
     const cancelButton = screen.getByRole("button", { name: "Cancel job for Photos" });
     expect(cancelButton).toBeDisabled();
-    expect(container.querySelector(".job-card__cancel-icon--spin")).toBeInTheDocument();
+    expect(cancelButton.querySelector(".app-icon--spin")).toBeInTheDocument();
   });
 
   it("names the workflow run a job belongs to and its step", () => {

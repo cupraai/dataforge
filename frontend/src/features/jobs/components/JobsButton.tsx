@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useJobs } from "@/features/jobs/context/JobsContext";
 import { iconBot } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
@@ -30,8 +31,8 @@ export function JobsButton() {
 
   return (
     <Tooltip content={tooltip}>
-      <button
-        type="button"
+      <Button
+        iconOnly
         className={classNames(
           "jobs-button",
           running && "jobs-button--running",
@@ -43,7 +44,7 @@ export function JobsButton() {
         aria-controls={drawerOpen ? "jobs-dialog-panel" : undefined}
       >
         {/* Running animates the robot; the only badge is the count of unseen finished jobs. */}
-        <Icon icon={iconBot} className="jobs-button__icon" />
+        <Icon icon={iconBot} className="button__icon jobs-button__icon" />
         {unseen && (
           <span
             className={classNames(
@@ -55,7 +56,7 @@ export function JobsButton() {
             {unseenCount > 99 ? "99+" : unseenCount}
           </span>
         )}
-      </button>
+      </Button>
     </Tooltip>
   );
 }

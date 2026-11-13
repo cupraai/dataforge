@@ -1,13 +1,11 @@
+import { IconButton } from "@/shared/ui/IconButton";
 import { useQuery } from "@tanstack/react-query";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
 import { DRIVES_REFRESH_MS, driveIcon, listDrives } from "@/features/folder/lib/drives";
 import { folderRootsQueryOptions } from "@/features/folder/lib/folderQuery";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconHardDrive } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
-import { Icon } from "@/shared/ui/Icon";
-import { Tooltip } from "@/shared/ui/Tooltip";
+import { Menu, MenuItem } from "@/shared/ui/Menu";
 
 interface BreadcrumbDriveMenuProps {
   /** Drive root the open folder is on, as `C:\`. */
@@ -16,7 +14,8 @@ interface BreadcrumbDriveMenuProps {
 }
 
 export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriveMenuProps) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { close, rootRef, triggerProps } = menu;
   const prefetch = useFolderPrefetch();
 
   // Polled, not read on open: whether the button shows at all depends on the list.
@@ -33,56 +32,37 @@ export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriv
 
   return (
     <div ref={rootRef} className="breadcrumbs__menu">
-      <Tooltip content="Switch drive">
-        <button
-          type="button"
-          className="breadcrumbs__explorer"
-          aria-label="Switch drive"
-          {...triggerProps}
-        >
-          <Icon icon={iconHardDrive} className="breadcrumbs__explorer-icon" />
-        </button>
-      </Tooltip>
+      <IconButton
+        icon={iconHardDrive}
+        label="Switch drive"
+        size="sm"
+        variant="ghost"
+        {...triggerProps}
+      />
 
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        placement="bottom-start"
-        id={menuId}
-        className="breadcrumbs__menu-panel"
-        role="menu"
-        label="Drives"
-      >
+      <Menu menu={menu} label="Drives" placement="bottom-start" className="breadcrumbs__menu-panel">
         {drives.map((drive) => {
           const isActive = drive.path === currentDrive;
           const name = drive.label ? `${drive.name} ${drive.label}` : drive.name;
           return (
-            <button
+            <MenuItem
               key={drive.path}
-              type="button"
-              role="menuitem"
-              className={classNames(
-                "breadcrumbs__menu-option",
-                isActive && "breadcrumbs__menu-option--active",
-              )}
-              aria-current={isActive ? "true" : undefined}
+              icon={driveIcon(drive.kind)}
+              label={
+                <>
+                  {drive.name}
+                  {drive.label && <span className="breadcrumbs__drive-label"> {drive.label}</span>}
+                </>
+              }
+              current={isActive}
               aria-label={name}
               title={name}
-              onClick={() => handleSelect(drive.path)}
+              onSelect={() => handleSelect(drive.path)}
               {...prefetch(drive.path)}
-            >
-              <Icon icon={driveIcon(drive.kind)} className="breadcrumbs__menu-option-icon" />
-              <span className="breadcrumbs__menu-option-label">
-                {drive.name}
-                {drive.label && (
-                  <span className="breadcrumbs__menu-option-detail"> {drive.label}</span>
-                )}
-              </span>
-            </button>
+            />
           );
         })}
-      </AnchoredLayer>
+      </Menu>
     </div>
   );
 }

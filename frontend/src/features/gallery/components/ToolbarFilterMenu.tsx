@@ -1,4 +1,5 @@
-import { useId, useState } from "react";
+import { Button } from "@/shared/ui/Button";
+import { useState } from "react";
 import { FilterRangesDialog } from "@/features/gallery/components/FilterRangesDialog";
 import {
   FILE_FILTER_OPTIONS,
@@ -19,8 +20,7 @@ import {
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconFilter, iconRulerDimensionLine, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
-import { Icon } from "@/shared/ui/Icon";
+import { Menu, MenuGroup, MenuItem } from "@/shared/ui/Menu";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { GalleryItem } from "@/shared/types";
 
@@ -84,39 +84,24 @@ function FilterMenuGroup<T extends string>({
   searchQuery,
   onChange,
 }: FilterMenuGroupProps<T>) {
-  const labelId = useId();
-
   return (
-    <div className="toolbar__filter-menu-group" role="group" aria-labelledby={labelId}>
-      <span id={labelId} className="toolbar__filter-menu-group-label">
-        {label}
-      </span>
+    <MenuGroup label={label}>
       {options.map((option) => {
-        const active = option.value === value;
         const count = counts[option.value];
-
         return (
-          <button
+          <MenuItem
             key={option.value}
-            type="button"
-            role="menuitemradio"
-            aria-checked={active}
+            kind="radio"
+            icon={option.icon}
+            label={option.label}
+            count={count}
+            checked={option.value === value}
             aria-label={filterCountLabel(option.ariaLabel, count, searchQuery)}
-            className={classNames(
-              "toolbar__filter-menu-option",
-              active && "toolbar__filter-menu-option--active",
-            )}
-            onClick={() => onChange(option.value)}
-          >
-            <Icon icon={option.icon} className="toolbar__filter-menu-option-icon" />
-            <span className="toolbar__filter-menu-option-label">{option.label}</span>
-            <span className="toolbar__filter-menu-option-count" aria-hidden="true">
-              {count}
-            </span>
-          </button>
+            onSelect={() => onChange(option.value)}
+          />
         );
       })}
-    </div>
+    </MenuGroup>
   );
 }
 
@@ -135,9 +120,9 @@ export function ToolbarFilterMenu({
   onRangesChange,
   rangeBaseItems,
 }: ToolbarFilterMenuProps) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
+  const menu = usePopupMenu();
+  const { close, rootRef, triggerProps } = menu;
   const [rangesAxis, setRangesAxis] = useState<RangeAxis | null>(null);
-  const rangesLabelId = useId();
   const activeLabels: string[] = [];
   if (mediaTypeFilter !== "all") {
     activeLabels.push(optionLabelFor(MEDIA_TYPE_FILTER_OPTIONS, mediaTypeFilter));
@@ -160,33 +145,21 @@ export function ToolbarFilterMenu({
     : "Filter by media type, caption status, files and ranges";
 
   return (
-    <div
-      ref={rootRef}
-      className={classNames("toolbar__filter-menu", open && "toolbar__filter-menu--open")}
-    >
+    <div ref={rootRef} className="toolbar__filter-menu">
       <Tooltip content={tooltip}>
-        <button
-          type="button"
+        <Button
+          iconOnly
+          icon={iconFilter}
           className={classNames(
             "toolbar__filter-menu-trigger",
             filtering && "toolbar__filter-menu-trigger--filtering",
           )}
           aria-label="Filter media"
           {...triggerProps}
-        >
-          <Icon icon={iconFilter} className="toolbar__filter-menu-trigger-icon" />
-        </button>
+        />
       </Tooltip>
 
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        className="toolbar__filter-menu-panel"
-        role="menu"
-        label="Filters"
-      >
+      <Menu menu={menu} label="Filters">
         <FilterMenuGroup
           label={FILTER_AXIS_LABELS.mediaType}
           options={MEDIA_TYPE_FILTER_OPTIONS}
@@ -211,37 +184,26 @@ export function ToolbarFilterMenu({
           searchQuery={searchQuery}
           onChange={onFileFilterChange}
         />
-        <div className="toolbar__filter-menu-group" role="group" aria-labelledby={rangesLabelId}>
-          <span id={rangesLabelId} className="toolbar__filter-menu-group-label">
-            Ranges
-          </span>
+        <MenuGroup label="Ranges">
           {RANGE_AXES.map((axis) => {
             const range = ranges[axis];
             const active = isActiveRange(range);
             return (
-              <button
+              <MenuItem
                 key={axis}
-                type="button"
-                role="menuitem"
-                className={classNames(
-                  "toolbar__filter-menu-option",
-                  active && "toolbar__filter-menu-option--active",
-                )}
-                onClick={() => {
+                icon={iconRulerDimensionLine}
+                label={RANGE_MENU_LABELS[axis]}
+                count={active ? formatRange(axis, range) : "Any"}
+                active={active}
+                onSelect={() => {
                   close();
                   setRangesAxis(axis);
                 }}
-              >
-                <Icon icon={iconRulerDimensionLine} className="toolbar__filter-menu-option-icon" />
-                <span className="toolbar__filter-menu-option-label">{RANGE_MENU_LABELS[axis]}</span>
-                <span className="toolbar__filter-menu-option-count">
-                  {active ? formatRange(axis, range) : "Any"}
-                </span>
-              </button>
+              />
             );
           })}
-        </div>
-      </AnchoredLayer>
+        </MenuGroup>
+      </Menu>
 
       {rangesAxis && (
         <FilterRangesDialog

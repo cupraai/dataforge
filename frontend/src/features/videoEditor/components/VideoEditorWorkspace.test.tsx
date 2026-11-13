@@ -820,12 +820,12 @@ describe("VideoEditorWorkspace", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Preview take.mp4" }));
-    expect(screen.getByRole("tab", { name: "Source" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("radio", { name: "Source" })).toBeChecked();
     fireEvent.keyDown(document.body, { key: " " });
     expect(play).toHaveBeenCalled();
 
     fireEvent.keyDown(document.body, { key: "Escape" });
-    await user.click(screen.getByRole("tab", { name: "Timeline" }));
+    await user.click(screen.getByRole("radio", { name: "Timeline" }));
     fireEvent.keyDown(document.body, { key: "End" });
     expect(screen.getByRole("slider", { name: "Playhead" })).toHaveAttribute(
       "aria-valuetext",

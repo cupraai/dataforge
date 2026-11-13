@@ -1,3 +1,4 @@
+import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useRef, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
@@ -18,7 +19,6 @@ export function CreateFolderDialog({
   onCancel,
 }: CreateFolderDialogProps) {
   const [name, setName] = useState("");
-  const nameId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,23 +50,20 @@ export function CreateFolderDialog({
         <DialogActions confirmLabel="Create folder" busyLabel="Creating..." onCancel={onCancel} />
       }
     >
-      <div className="dialog__field">
-        <label htmlFor={nameId} className="dialog__label">
-          Folder name
-        </label>
-        <input
-          ref={inputRef}
-          id={nameId}
-          type="text"
-          className="dialog__input"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="e.g. Landscapes"
-          disabled={busy}
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
+      <Field label="Folder name">
+        {(control) => (
+          <TextInput
+            {...control}
+            ref={inputRef}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="e.g. Landscapes"
+            disabled={busy}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        )}
+      </Field>
 
       {error && (
         <p id={errorId} className="dialog__error" role="alert">

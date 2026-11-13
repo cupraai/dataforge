@@ -78,18 +78,11 @@
   }
 
   &__action {
-    @include pill-btn-compact(default);
-    flex-shrink: 0;
     margin-top: -0.125rem;
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
   }
 
   &__dismiss {
-    @include dismiss-btn;
-    @include fade-bg(transparent);
-    border-color: transparent;
-    flex-shrink: 0;
+    margin-left: auto;
     margin-top: -0.125rem;
     margin-right: -0.125rem;
   }
@@ -124,23 +117,12 @@
   > .tooltip {
     height: 100%;
   }
-
-  &--open .notifications-button {
-    color: var(--text);
-    @include fade-bg(var(--accent-soft));
-    border-color: var(--accent-border);
-  }
 }
 
 .notifications-button {
-  @include pill-btn-ghost(0.4rem);
   position: relative;
-  padding: 0 0.5625rem;
-  height: 100%;
-  min-height: var(--toolbar-control-height);
 
   &__icon {
-    @include icon-size(var(--icon-size-base));
     transition: color var(--transition);
   }
 
@@ -185,10 +167,6 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-muted);
-  }
-
-  &__clear {
-    @include pill-btn-compact(danger);
   }
 
   &__empty {
@@ -265,12 +243,5 @@
 
   &__row-count {
     @include count-pill-muted;
-  }
-
-  &__row-action {
-    @include pill-btn-compact(default);
-    flex-shrink: 0;
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
   }
 }

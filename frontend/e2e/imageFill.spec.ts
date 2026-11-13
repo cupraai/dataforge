@@ -54,7 +54,7 @@ async function openFill(page: Page, folder: string) {
   await page.goto(`/?path=${encodeURIComponent(folder)}`);
   await page.getByRole("button", { name: "View scene.png" }).click();
   await page.getByRole("button", { name: "Edit scene.png" }).click();
-  await page.getByRole("button", { name: /^Fill/ }).click();
+  await page.getByRole("tab", { name: /^Fill/ }).click();
   return page;
 }
 
@@ -150,7 +150,7 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
   // Reopened, the saved fill is part of the picture every tool works on.
   await dialog.getByRole("button", { name: "Exit image editing for scene.png" }).click();
   await dialog.getByRole("button", { name: "Edit scene.png" }).click();
-  await expect(dialog.getByRole("button", { name: "Fill, changed" })).toBeVisible();
+  await expect(dialog.getByRole("tab", { name: "Fill, changed" })).toBeVisible();
   await expect(dialog.locator("img.image-edit-stage__img")).toHaveAttribute(
     "src",
     /image-fill\/preview/,
@@ -230,7 +230,7 @@ test("the fill tool keeps the panel's height, so the picture does not move", asy
   const panel = page.locator(".edit-panel");
   const height = async () => (await panel.boundingBox())?.height;
 
-  await page.getByRole("button", { name: /^Fill/ }).click();
+  await page.getByRole("tab", { name: /^Fill/ }).click();
   await expect(page.getByRole("button", { name: "Generate" })).toBeVisible();
   // Polled: the panel fades in, and a box read mid-animation is not its height.
   await expect.poll(height).toBe(await height());
@@ -241,7 +241,7 @@ test("the fill tool keeps the panel's height, so the picture does not move", asy
     .evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().top));
   expect(new Set(captionTops).size).toBe(1);
 
-  await page.getByRole("button", { name: /^Crop/ }).click();
+  await page.getByRole("tab", { name: /^Crop/ }).click();
   await expect(page.getByRole("group", { name: "Aspect" })).toBeVisible();
   await expect.poll(height).toBe(fillHeight);
 });

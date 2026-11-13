@@ -1,6 +1,7 @@
-import type { CSSProperties } from "react";
-import { iconImageDown, iconLoader2, iconStepBack, iconStepForward } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
+import { Slider } from "@/shared/ui/Slider";
+import { iconImageDown, iconStepBack, iconStepForward } from "@/shared/icons";
 
 interface FrameCaptureBarProps {
   min: number;
@@ -35,22 +36,18 @@ export function FrameCaptureBar({
 }: FrameCaptureBarProps) {
   const locked = !ready || busy || saving;
   const span = max - min;
-  const progress = ready && span > 0 ? ((value - min) / span) * 100 : 0;
 
   return (
     <div className="video-frame-bar" role="group" aria-label="Frame capture">
       <div className="video-frame-bar__scrubber">
-        <button
-          type="button"
-          className="video-frame-bar__step"
+        <IconButton
+          icon={iconStepBack}
+          label="Previous frame"
           onClick={() => onStepFrame(-1)}
           disabled={locked}
-          aria-label="Previous frame"
-        >
-          <Icon icon={iconStepBack} />
-        </button>
-        <input
-          type="range"
+          size="xs"
+        />
+        <Slider
           className="video-frame-bar__slider"
           min={min}
           // Never NaN: React renders max="NaN". A single-frame source has no span, so give a width.
@@ -58,29 +55,28 @@ export function FrameCaptureBar({
           step={step}
           value={ready ? value : min}
           disabled={locked}
-          style={{ "--frame-progress": `${progress}%` } as CSSProperties}
           onChange={(event) => onValueChange(Number(event.target.value))}
           aria-label="Frame position"
         />
-        <button
-          type="button"
-          className="video-frame-bar__step"
+        <IconButton
+          icon={iconStepForward}
+          label="Next frame"
           onClick={() => onStepFrame(1)}
           disabled={locked}
-          aria-label="Next frame"
-        >
-          <Icon icon={iconStepForward} />
-        </button>
-        <button
-          type="button"
+          size="xs"
+        />
+        <Button
+          variant="primary"
+          size="xs"
+          icon={iconImageDown}
+          busy={saving}
+          busyLabel="Saving..."
           className="video-frame-bar__save"
           onClick={onSave}
           disabled={locked}
-          aria-busy={saving || undefined}
         >
-          <Icon icon={saving ? iconLoader2 : iconImageDown} spin={saving} />
-          {saving ? "Saving" : "Save frame"}
-        </button>
+          Save frame
+        </Button>
       </div>
 
       <div className="video-frame-bar__meta">

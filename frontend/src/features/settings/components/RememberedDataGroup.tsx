@@ -13,7 +13,7 @@ import { formatCount } from "@/shared/lib/format";
 import { useNotify } from "@/shared/notifications/notifications";
 import type { RememberedDataResponse } from "@/shared/types";
 import { fetchRememberedData, forgetRememberedData, settingsKeys } from "../api/settings";
-import { SettingsActionButton } from "./SettingsActionButton";
+import { Button } from "@/shared/ui/Button";
 import { SettingsGroup } from "./SettingsGroup";
 
 interface Row {
@@ -121,13 +121,15 @@ export function RememberedDataGroup({ visible, disabled }: RememberedDataGroupPr
               <span className="remembered-data__label">{row.label}</span>
               <span className="remembered-data__count">{counted(row.count, row.unit)}</span>
             </span>
-            <SettingsActionButton
-              label="Clear"
+            <Button
+              size="xs"
               icon={iconEraser}
               busy={clearing === row.id}
               disabled={disabled || !row.count}
               onClick={() => void handleClear(row)}
-            />
+            >
+              Clear
+            </Button>
           </li>
         ))}
       </ul>

@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import {
   RANGE_AXES,
   formatRange,
@@ -15,7 +16,6 @@ import {
   MEDIA_TYPE_FILTER_OPTIONS,
 } from "@/features/gallery/lib/filters";
 import { iconX } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
 
 const RANGE_CHIP_NAMES: Record<RangeAxis, string> = {
   megapixels: "megapixels",
@@ -62,53 +62,53 @@ export function ActiveFilters({
   return (
     <div className="active-filters">
       {filter !== "all" && (
-        <button
-          type="button"
-          className="active-filters__chip"
+        <Button
+          iconEnd={iconX}
           onClick={() => onFilterChange("all")}
           aria-label="Remove caption filter"
+          variant="primary"
+          size="xs"
         >
           {FILTER_OPTIONS.find((option) => option.value === filter)?.label}
-          <Icon icon={iconX} />
-        </button>
+        </Button>
       )}
       {mediaTypeFilter !== "all" && (
-        <button
-          type="button"
-          className="active-filters__chip"
+        <Button
+          iconEnd={iconX}
           onClick={() => onMediaTypeFilterChange("all")}
           aria-label="Remove media type filter"
+          variant="primary"
+          size="xs"
         >
           {MEDIA_TYPE_FILTER_OPTIONS.find((option) => option.value === mediaTypeFilter)?.label}
-          <Icon icon={iconX} />
-        </button>
+        </Button>
       )}
       {fileFilter !== "all" && (
-        <button
-          type="button"
-          className="active-filters__chip"
+        <Button
+          iconEnd={iconX}
           onClick={() => onFileFilterChange("all")}
           aria-label="Remove file filter"
+          variant="primary"
+          size="xs"
         >
           {FILE_FILTER_OPTIONS.find((option) => option.value === fileFilter)?.label}
-          <Icon icon={iconX} />
-        </button>
+        </Button>
       )}
       {activeRanges.map(({ axis, range }) => (
-        <button
+        <Button
+          iconEnd={iconX}
           key={axis}
-          type="button"
-          className="active-filters__chip"
           onClick={() => onRangeChange(axis, null)}
           aria-label={`Remove ${RANGE_CHIP_NAMES[axis]} range`}
+          variant="primary"
+          size="xs"
         >
           {formatRange(axis, range)}
-          <Icon icon={iconX} />
-        </button>
+        </Button>
       ))}
-      <button type="button" className="active-filters__clear" onClick={onClearFilters}>
+      <Button onClick={onClearFilters} size="xs">
         Clear filters
-      </button>
+      </Button>
     </div>
   );
 }

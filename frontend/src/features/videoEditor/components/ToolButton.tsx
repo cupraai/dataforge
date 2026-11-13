@@ -1,7 +1,7 @@
 import type { AppIcon } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
 import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
+import { Button } from "@/shared/ui/Button";
+import { IconButton, type IconButtonSize } from "@/shared/ui/IconButton";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
@@ -17,9 +17,11 @@ interface ToolButtonProps {
   showLabel?: boolean;
   tooltip?: string;
   tooltipPlacement?: "top" | "bottom";
+  /** Track headers use 2xs; toolbars keep the default. */
+  size?: IconButtonSize;
 }
 
-/** An icon button with an accessible name and a tooltip naming it and its key. */
+/** An editor toolbar button: named, with a tooltip naming it and its key. */
 export function ToolButton({
   icon,
   label,
@@ -31,28 +33,43 @@ export function ToolButton({
   showLabel = false,
   tooltip,
   tooltipPlacement = "top",
+  size = "sm",
 }: ToolButtonProps) {
+  if (!showLabel) {
+    return (
+      <IconButton
+        icon={icon}
+        label={label}
+        tooltip={tooltip}
+        tooltipPlacement={tooltipPlacement}
+        shortcut={shortcut}
+        size={size}
+        variant="ghost"
+        pressed={pressed}
+        className={className}
+        onClick={onClick}
+        disabled={disabled}
+      />
+    );
+  }
   const name = tooltip ?? label;
-  const hint = shortcut ? <ShortcutHint shortcut={shortcut}>{name}</ShortcutHint> : name;
   return (
-    <Tooltip content={hint} placement={tooltipPlacement}>
-      <button
-        type="button"
-        className={classNames(
-          "video-editor__tool",
-          showLabel && "video-editor__tool--labelled",
-          pressed && "video-editor__tool--pressed",
-          className,
-        )}
-        aria-label={label}
-        aria-pressed={pressed}
+    <Tooltip
+      content={shortcut ? <ShortcutHint shortcut={shortcut}>{name}</ShortcutHint> : name}
+      placement={tooltipPlacement}
+    >
+      <Button
+        icon={icon}
+        variant="text"
+        size="sm"
+        pressed={pressed}
+        className={className}
         aria-keyshortcuts={shortcut ? ariaKeyShortcuts(shortcut) : undefined}
         onClick={onClick}
         disabled={disabled}
       >
-        <Icon icon={icon} />
-        {showLabel && <span>{label}</span>}
-      </button>
+        {label}
+      </Button>
     </Tooltip>
   );
 }

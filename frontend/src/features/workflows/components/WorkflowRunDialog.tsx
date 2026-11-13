@@ -1,8 +1,9 @@
+import { Button } from "@/shared/ui/Button";
 import { jobMenuLabelFor, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { stepSummary } from "@/features/workflows/lib/stepSummary";
 import { iconInfo, iconWorkflow } from "@/shared/icons";
 import type { Workflow } from "@/shared/types";
-import { Dialog, DialogActions, DialogButton } from "@/shared/ui/Dialog";
+import { Dialog, DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Icon } from "@/shared/ui/Icon";
 
@@ -36,15 +37,15 @@ export function WorkflowRunDialog({
       footer={
         <>
           <div className="workflow-run-dialog__edit">
-            <DialogButton
-              label="Edit workflow..."
-              variant="secondary"
+            <Button
               disabled={busy}
               onClick={onEdit}
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.stopPropagation();
               }}
-            />
+            >
+              Edit workflow...
+            </Button>
           </div>
           <DialogActions confirmLabel="Run workflow" busyLabel="Queueing..." onCancel={onCancel} />
         </>

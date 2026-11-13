@@ -178,7 +178,7 @@ for (const width of [1024, 1440]) {
       await page.getByRole("button", { name: /^Review / }).click();
       const review = page.getByRole("menu", { name: "Review queues" });
       await expect(review).toBeVisible();
-      await expect(review.locator(".workspace-review__item")).toHaveCount(3);
+      await expect(review.getByRole("menuitem")).toHaveCount(3);
       await page.screenshot({ animations: "disabled", path: testInfo.outputPath("review.png") });
       await page.keyboard.press("Escape");
       if (currentJob) {

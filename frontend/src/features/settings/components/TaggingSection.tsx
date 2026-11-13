@@ -10,8 +10,8 @@ import {
   TAGGING_STATUS_QUERY_KEY,
   taggingStatusQueryOptions,
 } from "@/features/tagging/api/tagging";
-import { SettingsActionButton } from "./SettingsActionButton";
-import { SettingsCheckbox } from "./SettingsCheckbox";
+import { Button } from "@/shared/ui/Button";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
 
 /** Often enough to watch a folder being worked through, while the section is open. */
@@ -81,17 +81,20 @@ export function TaggingSection({
       }
       action={
         enabled && (
-          <SettingsActionButton
-            label="Re-tag everything"
+          <Button
+            size="xs"
             icon={iconRefresh}
             busy={retag.isPending}
             disabled={disabled || !status || IDLE_STATES.includes(status.state)}
             onClick={() => retag.mutate()}
-          />
+          >
+            Re-tag everything
+          </Button>
         )
       }
     >
-      <SettingsCheckbox
+      <Checkbox
+        className="dialog__field"
         label="Tag favorite folders"
         hint="The first run downloads the model, about 500 MB. Turned off, tags are hidden everywhere and kept for later."
         checked={enabled}

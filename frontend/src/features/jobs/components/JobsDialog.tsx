@@ -1,4 +1,8 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl";
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
+import { useEffect, useMemo, useState } from "react";
 import { useJobs } from "@/features/jobs/context/JobsContext";
 import { useJobHistory } from "@/features/jobs/hooks/useJobHistory";
 import { JobTypeFilterMenu } from "@/features/jobs/components/JobTypeFilterMenu";
@@ -30,7 +34,6 @@ import { useTicker } from "@/shared/hooks/useTicker";
 import { useUiSettings, useUpdateUiSettings } from "@/shared/preferences/uiPreferences";
 import { classNames } from "@/shared/lib/classNames";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { Tooltip } from "@/shared/ui/Tooltip";
 import {
   isActiveJobStatus,
   isTrainLoraCoTrackedByExternal,
@@ -143,7 +146,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
   const [cancelTarget, setCancelTarget] = useState<Job | null>(null);
   const { jobsDrawerFilters: filters } = useUiSettings();
   const updateUiSettings = useUpdateUiSettings();
-  const statusName = useId();
 
   useEffect(() => {
     setShownJobFilter(
@@ -206,19 +208,17 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
   const folderFilterOn = Boolean(currentFolder) && filters.folder === "current";
 
   const filteredEmpty = (
-    <div className="jobs-dialog__empty">
-      <span className="jobs-dialog__empty-icon" aria-hidden="true">
-        <Icon icon={iconFilterX} />
-      </span>
-      <p>{history.loading ? "Loading job history..." : "No jobs match these filters."}</p>
-      <button
-        type="button"
-        className="jobs-dialog__reset-filters"
-        onClick={() => changeFilters(DEFAULT_JOB_FILTERS)}
-      >
-        Clear filters
-      </button>
-    </div>
+    <EmptyState
+      size="sm"
+      variant="muted"
+      icon={iconFilterX}
+      title={history.loading ? "Loading job history..." : "No jobs match these filters."}
+      action={
+        <Button onClick={() => changeFilters(DEFAULT_JOB_FILTERS)} size="sm">
+          Clear filters
+        </Button>
+      }
+    />
   );
 
   const runClearAll = async () => {
@@ -307,72 +307,46 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
 
           <div className="jobs-dialog__header-actions">
             {(jobs.length > 0 || history.total > 0) && (
-              <Tooltip content="Delete all jobs">
-                <button
-                  type="button"
-                  className="jobs-dialog__clear-all"
-                  onClick={() => setClearAllOpen(true)}
-                  aria-label="Delete all jobs"
-                >
-                  <Icon icon={iconTrash2} />
-                </button>
-              </Tooltip>
+              <IconButton
+                icon={iconTrash2}
+                label="Delete all jobs"
+                onClick={() => setClearAllOpen(true)}
+                tone="danger"
+              />
             )}
 
-            <button
-              type="button"
-              className="jobs-dialog__close"
-              onClick={closeDrawer}
-              aria-label="Close"
-            >
-              <Icon icon={iconX} />
-            </button>
+            <IconButton icon={iconX} label="Close" onClick={closeDrawer} tooltip={false} />
           </div>
         </header>
 
         {hasHistory && (
           <div className="jobs-dialog__filters" role="group" aria-label="Filter jobs">
-            <div className="jobs-dialog__status" role="radiogroup" aria-label="Status">
-              {JOB_STATUS_FILTER_OPTIONS.map((option) => (
-                <label
-                  key={option.value}
-                  className={classNames(
-                    "jobs-dialog__status-option",
-                    filters.status === option.value && "jobs-dialog__status-option--active",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name={statusName}
-                    className="jobs-dialog__status-input"
-                    value={option.value}
-                    checked={filters.status === option.value}
-                    onChange={() => updateFilter({ status: option.value })}
-                  />
-                  {option.value === "all" ? "All" : option.title}
-                </label>
-              ))}
-            </div>
+            <SegmentedControl
+              label="Status"
+              value={filters.status}
+              options={JOB_STATUS_FILTER_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.value === "all" ? "All" : option.title,
+              }))}
+              stretch
+              onChange={(status) => updateFilter({ status })}
+            />
 
             <div className="jobs-dialog__refine">
               <JobTypeFilterMenu
                 value={filters.jobTypes}
                 onChange={(jobTypes) => updateFilter({ jobTypes })}
               />
-              <button
-                type="button"
-                className={classNames(
-                  "jobs-dialog__folder-chip",
-                  folderFilterOn && "jobs-dialog__folder-chip--active",
-                )}
-                aria-pressed={folderFilterOn}
+              <Button
+                icon={iconFolder}
+                size="sm"
+                pressed={folderFilterOn}
                 disabled={!currentFolder}
                 title={currentFolder ? undefined : "Open a folder to filter by it"}
                 onClick={() => updateFilter({ folder: folderFilterOn ? "all" : "current" })}
               >
-                <Icon icon={iconFolder} className="jobs-dialog__folder-chip-icon" />
                 This folder
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -386,17 +360,17 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
           {!hasAnyJobs && filtering ? (
             filteredEmpty
           ) : !hasAnyJobs ? (
-            <div className="jobs-dialog__empty">
-              <span className="jobs-dialog__empty-icon" aria-hidden="true">
-                <Icon icon={iconBot} />
-              </span>
-              <p>{history.loading ? "Loading job history..." : "No automation jobs yet."}</p>
-              {!history.loading && (
-                <p className="jobs-dialog__empty-hint">
-                  Start one from a folder with media files using the Tools menu.
-                </p>
-              )}
-            </div>
+            <EmptyState
+              size="sm"
+              variant="muted"
+              icon={iconBot}
+              title={history.loading ? "Loading job history..." : "No automation jobs yet."}
+              description={
+                history.loading
+                  ? undefined
+                  : "Start one from a folder with media files using the Tools menu."
+              }
+            />
           ) : (
             <>
               {hasExports && (
@@ -467,14 +441,14 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
                           <span className="jobs-dialog__more-count">
                             Showing {history.jobs.length} of {history.total}
                           </span>
-                          <button
-                            type="button"
+                          <Button
                             className="jobs-dialog__load-more"
                             onClick={history.loadMore}
                             disabled={history.loading}
+                            size="sm"
                           >
                             {history.loading ? "Loading..." : "Load more"}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </>

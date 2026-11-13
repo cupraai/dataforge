@@ -1,5 +1,7 @@
+import { Field, TextArea } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { SetCaptionsRunSettings } from "@/shared/types";
@@ -29,8 +31,6 @@ export function SetCaptionsDialog({
   // Never restored: overwriting existing captions is destructive, so it is re-chosen
   // every run however the last one was started.
   const [overwrite, setOverwrite] = useState(initialSettings.overwrite ?? false);
-  const captionId = useId();
-  const overwriteId = useId();
   const captionRef = useRef<HTMLTextAreaElement>(null);
 
   const handleConfirm = useCallback(() => {
@@ -62,36 +62,27 @@ export function SetCaptionsDialog({
         />
       }
     >
-      <div className="dialog__field">
-        <label htmlFor={captionId} className="dialog__label">
-          Caption text
-        </label>
-        <textarea
-          ref={captionRef}
-          id={captionId}
-          className="dialog__input dialog__input--multiline"
-          value={caption}
-          onChange={(event) => setCaption(event.target.value)}
-          placeholder="e.g. a scenic mountain landscape at sunset"
-          rows={3}
-          disabled={busy}
-        />
-      </div>
-
-      <div className="dialog__field">
-        <label className="dialog__checkbox" htmlFor={overwriteId}>
-          <input
-            id={overwriteId}
-            type="checkbox"
-            className="dialog__checkbox-input"
-            checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+      <Field label="Caption text">
+        {(control) => (
+          <TextArea
+            {...control}
+            ref={captionRef}
+            value={caption}
+            onChange={(event) => setCaption(event.target.value)}
+            placeholder="e.g. a scenic mountain landscape at sunset"
+            rows={3}
             disabled={busy}
           />
-          <span className="dialog__checkbox-box" aria-hidden="true" />
-          <span className="dialog__checkbox-label">Overwrite existing captions</span>
-        </label>
-      </div>
+        )}
+      </Field>
+
+      <Checkbox
+        className="dialog__field"
+        label="Overwrite existing captions"
+        checked={overwrite}
+        disabled={busy}
+        onChange={setOverwrite}
+      />
     </GuardedDialog>
   );
 }

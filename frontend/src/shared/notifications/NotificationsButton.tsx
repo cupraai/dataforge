@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/Button";
 import { useEffect } from "react";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconBell, iconBellRing } from "@/shared/icons";
@@ -36,13 +37,10 @@ export function NotificationsButton() {
   const label = unread ? `Notifications (${unreadCount} new)` : "Notifications";
 
   return (
-    <div
-      ref={rootRef}
-      className={classNames("notifications-button-wrap", open && "notifications-button-wrap--open")}
-    >
+    <div ref={rootRef} className="notifications-button-wrap">
       <Tooltip content={unread ? `${unreadCount} new notifications` : "Notifications"}>
-        <button
-          type="button"
+        <Button
+          iconOnly
           className={classNames(
             "notifications-button",
             unread && "notifications-button--unread",
@@ -56,9 +54,9 @@ export function NotificationsButton() {
           <Icon
             key={unreadCount}
             icon={unread ? iconBellRing : iconBell}
-            className="notifications-button__icon"
+            className="button__icon notifications-button__icon"
           />
-        </button>
+        </Button>
       </Tooltip>
 
       <AnchoredLayer

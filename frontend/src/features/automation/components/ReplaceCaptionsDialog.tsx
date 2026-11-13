@@ -1,3 +1,5 @@
+import { TextArea } from "@/shared/ui/Field";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -215,10 +217,10 @@ export function ReplaceCaptionsDialog({
               Search for
             </label>
             {/* Multi-line, so a term can span the lines of a caption; Enter adds a line. */}
-            <textarea
+            <TextArea
               ref={searchRef}
               id={searchId}
-              className="dialog__input dialog__input--grow"
+              grow
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -228,9 +230,9 @@ export function ReplaceCaptionsDialog({
               rows={1}
               spellCheck={false}
               autoComplete="off"
-              // Kept visible rather than hidden in prepend/append mode, so the dialog
-              // says the term is unused instead of silently rearranging itself.
-              disabled={busy || !isReplace}
+              /* Kept visible rather than hidden in prepend/append mode, so the dialog */ /* says the term is unused instead of silently rearranging itself. */ disabled={
+                busy || !isReplace
+              }
             />
           </div>
 
@@ -238,9 +240,9 @@ export function ReplaceCaptionsDialog({
             <label htmlFor={replacementId} className="dialog__label">
               {isReplace ? "Replace with" : "Text to add"}
             </label>
-            <textarea
+            <TextArea
               id={replacementId}
-              className="dialog__input dialog__input--grow"
+              grow
               value={replacement}
               onChange={(event) => {
                 setReplacement(event.target.value);
@@ -256,35 +258,27 @@ export function ReplaceCaptionsDialog({
         </div>
 
         <div className="dialog__field replace-captions-dialog__toggles">
-          <label className="dialog__checkbox replace-captions-dialog__toggle">
-            <input
-              type="checkbox"
-              className="dialog__checkbox-input"
-              checked={useRegex}
-              onChange={(event) => {
-                setUseRegex(event.target.checked);
-                clearError();
-              }}
-              disabled={busy || !isReplace}
-            />
-            <span className="dialog__checkbox-box" aria-hidden="true" />
-            <span className="dialog__checkbox-label">Regular expression</span>
-          </label>
+          <Checkbox
+            className="replace-captions-dialog__toggle"
+            label="Regular expression"
+            checked={useRegex}
+            disabled={busy || !isReplace}
+            onChange={(checked) => {
+              setUseRegex(checked);
+              clearError();
+            }}
+          />
 
-          <label className="dialog__checkbox replace-captions-dialog__toggle">
-            <input
-              type="checkbox"
-              className="dialog__checkbox-input"
-              checked={caseSensitive}
-              onChange={(event) => {
-                setCaseSensitive(event.target.checked);
-                clearError();
-              }}
-              disabled={busy}
-            />
-            <span className="dialog__checkbox-box" aria-hidden="true" />
-            <span className="dialog__checkbox-label">Match case</span>
-          </label>
+          <Checkbox
+            className="replace-captions-dialog__toggle"
+            label="Match case"
+            checked={caseSensitive}
+            disabled={busy}
+            onChange={(checked) => {
+              setCaseSensitive(checked);
+              clearError();
+            }}
+          />
         </div>
 
         {hint && <p className="dialog__hint">{hint}</p>}

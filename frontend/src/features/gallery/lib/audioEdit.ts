@@ -17,7 +17,6 @@ import type {
 
 /** No Mute: a file of silence is not an edit worth keeping. Capped at 2x like the backend. */
 export const AUDIO_VOLUME_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
-export const PITCH_PRESETS = [-12, -7, -5, -2, 0, 2, 5, 7, 12] as const;
 export const FADE_PRESETS = [0, 0.5, 1, 2, 3] as const;
 export const AUDIO_LEVELS: ReadonlyArray<{ value: AudioLevel; label: string; hint: string }> = [
   { value: "unchanged", label: "As is", hint: "Keeps the level; a boost can clip." },

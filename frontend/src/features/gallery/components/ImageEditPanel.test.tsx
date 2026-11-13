@@ -101,7 +101,7 @@ function draftWith(overrides: Partial<ImageEditDraft>): ImageEditDraft {
 }
 
 function tools() {
-  return within(screen.getByRole("group", { name: "Editing tool" }));
+  return within(screen.getByRole("tablist", { name: "Editing tool" }));
 }
 
 describe("ImageEditPanel", () => {
@@ -114,15 +114,15 @@ describe("ImageEditPanel", () => {
       expect(slot()).toHaveTextContent("Drag the frame or its handles on the picture");
       expect(slot()).toHaveTextContent("Bigger steps");
 
-      await user.click(tools().getByRole("button", { name: "Blur" }));
+      await user.click(tools().getByRole("tab", { name: "Blur" }));
       expect(slot()).toHaveTextContent("drag it over what to hide");
       expect(slot()).toHaveTextContent("Remove");
 
-      await user.click(tools().getByRole("button", { name: "Rotate" }));
+      await user.click(tools().getByRole("tab", { name: "Rotate" }));
       expect(slot()).toHaveTextContent("quarter steps");
       expect(slot().querySelector(".stage-hint__keys")).toBeNull();
 
-      await user.click(tools().getByRole("button", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Adjust" }));
       expect(slot()).toHaveTextContent("turn its ruler");
       expect(slot()).toHaveTextContent("Turn the ruler");
     });
@@ -138,7 +138,7 @@ describe("ImageEditPanel", () => {
       const user = userEvent.setup();
       renderPanel(makeEdit({ adjust: makeAdjustControls(adjust) }));
 
-      await user.click(tools().getByRole("button", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Adjust" }));
 
       expect(screen.getByRole("status")).toHaveTextContent(message);
     });
@@ -146,7 +146,7 @@ describe("ImageEditPanel", () => {
     it("opens on the crop tool", () => {
       renderPanel(makeEdit());
 
-      expect(tools().getByRole("button", { name: "Crop" })).toHaveAttribute("aria-pressed", "true");
+      expect(tools().getByRole("tab", { name: "Crop" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getByRole("group", { name: "Aspect" })).toBeInTheDocument();
     });
 
@@ -154,7 +154,7 @@ describe("ImageEditPanel", () => {
       const user = userEvent.setup();
       renderPanel(makeEdit());
 
-      await user.click(tools().getByRole("button", { name: "Size" }));
+      await user.click(tools().getByRole("tab", { name: "Size" }));
 
       expect(screen.getByRole("group", { name: "Scale" })).toBeInTheDocument();
       expect(screen.queryByRole("group", { name: "Aspect" })).not.toBeInTheDocument();
@@ -165,11 +165,11 @@ describe("ImageEditPanel", () => {
       renderPanel(makeEdit());
       expect(screen.getByText(/pick a ratio/)).toBeInTheDocument();
 
-      await user.click(tools().getByRole("button", { name: "Blur" }));
+      await user.click(tools().getByRole("tab", { name: "Blur" }));
       expect(screen.queryByText(/pick a ratio/)).not.toBeInTheDocument();
       expect(screen.getByText(/drag it over what to hide/)).toBeInTheDocument();
 
-      await user.click(tools().getByRole("button", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Adjust" }));
       expect(screen.queryByText(/drag it over what to hide/)).not.toBeInTheDocument();
     });
 
@@ -187,10 +187,10 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit();
       renderPanel(edit);
 
-      await user.click(tools().getByRole("button", { name: "Rotate" }));
+      await user.click(tools().getByRole("tab", { name: "Rotate" }));
       expect(edit.setCropActive).toHaveBeenLastCalledWith(false);
 
-      await user.click(tools().getByRole("button", { name: "Crop" }));
+      await user.click(tools().getByRole("tab", { name: "Crop" }));
       expect(edit.setCropActive).toHaveBeenLastCalledWith(true);
     });
 
@@ -199,11 +199,11 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit();
       renderPanel(edit);
 
-      await user.click(tools().getByRole("button", { name: "Blur" }));
+      await user.click(tools().getByRole("tab", { name: "Blur" }));
       expect(edit.setMaskActive).toHaveBeenLastCalledWith(true);
       expect(edit.setCropActive).toHaveBeenLastCalledWith(false);
 
-      await user.click(tools().getByRole("button", { name: "Crop" }));
+      await user.click(tools().getByRole("tab", { name: "Crop" }));
       expect(edit.setMaskActive).toHaveBeenLastCalledWith(false);
     });
 
@@ -219,13 +219,13 @@ describe("ImageEditPanel", () => {
       // Collapsed, the tool is the only thing that can say it carries a change.
       renderPanel(makeEdit({ draft }));
 
-      expect(tools().getByRole("button", { name: `${label}, changed` })).toBeInTheDocument();
+      expect(tools().getByRole("tab", { name: `${label}, changed` })).toBeInTheDocument();
     });
 
     it("says nothing extra while every tool is at its default", () => {
       renderPanel(makeEdit());
 
-      expect(tools().queryByRole("button", { name: /, changed$/ })).not.toBeInTheDocument();
+      expect(tools().queryByRole("tab", { name: /, changed$/ })).not.toBeInTheDocument();
     });
   });
 
@@ -233,7 +233,7 @@ describe("ImageEditPanel", () => {
     async function openFill(edit: ImageEdit) {
       const user = userEvent.setup();
       renderPanel(edit);
-      await user.click(tools().getByRole("button", { name: /^Fill/ }));
+      await user.click(tools().getByRole("tab", { name: /^Fill/ }));
       return user;
     }
 
@@ -242,7 +242,7 @@ describe("ImageEditPanel", () => {
       const user = await openFill(edit);
 
       expect(edit.setFillActive).toHaveBeenLastCalledWith(true);
-      await user.click(tools().getByRole("button", { name: "Crop" }));
+      await user.click(tools().getByRole("tab", { name: "Crop" }));
       expect(edit.setFillActive).toHaveBeenLastCalledWith(false);
     });
 
@@ -395,7 +395,7 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit({ draft });
       const user = await openFill(edit);
 
-      expect(tools().getByRole("button", { name: "Fill, changed" })).toBeInTheDocument();
+      expect(tools().getByRole("tab", { name: "Fill, changed" })).toBeInTheDocument();
       expect(screen.getByText("2 fills")).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Undo last fill" }));
       expect(edit.undoFill).toHaveBeenCalled();
@@ -405,7 +405,7 @@ describe("ImageEditPanel", () => {
   describe("rotate", () => {
     async function openRotate() {
       const user = userEvent.setup();
-      await user.click(tools().getByRole("button", { name: /^Rotate/ }));
+      await user.click(tools().getByRole("tab", { name: /^Rotate/ }));
       return user;
     }
 
@@ -481,7 +481,7 @@ describe("ImageEditPanel", () => {
     async function openBlur(edit: ImageEdit) {
       const user = userEvent.setup();
       renderPanel(edit);
-      await user.click(tools().getByRole("button", { name: /^Blur/ }));
+      await user.click(tools().getByRole("tab", { name: /^Blur/ }));
       return user;
     }
 
@@ -587,7 +587,7 @@ describe("ImageEditPanel", () => {
   describe("adjust", () => {
     async function openAdjust() {
       const user = userEvent.setup();
-      await user.click(tools().getByRole("button", { name: /^Adjust/ }));
+      await user.click(tools().getByRole("tab", { name: /^Adjust/ }));
       return user;
     }
 
@@ -598,7 +598,7 @@ describe("ImageEditPanel", () => {
       await openAdjust();
       expect(edit.adjust.setActive).toHaveBeenLastCalledWith(true);
 
-      await userEvent.setup().click(tools().getByRole("button", { name: /^Crop/ }));
+      await userEvent.setup().click(tools().getByRole("tab", { name: /^Crop/ }));
       expect(edit.adjust.setActive).toHaveBeenLastCalledWith(false);
     });
 
@@ -623,7 +623,7 @@ describe("ImageEditPanel", () => {
   describe("size", () => {
     async function openSize() {
       const user = userEvent.setup();
-      await user.click(tools().getByRole("button", { name: /^Size/ }));
+      await user.click(tools().getByRole("tab", { name: /^Size/ }));
       return user;
     }
 
@@ -785,7 +785,7 @@ describe("ImageEditPanel", () => {
 
       expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Revert original" })).toBeDisabled();
-      expect(tools().getByRole("button", { name: "Rotate" })).toBeDisabled();
+      expect(tools().getByRole("tab", { name: "Rotate" })).toBeDisabled();
     });
 
     it("says it is saving instead of offering the actions, with nothing to cancel", () => {

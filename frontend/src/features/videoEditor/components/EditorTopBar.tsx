@@ -1,3 +1,6 @@
+import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
 import { useState } from "react";
 import {
   iconArrowLeft,
@@ -20,7 +23,7 @@ import {
 } from "@/shared/icons";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { classNames } from "@/shared/lib/classNames";
-import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { Menu, MenuItem, MenuSeparator } from "@/shared/ui/Menu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { VideoProjectExportState } from "@/shared/types";
@@ -78,15 +81,15 @@ export function EditorTopBar({
     <header className="video-editor__topbar">
       <div className="video-editor__topbar-start">
         <Tooltip content="Back to gallery" placement="bottom">
-          <button
-            type="button"
-            className="video-editor__back"
+          <Button
+            icon={iconArrowLeft}
             onClick={onBack}
             aria-label="Back to gallery"
+            variant="text"
+            size="sm"
           >
-            <Icon icon={iconArrowLeft} />
             <span>Gallery</span>
-          </button>
+          </Button>
         </Tooltip>
         <span className="video-editor__topbar-divider" aria-hidden="true" />
         <span className="video-editor__project-mark" aria-hidden="true">
@@ -100,18 +103,18 @@ export function EditorTopBar({
 
       <div className="video-editor__topbar-center">
         <Tooltip content="Canvas size and frame rate" placement="bottom">
-          <button
-            type="button"
+          <Button
             className="video-editor__format"
             onClick={onSettings}
             aria-label={`Project settings: ${project.width} × ${project.height}, ${rate} fps`}
+            size="sm"
           >
             <span>
               {project.width} × {project.height}
             </span>
             <span className="video-editor__format-dot" aria-hidden="true" />
             <span>{rate} fps</span>
-          </button>
+          </Button>
         </Tooltip>
       </div>
 
@@ -148,14 +151,15 @@ export function EditorTopBar({
           onVersions={onVersions}
           onDelete={onDelete}
         />
-        <button
-          type="button"
-          className="video-editor__export-btn"
+        <Button
+          icon={iconUpload}
           onClick={onExport}
           disabled={!canExport}
+          variant="primary"
+          size="sm"
         >
-          <Icon icon={iconUpload} /> Export
-        </button>
+          Export
+        </Button>
       </div>
     </header>
   );
@@ -223,22 +227,14 @@ function SaveStatus({ state }: { state: VideoProjectState }) {
         )}
         {labels[state.saveState]}
         {state.saveState === "error" && (
-          <button
-            type="button"
-            className="video-editor__link-btn"
-            onClick={() => void state.flush()}
-          >
+          <Button variant="text" size="xs" onClick={() => void state.flush()}>
             Retry
-          </button>
+          </Button>
         )}
         {state.saveState === "conflict" && (
-          <button
-            type="button"
-            className="video-editor__link-btn"
-            onClick={() => void state.saveAsCopy()}
-          >
+          <Button variant="text" size="xs" onClick={() => void state.saveAsCopy()}>
             Save as a new draft
-          </button>
+          </Button>
         )}
       </span>
     </Tooltip>
@@ -268,12 +264,10 @@ function ExportStatus({
           <span className="video-editor__export-text">
             Exporting {state.output_name} {percent}%
           </span>
-          <span className="video-editor__export-bar" aria-hidden="true">
-            <span style={{ width: `${percent}%` }} />
-          </span>
-          <button type="button" className="video-editor__link-btn" onClick={onCancel}>
+          <ProgressBar className="video-editor__export-bar" value={percent} />
+          <Button variant="text" size="xs" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         </>
       )}
       {state.status === "completed" && (
@@ -281,9 +275,9 @@ function ExportStatus({
           <Icon icon={iconCircleCheck} />
           <span className="video-editor__export-text">Exported {state.output_name}</span>
           <ExportLevel state={state} />
-          <button type="button" className="video-editor__link-btn" onClick={onOpen}>
+          <Button variant="text" size="xs" onClick={onOpen}>
             Open in gallery
-          </button>
+          </Button>
         </>
       )}
       {state.status === "failed" && (
@@ -298,14 +292,7 @@ function ExportStatus({
         <span className="video-editor__export-text">Export cancelled; nothing was saved</span>
       )}
       {state.status !== "running" && (
-        <button
-          type="button"
-          className="video-editor__icon-btn"
-          aria-label="Dismiss"
-          onClick={onDismiss}
-        >
-          <Icon icon={iconX} />
-        </button>
+        <IconButton icon={iconX} label="Dismiss" onClick={onDismiss} size="xs" variant="ghost" />
       )}
     </span>
   );
@@ -362,92 +349,48 @@ function ProjectMenu({
   onVersions: () => void;
   onDelete: () => void;
 }) {
-  const { menuId, rootRef, panelRef, triggerProps, close } = usePopupMenu({ open, onOpenChange });
+  const menu = usePopupMenu({ open, onOpenChange });
+  const { close, rootRef, triggerProps } = menu;
   const pick = (action: () => void) => () => {
     close();
     action();
   };
   return (
     <div ref={rootRef} className="video-editor__menu">
-      <Tooltip content="Project actions" placement="bottom">
-        <button
-          type="button"
-          className={classNames("video-editor__tool", open && "video-editor__tool--pressed")}
-          aria-label="Project actions"
-          {...triggerProps}
-        >
-          <Icon icon={iconEllipsis} />
-        </button>
-      </Tooltip>
-      <AnchoredLayer
-        anchorRef={rootRef}
-        floatingRef={panelRef}
-        open={open}
-        id={menuId}
-        className="video-editor__menu-panel"
-        role="menu"
+      <IconButton
+        icon={iconEllipsis}
         label="Project actions"
-      >
-        <button
-          type="button"
-          role="menuitem"
-          className="video-editor__menu-item"
-          onClick={pick(onOpenProject)}
-        >
-          <Icon icon={iconFolderOpen} />
-          <span>Open project...</span>
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="video-editor__menu-item"
-          onClick={pick(onSettings)}
-        >
-          <Icon icon={iconSettings} />
-          <span>Project settings...</span>
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="video-editor__menu-item"
-          onClick={pick(onDuplicate)}
-        >
-          <Icon icon={iconCopy} />
-          <span className="video-editor__menu-text">
-            <span>Duplicate project</span>
-            <span className="video-editor__menu-hint">Keeps this one and continues in a copy</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="video-editor__menu-item"
-          onClick={pick(onVersions)}
+        tooltipPlacement="bottom"
+        size="sm"
+        variant="ghost"
+        {...triggerProps}
+      />
+      <Menu menu={menu} label="Project actions" className="video-editor__menu-panel">
+        <MenuItem icon={iconFolderOpen} label="Open project..." onSelect={pick(onOpenProject)} />
+        <MenuItem icon={iconSettings} label="Project settings..." onSelect={pick(onSettings)} />
+        <MenuItem
+          icon={iconCopy}
+          label="Duplicate project"
+          description="Keeps this one and continues in a copy"
+          onSelect={pick(onDuplicate)}
+        />
+        <MenuItem
+          icon={iconHistory}
+          label="Versions..."
+          description={saved ? undefined : "Not saved yet"}
           disabled={!saved}
-        >
-          <Icon icon={iconHistory} />
-          <span className="video-editor__menu-text">
-            <span>Versions...</span>
-            {!saved && <span className="video-editor__menu-hint">Not saved yet</span>}
-          </span>
-        </button>
-        <span className="video-editor__menu-divider" role="separator" />
-        <button
-          type="button"
-          role="menuitem"
-          className="video-editor__menu-item video-editor__menu-item--danger"
-          onClick={pick(onDelete)}
+          onSelect={pick(onVersions)}
+        />
+        <MenuSeparator />
+        <MenuItem
+          icon={iconTrash2}
+          label="Delete project..."
+          description={saved ? undefined : "Not saved yet, so nothing to delete"}
+          tone="danger"
           disabled={!saved}
-        >
-          <Icon icon={iconTrash2} />
-          <span className="video-editor__menu-text">
-            <span>Delete project...</span>
-            {!saved && (
-              <span className="video-editor__menu-hint">Not saved yet, so nothing to delete</span>
-            )}
-          </span>
-        </button>
-      </AnchoredLayer>
+          onSelect={pick(onDelete)}
+        />
+      </Menu>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { iconFileText, iconSpellCheck2 } from "@/shared/icons";
 import { SPELLCHECK_LANGUAGES, type EditorOptions } from "@/shared/preferences/editorPreferences";
 import type { SpellcheckLanguage } from "@/shared/types";
 import { DialogSelect, type DialogSelectOption } from "@/shared/ui/DialogSelect";
-import { SettingsCheckbox } from "./SettingsCheckbox";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
 
 const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
@@ -32,13 +32,15 @@ export function EditorPreferenceSettings({
         hint="Captions, folder instructions, and training templates."
       >
         <div className="settings-group__checks">
-          <SettingsCheckbox
+          <Checkbox
+            className="dialog__field"
             label="Wrap long lines"
             checked={value.lineWrap}
             disabled={disabled}
             onChange={(lineWrap) => change({ lineWrap })}
           />
-          <SettingsCheckbox
+          <Checkbox
+            className="dialog__field"
             label="Show line numbers"
             checked={value.lineNumbers}
             disabled={disabled}
@@ -48,7 +50,8 @@ export function EditorPreferenceSettings({
       </SettingsGroup>
       <SettingsGroup title="Captions" icon={iconSpellCheck2}>
         <div className="settings-dialog__row">
-          <SettingsCheckbox
+          <Checkbox
+            className="dialog__field"
             label="Check spelling"
             hint="Uses the browser's dictionaries. Chrome and Edge may follow their own language settings instead."
             checked={value.captionSpellcheck}
@@ -63,7 +66,8 @@ export function EditorPreferenceSettings({
             onChange={(captionSpellcheckLanguage) => change({ captionSpellcheckLanguage })}
           />
         </div>
-        <SettingsCheckbox
+        <Checkbox
+          className="dialog__field"
           label="Suggest words while typing"
           hint="Suggestions come from this folder's captions. Ctrl+Space still shows them when this is off."
           checked={value.captionSuggestions}

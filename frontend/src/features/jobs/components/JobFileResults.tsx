@@ -1,3 +1,5 @@
+import { DisclosureButton } from "@/shared/ui/Disclosure";
+import { Button } from "@/shared/ui/Button";
 import { useId, useState } from "react";
 import { useJobFileResults } from "@/features/jobs/hooks/useJobFileResults";
 import {
@@ -14,7 +16,6 @@ import {
 import { isActiveJobStatus } from "@/features/jobs/lib/jobs";
 import {
   iconBan,
-  iconChevronDown,
   iconCircleAlert,
   iconCircleCheck,
   iconCircleDashed,
@@ -105,28 +106,20 @@ export function JobFileResults({ job, onOpenItem, onRetryFailed }: JobFileResult
 
   return (
     <div className="job-file-results">
-      <button
-        type="button"
+      <DisclosureButton
         className="job-file-results__toggle"
+        open={expanded}
+        controls={panelId}
+        label="Per-file results"
         onClick={() => setExpanded((current) => !current)}
         tabIndex={-1}
-        aria-expanded={expanded}
-        aria-controls={panelId}
       >
-        <Icon
-          icon={iconChevronDown}
-          className={classNames(
-            "job-file-results__toggle-icon",
-            expanded && "job-file-results__toggle-icon--open",
-          )}
-        />
-        <span className="job-file-results__label">Per-file results</span>
         {failedCount > 0 && (
           <span className="job-file-results__chip job-file-results__chip--failed">
             {failedCount} failed
           </span>
         )}
-      </button>
+      </DisclosureButton>
 
       <div id={panelId} hidden={!expanded}>
         {expanded && (
@@ -178,14 +171,14 @@ export function JobFileResults({ job, onOpenItem, onRetryFailed }: JobFileResult
 
             {onRetryFailed && !loading && loadedFailedCount > 0 && (
               <div className="job-file-results__actions">
-                <button
-                  type="button"
-                  className="job-file-results__action job-file-results__action--primary"
+                <Button
+                  icon={iconRotateCcw}
+                  variant="primary"
                   onClick={() => onRetryFailed(retryPaths)}
+                  size="xs"
                 >
-                  <Icon icon={iconRotateCcw} className="job-file-results__action-icon" />
                   Retry {loadedFailedCount} failed
-                </button>
+                </Button>
               </div>
             )}
           </div>

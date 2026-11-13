@@ -5,7 +5,7 @@ import { iconStickyNote, iconTrash2 } from "@/shared/icons";
 import { useNotify } from "@/shared/notifications/notifications";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { Icon } from "@/shared/ui/Icon";
-import { Tooltip } from "@/shared/ui/Tooltip";
+import { IconButton } from "@/shared/ui/IconButton";
 
 interface FolderNoteBannerProps {
   folderPath: string;
@@ -33,16 +33,15 @@ export function FolderNoteBanner({ folderPath, note }: FolderNoteBannerProps) {
     <aside className="folder-note" aria-label="Folder note">
       <Icon icon={iconStickyNote} className="folder-note__icon" />
       <p className="folder-note__text">{note}</p>
-      <Tooltip content="Delete note">
-        <button
-          type="button"
-          className="folder-note__delete"
-          aria-label="Delete note"
-          onClick={() => setConfirming(true)}
-        >
-          <Icon icon={iconTrash2} />
-        </button>
-      </Tooltip>
+      <IconButton
+        icon={iconTrash2}
+        label="Delete note"
+        size="2xs"
+        variant="ghost"
+        tone="danger"
+        className="folder-note__delete"
+        onClick={() => setConfirming(true)}
+      />
       {confirming && (
         <ConfirmDialog
           title="Delete this note?"

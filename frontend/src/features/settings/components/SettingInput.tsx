@@ -1,3 +1,5 @@
+import { TextInput } from "@/shared/ui/Field";
+import { Button } from "@/shared/ui/Button";
 import { useId } from "react";
 import type { AppSettingKey, AppSettingsResponse } from "@/shared/types";
 import { SETTING_FIELDS } from "../lib/settingsForm";
@@ -86,7 +88,7 @@ export function SettingInput({
   return (
     <div className="setting-field">
       <div className="setting-field__head">
-        <label className="setting-field__label" htmlFor={inputId}>
+        <label className="dialog__label setting-field__label" htmlFor={inputId}>
           {field.label}
           {field.unit && (
             <>
@@ -103,7 +105,7 @@ export function SettingInput({
           {source.badge}
         </span>
       </div>
-      <input
+      <TextInput
         id={inputId}
         className="setting-field__input"
         type={INPUT_TYPES[field.kind]}
@@ -133,15 +135,15 @@ export function SettingInput({
             {source.detail}
           </span>
           {canReset && (
-            <button
-              type="button"
-              className="setting-field__reset"
+            <Button
               disabled={disabled}
               aria-label={`Reset ${field.label}`}
               onClick={onReset}
+              variant="text"
+              size="xs"
             >
               Reset
-            </button>
+            </Button>
           )}
         </div>
       )}

@@ -1,3 +1,6 @@
+import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
+import { Checkbox } from "@/shared/ui/Checkbox";
 import {
   Fragment,
   useCallback,
@@ -30,7 +33,6 @@ import {
 } from "@/shared/lib/format";
 import { iconArrowRight, iconTriangleAlert, iconX } from "@/shared/icons";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { DialogButton } from "@/shared/ui/Dialog";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { isEditableTarget } from "@/shared/lib/isEditableTarget";
@@ -193,15 +195,13 @@ export function CandidateReviewDialog({
             </span>
           </div>
 
-          <button
-            type="button"
-            className="candidate-review-dialog__close"
+          <IconButton
+            icon={iconX}
+            label="Close"
             onClick={closeDialog}
             disabled={busy}
-            aria-label="Close"
-          >
-            <Icon icon={iconX} />
-          </button>
+            tooltip={false}
+          />
         </header>
 
         <div className="candidate-review-dialog__body" data-scroll-lock-allow>
@@ -227,45 +227,37 @@ export function CandidateReviewDialog({
 
         <CompareMeta entry={entry} details={details} />
         <footer className="candidate-review-dialog__footer">
-          <label className="dialog__checkbox candidate-review-dialog__keep-metadata">
-            <input
-              type="checkbox"
-              className="dialog__checkbox-input"
-              checked={keepMetadata}
-              onChange={(event) => setKeepMetadata(event.target.checked)}
-              disabled={busy}
-            />
-            <span className="dialog__checkbox-box" aria-hidden="true" />
-            <span className="dialog__checkbox-label">Keep original metadata</span>
-          </label>
-          <DialogButton
-            label="Back"
-            variant="secondary"
-            disabled={busy || index === 0}
-            onClick={() => goTo(index - 1)}
+          <Checkbox
+            className="candidate-review-dialog__keep-metadata"
+            label="Keep original metadata"
+            checked={keepMetadata}
+            disabled={busy}
+            onChange={setKeepMetadata}
           />
-          <DialogButton
-            label="Skip"
-            variant="secondary"
-            disabled={busy || index === queue.length - 1}
-            onClick={() => goTo(index + 1)}
-          />
-          <DialogButton
-            label={pending === "reject" ? "Discarding..." : "Reject"}
+          <Button disabled={busy || index === 0} onClick={() => goTo(index - 1)}>
+            Back
+          </Button>
+          <Button disabled={busy || index === queue.length - 1} onClick={() => goTo(index + 1)}>
+            Skip
+          </Button>
+          <Button
             variant="warning"
             busy={pending === "reject"}
             disabled={busy || settled}
             onClick={() => {
               void settle("reject");
             }}
-          />
-          <DialogButton
-            label={pending === "accept" ? "Accepting..." : "Accept"}
+          >
+            {pending === "reject" ? "Discarding..." : "Reject"}
+          </Button>
+          <Button
             variant="primary"
             busy={pending === "accept"}
             disabled={busy || settled || orphaned}
             onClick={requestAccept}
-          />
+          >
+            {pending === "accept" ? "Accepting..." : "Accept"}
+          </Button>
         </footer>
       </DialogShell>
 

@@ -13,10 +13,6 @@ export function setEditorClipboard(content: ClipboardContent | null): void {
   for (const listener of listeners) listener();
 }
 
-export function editorClipboard(): ClipboardContent | null {
-  return held;
-}
-
 export function useEditorClipboard(): ClipboardContent | null {
   return useSyncExternalStore(
     (listener) => {

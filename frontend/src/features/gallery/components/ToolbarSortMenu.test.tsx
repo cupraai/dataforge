@@ -46,6 +46,20 @@ describe("ToolbarSortMenu", () => {
     );
   });
 
+  it("moves between the options with the arrow keys, wrapping at the ends", async () => {
+    const user = userEvent.setup();
+    render(<ToolbarSortMenu value="date-desc" onChange={vi.fn<(value: SortOption) => void>()} />);
+    const menu = await openMenu(user);
+    const items = within(menu).getAllByRole("menuitemradio");
+
+    await user.keyboard("{ArrowDown}");
+    expect(items[0]).toHaveFocus();
+    await user.keyboard("{ArrowUp}");
+    expect(items.at(-1)).toHaveFocus();
+    await user.keyboard("{Home}{ArrowDown}");
+    expect(items[1]).toHaveFocus();
+  });
+
   it("starts a newly picked field at its first order and stays open for the direction", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn<(value: SortOption) => void>();

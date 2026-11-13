@@ -1,3 +1,4 @@
+import { TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useState } from "react";
 import { CAPTION_SIDECAR_EXTENSION_LIST } from "@/shared/lib/captionSidecar";
@@ -107,10 +108,8 @@ export function BatchRenameDialog({
             <label htmlFor={stemId} className="dialog__label">
               Name stem
             </label>
-            <input
+            <TextInput
               id={stemId}
-              type="text"
-              className="dialog__input"
               value={stem}
               onChange={(event) => {
                 setStem(event.target.value);
@@ -126,10 +125,9 @@ export function BatchRenameDialog({
             <label htmlFor={startNumberId} className="dialog__label">
               Start number
             </label>
-            <input
+            <TextInput
               id={startNumberId}
               type="number"
-              className="dialog__input"
               value={startNumber}
               min={0}
               step={1}
