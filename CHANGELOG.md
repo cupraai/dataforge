@@ -19,6 +19,7 @@ version heading when a minor or major version is cut.
 
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
+- Videos in the viewer and inspector remember whether you muted or unmuted them, and at what volume: the next video and later visits start the same way, and the edit preview follows the mute.
 - **Save** in Settings no longer closes the dialog: the saved values show as saved and you can keep editing.
 - Settings: **Storage** and **Data & history** are now one section, **Data & storage**, with **History** and **Storage** tabs.
 - Buttons, tabs, menus, checkboxes, form fields, dropdowns, sliders, progress bars, folding sections and empty lists look and behave the same across the gallery, dialogs and the video editor. Menus can be moved through with the arrow keys, and the editing tools are tabs that screen readers announce as such.

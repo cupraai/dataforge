@@ -133,6 +133,7 @@ import { useMediaPlaybackProblem } from "@/shared/hooks/useMediaPlaybackProblem"
 import { canTranscodeAway } from "@/shared/lib/mediaProblems";
 import { MediaProblemNotice } from "@/shared/ui/MediaProblemNotice";
 import { evenTrunc } from "@/features/gallery/lib/videoEdit";
+import { applyRememberedSound, rememberSound } from "@/features/gallery/lib/videoSound";
 import { useVideoEditorLauncher } from "@/features/videoEditor/context/VideoEditorContext";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { useUiSettings } from "@/shared/preferences/uiPreferences";
@@ -1173,7 +1174,12 @@ export function GalleryItemDialog({
                     playback.noteMetadata(video);
                     recordResolution(video.videoWidth, video.videoHeight, item.path);
                     videoCapture.handleLoadedMetadata(video);
+                    // Edit mode drives sound itself, and swaps it between this and the standby.
+                    if (!editMode) applyRememberedSound(video);
                     videoEdit.handleLoadedMetadata(video);
+                  }}
+                  onVolumeChange={(event) => {
+                    if (!editMode) rememberSound(event.currentTarget);
                   }}
                   // Streamed MP4s report Infinity at loadedmetadata and settle later, stranding the slider.
                   onDurationChange={(event) => {

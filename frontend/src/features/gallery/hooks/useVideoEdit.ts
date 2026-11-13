@@ -43,6 +43,8 @@ import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMes
 import type { GalleryItem, VideoEditSpec, VideoFrameRate } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useStoredStore } from "@/shared/lib/storedStore";
+import { previewMuted } from "@/features/gallery/lib/videoSound";
 
 export interface UseVideoEditOptions {
   item: GalleryItem | undefined;
@@ -132,8 +134,9 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   const [applying, setApplying] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [cropActive, setCropActive] = useState(false);
-  // Sticky across items; remounts pick it up from the muted effect and handleLoadedMetadata.
-  const [muted, setMuted] = useState(true);
+  // Shared with the viewer's controls; remounts pick it up from the muted effect and
+  // handleLoadedMetadata.
+  const muted = useStoredStore(previewMuted);
 
   const draftRef = useLatestRef(draft);
   const durationRef = useLatestRef(duration);
@@ -304,7 +307,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   }, [activeMediaRef, draft.speed, draft.volume, editMode, muted, path, standbyVideoRef, videoRef]);
 
   const toggleMuted = useCallback(() => {
-    setMuted((current) => !current);
+    previewMuted.set(!previewMuted.get());
   }, []);
 
   // Both setters park the playhead inside the frame the handle keeps, so what the panel

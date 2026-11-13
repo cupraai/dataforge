@@ -16,6 +16,7 @@ import {
 } from "@/features/gallery/api/videoEdit";
 import { GalleryItemDialog } from "./GalleryItemDialog";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
+import { previewMuted, previewVolume } from "@/features/gallery/lib/videoSound";
 import type { cancelVideoEdit } from "@/features/gallery/api/videoEdit";
 
 vi.mock("@/shared/lib/defer", () => ({
@@ -533,6 +534,55 @@ describe("GalleryItemDialog", () => {
       await user.click(within(dialog).getByRole("button", { name: "Mute preview" }));
 
       expect(video.muted).toBe(true);
+    });
+
+    describe("remembered sound", () => {
+      afterEach(() => {
+        previewMuted.set(true);
+        previewVolume.set(1);
+      });
+
+      it("starts the next video as loud as the native controls left the last", async () => {
+        const items = [videoItem(), makeItem("other.mp4", { media_type: "video" })];
+        const props = dialogProps(items[0], { items });
+        const { rerender } = renderWithProviders(<GalleryItemDialog {...props} />);
+        const dialog = await screen.findByRole("dialog", { name: "Viewing clip.mp4" });
+        const first = dialog.querySelector("video")!;
+        fireEvent.loadedMetadata(first);
+        expect(first.muted).toBe(true);
+
+        // jsdom fires volumechange, as the native mute button does.
+        first.muted = false;
+        first.volume = 0.4;
+        rerender(<GalleryItemDialog {...props} index={1} />);
+        await screen.findByRole("dialog", { name: "Viewing other.mp4" });
+        const second = dialog.querySelector("video")!;
+        expect(second).not.toBe(first);
+        fireEvent.loadedMetadata(second);
+
+        expect(second.muted).toBe(false);
+        expect(second.volume).toBe(0.4);
+        expect(window.localStorage.getItem("video-preview-muted")).toBe("false");
+        expect(window.localStorage.getItem("video-preview-volume")).toBe("0.4");
+      });
+
+      it("carries the viewer's setting into edit mode and back out", async () => {
+        const user = userEvent.setup();
+        previewMuted.set(false);
+        renderDialog(videoItem());
+        const dialog = await openEditMode(user);
+
+        expect(dialog.querySelector("video")!.muted).toBe(false);
+        await user.click(within(dialog).getByRole("button", { name: "Mute preview" }));
+        fireEvent.keyDown(window, { key: "Escape" });
+        await waitFor(() =>
+          expect(within(dialog).queryByRole("group", { name: "Video editing" })).toBeNull(),
+        );
+
+        const video = dialog.querySelector("video")!;
+        fireEvent.loadedMetadata(video);
+        expect(video.muted).toBe(true);
+      });
     });
 
     it("turns frame capture off when editing starts, and back the other way", async () => {
