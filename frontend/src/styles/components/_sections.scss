@@ -9,8 +9,10 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 0 calc(-1 * var(--panel-padding)) 0.875rem calc(-1 * var(--panel-padding));
-    padding: 0 var(--panel-padding);
+    // Out to the scroller's edges, so a docked header spans it; the padding keeps the content
+    // in line with the gallery. Wider than the gutter, it would scroll the gallery sideways.
+    margin: 0 calc(-1 * var(--main-gutter, 0px)) 0.875rem;
+    padding: 0 var(--main-gutter, 0px);
     min-height: 1.5rem;
 
     // Docks at the top of the scroller. The frosted surface is a pseudo so docking does not

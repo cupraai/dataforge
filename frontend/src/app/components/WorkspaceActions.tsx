@@ -1,7 +1,7 @@
 import { ProgressBar } from "@/shared/ui/ProgressBar";
 import { IconButton } from "@/shared/ui/IconButton";
 import { Button } from "@/shared/ui/Button";
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import {
   JOB_GROUPS,
@@ -28,7 +28,7 @@ import { JobStatusBadge } from "@/features/jobs/components/JobStatusBadge";
 import { useJobTimeLabel } from "@/features/jobs/hooks/useJobTimeLabel";
 import { failedCountFromStats } from "@/features/jobs/lib/jobFileResults";
 import { dismissJob, readDismissedJobIds } from "@/features/jobs/lib/jobSeen";
-import { Menu, MenuItem } from "@/shared/ui/Menu";
+import { Menu, MenuFooter, MenuItem } from "@/shared/ui/Menu";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
@@ -50,7 +50,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { AutomationSystemSpecs } from "@/features/automation/components/AutomationSystemSpecs";
 import { useAutomationSpecsVisible } from "@/features/automation/hooks/useAutomationSpecsVisible";
 import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
-import { reviewScopeNote } from "@/features/gallery/lib/reviewScope";
+import { ScopeNote } from "@/features/gallery/components/ScopeNote";
 
 interface ToolsMenuProps {
   panel: AutomationActions;
@@ -98,13 +98,50 @@ function ToolsGroup({
   );
 }
 
+const COLUMN_STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
+
+/**
+ * Left and Right move to the same row of the neighbouring group, wrapping around; a disabled
+ * tool there hands focus to its nearest enabled neighbour. Up and Down stay with the menu.
+ */
+function moveAcrossGroups(event: KeyboardEvent<HTMLDivElement>) {
+  const step = COLUMN_STEPS[event.key];
+  if (!step) return;
+  const groups = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="group"]')];
+  const itemsOf = (group: HTMLElement) => [
+    ...group.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+  ];
+  const from = groups.findIndex((group) => group.contains(document.activeElement));
+  if (from < 0) return;
+  const row = itemsOf(groups[from]).indexOf(document.activeElement as HTMLButtonElement);
+  for (let offset = 1; offset < groups.length; offset += 1) {
+    const items = itemsOf(groups[(from + step * offset + groups.length) % groups.length]);
+    const target = Math.min(row, items.length - 1);
+    const enabled = items
+      .map((item, index) => ({ item, distance: Math.abs(index - target) }))
+      .filter(({ item }) => !item.disabled)
+      .sort((a, b) => a.distance - b.distance);
+    if (enabled.length > 0) {
+      event.preventDefault();
+      enabled[0].item.focus();
+      return;
+    }
+  }
+}
+
 function ToolsMenuItems(props: ToolsMenuItemsProps) {
   return (
-    <div className="workspace-tools__groups">
-      {JOB_GROUPS.map((group) => (
-        <ToolsGroup key={group.id} group={group} {...props} />
-      ))}
-    </div>
+    <>
+      <div className="workspace-tools__groups" role="presentation" onKeyDown={moveAcrossGroups}>
+        {JOB_GROUPS.map((group) => (
+          <ToolsGroup key={group.id} group={group} {...props} />
+        ))}
+      </div>
+      <MenuFooter>
+        <ScopeNote scope={props.panel.reviewScope} />
+        <span>Hover a tool for details</span>
+      </MenuFooter>
+    </>
   );
 }
 
@@ -172,7 +209,6 @@ function ReviewMenu({ panel }: { panel: AutomationActions }) {
         </Button>
       </div>
       <Menu menu={menu} label="Review queues" placement="bottom-start" className="workspace-review">
-        <p className="workspace-review__scope">{reviewScopeNote(panel.reviewScope)}</p>
         {queues.map((queue) => (
           <MenuItem
             key={queue.label}
@@ -187,6 +223,9 @@ function ReviewMenu({ panel }: { panel: AutomationActions }) {
             }}
           />
         ))}
+        <MenuFooter>
+          <ScopeNote scope={panel.reviewScope} />
+        </MenuFooter>
       </Menu>
     </>
   );
@@ -212,7 +251,7 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
         </Button>
       )}
       <ToolsMenu panel={panel} />
-      <WorkflowsMenu actions={panel.workflows} />
+      <WorkflowsMenu actions={panel.workflows} scope={panel.reviewScope} />
       <ReviewMenu panel={panel} />
       <IconButton
         icon={iconCpu}

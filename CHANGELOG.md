@@ -8,6 +8,8 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+## 0.14.0 - 2026-11-16
+
 ### Added
 
 - **Trim to length** (Tools → Media) shortens videos to a longest length, keeping the start, middle or end of each. The trim is a normal edit that the video editor shows and can revert, and **Clear the trim** restores full length in a batch. It also works as a workflow step.
@@ -20,7 +22,8 @@ version heading when a minor or major version is cut.
 ### Changed
 
 - The system specifications panel is redesigned: a card per device with labelled meters for load, RAM and VRAM, and temperature, power and fan readings beside each device's name. It refreshes every second while open, not only during jobs.
-- The **Tools** menu is more compact: it lists each tool by name, in one row of sections. Hover over or focus a tool to see what it does and, when it is unavailable, why.
+- The **Tools** menu is redesigned and more compact: it lists each tool by name, in one row of sections. Hover over or focus a tool to see what it does and, when it is unavailable, why. Left and Right arrow keys move between sections.
+- **Tools**, **Workflows** and **Review** name their scope at the bottom of the menu: the selected files, the files matching the search and filters, or the whole folder.
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
 - Videos in the viewer and inspector remember whether you muted or unmuted them, and at what volume: the next video and later visits start the same way, and the edit preview follows the mute.

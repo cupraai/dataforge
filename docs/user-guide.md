@@ -32,7 +32,7 @@ Cards mark missing, empty, and unreadable captions, and show badges for findings
 
 The **statistics** drawer covers the whole folder, ignoring filters: caption coverage and lengths, frequent words and tags, issues, duplicates, formats, durations, megapixels, aspect ratios, and files whose size or length could not be read.
 
-**Review** appears when there are findings. It opens caption issues, duplicate groups, or ComfyUI candidates for the same [scope as jobs](#scope), and names that scope at the top. A duplicate group always opens with all its members.
+**Review** appears when there are findings. It opens caption issues, duplicate groups, or ComfyUI candidates for the same [scope as jobs](#scope), named at the bottom of the menu, as in **Tools** and **Workflows**. A duplicate group always opens with all its members.
 
 ### Select, copy, move, rename, delete
 

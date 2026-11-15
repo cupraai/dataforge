@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
@@ -289,6 +289,72 @@ describe("Workspace tools", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
       JOB_TYPE_META.auto_caption.menuDescription,
     );
+  });
+
+  it("names the scope under Tools, Workflows and Review", async () => {
+    const user = userEvent.setup();
+    renderActions({
+      reviewScope: { kind: "selected", fileCount: 3 },
+      issueCount: 1,
+      workflows: {
+        workflows: [{ name: "Tidy", steps: [{ job_type: "strip_metadata", settings: {} }] }],
+        startingWorkflow: null,
+        onRunWorkflow: vi.fn<(name: string) => void>(),
+        onEditWorkflows: vi.fn<(name: string | null) => void>(),
+      },
+    });
+    const menus = [
+      ["Tools", "Tools"],
+      ["Workflows", "Workflows"],
+      [/^Review/, "Review queues"],
+    ] as const;
+    for (const [button, menu] of menus) {
+      await user.click(screen.getByRole("button", { name: button }));
+      expect(screen.getByRole("menu", { name: menu })).toHaveTextContent("Scope3 selected files");
+      await user.keyboard("{Escape}");
+    }
+  });
+
+  it("moves between tool groups with Left and Right, past disabled tools", async () => {
+    const user = userEvent.setup();
+    renderActions(
+      {},
+      {
+        availability: {
+          syspromptApplies: true,
+          hasCaptionBackup: false,
+          ostrisAvailable: false,
+          comfyPresetsAvailable: false,
+        },
+      },
+    );
+    await user.click(screen.getByRole("button", { name: "Tools" }));
+    const focusTool = (name: string) => {
+      act(() => {
+        screen.getByRole("menuitem", { name }).focus();
+      });
+    };
+
+    focusTool("Auto-caption");
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("menuitem", { name: "Verify captions" })).toHaveFocus();
+
+    // Check has three tools, so the fourth row lands on its last.
+    focusTool("Edit captions");
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("menuitem", { name: "Find duplicates" })).toHaveFocus();
+
+    // Restore captions is disabled; its nearest enabled neighbour takes focus.
+    focusTool("Split into clips");
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("menuitem", { name: "Backup captions" })).toHaveFocus();
+
+    // Every integration is disabled, so Right from Files wraps to Captions.
+    focusTool("Rename");
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("menuitem", { name: "Set captions" })).toHaveFocus();
+    await user.keyboard("{ArrowLeft}");
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveFocus();
   });
 
   it("shows why unavailable tools are disabled in Tools and Quick actions", async () => {

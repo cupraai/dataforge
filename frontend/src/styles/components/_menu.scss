@@ -116,6 +116,40 @@
     text-transform: uppercase;
   }
 
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    margin-top: 0.375rem;
+    padding: 0.5rem 0.5rem 0.125rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+  }
+
+  &__scope {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+
+    svg {
+      @include icon-size-sm;
+      flex-shrink: 0;
+      @include icon-muted;
+    }
+  }
+
+  &__scope-label {
+    color: var(--text-subtle);
+  }
+
   &__separator {
     height: 1px;
     margin: 0.25rem 0.375rem;

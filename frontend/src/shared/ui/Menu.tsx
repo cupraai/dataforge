@@ -140,6 +140,15 @@ export function MenuGroup({ label, children }: { label: string; children: ReactN
   );
 }
 
+/** A muted line under the items, ruled off from them, such as the scope the actions cover. */
+export function MenuFooter({ children }: { children: ReactNode }) {
+  return (
+    <div className="menu__footer" role="none">
+      {children}
+    </div>
+  );
+}
+
 export function MenuSeparator() {
   return <div className="menu__separator" role="separator" />;
 }

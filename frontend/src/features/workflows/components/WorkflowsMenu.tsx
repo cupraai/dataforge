@@ -4,6 +4,8 @@ import { Fragment } from "react";
 import { jobMenuLabelFor, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import type { WorkflowActions } from "@/features/workflows/hooks/useWorkflowHost";
 import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
+import { ScopeNote } from "@/features/gallery/components/ScopeNote";
+import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import {
   iconChevronDown,
@@ -19,8 +21,14 @@ import { Menu } from "@/shared/ui/Menu";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
+interface WorkflowsMenuProps {
+  actions: WorkflowActions;
+  /** The files a run covers, named under the list. */
+  scope?: ReviewScope;
+}
+
 /** The toolbar's Workflows button: run a saved workflow on the current scope, or edit them. */
-export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
+export function WorkflowsMenu({ actions, scope }: WorkflowsMenuProps) {
   const menu = usePopupMenu();
   const { close, rootRef, triggerProps } = menu;
   const compact = useToolbarCompact();
@@ -99,6 +107,7 @@ export function WorkflowsMenu({ actions }: { actions: WorkflowActions }) {
               ))}
             </div>
             <div className="workspace-workflows__footer" role="none">
+              <ScopeNote scope={scope} />
               <Button
                 icon={iconPlus}
                 role="menuitem"

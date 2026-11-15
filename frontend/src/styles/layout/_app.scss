@@ -72,8 +72,10 @@
   background: var(--bg);
   @include app-scrollbar;
 
+  // Section headers bleed into the gutter by the same amount, so it is a variable.
   &__inner {
-    padding: 0 1rem;
+    --main-gutter: 1rem;
+    padding: 0 var(--main-gutter);
   }
 }
 
@@ -87,7 +89,7 @@
   }
 
   .main__inner {
-    padding: 0 0.625rem;
+    --main-gutter: 0.625rem;
   }
 }
 
