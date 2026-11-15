@@ -235,11 +235,8 @@
 }
 
 .workspace-system {
+  padding: 0.5rem 0 0.375rem;
   border-top: 1px solid var(--border);
-  padding-top: 0.5rem;
-  .automation__specs {
-    padding-bottom: 0.25rem;
-  }
 }
 
 // The job menu: groups as columns, the wide group spanning them underneath.

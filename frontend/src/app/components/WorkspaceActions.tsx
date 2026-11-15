@@ -341,7 +341,7 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
       )}
       {showSpecs && (
         <div className="workspace-system">
-          <AutomationSystemSpecs id="workspace-system-specs" open jobActive={active} />
+          <AutomationSystemSpecs id="workspace-system-specs" open />
         </div>
       )}
     </>

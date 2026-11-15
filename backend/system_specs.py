@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import glob
 import importlib
+import json
 import os
 import platform
 import re
@@ -19,6 +20,7 @@ class SystemSpecs:
     cpu_cores: int
     cpu_load_percent: float | None
     cpu_temperature_celsius: float | None
+    cpu_power_watts: float | None
     memory_total_bytes: int
     memory_used_bytes: int
     gpu_name: str | None
@@ -26,6 +28,9 @@ class SystemSpecs:
     gpu_memory_used_bytes: int | None
     gpu_load_percent: float | None
     gpu_temperature_celsius: float | None
+    gpu_power_watts: float | None
+    gpu_power_limit_watts: float | None
+    gpu_fan_percent: float | None
     gpu_available: bool
 
 
@@ -36,6 +41,15 @@ class _GpuInfo:
     memory_used_bytes: int | None
     load_percent: float | None
     temperature_celsius: float | None
+    power_watts: float | None = None
+    power_limit_watts: float | None = None
+    fan_percent: float | None = None
+
+
+@dataclass(frozen=True)
+class _BoardSensors:
+    cpu_temperature_celsius: float | None = None
+    cpu_power_watts: float | None = None
 
 
 def _windows_memory_bytes() -> tuple[int, int]:
@@ -204,43 +218,110 @@ def _cpu_load_percent() -> float | None:
 _LINUX_CPU_HWMON_NAMES = ("k10temp", "zenpower", "coretemp", "cpu_thermal", "cpu-thermal")
 
 
-#: Holds one Celsius number, written by the task from scripts/install-cpu-temperature-sensor.ps1.
-_WINDOWS_SENSOR_FILE = Path("DataForge", "sensors", "cpu_temperature.txt")
+#: Written by the SYSTEM task from scripts/install-hardware-sensors.ps1.
+_WINDOWS_SENSOR_FILE = Path("DataForge", "sensors", "sensors.json")
 _WINDOWS_SENSOR_MAX_AGE_SECONDS = 10.0
 
 
-def _windows_cpu_temperature() -> float | None:
+def _json_number(value: object) -> float | None:
+    # JSON booleans are ints to Python, and no sensor reads true.
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value)
+
+
+def _windows_sensors() -> _BoardSensors:
     program_data = os.environ.get("PROGRAMDATA")
     if not program_data:
-        return None
+        return _BoardSensors()
     sensor_file = Path(program_data) / _WINDOWS_SENSOR_FILE
     try:
         if time.time() - sensor_file.stat().st_mtime > _WINDOWS_SENSOR_MAX_AGE_SECONDS:
-            return None
-        return float(sensor_file.read_text(encoding="utf-8"))
+            return _BoardSensors()
+        data = json.loads(sensor_file.read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        return _BoardSensors()
+    if not isinstance(data, dict):
+        return _BoardSensors()
+    return _BoardSensors(
+        cpu_temperature_celsius=_json_number(data.get("cpu_temperature_celsius")),
+        cpu_power_watts=_json_number(data.get("cpu_power_watts")),
+    )
+
+
+def _read_int(path: str) -> int:
+    with open(path, encoding="utf-8") as handle:
+        return int(handle.read().strip())
+
+
+def _hwmon_name(hwmon: str) -> str | None:
+    try:
+        with open(os.path.join(hwmon, "name"), encoding="utf-8") as handle:
+            return handle.read().strip()
+    except OSError:
         return None
 
 
 def _linux_cpu_temperature() -> float | None:
     for hwmon in sorted(glob.glob("/sys/class/hwmon/hwmon*")):
+        if _hwmon_name(hwmon) not in _LINUX_CPU_HWMON_NAMES:
+            continue
         try:
-            with open(os.path.join(hwmon, "name"), encoding="utf-8") as handle:
-                if handle.read().strip() not in _LINUX_CPU_HWMON_NAMES:
-                    continue
-            with open(os.path.join(hwmon, "temp1_input"), encoding="utf-8") as handle:
-                return int(handle.read().strip()) / 1000
+            return _read_int(os.path.join(hwmon, "temp1_input")) / 1000
         except (OSError, ValueError):
             continue
     return None
 
 
-def _cpu_temperature_celsius() -> float | None:
+#: The package domain of the powercap RAPL driver, which also serves AMD Zen.
+_LINUX_RAPL_DIR = "/sys/class/powercap/intel-rapl:0"
+
+
+def _rapl_sample() -> tuple[int, float] | None:
+    """``(microjoules, monotonic seconds)``; kernels since 5.10 keep the counter root-only."""
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        return _read_int(os.path.join(_LINUX_RAPL_DIR, "energy_uj")), time.monotonic()
+    except (OSError, ValueError):
+        return None
+
+
+_previous_rapl_sample = _rapl_sample()
+_last_cpu_power_watts: float | None = None
+
+
+def _linux_cpu_power_watts() -> float | None:
+    """Average package power since the previous call, like the load figure."""
+    global _previous_rapl_sample, _last_cpu_power_watts
+    current = _rapl_sample()
+    previous = _previous_rapl_sample
+    if current is None or previous is None:
+        _previous_rapl_sample = current
+        return None
+    elapsed = current[1] - previous[1]
+    if elapsed <= 0:
+        return _last_cpu_power_watts
+    energy_uj = current[0] - previous[0]
+    if energy_uj < 0:
+        try:
+            energy_uj += _read_int(os.path.join(_LINUX_RAPL_DIR, "max_energy_range_uj"))
+        except (OSError, ValueError):
+            energy_uj = -1
+    _last_cpu_power_watts = round(energy_uj / 1e6 / elapsed, 1) if energy_uj >= 0 else None
+    _previous_rapl_sample = current
+    return _last_cpu_power_watts
+
+
+def _board_sensors() -> _BoardSensors:
     if sys.platform == "win32":
-        return _windows_cpu_temperature()
+        return _windows_sensors()
     if sys.platform.startswith("linux"):
-        return _linux_cpu_temperature()
-    return None
+        return _BoardSensors(
+            cpu_temperature_celsius=_linux_cpu_temperature(),
+            cpu_power_watts=_linux_cpu_power_watts(),
+        )
+    return _BoardSensors()
 
 
 def _sanitize_cpu_name(name: str) -> str:
@@ -265,7 +346,8 @@ def _gpu_from_nvidia_smi() -> _GpuInfo | None:
         result = subprocess.run(
             [
                 "nvidia-smi",
-                "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu",
+                "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu,"
+                "power.draw,power.limit,fan.speed",
                 "--format=csv,noheader,nounits",
             ],
             capture_output=True,
@@ -281,16 +363,19 @@ def _gpu_from_nvidia_smi() -> _GpuInfo | None:
 
     line = result.stdout.strip().splitlines()[0]
     parts = [part.strip() for part in line.split(",")]
-    if len(parts) < 5:
+    if len(parts) < 8:
         return None
 
-    name, total_mb, used_mb, load, temperature = parts[:5]
+    name, total_mb, used_mb, load, temperature, power, power_limit, fan = parts[:8]
     return _GpuInfo(
         name=name,
         memory_total_bytes=_mb_to_bytes(total_mb),
         memory_used_bytes=_mb_to_bytes(used_mb),
         load_percent=_optional_float(load),
         temperature_celsius=_optional_float(temperature),
+        power_watts=_optional_float(power),
+        power_limit_watts=_optional_float(power_limit),
+        fan_percent=_optional_float(fan),
     )
 
 
@@ -339,11 +424,13 @@ def _gpu_info() -> _GpuInfo | None:
 def get_system_specs() -> SystemSpecs:
     total_bytes, available_bytes = _memory_bytes()
     gpu = _gpu_info()
+    board = _board_sensors()
     return SystemSpecs(
         cpu_name=_sanitize_cpu_name(_cpu_name()),
         cpu_cores=os.cpu_count() or 1,
         cpu_load_percent=_cpu_load_percent(),
-        cpu_temperature_celsius=_cpu_temperature_celsius(),
+        cpu_temperature_celsius=board.cpu_temperature_celsius,
+        cpu_power_watts=board.cpu_power_watts,
         memory_total_bytes=total_bytes,
         memory_used_bytes=total_bytes - available_bytes,
         gpu_name=gpu.name if gpu else None,
@@ -351,5 +438,8 @@ def get_system_specs() -> SystemSpecs:
         gpu_memory_used_bytes=gpu.memory_used_bytes if gpu else None,
         gpu_load_percent=gpu.load_percent if gpu else None,
         gpu_temperature_celsius=gpu.temperature_celsius if gpu else None,
+        gpu_power_watts=gpu.power_watts if gpu else None,
+        gpu_power_limit_watts=gpu.power_limit_watts if gpu else None,
+        gpu_fan_percent=gpu.fan_percent if gpu else None,
         gpu_available=gpu is not None,
     )

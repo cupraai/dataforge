@@ -15,7 +15,7 @@ New here? Start with [Getting started](getting-started.md), then use the [User g
 | Choose and connect a vision model | [Configuration](configuration.md#connect-a-vision-model) |
 | Tune captions or fix memory/context failures | [Media input budgets](configuration.md#media-input-budgets), [Troubleshooting](configuration.md#troubleshooting) |
 | Change ports, storage paths, or logging | [Server, storage, and logging](configuration.md#server-storage-and-logging) |
-| Show CPU temperature on Windows | [CPU temperature on Windows](configuration.md#cpu-temperature-on-windows) |
+| Show CPU temperature and power on Windows | [Hardware sensors on Windows](configuration.md#hardware-sensors-on-windows) |
 | Process media and review ComfyUI results | [ComfyUI](comfyui.md) |
 | Train a LoRA | [AI-Toolkit](ai-toolkit.md) |
 | Develop or contribute | [Development](development.md) |

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SystemSpecs } from "@/shared/types";
 import { AutomationSystemSpecs } from "./AutomationSystemSpecs";
@@ -13,7 +13,7 @@ const defaultSystemSpecs: SystemSpecs = {
   gpu_name: "NVIDIA GeForce RTX 3080",
   gpu_memory_bytes: 10 * 1024 ** 3,
   gpu_memory_used_bytes: 4 * 1024 ** 3,
-  gpu_load_percent: 91,
+  gpu_load_percent: 41,
   gpu_temperature_celsius: 71.8,
   gpu_available: true,
 };
@@ -28,9 +28,18 @@ vi.mock("@/features/automation/hooks/useSystemSpecs", () => ({
   useSystemSpecs: (live?: boolean) => useSystemSpecsMock(live),
 }));
 
-function renderSpecs(open = true, jobActive = false) {
-  return render(<AutomationSystemSpecs id="specs-panel" open={open} jobActive={jobActive} />);
+function renderSpecs(open = true) {
+  return render(<AutomationSystemSpecs id="specs-panel" open={open} />);
 }
+
+const card = (name: string) => screen.getByRole("group", { name });
+const meterValue = (name: string) =>
+  screen.getByRole("meter", { name }).getAttribute("aria-valuenow");
+const fill = (name: string) => screen.getByRole("meter", { name }).firstElementChild;
+/** The figure printed beside a meter's caption. */
+const meterFigure = (cardName: string, caption: string) =>
+  within(card(cardName)).getByText(caption).nextElementSibling;
+const reading = (title: string) => screen.queryByTitle(title);
 
 describe("AutomationSystemSpecs", () => {
   beforeEach(() => {
@@ -38,65 +47,61 @@ describe("AutomationSystemSpecs", () => {
     useSystemSpecsMock.mockClear();
   });
 
-  it("renders the CPU, RAM and GPU readouts", () => {
+  it("shows a card per device with its hardware and figures", () => {
     renderSpecs();
 
-    const specs = screen.getByLabelText("System specifications");
-    expect(specs).toHaveTextContent("Intel Core i7-12700K");
-    expect(specs).toHaveTextContent("16 cores");
-    expect(specs.querySelector('[title="CPU load"]')).toHaveTextContent("38%");
-    expect(specs).toHaveTextContent("RAM");
-    // Both readouts are used / total (matching Task Manager), never free / total,
+    expect(card("CPU")).toHaveTextContent("Intel Core i7-12700K");
+    expect(card("CPU")).toHaveTextContent("16 cores");
+    expect(meterFigure("CPU", "Load")).toHaveTextContent(/^38%$/);
+    // Memory reads used / total (matching Task Manager), never free / total,
     // and the unit is written once, after the total.
-    expect(specs).toHaveTextContent("8 / 32 GB");
-    expect(specs).toHaveTextContent("NVIDIA GeForce RTX 3080");
-    expect(specs).toHaveTextContent("4 / 10 GB");
-    expect(specs.querySelector('[title="GPU load"]')).toHaveTextContent("91%");
-    expect(specs.querySelector('[title="CPU temperature"]')).toHaveTextContent("54°C");
-    expect(specs.querySelector('[title="GPU temperature"]')).toHaveTextContent("72°C");
+    expect(meterFigure("RAM", "Used")).toHaveTextContent(/^8 \/ 32 GB$/);
+    expect(card("GPU")).toHaveTextContent("NVIDIA GeForce RTX 3080");
+    expect(meterFigure("GPU", "Load")).toHaveTextContent(/^41%$/);
+    expect(meterFigure("GPU", "VRAM")).toHaveTextContent(/^4 \/ 10 GB$/);
+    expect(reading("CPU temperature")).toHaveTextContent("54°C");
+    expect(reading("GPU temperature")).toHaveTextContent("72°C");
   });
 
-  it("draws a bar under each spec: CPU load, RAM used, GPU load", () => {
+  it("names each reading for screen readers, not only by its icon", () => {
     renderSpecs();
 
-    const value = (name: string) =>
-      screen.getByRole("meter", { name }).getAttribute("aria-valuenow");
-    expect(value("CPU load")).toBe("38");
-    // RAM is the used share of the total (8 of 32 GB), not a load figure.
-    expect(value("RAM usage")).toBe("25");
-    // GPU is load, not VRAM (4 of 10 GB would be 40).
-    expect(value("GPU load")).toBe("91");
+    // The icon is decorative; a visually hidden label says what the figure is.
+    expect(reading("CPU temperature")).toHaveTextContent(/^CPU temperature: 54°C$/);
+    expect(reading("CPU temperature")?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("keeps an empty track where a figure is unknown so the bars stay aligned", () => {
+  it("draws a meter per figure: CPU load, RAM used, GPU load and VRAM used", () => {
+    renderSpecs();
+
+    expect(meterValue("CPU load")).toBe("38");
+    // RAM is the used share of the total (8 of 32 GB), not a load figure.
+    expect(meterValue("RAM usage")).toBe("25");
+    expect(meterValue("GPU load")).toBe("41");
+    // VRAM has its own meter: 4 of 10 GB.
+    expect(meterValue("VRAM usage")).toBe("40");
+  });
+
+  it("keeps an empty track and says unavailable where a figure is unknown", () => {
     mockSystemSpecs = { ...defaultSystemSpecs, cpu_load_percent: null, gpu_load_percent: null };
 
     const { container } = renderSpecs();
 
     expect(screen.getAllByRole("meter").map((meter) => meter.getAttribute("aria-label"))).toEqual([
       "RAM usage",
+      "VRAM usage",
     ]);
-    expect(container.querySelectorAll(".automation__spec-meter")).toHaveLength(3);
+    // Every meter keeps its track, so the cards stay the same height.
+    expect(container.querySelectorAll(".system-specs__bar")).toHaveLength(4);
+    expect(meterFigure("CPU", "Load")).toHaveTextContent("Unavailable");
+    expect(meterFigure("GPU", "Load")).toHaveTextContent("Unavailable");
   });
 
-  it("hides the CPU load when the backend cannot read it", () => {
-    mockSystemSpecs = { ...defaultSystemSpecs, cpu_load_percent: null };
-
-    renderSpecs();
-
-    expect(
-      screen.getByLabelText("System specifications").querySelector('[title="CPU load"]'),
-    ).toBeNull();
-  });
-
-  it("polls live only while a job runs and the panel is open", () => {
-    const { rerender } = renderSpecs(true, false);
-    expect(useSystemSpecsMock).toHaveBeenLastCalledWith(false);
-
-    rerender(<AutomationSystemSpecs id="specs-panel" open jobActive />);
+  it("polls only while the panel is open", () => {
+    const { rerender } = renderSpecs(true);
     expect(useSystemSpecsMock).toHaveBeenLastCalledWith(true);
 
-    rerender(<AutomationSystemSpecs id="specs-panel" open={false} jobActive />);
+    rerender(<AutomationSystemSpecs id="specs-panel" open={false} />);
     expect(useSystemSpecsMock).toHaveBeenLastCalledWith(false);
   });
 
@@ -123,20 +128,27 @@ describe("AutomationSystemSpecs", () => {
       gpu_load_percent: 80,
     };
 
-    const { container } = renderSpecs();
+    renderSpecs();
 
-    const figures = (level: string) =>
-      [...container.querySelectorAll(`.automation__spec-detail--${level}`)].map(
-        (node) => node.textContent,
-      );
-    // Only the used figures are coloured ° the totals keep their unit and normal colour.
-    expect(figures("warning")).toEqual(["24", "80%"]);
-    expect(figures("danger")).toEqual(["9"]);
+    expect(meterFigure("CPU", "Load")?.className).toBe("system-specs__value");
+    expect(meterFigure("RAM", "Used")).toHaveClass("system-specs__value--warning");
+    expect(meterFigure("GPU", "Load")).toHaveClass("system-specs__value--warning");
+    expect(meterFigure("GPU", "VRAM")).toHaveClass("system-specs__value--danger");
 
-    const fill = (name: string) => screen.getByRole("meter", { name }).firstElementChild;
-    expect(fill("CPU load")?.className).toBe("automation__spec-meter-fill");
-    expect(fill("RAM usage")).toHaveClass("automation__spec-meter-fill--warning");
-    expect(fill("GPU load")).toHaveClass("automation__spec-meter-fill--warning");
+    expect(fill("CPU load")?.className).toBe("system-specs__fill");
+    expect(fill("RAM usage")).toHaveClass("system-specs__fill--warning");
+    expect(fill("GPU load")).toHaveClass("system-specs__fill--warning");
+    expect(fill("VRAM usage")).toHaveClass("system-specs__fill--danger");
+  });
+
+  it("keeps the memory total muted so only the used figure carries the colour", () => {
+    mockSystemSpecs = { ...defaultSystemSpecs, memory_used_bytes: 30 * 1024 ** 3 };
+
+    renderSpecs();
+
+    const used = meterFigure("RAM", "Used");
+    expect(used).toHaveClass("system-specs__value--danger");
+    expect(used?.querySelector(".system-specs__total")).toHaveTextContent("/ 32 GB");
   });
 
   it("colours temperatures yellow from 80°C and red from 95°C", () => {
@@ -146,11 +158,10 @@ describe("AutomationSystemSpecs", () => {
       gpu_temperature_celsius: 95,
     };
 
-    const { container } = renderSpecs();
+    renderSpecs();
 
-    const reading = (title: string) => container.querySelector(`[title="${title}"] span`);
-    expect(reading("CPU temperature")).toHaveClass("automation__spec-detail--warning");
-    expect(reading("GPU temperature")).toHaveClass("automation__spec-detail--danger");
+    expect(reading("CPU temperature")).toHaveClass("system-specs__reading--warning");
+    expect(reading("GPU temperature")).toHaveClass("system-specs__reading--danger");
   });
 
   it("hides a temperature the machine does not report", () => {
@@ -160,9 +171,10 @@ describe("AutomationSystemSpecs", () => {
       gpu_temperature_celsius: null,
     };
 
-    const { container } = renderSpecs();
+    renderSpecs();
 
-    expect(container.querySelector('[title$="temperature"]')).toBeNull();
+    expect(reading("CPU temperature")).toBeNull();
+    expect(reading("GPU temperature")).toBeNull();
   });
 
   it("turns the load red at 90%", () => {
@@ -170,25 +182,15 @@ describe("AutomationSystemSpecs", () => {
 
     renderSpecs();
 
-    const specs = screen.getByLabelText("System specifications");
-    expect(
-      specs.querySelector('[title="CPU load"] .automation__spec-detail--danger'),
-    ).toHaveTextContent("90%");
-    expect(
-      specs.querySelector('[title="GPU load"] .automation__spec-detail--danger'),
-    ).toHaveTextContent("100%");
-    expect(screen.getByRole("meter", { name: "CPU load" }).firstElementChild).toHaveClass(
-      "automation__spec-meter-fill--danger",
-    );
-    expect(screen.getByRole("meter", { name: "GPU load" }).firstElementChild).toHaveClass(
-      "automation__spec-meter-fill--danger",
-    );
+    expect(meterFigure("CPU", "Load")).toHaveClass("system-specs__value--danger");
+    expect(meterFigure("GPU", "Load")).toHaveTextContent("100%");
+    expect(fill("CPU load")).toHaveClass("system-specs__fill--danger");
+    expect(fill("GPU load")).toHaveClass("system-specs__fill--danger");
   });
 
   it("leaves figures and bars uncoloured below the warning threshold", () => {
     mockSystemSpecs = {
       ...defaultSystemSpecs,
-      gpu_load_percent: 12,
       cpu_temperature_celsius: 54,
       gpu_temperature_celsius: 61,
     };
@@ -199,24 +201,76 @@ describe("AutomationSystemSpecs", () => {
   });
 
   it("shows the VRAM total alone when usage is unknown", () => {
+    mockSystemSpecs = { ...defaultSystemSpecs, gpu_memory_used_bytes: null };
+
+    renderSpecs();
+
+    expect(screen.getByTitle("VRAM total")).toHaveTextContent("10 GB");
+    expect(screen.queryByRole("meter", { name: "VRAM usage" })).toBeNull();
+  });
+
+  it("shows CPU power and GPU power against its limit in the card headers", () => {
     mockSystemSpecs = {
       ...defaultSystemSpecs,
-      gpu_memory_used_bytes: null,
+      cpu_power_watts: 141.6,
+      gpu_power_watts: 300.4,
+      gpu_power_limit_watts: 320,
+      gpu_fan_percent: 54.6,
     };
 
     renderSpecs();
 
-    const specs = screen.getByLabelText("System specifications");
-    expect(specs).toHaveTextContent("NVIDIA GeForce RTX 3080");
-    expect(specs.querySelector('[title="VRAM total"]')).toHaveTextContent("10 GB");
+    expect(reading("CPU power")).toHaveTextContent("142 W");
+    expect(reading("GPU power / limit")).toHaveTextContent("300 / 320 W");
+    expect(reading("GPU fan speed")).toHaveTextContent("55%");
+    // 300 of 320 W is 94% of the cap, coloured like load.
+    expect(reading("GPU power / limit")).toHaveClass("system-specs__reading--danger");
+    expect(within(card("CPU")).getByTitle("CPU power")).toBeInTheDocument();
+    expect(within(card("GPU")).getByTitle("GPU fan speed")).toBeInTheDocument();
   });
 
-  it("falls back to No GPU when none is available", () => {
-    mockSystemSpecs = { ...defaultSystemSpecs, gpu_available: false };
+  it("shows GPU power alone when the card reports no limit", () => {
+    mockSystemSpecs = { ...defaultSystemSpecs, gpu_power_watts: 95, gpu_power_limit_watts: null };
 
     renderSpecs();
 
-    expect(screen.getByLabelText("System specifications")).toHaveTextContent("No GPU");
+    expect(reading("GPU power")).toHaveTextContent(/95 W$/);
+    expect(reading("GPU power")?.className).toBe("system-specs__reading");
+  });
+
+  it("leaves out power and fan readings the machine does not report", () => {
+    renderSpecs();
+
+    expect(reading("CPU power")).toBeNull();
+    expect(reading("GPU power / limit")).toBeNull();
+    expect(reading("GPU fan speed")).toBeNull();
+  });
+
+  it("has no motherboard fan card", () => {
+    renderSpecs();
+
+    expect(screen.getAllByRole("group").map((group) => group.getAttribute("aria-label"))).toEqual([
+      "CPU",
+      "RAM",
+      "GPU",
+    ]);
+  });
+
+  it("falls back to No GPU and unavailable figures when none is available", () => {
+    mockSystemSpecs = {
+      ...defaultSystemSpecs,
+      gpu_available: false,
+      gpu_power_watts: 120,
+      gpu_fan_percent: 30,
+    };
+
+    renderSpecs();
+
+    expect(card("GPU")).toHaveTextContent("No GPU");
+    expect(meterFigure("GPU", "Load")).toHaveTextContent("Unavailable");
+    expect(meterFigure("GPU", "VRAM")).toHaveTextContent("Unavailable");
+    expect(reading("GPU temperature")).toBeNull();
+    expect(reading("GPU fan speed")).toBeNull();
   });
 
   it("renders nothing until the specs load", () => {

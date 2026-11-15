@@ -18,6 +18,7 @@ class SystemSpecsEndpointTests(unittest.TestCase):
             cpu_cores=16,
             cpu_load_percent=37.5,
             cpu_temperature_celsius=54.0,
+            cpu_power_watts=95.5,
             memory_total_bytes=32 * 1024**3,
             memory_used_bytes=8 * 1024**3,
             gpu_name="NVIDIA GeForce RTX 3080",
@@ -25,6 +26,9 @@ class SystemSpecsEndpointTests(unittest.TestCase):
             gpu_memory_used_bytes=4 * 1024**3,
             gpu_load_percent=91.0,
             gpu_temperature_celsius=72.0,
+            gpu_power_watts=280.0,
+            gpu_power_limit_watts=320.0,
+            gpu_fan_percent=55.0,
             gpu_available=True,
         )
 
@@ -38,6 +42,7 @@ class SystemSpecsEndpointTests(unittest.TestCase):
                 "cpu_cores": 16,
                 "cpu_load_percent": 37.5,
                 "cpu_temperature_celsius": 54.0,
+                "cpu_power_watts": 95.5,
                 "memory_total_bytes": 32 * 1024**3,
                 "memory_used_bytes": 8 * 1024**3,
                 "gpu_name": "NVIDIA GeForce RTX 3080",
@@ -45,6 +50,9 @@ class SystemSpecsEndpointTests(unittest.TestCase):
                 "gpu_memory_used_bytes": 4 * 1024**3,
                 "gpu_load_percent": 91.0,
                 "gpu_temperature_celsius": 72.0,
+                "gpu_power_watts": 280.0,
+                "gpu_power_limit_watts": 320.0,
+                "gpu_fan_percent": 55.0,
                 "gpu_available": True,
             },
         )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -19,7 +20,7 @@ class NvidiaSmiGpuTests(unittest.TestCase):
     def test_parses_name_total_and_used(self, run_mock: MagicMock) -> None:
         run_mock.return_value = MagicMock(
             returncode=0,
-            stdout="NVIDIA GeForce RTX 4090, 24564, 8192, 87, 64\n",
+            stdout="NVIDIA GeForce RTX 4090, 24564, 8192, 87, 64, 312.45, 450.00, 61\n",
         )
 
         info = _gpu_from_nvidia_smi()
@@ -31,28 +32,38 @@ class NvidiaSmiGpuTests(unittest.TestCase):
         self.assertEqual(info.memory_used_bytes, (8192 * 1024 * 1024))
         self.assertEqual(info.load_percent, 87.0)
         self.assertEqual(info.temperature_celsius, 64.0)
+        self.assertEqual(info.power_watts, 312.45)
+        self.assertEqual(info.power_limit_watts, 450.0)
+        self.assertEqual(info.fan_percent, 61.0)
 
     @patch("system_specs.subprocess.run")
     def test_queries_only_the_fields_the_panel_shows(self, run_mock: MagicMock) -> None:
-        run_mock.return_value = MagicMock(returncode=0, stdout="GPU, 100, 40, 5, 44\n")
+        run_mock.return_value = MagicMock(returncode=0, stdout="GPU, 100, 40, 5, 44, 30, 200, 0\n")
 
         _gpu_from_nvidia_smi()
 
         query = next(arg for arg in run_mock.call_args.args[0] if arg.startswith("--query-gpu"))
         self.assertEqual(
             query,
-            "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu",
+            "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu,"
+            "power.draw,power.limit,fan.speed",
         )
 
     @patch("system_specs.subprocess.run")
     def test_leaves_load_unknown_when_the_card_reports_na(self, run_mock: MagicMock) -> None:
-        run_mock.return_value = MagicMock(returncode=0, stdout="GPU, 100, 40, [N/A], [N/A]\n")
+        # A passively cooled card has no fan, and some report no power sensor.
+        run_mock.return_value = MagicMock(
+            returncode=0, stdout="GPU, 100, 40, [N/A], [N/A], [N/A], [N/A], [N/A]\n"
+        )
 
         info = _gpu_from_nvidia_smi()
 
         assert info is not None
         self.assertIsNone(info.load_percent)
         self.assertIsNone(info.temperature_celsius)
+        self.assertIsNone(info.power_watts)
+        self.assertIsNone(info.power_limit_watts)
+        self.assertIsNone(info.fan_percent)
         self.assertEqual(info.memory_used_bytes, 40 * 1024 * 1024)
 
     @patch("system_specs.subprocess.run", side_effect=FileNotFoundError)
@@ -154,7 +165,7 @@ class CpuTemperatureTests(unittest.TestCase):
                 patch("system_specs.sys.platform", "linux"),
                 patch("system_specs.glob.glob", return_value=[str(unrelated), str(cpu)]),
             ):
-                self.assertEqual(system_specs._cpu_temperature_celsius(), 54.321)
+                self.assertEqual(system_specs._board_sensors().cpu_temperature_celsius, 54.321)
 
     def test_is_none_when_no_hwmon_belongs_to_the_cpu(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -166,16 +177,43 @@ class CpuTemperatureTests(unittest.TestCase):
                 patch("system_specs.sys.platform", "linux"),
                 patch("system_specs.glob.glob", return_value=[str(other)]),
             ):
-                self.assertIsNone(system_specs._cpu_temperature_celsius())
+                self.assertIsNone(system_specs._board_sensors().cpu_temperature_celsius)
 
     def test_reads_no_sensor_on_macos(self) -> None:
         with (
             patch("system_specs.sys.platform", "darwin"),
             patch("system_specs.glob.glob") as glob_mock,
         ):
-            self.assertIsNone(system_specs._cpu_temperature_celsius())
+            self.assertIsNone(system_specs._board_sensors().cpu_temperature_celsius)
 
         glob_mock.assert_not_called()
+
+
+class LinuxCpuPowerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = patch.multiple(
+            system_specs, _previous_rapl_sample=(1_000_000, 10.0), _last_cpu_power_watts=None
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_averages_package_energy_since_the_previous_sample(self) -> None:
+        # 130 J over two seconds.
+        with patch("system_specs._rapl_sample", return_value=(131_000_000, 12.0)):
+            self.assertEqual(system_specs._linux_cpu_power_watts(), 65.0)
+
+    def test_survives_the_counter_wrapping(self) -> None:
+        with (
+            patch.object(system_specs, "_previous_rapl_sample", (95_000_000, 10.0)),
+            patch("system_specs._rapl_sample", return_value=(3_000_000, 12.0)),
+            patch("system_specs._read_int", return_value=100_000_000),
+        ):
+            # (100 - 95 + 3) J over two seconds.
+            self.assertEqual(system_specs._linux_cpu_power_watts(), 4.0)
+
+    def test_is_none_when_the_counter_is_root_only(self) -> None:
+        with patch("system_specs._rapl_sample", return_value=None):
+            self.assertIsNone(system_specs._linux_cpu_power_watts())
 
 
 class WindowsSensorFileTests(unittest.TestCase):
@@ -183,7 +221,7 @@ class WindowsSensorFileTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.program_data = Path(directory.name)
-        self.sensor_file = self.program_data / "DataForge" / "sensors" / "cpu_temperature.txt"
+        self.sensor_file = self.program_data / "DataForge" / "sensors" / "sensors.json"
         patcher = patch.dict("os.environ", {"PROGRAMDATA": str(self.program_data)})
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -194,33 +232,50 @@ class WindowsSensorFileTests(unittest.TestCase):
         written_at = time.time() - age_seconds
         os.utime(self.sensor_file, (written_at, written_at))
 
-    def read_on_windows(self) -> float | None:
+    def read_on_windows(self) -> system_specs._BoardSensors:
         with patch("system_specs.sys.platform", "win32"):
-            return system_specs._cpu_temperature_celsius()
+            return system_specs._board_sensors()
 
-    def test_reads_the_published_temperature(self) -> None:
-        self.write_sensor_file("59.25")
+    def write_readings(self, age_seconds: float = 0, **readings: object) -> None:
+        self.write_sensor_file(json.dumps(readings), age_seconds)
 
-        self.assertEqual(self.read_on_windows(), 59.25)
+    def test_reads_the_published_readings(self) -> None:
+        self.write_readings(cpu_temperature_celsius=59.25, cpu_power_watts=88.5)
 
-    def test_ignores_a_reading_the_stopped_task_left_behind(self) -> None:
-        self.write_sensor_file("59.25", age_seconds=30)
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors(59.25, 88.5))
 
-        self.assertIsNone(self.read_on_windows())
+    def test_keeps_the_temperature_when_power_is_unknown(self) -> None:
+        # The first round after the task starts has no power figure yet.
+        self.write_readings(cpu_temperature_celsius=59.25, cpu_power_watts=None)
 
-    def test_is_none_without_the_sensor_task_installed(self) -> None:
-        self.assertIsNone(self.read_on_windows())
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors(59.25))
 
-    def test_is_none_when_the_file_holds_no_number(self) -> None:
-        self.write_sensor_file("not a reading")
+    def test_skips_malformed_entries(self) -> None:
+        self.write_readings(
+            cpu_temperature_celsius="hot",
+            cpu_power_watts=True,
+        )
 
-        self.assertIsNone(self.read_on_windows())
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors())
 
-    def test_is_none_without_a_program_data_folder(self) -> None:
-        self.write_sensor_file("59.25")
+    def test_ignores_readings_the_stopped_task_left_behind(self) -> None:
+        self.write_readings(age_seconds=30, cpu_temperature_celsius=59.25)
+
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors())
+
+    def test_is_empty_without_the_sensor_task_installed(self) -> None:
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors())
+
+    def test_is_empty_when_the_file_is_not_json(self) -> None:
+        self.write_sensor_file("59.25,")
+
+        self.assertEqual(self.read_on_windows(), system_specs._BoardSensors())
+
+    def test_is_empty_without_a_program_data_folder(self) -> None:
+        self.write_readings(cpu_temperature_celsius=59.25)
 
         with patch.dict("os.environ", clear=True):
-            self.assertIsNone(self.read_on_windows())
+            self.assertEqual(self.read_on_windows(), system_specs._BoardSensors())
 
 
 class SystemMemoryTests(unittest.TestCase):

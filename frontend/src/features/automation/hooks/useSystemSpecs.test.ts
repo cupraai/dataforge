@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as systemApi from "@/features/automation/api/system";
 import type { SystemSpecs } from "@/shared/types";
 import { queryWrapper } from "@/test/queryClient";
-import { ACTIVE_REFRESH_INTERVAL_MS, useSystemSpecs } from "./useSystemSpecs";
+import { REFRESH_INTERVAL_MS, useSystemSpecs } from "./useSystemSpecs";
 
 const sampleSpecs: SystemSpecs = {
   cpu_name: "Intel Core i7",
@@ -30,7 +30,7 @@ describe("useSystemSpecs", () => {
     const { wrapper } = queryWrapper();
     const fetchMock = vi.spyOn(systemApi, "fetchSystemSpecs").mockResolvedValue(sampleSpecs);
 
-    const first = renderHook(() => useSystemSpecs(), { wrapper });
+    const first = renderHook(() => useSystemSpecs(true), { wrapper });
     await waitFor(() => {
       expect(first.result.current).toEqual(sampleSpecs);
     });
@@ -40,7 +40,7 @@ describe("useSystemSpecs", () => {
     fetchMock.mockClear();
     fetchMock.mockImplementation(() => new Promise(() => {}));
 
-    const second = renderHook(() => useSystemSpecs(), { wrapper });
+    const second = renderHook(() => useSystemSpecs(true), { wrapper });
     expect(second.result.current).toEqual(sampleSpecs);
     await act(async () => {
       focusManager.setFocused(false);
@@ -55,7 +55,7 @@ describe("useSystemSpecs", () => {
     const { wrapper } = queryWrapper();
     const fetchMock = vi.spyOn(systemApi, "fetchSystemSpecs").mockResolvedValueOnce(sampleSpecs);
 
-    const first = renderHook(() => useSystemSpecs(), { wrapper });
+    const first = renderHook(() => useSystemSpecs(true), { wrapper });
     await waitFor(() => {
       expect(first.result.current).toEqual(sampleSpecs);
     });
@@ -63,9 +63,9 @@ describe("useSystemSpecs", () => {
 
     fetchMock.mockRejectedValue(new Error("offline"));
     // A stale remount refreshes; a fresh remount simply shares the cached reading.
-    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 30_001);
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + REFRESH_INTERVAL_MS + 1);
 
-    const second = renderHook(() => useSystemSpecs(), { wrapper });
+    const second = renderHook(() => useSystemSpecs(true), { wrapper });
     expect(second.result.current).toEqual(sampleSpecs);
 
     await waitFor(() => {
@@ -75,29 +75,28 @@ describe("useSystemSpecs", () => {
     second.unmount();
   });
 
-  it("polls at the fast cadence only while live", async () => {
+  it("polls every second only while open", async () => {
     vi.useFakeTimers();
     try {
       const fetchMock = vi.spyOn(systemApi, "fetchSystemSpecs").mockResolvedValue(sampleSpecs);
 
-      const { rerender, unmount } = renderHook(({ live }) => useSystemSpecs(live), {
-        initialProps: { live: false },
+      const { rerender, unmount } = renderHook(({ open }) => useSystemSpecs(open), {
+        initialProps: { open: false },
         wrapper: queryWrapper().wrapper,
       });
-      await vi.advanceTimersByTimeAsync(ACTIVE_REFRESH_INTERVAL_MS * 3);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 3);
+      expect(fetchMock).not.toHaveBeenCalled();
 
-      // Going live refreshes immediately, then keeps up with the job.
-      rerender({ live: true });
+      // Opening reads at once, then every second, with or without a job running.
+      rerender({ open: true });
       await vi.advanceTimersByTimeAsync(0);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await vi.advanceTimersByTimeAsync(ACTIVE_REFRESH_INTERVAL_MS * 3);
-      expect(fetchMock).toHaveBeenCalledTimes(5);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 3);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
 
-      rerender({ live: false });
-      const callsWhenIdle = fetchMock.mock.calls.length;
-      await vi.advanceTimersByTimeAsync(ACTIVE_REFRESH_INTERVAL_MS * 3);
-      expect(fetchMock).toHaveBeenCalledTimes(callsWhenIdle);
+      rerender({ open: false });
+      await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 3);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
       unmount();
     } finally {
       vi.useRealTimers();

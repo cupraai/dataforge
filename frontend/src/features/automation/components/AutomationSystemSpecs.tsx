@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { iconCpu, iconGpu, iconMemoryStick } from "@/shared/icons";
+import {
+  iconCpu,
+  iconFan,
+  iconGpu,
+  iconMemoryStick,
+  iconThermometer,
+  iconZap,
+} from "@/shared/icons";
 import { useSystemSpecs } from "@/features/automation/hooks/useSystemSpecs";
 import { classNames } from "@/shared/lib/classNames";
 import { formatBytes, formatBytesValue } from "@/shared/lib/format";
@@ -39,26 +46,25 @@ function levelClass(base: string, level: UsageLevel): string | undefined {
 
 export interface AutomationSystemSpecsProps {
   id: string;
+  /** Only an open panel polls. */
   open: boolean;
-  /** Refreshes quickly while a job runs so its load is visible. */
-  jobActive?: boolean;
 }
 
-export function AutomationSystemSpecs({ id, open, jobActive = false }: AutomationSystemSpecsProps) {
-  // A collapsed panel shows nothing, so it has no reason to poll fast.
-  const specs = useSystemSpecs(open && jobActive);
+export function AutomationSystemSpecs({ id, open }: AutomationSystemSpecsProps) {
+  const specs = useSystemSpecs(open);
   if (!specs) return null;
 
-  const {
-    gpu_name,
-    gpu_memory_bytes,
-    gpu_memory_used_bytes,
-    gpu_load_percent,
-    gpu_temperature_celsius,
-  } = specs;
   const cpuLoad = specs.cpu_load_percent;
   const cpuTemperature = specs.cpu_temperature_celsius;
-  const hasGpu = specs.gpu_available && gpu_name !== null;
+  const cpuPower = specs.cpu_power_watts;
+  const gpuName = specs.gpu_available ? specs.gpu_name : null;
+  const gpuLoad = specs.gpu_load_percent;
+  const gpuTemperature = specs.gpu_temperature_celsius;
+  const gpuPower = specs.gpu_power_watts;
+  const gpuPowerLimit = specs.gpu_power_limit_watts;
+  const gpuFan = specs.gpu_fan_percent;
+  const vramTotal = specs.gpu_memory_bytes;
+  const vramUsed = specs.gpu_memory_used_bytes;
 
   return (
     <div className="automation__system">
@@ -67,187 +73,230 @@ export function AutomationSystemSpecs({ id, open, jobActive = false }: Automatio
         hidden={!open}
         className={classNames("automation__specs-panel", open && "automation__specs-panel--open")}
       >
-        <div className="automation__specs" role="region" aria-label="System specifications">
-          <Spec
+        <div className="system-specs" role="region" aria-label="System specifications">
+          <SpecCard
             icon={iconCpu}
             label="CPU"
-            detail={
+            hardware={`${specs.cpu_name} · ${specs.cpu_cores} cores`}
+            readings={
               <>
-                {specs.cpu_name} · {specs.cpu_cores} cores
+                {cpuTemperature != null && (
+                  <TemperatureReading celsius={cpuTemperature} title="CPU temperature" />
+                )}
+                {cpuPower != null && <PowerReading watts={cpuPower} title="CPU power" />}
               </>
             }
-            meter={cpuLoad != null && { label: "CPU load", percent: cpuLoad }}
           >
-            {cpuLoad != null && <LoadDetail percent={cpuLoad} title="CPU load" />}
-            {cpuTemperature != null && (
-              <>
-                ·
-                <TemperatureDetail celsius={cpuTemperature} title="CPU temperature" />
-              </>
-            )}
-            {cpuLoad == null && cpuTemperature == null && (
-              <span className="automation__spec-detail">Unavailable</span>
-            )}
-          </Spec>
-          <Spec
-            icon={iconMemoryStick}
-            label="RAM"
-            detail="Memory used / total"
-            meter={{
-              label: "RAM usage",
-              percent: memoryPercent(specs.memory_used_bytes, specs.memory_total_bytes),
-            }}
-          >
-            <MemoryDetail
-              usedBytes={specs.memory_used_bytes}
-              totalBytes={specs.memory_total_bytes}
-              title="RAM used / total"
-            />
-          </Spec>
-          <Spec
+            <SpecMeter caption="Load" label="CPU load" percent={cpuLoad}>
+              {cpuLoad != null && `${Math.round(cpuLoad)}%`}
+            </SpecMeter>
+          </SpecCard>
+          <SpecCard icon={iconMemoryStick} label="RAM" hardware="System memory">
+            <SpecMeter
+              caption="Used"
+              label="RAM usage"
+              percent={memoryPercent(specs.memory_used_bytes, specs.memory_total_bytes)}
+            >
+              <MemoryValue
+                usedBytes={specs.memory_used_bytes}
+                totalBytes={specs.memory_total_bytes}
+              />
+            </SpecMeter>
+          </SpecCard>
+          <SpecCard
             icon={iconGpu}
             label="GPU"
-            detail={hasGpu ? gpu_name : "No GPU"}
-            meter={
-              hasGpu && gpu_load_percent != null && { label: "GPU load", percent: gpu_load_percent }
+            hardware={gpuName ?? "No GPU"}
+            readings={
+              gpuName != null && (
+                <>
+                  {gpuTemperature != null && (
+                    <TemperatureReading celsius={gpuTemperature} title="GPU temperature" />
+                  )}
+                  {gpuPower != null && (
+                    <PowerReading
+                      watts={gpuPower}
+                      limitWatts={gpuPowerLimit}
+                      title={gpuPowerLimit != null ? "GPU power / limit" : "GPU power"}
+                    />
+                  )}
+                  {gpuFan != null && (
+                    <Reading icon={iconFan} title="GPU fan speed">
+                      {Math.round(gpuFan)}%
+                    </Reading>
+                  )}
+                </>
+              )
             }
           >
-            {hasGpu ? (
-              <>
-                {gpu_load_percent != null && (
-                  <LoadDetail percent={gpu_load_percent} title="GPU load" />
-                )}
-                ·
-                {gpu_temperature_celsius != null && (
-                  <TemperatureDetail celsius={gpu_temperature_celsius} title="GPU temperature" />
-                )}
-                ·
-                {gpu_memory_bytes != null && (
-                  <span className="automation__spec-vram">
-                    {gpu_memory_used_bytes != null ? (
-                      <MemoryDetail
-                        usedBytes={gpu_memory_used_bytes}
-                        totalBytes={gpu_memory_bytes}
-                        title="VRAM used / total"
-                      />
-                    ) : (
-                      <span className="automation__spec-detail" title="VRAM total">
-                        {formatBytes(gpu_memory_bytes)}
-                      </span>
-                    )}
-                  </span>
-                )}
-                {gpu_load_percent == null &&
-                  gpu_temperature_celsius == null &&
-                  gpu_memory_bytes == null && (
-                    <span className="automation__spec-detail">Unavailable</span>
-                  )}
-              </>
-            ) : (
-              <span className="automation__spec-detail">Unavailable</span>
-            )}
-          </Spec>
+            <SpecMeter caption="Load" label="GPU load" percent={gpuName != null ? gpuLoad : null}>
+              {gpuName != null && gpuLoad != null && `${Math.round(gpuLoad)}%`}
+            </SpecMeter>
+            <SpecMeter
+              caption="VRAM"
+              label="VRAM usage"
+              percent={
+                gpuName != null && vramTotal != null && vramUsed != null
+                  ? memoryPercent(vramUsed, vramTotal)
+                  : null
+              }
+            >
+              {gpuName != null &&
+                vramTotal != null &&
+                (vramUsed != null ? (
+                  <MemoryValue usedBytes={vramUsed} totalBytes={vramTotal} />
+                ) : (
+                  <span title="VRAM total">{formatBytes(vramTotal)}</span>
+                ))}
+            </SpecMeter>
+          </SpecCard>
         </div>
       </div>
     </div>
   );
 }
 
-interface SpecMeter {
-  label: string;
-  percent: number;
-}
-
-interface SpecProps {
+interface SpecCardProps {
   icon: LucideIcon;
   label: string;
-  detail: ReactNode;
-  /** Bar under the readout; `false` keeps an empty track so the row stays aligned. */
-  meter: SpecMeter | false;
+  /** Model or description; truncates first so the readings beside it stay whole. */
+  hardware: string;
+  /** Secondary figures in the header, each a `Reading`. */
+  readings?: ReactNode;
+  /** The card's meters. */
   children: ReactNode;
 }
 
-function Spec({ icon, label, detail, meter, children }: SpecProps) {
+function SpecCard({ icon, label, hardware, readings, children }: SpecCardProps) {
   return (
-    <span className="automation__spec">
-      <span className="automation__spec-row">
-        <Icon icon={icon} className="automation__spec-icon" />
-        <span className="automation__spec-label">{label}</span>
-        <span className="automation__spec-values">{children}</span>
-      </span>
-      <span className="automation__spec-hardware">{detail}</span>
-      {meter ? (
-        <SpecMeterBar {...meter} />
-      ) : (
-        <span className="automation__spec-meter automation__spec-meter--empty" aria-hidden="true" />
-      )}
-    </span>
+    // A group, not a section: three nested landmarks would crowd the region they sit in.
+    <div className="system-specs__card" role="group" aria-label={label}>
+      <div className="system-specs__header">
+        <span className="system-specs__icon" aria-hidden="true">
+          <Icon icon={icon} />
+        </span>
+        <span className="system-specs__label">{label}</span>
+        <span className="system-specs__hardware" title={hardware}>
+          {hardware}
+        </span>
+        {readings && <span className="system-specs__readings">{readings}</span>}
+      </div>
+      <div className="system-specs__meters">{children}</div>
+    </div>
   );
 }
 
-function SpecMeterBar({ label, percent }: SpecMeter) {
-  const clamped = Math.min(100, Math.max(0, percent));
+interface SpecMeterProps {
+  /** Short visible caption above the bar. */
+  caption: string;
+  /** Accessible name of the meter. */
+  label: string;
+  /** Fill of the bar; none leaves an empty track and says the figure is unavailable. */
+  percent?: number | null;
+  /** The figure beside the caption; nothing means unavailable. */
+  children?: ReactNode;
+}
+
+function SpecMeter({ caption, label, percent, children }: SpecMeterProps) {
+  const known = percent != null;
+  const clamped = known ? Math.min(100, Math.max(0, percent)) : 0;
   const rounded = Math.round(clamped);
+  const level = known ? usageLevel(rounded) : "normal";
+  return (
+    <div className="system-specs__meter">
+      <div className="system-specs__meter-head">
+        <span className="system-specs__caption">{caption}</span>
+        <span
+          className={classNames(
+            "system-specs__value",
+            levelClass("system-specs__value", level),
+            !children && "system-specs__value--unavailable",
+          )}
+        >
+          {children || "Unavailable"}
+        </span>
+      </div>
+      <span
+        className="system-specs__bar"
+        {...(known
+          ? {
+              role: "meter",
+              "aria-label": label,
+              "aria-valuemin": 0,
+              "aria-valuemax": 100,
+              "aria-valuenow": rounded,
+              "aria-valuetext": `${rounded}%`,
+            }
+          : { "aria-hidden": true })}
+      >
+        <span
+          className={classNames("system-specs__fill", levelClass("system-specs__fill", level))}
+          style={{ width: `${clamped}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
+interface ReadingProps {
+  icon: LucideIcon;
+  /** Names the figure for hover and screen readers. */
+  title: string;
+  level?: UsageLevel;
+  children: ReactNode;
+}
+
+function Reading({ icon, title, level = "normal", children }: ReadingProps) {
   return (
     <span
-      className="automation__spec-meter"
-      role="meter"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={rounded}
-      aria-valuetext={`${rounded}%`}
+      className={classNames("system-specs__reading", levelClass("system-specs__reading", level))}
+      title={title}
     >
-      <span
-        className={classNames(
-          "automation__spec-meter-fill",
-          levelClass("automation__spec-meter-fill", usageLevel(rounded)),
-        )}
-        style={{ width: `${clamped}%` }}
-      />
+      <Icon icon={icon} className="system-specs__reading-icon" />
+      <span className="system-specs__sr-label">{title}: </span>
+      {children}
     </span>
   );
 }
 
-function TemperatureDetail({ celsius, title }: { celsius: number; title: string }) {
+function TemperatureReading({ celsius, title }: { celsius: number; title: string }) {
   const rounded = Math.round(celsius);
   return (
-    <span className="automation__spec-detail" title={title}>
-      <span className={levelClass("automation__spec-detail", temperatureLevel(rounded))}>
-        {rounded}°C
-      </span>
-    </span>
+    <Reading icon={iconThermometer} title={title} level={temperatureLevel(rounded)}>
+      {rounded}°C
+    </Reading>
   );
 }
 
-function LoadDetail({ percent, title }: { percent: number; title: string }) {
-  return (
-    <span className="automation__spec-detail" title={title}>
-      <span className={levelClass("automation__spec-detail", usageLevel(Math.round(percent)))}>
-        {Math.round(percent)}%
-      </span>
-    </span>
-  );
-}
-
-interface MemoryDetailProps {
-  usedBytes: number;
-  totalBytes: number;
+interface PowerReadingProps {
+  watts: number;
+  /** The enforced cap; draw is coloured by its share of it, like load. */
+  limitWatts?: number | null;
   title: string;
 }
 
-function MemoryDetail({ usedBytes, totalBytes, title }: MemoryDetailProps) {
+function PowerReading({ watts, limitWatts, title }: PowerReadingProps) {
+  const rounded = Math.round(watts);
+  if (limitWatts == null || limitWatts <= 0) {
+    return (
+      <Reading icon={iconZap} title={title}>
+        {rounded} W
+      </Reading>
+    );
+  }
   return (
-    <span className="automation__spec-detail" title={title}>
-      <span
-        className={levelClass(
-          "automation__spec-detail",
-          usageLevel(memoryPercent(usedBytes, totalBytes)),
-        )}
-      >
-        {formatBytesValue(usedBytes)}
-      </span>{" "}
-      / {formatBytes(totalBytes)}
-    </span>
+    <Reading icon={iconZap} title={title} level={usageLevel((100 * watts) / limitWatts)}>
+      {rounded}
+      <span className="system-specs__total"> / {Math.round(limitWatts)} W</span>
+    </Reading>
+  );
+}
+
+function MemoryValue({ usedBytes, totalBytes }: { usedBytes: number; totalBytes: number }) {
+  return (
+    <>
+      {formatBytesValue(usedBytes)}
+      <span className="system-specs__total"> / {formatBytes(totalBytes)}</span>
+    </>
   );
 }

@@ -225,34 +225,34 @@ The default endpoints are local. A remote endpoint receives the following; its o
 
 AI-Toolkit must be able to read the supplied dataset path. Its configuration controls where outputs go, and DataForge needs filesystem access to its state and samples to display them.
 
-## CPU temperature on Windows
+## Hardware sensors on Windows
 
-The system specifications panel (the CPU button in the toolbar) shows GPU temperature when available and tries CPU temperature on Linux. Windows gives normal programs no CPU temperature, so an optional sensor task reads it for Intel CPUs and AMD Ryzen through the third-party [PawnIO](https://pawnio.eu) driver.
+The system specifications panel (the CPU button in the toolbar) shows GPU temperature, power draw against its limit, and fan speed when `nvidia-smi` reports them. On Linux it also tries CPU temperature and CPU package power from the kernel's sensors; package power is usually readable only by root. Windows gives normal programs neither CPU reading, so an optional sensor task reads CPU temperature and package power on Intel CPUs and AMD Ryzen through the third-party [PawnIO](https://pawnio.eu) driver.
 
 **Before installing, note that:**
 
 - PawnIO is a kernel driver maintained outside DataForge. DataForge doesn't ship it, but this installer adds it to your system.
-- The `AMDFamily17` module can read any AMD internal (SMN) register, while `IntelMSR` allows only a fixed list of registers. Only administrators and SYSTEM can reach either.
+- The `AMDFamily17` module can read any AMD internal (SMN) register, while `IntelMSR` allows only a fixed list of registers. Only administrators and SYSTEM can reach either. The sensor task only reads.
 - Some users report that game anti-cheat systems object to PawnIO being installed.
 
-**Install.** Right-click `scripts\install-cpu-temperature-sensor.bat` and choose **Run as administrator**, or run it from an administrator terminal at the project root:
+**Install.** Right-click `scripts\install-hardware-sensors.bat` and choose **Run as administrator**, or run it from an administrator terminal at the project root:
 
 ```bat
-scripts\install-cpu-temperature-sensor.bat
+scripts\install-hardware-sensors.bat
 ```
 
 The installer:
 
 1. Installs PawnIO if it is missing: it downloads the official setup at a pinned version, checks its SHA-256 digest, and installs it silently, which skips PawnIO's own copyright window (PawnIO is licensed under GPL-2.0). If Windows needs a restart, the installer says so; restart and run it again.
-2. Picks the `IntelMSR` or `AMDFamily17` module for your CPU, downloads it from a pinned [PawnIO.Modules](https://github.com/namazso/PawnIO.Modules) release, and checks its digest.
-3. Tests a reading, then registers the **DataForge CPU temperature** task. If the test fails, it removes the task and sensor folder again.
+2. Picks the `IntelMSR` or `AMDFamily17` module for your CPU from a pinned [PawnIO.Modules](https://github.com/namazso/PawnIO.Modules) release, and checks its digest.
+3. Registers the **DataForge hardware sensors** task, replacing the older **DataForge CPU temperature** task, and prints its first readings. If nothing can be read, it removes the task and sensor folder again. If only some readings fail, it shows why.
 
-The task starts with Windows, runs as SYSTEM, polls every two seconds, and writes `%ProgramData%\DataForge\sensors\cpu_temperature.txt` in an administrator-controlled folder. DataForge reads that file without elevation and hides readings older than 10 seconds.
+The task starts with Windows, runs as SYSTEM, polls every second, and writes `%ProgramData%\DataForge\sensors\sensors.json` in an administrator-controlled folder. DataForge reads that file without elevation and hides readings older than 10 seconds. If you installed the CPU temperature task before power was added, run the installer again; until you do, the panel shows no CPU temperature.
 
 **Uninstall** the task and sensor folder from an administrator terminal. PawnIO stays installed, because other tools may rely on it; remove it from Windows settings if nothing else needs it.
 
 ```bat
-scripts\install-cpu-temperature-sensor.bat -Uninstall
+scripts\install-hardware-sensors.bat -Uninstall
 ```
 
 ## Troubleshooting

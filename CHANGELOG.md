@@ -14,9 +14,11 @@ version heading when a minor or major version is cut.
 - Jobs can be queued: starting a job while another runs in the same folder queues it to start when the one before it finishes cleanly. A job that fails, is cancelled or leaves failed files cancels everything queued after it.
 - The gallery lists, previews and captions more formats: AVIF, HEIC and TIFF images, WebM videos, and OGG, M4A and Opus audio. These are view-only: the editors, Resize, Watermark and Strip metadata skip them.
 - Desktop notifications: turn them on in **Settings → Notifications** to see finished jobs and other notifications on your desktop while DataForge is in the background. You can limit them to warnings and errors, or errors only. Clicking one brings DataForge back.
+- The system specifications panel shows power draw: GPU power against its limit, GPU fan speed, and CPU package power. On Windows, run `scripts\install-hardware-sensors.bat` again for CPU power; it replaces the CPU temperature installer.
 
 ### Changed
 
+- The system specifications panel is redesigned: a card per device with labelled meters for load, RAM and VRAM, and temperature, power and fan readings beside each device's name. It refreshes every second while open, not only during jobs.
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
 - Videos in the viewer and inspector remember whether you muted or unmuted them, and at what volume: the next video and later visits start the same way, and the edit preview follows the mute.

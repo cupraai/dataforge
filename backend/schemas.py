@@ -376,6 +376,7 @@ class SystemSpecsResponse(BaseModel):
     cpu_cores: int
     cpu_load_percent: float | None = None
     cpu_temperature_celsius: float | None = None
+    cpu_power_watts: float | None = None
     memory_total_bytes: int
     memory_used_bytes: int
     gpu_name: str | None = None
@@ -383,6 +384,9 @@ class SystemSpecsResponse(BaseModel):
     gpu_memory_used_bytes: int | None = None
     gpu_load_percent: float | None = None
     gpu_temperature_celsius: float | None = None
+    gpu_power_watts: float | None = None
+    gpu_power_limit_watts: float | None = None
+    gpu_fan_percent: float | None = None
     gpu_available: bool = False
 
 
