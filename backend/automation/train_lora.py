@@ -1,4 +1,4 @@
-"""Quick LoRA training, run by the local Ostris AI-Toolkit and tracked here."""
+"""LoRA training, run by the local Ostris AI-Toolkit and tracked here."""
 
 from __future__ import annotations
 

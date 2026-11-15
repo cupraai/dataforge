@@ -67,14 +67,14 @@ describe("JOB_GROUPS", () => {
     const byId = Object.fromEntries(JOB_GROUPS.map((group) => [group.id, group.types]));
 
     expect(byId.captions).toEqual([
+      "set_captions",
       "auto_caption",
       "replace_captions",
       "edit_captions",
-      "set_captions",
     ]);
     // Check jobs only write findings for the Review menu, never media or captions.
     expect(byId.check).toEqual(["check_caption_rules", "verify_captions", "find_duplicates"]);
-    expect(byId.media).toEqual(["auto_adjust", "resize", "split_video", "trim_video", "watermark"]);
+    expect(byId.media).toEqual(["auto_adjust", "resize", "trim_video", "split_video", "watermark"]);
     expect(byId.files).toEqual([
       "batch_rename",
       "strip_metadata",

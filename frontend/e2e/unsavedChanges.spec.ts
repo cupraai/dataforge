@@ -107,7 +107,7 @@ async function mockAiToolkit(page: Page) {
 
 async function openTrainingDialog(page: Page) {
   await page.getByRole("button", { name: "Tools", exact: true }).click();
-  await page.getByRole("menuitem", { name: /^Quick LoRA training/ }).click();
+  await page.getByRole("menuitem", { name: /^LoRA training/ }).click();
   return page.getByRole("dialog", { name: "Start LoRA training?" });
 }
 

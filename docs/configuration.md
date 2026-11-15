@@ -219,9 +219,9 @@ The default endpoints are local. A remote endpoint receives the following; its o
 | Auto-caption | Downscaled image/video frames, draft caption if any, system prompt, optionally 15 seconds of audio | `OPENAI_API_BASE_URL` |
 | Verify captions | Downscaled image/video frames, caption, additional context; no audio | `OPENAI_API_BASE_URL` |
 | Edit captions | Caption and edit instruction; with **Send media**, also downscaled image/video frames | `OPENAI_API_BASE_URL` |
-| Process with ComfyUI | Source media and workflow inputs | `COMFY_BASE_URL` |
+| Edit with ComfyUI | Source media and workflow inputs | `COMFY_BASE_URL` |
 | Generative fill | A crop around the painted area, its mask, and the instruction | `COMFY_BASE_URL` |
-| Quick LoRA training | Dataset folder path and training configuration, including prompts; no media upload | `OSTRIS_BASE_URL` |
+| LoRA training | Dataset folder path and training configuration, including prompts; no media upload | `OSTRIS_BASE_URL` |
 
 AI-Toolkit must be able to read the supplied dataset path. Its configuration controls where outputs go, and DataForge needs filesystem access to its state and samples to display them.
 

@@ -63,6 +63,13 @@ interface JobTypeMeta {
 
 // Entry order is menu order: the jobs filter and Quick actions list jobs in this order too.
 export const JOB_TYPE_META = {
+  set_captions: {
+    type: "set_captions" as const,
+    group: "captions" as const,
+    icon: iconMessagePlus,
+    startUi: "dialog" as const,
+    menuDescription: "Write the same caption text to media files.",
+  },
   auto_caption: {
     type: "auto_caption" as const,
     group: "captions" as const,
@@ -87,13 +94,6 @@ export const JOB_TYPE_META = {
     icon: iconPencilSparkles,
     startUi: "dialog" as const,
     menuDescription: "Rewrite existing captions with the local model, from your instruction.",
-  },
-  set_captions: {
-    type: "set_captions" as const,
-    group: "captions" as const,
-    icon: iconMessagePlus,
-    startUi: "dialog" as const,
-    menuDescription: "Write the same caption text to media files.",
   },
   check_caption_rules: {
     type: "check_caption_rules" as const,
@@ -130,19 +130,19 @@ export const JOB_TYPE_META = {
     startUi: "dialog" as const,
     menuDescription: "Scale media to a megapixel size with sides on a pixel grid, for training.",
   },
-  split_video: {
-    type: "split_video" as const,
-    group: "media" as const,
-    icon: iconScissors,
-    startUi: "dialog" as const,
-    menuDescription: `Cut videos into short clips in a ${CLIPS_DIR_NAME} folder, at scene changes or evenly.`,
-  },
   trim_video: {
     type: "trim_video" as const,
     group: "media" as const,
     icon: iconTimer,
     startUi: "dialog" as const,
     menuDescription: "Shorten videos to a longest length, keeping the start, middle or end.",
+  },
+  split_video: {
+    type: "split_video" as const,
+    group: "media" as const,
+    icon: iconScissors,
+    startUi: "dialog" as const,
+    menuDescription: `Cut videos into short clips in a ${CLIPS_DIR_NAME} folder, at scene changes or evenly.`,
   },
   watermark: {
     type: "watermark" as const,
@@ -190,7 +190,7 @@ export const JOB_TYPE_META = {
     group: "integrations" as const,
     icon: iconComfyUi,
     startUi: "dialog" as const,
-    menuLabel: "Process with ComfyUI",
+    menuLabel: "Edit with ComfyUI",
     menuDescription: "Process images and videos with a ComfyUI workflow, for review.",
     requires: {
       flag: "comfyPresetsAvailable",
@@ -202,7 +202,7 @@ export const JOB_TYPE_META = {
     group: "integrations" as const,
     icon: iconAiToolkit,
     startUi: "dialog" as const,
-    menuLabel: "Quick LoRA training",
+    menuLabel: "LoRA training",
     menuDescription: "Train a LoRA on this folder with Ostris AI-Toolkit.",
     requires: {
       flag: "ostrisAvailable",
@@ -237,7 +237,7 @@ export function jobTypeLabelFor(type: JobType): string {
   return JOB_TYPE_LABELS[type];
 }
 
-/** The name a job is offered under in menus, e.g. "Quick LoRA training". */
+/** The name a job is offered under in menus, e.g. "LoRA training". */
 export function jobMenuLabelFor(type: JobType): string {
   return jobTypeMeta(type).menuLabel ?? jobTypeLabelFor(type);
 }

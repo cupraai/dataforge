@@ -1,4 +1,4 @@
-# Process media with ComfyUI
+# Edit media with ComfyUI
 
 [Documentation](README.md)
 
@@ -31,7 +31,7 @@ The bundled [`example_lanczos_2x.json`](../comfy_workflows/example_lanczos_2x.js
 
 1. Open the dataset itself, not its `staging/` folder.
 2. Select files, or search and filter, to limit the run; otherwise it covers the whole folder. See [job scope](user-guide.md#scope).
-3. Choose **Process with ComfyUI** and a preset that suits those files.
+3. Choose **Edit with ComfyUI** and a preset that suits those files.
 4. Optionally enter **Prompt**, **Seed**, or the preset's [custom inputs](#custom-inputs). Each field is enabled only when the workflow has the matching titled node.
 5. Choose whether to overwrite previously staged results, then start.
 
@@ -84,7 +84,7 @@ The difference score is the percentage of bits that differ in a perceptual hash,
 1. Build a workflow in ComfyUI and test it on one file.
 2. Export it with **Save (API Format)**. A regular workflow save is not accepted.
 3. Put the `.json` file in `comfy_workflows/`, or the folder set by `COMFY_WORKFLOWS_DIR`.
-4. Reopen **Process with ComfyUI** to load it.
+4. Reopen **Edit with ComfyUI** to load it.
 
 The file name becomes the preset name: `upscale-2x.json` appears as `upscale-2x`. Git tracks only the bundled example; your presets in the default folder are ignored.
 
@@ -114,7 +114,7 @@ Not supported:
 
 Without these nodes, or with their fields left empty, the workflow uses its saved values. The dialog disables Prompt or Seed when the matching node is missing. A prompt or custom input value must belong to the titled node itself, not arrive through a connection from another node; a supplied prompt is refused if its node cannot take it.
 
-Only the editor's [generative fill](#generative-fill) uploads a mask; **Process with ComfyUI** runs a mask node with its saved file.
+Only the editor's [generative fill](#generative-fill) uploads a mask; **Edit with ComfyUI** runs a mask node with its saved file.
 
 ### Custom inputs
 
@@ -128,7 +128,7 @@ Like prompt and seed, values are remembered per preset. Two nodes with the same 
 
 ## Generative fill
 
-The image editor's **Fill** tool ([how to use it](user-guide.md#generative-fill)) runs Qwen-Image 2.1 with ComfyUI's native masked sampler. Its two workflows ship with DataForge in [`comfy_fill_templates/`](../comfy_fill_templates/); they are not presets and do not appear under **Process with ComfyUI**. Fill and processing share one queue, so they never run at the same time.
+The image editor's **Fill** tool ([how to use it](user-guide.md#generative-fill)) runs Qwen-Image 2.1 with ComfyUI's native masked sampler. Its two workflows ship with DataForge in [`comfy_fill_templates/`](../comfy_fill_templates/); they are not presets and do not appear under **Edit with ComfyUI**. Fill and processing share one queue, so they never run at the same time.
 
 ### Install
 

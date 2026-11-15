@@ -59,7 +59,7 @@ describe("rankQuickActionItems", () => {
   });
 
   it("matches hidden keywords", () => {
-    const items = [item("lora", "Quick LoRA training", { keywords: "train_lora" })];
+    const items = [item("lora", "LoRA training", { keywords: "train_lora" })];
 
     expect(flattenGroups(rankQuickActionItems(items, "train_lora"))).toHaveLength(1);
   });

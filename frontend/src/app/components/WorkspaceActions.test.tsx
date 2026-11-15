@@ -264,7 +264,7 @@ describe("Workspace tools", () => {
       "Files",
       "Integrations",
     ]);
-    for (const name of [/^Process with ComfyUI/, /^Quick LoRA training/]) {
+    for (const name of [/^Edit with ComfyUI/, /^LoRA training/]) {
       expect(within(sections.at(-1)!).getByRole("menuitem", { name })).toBeInTheDocument();
     }
   });

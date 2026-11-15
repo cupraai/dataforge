@@ -291,7 +291,7 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "resize": "Resize",
     "split_video": "Split into clips",
     "trim_video": "Trim to length",
-    "comfy_process": "Process with ComfyUI",
+    "comfy_process": "Edit with ComfyUI",
 }
 
 #: Adjust tools rest at 0: tones and colors span ±1, detail tools 0..1, hue is degrees.

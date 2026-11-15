@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-**Quick LoRA training** starts a run on the open dataset and shows its progress and samples in DataForge. [Ostris AI-Toolkit](https://github.com/ostris/ai-toolkit) does the training and owns the outputs; install and run it separately.
+**LoRA training** starts a run on the open dataset and shows its progress and samples in DataForge. [Ostris AI-Toolkit](https://github.com/ostris/ai-toolkit) does the training and owns the outputs; install and run it separately.
 
 ## Connect AI-Toolkit
 
@@ -33,7 +33,7 @@ This only helps DataForge find AI-Toolkit's files; it does not start the service
 ## Start a run
 
 1. Open the dataset. Training uses **the whole folder** and its `.txt` captions, regardless of selection or filters.
-2. Choose **Quick LoRA training** and a template that matches your media:
+2. Choose **LoRA training** and a template that matches your media:
 
    | Model | Media | Template |
    | --- | --- | --- |

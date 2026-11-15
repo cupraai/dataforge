@@ -199,7 +199,7 @@ export function ComfyProcessDialog({
         })
       }
       scope={scope}
-      title="Process with ComfyUI?"
+      title="Edit with ComfyUI?"
       description={
         <>
           Runs each image through the workflow and writes the result as a <strong>candidate</strong>{" "}
