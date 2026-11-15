@@ -34,14 +34,14 @@ export interface JobAvailability {
 
 /**
  * Tools menu sections, by what a job changes: caption text, nothing (findings for the Review menu),
- * pixels, or file names, metadata and backups. Jobs run by external tools span the menu below.
+ * pixels, or file names, metadata and backups. Jobs run by external tools come last.
  */
 const JOB_GROUP_DEFINITIONS = [
   { id: "captions", label: "Captions" },
   { id: "check", label: "Check" },
   { id: "media", label: "Media" },
   { id: "files", label: "Files" },
-  { id: "integrations", label: "Integrations", wide: true },
+  { id: "integrations", label: "Integrations" },
 ] as const;
 
 type JobGroup = (typeof JOB_GROUP_DEFINITIONS)[number]["id"];
@@ -226,13 +226,10 @@ function jobTypeMeta(type: JobType): JobTypeMeta {
 export const JOB_GROUPS: Array<{
   id: JobGroup;
   label: string;
-  /** Spans the menu below the columns instead of taking one. */
-  wide: boolean;
   types: JobType[];
 }> = JOB_GROUP_DEFINITIONS.map((group) => ({
   id: group.id,
   label: group.label,
-  wide: "wide" in group && group.wide,
   types: JOB_TYPES.filter((type) => jobTypeMeta(type).group === group.id),
 })).filter((group) => group.types.length > 0);
 

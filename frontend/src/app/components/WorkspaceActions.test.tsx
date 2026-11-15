@@ -2,7 +2,12 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
-import { JOB_TYPES, jobMenuLabelFor, type JobStartContext } from "@/features/jobs/lib/jobMeta";
+import {
+  JOB_TYPE_META,
+  JOB_TYPES,
+  jobMenuLabelFor,
+  type JobStartContext,
+} from "@/features/jobs/lib/jobMeta";
 import {
   buildRunJobItems,
   quickActionRunJobId,
@@ -273,6 +278,19 @@ describe("Workspace tools", () => {
     expect(within(captions).getByRole("menuitem", { name: /^Auto-caption/ })).toBeEnabled();
   });
 
+  it("names each tool by its title and describes it in a tooltip", async () => {
+    const user = userEvent.setup();
+    renderActions();
+    await user.click(screen.getByRole("button", { name: "Tools" }));
+    const item = screen.getByRole("menuitem", { name: "Auto-caption" });
+    expect(item).toHaveTextContent(/^Auto-caption$/);
+
+    await user.hover(item);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      JOB_TYPE_META.auto_caption.menuDescription,
+    );
+  });
+
   it("shows why unavailable tools are disabled in Tools and Quick actions", async () => {
     const user = userEvent.setup();
     const { panel, onRequestStart } = renderActions(
@@ -298,10 +316,13 @@ describe("Workspace tools", () => {
     for (const [type, reason] of unavailable) {
       const item = within(drawer).getByText(jobMenuLabelFor(type)).closest("button");
       expect(item).toBeDisabled();
-      expect(item).toHaveTextContent(reason);
       const command = commands.find((item) => item.id === quickActionRunJobId(type))!;
       expect(command.disabled).toBe(true);
       expect(command.detail).toContain(reason);
     }
+    // A disabled button gets no pointer events, so the hover lands on the tooltip wrapper.
+    const blocked = within(drawer).getByText(jobMenuLabelFor("train_lora")).closest("button")!;
+    await user.hover(blocked.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("AI-Toolkit is unavailable");
   });
 });

@@ -20,6 +20,7 @@ version heading when a minor or major version is cut.
 ### Changed
 
 - The system specifications panel is redesigned: a card per device with labelled meters for load, RAM and VRAM, and temperature, power and fan readings beside each device's name. It refreshes every second while open, not only during jobs.
+- The **Tools** menu is more compact: it lists each tool by name, in one row of sections. Hover over or focus a tool to see what it does and, when it is unavailable, why.
 - **Auto-caption** is now under **Tools → Captions** in the folder toolbar. You can configure it as a workflow step before choosing a folder with a system prompt.
 - Large and small gallery cards show an **Edited** badge on edited files, as the list view already did.
 - Videos in the viewer and inspector remember whether you muted or unmuted them, and at what volume: the next video and later visits start the same way, and the edit preview follows the mute.

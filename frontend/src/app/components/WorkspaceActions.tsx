@@ -64,52 +64,47 @@ function ToolsGroup({
   onPick,
 }: ToolsMenuItemsProps & { group: (typeof JOB_GROUPS)[number] }) {
   return (
-    <div
-      role="group"
-      aria-label={group.label}
-      className={classNames("workspace-tools__group", group.wide && "workspace-tools__group--wide")}
-    >
+    <div role="group" aria-label={group.label} className="workspace-tools__group">
       <div className="workspace-tools__group-label" aria-hidden="true">
         {group.label}
       </div>
       {group.types.map((type) => {
         const { blocked, reason } = jobStartBlock(type, panel.startContext);
         return (
-          <MenuItem
+          <Tooltip
             key={type}
-            icon={jobTypeIconFor(type)}
-            label={jobMenuLabelFor(type)}
-            description={
+            placement="right"
+            className="workspace-tools__tip"
+            content={
               <>
                 {JOB_TYPE_META[type].menuDescription}
                 {reason && <span className="workspace-tools__reason">{reason}</span>}
               </>
             }
-            disabled={blocked}
-            onSelect={() => {
-              onPick();
-              panel.onRequestStart(type);
-            }}
-          />
+          >
+            <MenuItem
+              icon={jobTypeIconFor(type)}
+              label={jobMenuLabelFor(type)}
+              disabled={blocked}
+              onSelect={() => {
+                onPick();
+                panel.onRequestStart(type);
+              }}
+            />
+          </Tooltip>
         );
       })}
     </div>
   );
 }
 
-// Wide groups sit outside the wrapping row so their text cannot widen the panel.
 function ToolsMenuItems(props: ToolsMenuItemsProps) {
   return (
-    <>
-      <div className="workspace-tools__groups">
-        {JOB_GROUPS.filter((group) => !group.wide).map((group) => (
-          <ToolsGroup key={group.id} group={group} {...props} />
-        ))}
-      </div>
-      {JOB_GROUPS.filter((group) => group.wide).map((group) => (
+    <div className="workspace-tools__groups">
+      {JOB_GROUPS.map((group) => (
         <ToolsGroup key={group.id} group={group} {...props} />
       ))}
-    </>
+    </div>
   );
 }
 

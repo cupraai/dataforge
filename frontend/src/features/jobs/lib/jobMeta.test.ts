@@ -83,9 +83,4 @@ describe("JOB_GROUPS", () => {
     ]);
     expect(byId.integrations).toEqual(["comfy_process", "train_lora"]);
   });
-
-  it("spans only the integrations section across the menu", () => {
-    const wide = JOB_GROUPS.filter((group) => group.wide).map((group) => group.id);
-    expect(wide).toEqual(["integrations"]);
-  });
 });
