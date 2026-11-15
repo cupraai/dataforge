@@ -36,6 +36,7 @@ import type { FolderChild } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 
 interface TransferMediaDialogProps {
@@ -499,7 +500,7 @@ export function TransferMediaDialog({
                           {entry.name || folderLeafName(entry.path)}
                         </span>
                         {disabled && (
-                          <span className="transfer-media-dialog__tree-badge">Current</span>
+                          <Badge className="transfer-media-dialog__tree-badge">Current</Badge>
                         )}
                       </button>
                     </div>

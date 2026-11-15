@@ -49,7 +49,6 @@ import {
 import { placement } from "@/features/videoEditor/lib/composition";
 import { transformAt } from "@/features/videoEditor/lib/keyframes";
 import { MAX_ADJUST_WIDTH, type PreviewEngine } from "@/features/videoEditor/lib/previewEngine";
-import { rangeFill } from "@/shared/lib/rangeFill";
 import { Slider } from "@/shared/ui/Slider";
 import {
   formatTimecode,
@@ -427,8 +426,8 @@ function TimelinePreview({
           min={0}
           max={lastFrame}
           step={1}
-          value={frameValue}
-          style={rangeFill(duration > 0 ? frameValue : 0, 0, lastFrame)}
+          // Empty until there is media: with none, the playhead counts as already at the end.
+          value={duration > 0 ? frameValue : 0}
           disabled={duration <= 0}
           aria-label="Playhead"
           aria-valuetext={formatTimecode(time, project.frame_rate)}

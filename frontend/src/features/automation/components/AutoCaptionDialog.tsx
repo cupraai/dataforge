@@ -100,18 +100,10 @@ export function AutoCaptionDialog({
         </p>
       )}
 
-      <AutomationModeSelector
-        value={mode}
-        name="auto-caption-mode"
-        groupLabel="Caption mode"
-        disabled={busy}
-        onChange={setMode}
-      />
+      <AutomationModeSelector value={mode} disabled={busy} onChange={setMode} />
 
       <ReasoningEffortSelector
         value={reasoningEffort}
-        name="auto-caption-reasoning-effort"
-        groupLabel="Caption reasoning effort"
         disabled={mode === "instruct" || busy}
         onChange={setReasoningEffort}
       />

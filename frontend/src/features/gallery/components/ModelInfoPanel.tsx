@@ -11,6 +11,7 @@ import { modelKindStyle } from "@/features/gallery/lib/modelKind";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { iconCheck, iconCopy } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
+import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 import type { GalleryItem } from "@/shared/types";
 
@@ -74,9 +75,14 @@ export function ModelInfoStage({ item }: { item: ModelItem }) {
           </p>
           {info && (
             <ul className="model-overview__badges" aria-label="Model type">
-              {modelBadges(info).map((badge) => (
-                <li key={badge} className="model-overview__badge">
-                  {badge}
+              {modelBadges(info).map((badge, index) => (
+                <li key={badge}>
+                  <Badge
+                    uppercase={false}
+                    className={index === 0 ? "model-overview__kind" : undefined}
+                  >
+                    {badge}
+                  </Badge>
                 </li>
               ))}
             </ul>

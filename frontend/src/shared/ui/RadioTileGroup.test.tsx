@@ -13,16 +13,7 @@ describe("RadioTileGroup", () => {
     const user = userEvent.setup();
     const onChange = vi.fn<(value: "one" | "two") => void>();
 
-    render(
-      <RadioTileGroup
-        value="one"
-        options={OPTIONS}
-        label="Count"
-        name="count"
-        groupLabel="Count"
-        onChange={onChange}
-      />,
-    );
+    render(<RadioTileGroup value="one" options={OPTIONS} label="Count" onChange={onChange} />);
 
     expect(screen.getByRole("radio", { name: /One/ })).toBeChecked();
     await user.click(screen.getByRole("radio", { name: "Two" }));
@@ -35,9 +26,7 @@ describe("RadioTileGroup", () => {
       <RadioTileGroup
         value="one"
         options={OPTIONS}
-        label="Count"
-        name="count"
-        groupLabel="How many"
+        label="How many"
         onChange={vi.fn<(value: "one" | "two") => void>()}
       />,
     );
@@ -51,8 +40,6 @@ describe("RadioTileGroup", () => {
         value="one"
         options={OPTIONS}
         label="Count"
-        name="count"
-        groupLabel="Count"
         disabled
         onChange={vi.fn<(value: "one" | "two") => void>()}
       />,
@@ -72,16 +59,12 @@ describe("RadioTileGroup", () => {
           value="one"
           options={OPTIONS}
           label="First"
-          name="first"
-          groupLabel="First"
           onChange={vi.fn<(value: "one" | "two") => void>()}
         />
         <RadioTileGroup
           value="two"
           options={OPTIONS}
           label="Second"
-          name="second"
-          groupLabel="Second"
           onChange={vi.fn<(value: "one" | "two") => void>()}
         />
       </>,

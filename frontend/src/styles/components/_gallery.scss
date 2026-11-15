@@ -592,32 +592,6 @@
     flex: none;
   }
 
-  &__tags-more {
-    @include text-pill(1.25rem, 1px);
-    padding-inline: 0.4375rem;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-pill);
-    color: var(--text-subtle);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-medium);
-  }
-
-  // A tag wider than the whole card shortens rather than clips.
-  &__tag {
-    @include text-pill(1.25rem, 1px);
-    flex: none;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-inline: 0.4375rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface-hover);
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-medium);
-  }
-
   &__caption-status {
     display: inline-flex;
     align-items: center;

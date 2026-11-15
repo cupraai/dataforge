@@ -449,35 +449,6 @@
     color: var(--text-subtle);
   }
 
-  &__badge {
-    flex-shrink: 0;
-    padding: 0.0625rem 0.4375rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-medium);
-    line-height: 1.4;
-    color: var(--text-subtle);
-
-    &--env {
-      border-color: var(--accent-border);
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    &--saved {
-      border-color: var(--success-border);
-      background: var(--success-soft);
-      color: var(--success);
-    }
-
-    &--pending {
-      border-color: var(--warning-border);
-      background: var(--warning-soft);
-      color: var(--warning);
-    }
-  }
-
   &__input {
     @include tabular-nums;
 

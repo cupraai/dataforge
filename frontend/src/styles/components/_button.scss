@@ -12,6 +12,19 @@
   }
 }
 
+// A tinted action, such as the primary: soft tone at rest, solid on hover.
+@mixin tone-surface($tone) {
+  border: 1px solid var(--#{$tone}-border);
+  @include fade-bg(var(--#{$tone}-soft));
+  color: var(--#{$tone});
+
+  &:hover:not(:disabled) {
+    @include fade-bg(var(--#{$tone}));
+    color: var(--bg);
+    border-color: var(--#{$tone});
+  }
+}
+
 @mixin tone-hover($tone) {
   &:hover:not(:disabled) {
     color: var(--#{$tone});
@@ -65,7 +78,7 @@
   }
 
   &--primary {
-    @include btn-surface-accent;
+    @include tone-surface(accent);
   }
 
   &--secondary {
@@ -74,11 +87,11 @@
   }
 
   &--danger {
-    @include btn-surface-danger;
+    @include tone-surface(danger);
   }
 
   &--warning {
-    @include btn-surface-warning;
+    @include tone-surface(warning);
   }
 
   &--text {

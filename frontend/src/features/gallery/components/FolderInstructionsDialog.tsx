@@ -1,3 +1,4 @@
+import { Badge, type BadgeTone } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { TabList } from "@/shared/ui/TabList";
@@ -25,6 +26,7 @@ import {
   INSTRUCTION_ORIGIN_LABELS,
   INSTRUCTION_STATUS_LABELS,
 } from "@/shared/lib/instructionFileState";
+import type { InstructionFileState } from "@/shared/types";
 
 interface InstructionDocument {
   label: string;
@@ -53,6 +55,12 @@ const DOCUMENTS: Record<InstructionKind, InstructionDocument> = {
 };
 
 const KINDS = Object.keys(DOCUMENTS) as InstructionKind[];
+
+const ORIGIN_TONES: Record<InstructionFileState["origin"], BadgeTone> = {
+  local: "accent",
+  inherited: "neutral",
+  missing: "placeholder",
+};
 
 const SAVE_ORDER: readonly InstructionKind[] = ["caption_rules", "sysprompt"];
 
@@ -233,7 +241,7 @@ export function FolderInstructionsDialog({
         )}
       </div>
     );
-    const tone = localDraft ? "draft" : source.origin;
+    const tone = localDraft ? "warning" : ORIGIN_TONES[source.origin];
 
     return (
       <>
@@ -244,11 +252,9 @@ export function FolderInstructionsDialog({
         >
           <div className="folder-instructions-dialog__source-row">
             <div className="folder-instructions-dialog__source-heading">
-              <span
-                className={`folder-instructions-dialog__origin folder-instructions-dialog__origin--${tone}`}
-              >
+              <Badge tone={tone}>
                 {localDraft ? "Local draft" : INSTRUCTION_ORIGIN_LABELS[source.origin]}
-              </span>
+              </Badge>
               <span
                 className="folder-instructions-dialog__source-text"
                 title={source.source_path ?? undefined}
@@ -258,9 +264,7 @@ export function FolderInstructionsDialog({
                   : (source.relative_path ?? `No ${details.filename} found`)}
               </span>
               {source.status !== "ready" && source.status !== "missing" && !localDraft && (
-                <span className="folder-instructions-dialog__badge">
-                  {INSTRUCTION_STATUS_LABELS[source.status]}
-                </span>
+                <Badge tone="danger">{INSTRUCTION_STATUS_LABELS[source.status]}</Badge>
               )}
             </div>
             {!empty && actions}

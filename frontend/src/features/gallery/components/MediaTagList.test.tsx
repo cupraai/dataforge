@@ -13,7 +13,8 @@ function wrapTags(...wrapped: string[]) {
   vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (
     this: HTMLElement,
   ) {
-    const label = this.firstChild?.textContent ?? "";
+    // The tag's badge holds its label, then its score.
+    const label = this.firstChild?.firstChild?.textContent ?? "";
     return this.tagName === "LI" && wrapped.includes(label) ? 24 : 0;
   });
 }

@@ -1,4 +1,5 @@
 import { TextInput } from "@/shared/ui/Field";
+import { Badge, type BadgeTone } from "@/shared/ui/Badge";
 import { Button } from "@/shared/ui/Button";
 import { useId } from "react";
 import type { AppSettingKey, AppSettingsResponse } from "@/shared/types";
@@ -14,27 +15,25 @@ const INPUT_TYPES = {
   secret: "password",
 } as const;
 
-type BadgeTone = "default" | "env" | "saved" | "pending";
-
 function describeSource(
   state: SettingState,
   edited: boolean,
   pendingReset: boolean,
-): { tone: BadgeTone; badge: string; detail?: string } {
+): { tone: BadgeTone; badge: string; title?: string; detail?: string } {
   const fallback = state.fallback_source === "env" ? ".env value" : "default";
   if (pendingReset) {
-    return { tone: "pending", badge: "Will reset", detail: `Returns to the ${fallback} on save` };
+    return { tone: "warning", badge: "Will reset", detail: `Returns to the ${fallback} on save` };
   }
-  if (edited) return { tone: "pending", badge: "Edited" };
+  if (edited) return { tone: "warning", badge: "Edited" };
 
   switch (state.source) {
     case "default":
-      return { tone: "default", badge: "is_set" in state ? "Not set" : "Default" };
+      return { tone: "neutral", badge: "is_set" in state ? "Not set" : "Default" };
     case "env":
-      return { tone: "env", badge: ".env" };
+      return { tone: "accent", badge: ".env", title: "From .env or the environment" };
     case "saved":
       return {
-        tone: "saved",
+        tone: "success",
         badge: "Saved",
         detail:
           "value" in state
@@ -97,13 +96,9 @@ export function SettingInput({
             </>
           )}
         </label>
-        <span
-          id={badgeId}
-          className={`setting-field__badge setting-field__badge--${source.tone}`}
-          title={source.tone === "env" ? "From .env or the environment" : undefined}
-        >
+        <Badge id={badgeId} tone={source.tone} uppercase={false} title={source.title}>
           {source.badge}
-        </span>
+        </Badge>
       </div>
       <TextInput
         id={inputId}

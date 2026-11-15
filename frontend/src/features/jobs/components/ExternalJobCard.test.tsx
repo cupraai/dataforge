@@ -32,7 +32,7 @@ const runningJob: ExternalOstrisJob = {
 const queuedJob: ExternalOstrisJob = { ...runningJob, status: "queued", step: 0 };
 
 function badgeIcon(container: HTMLElement) {
-  return container.querySelector(".job-card__badge-icon");
+  return container.querySelector(".badge__icon");
 }
 
 beforeEach(() => {
@@ -67,14 +67,14 @@ describe("ExternalJobCard", () => {
   it("spins the badge while the run is training", () => {
     const { container } = renderWithQueryClient(<ExternalJobCard job={runningJob} />);
 
-    expect(badgeIcon(container)).toHaveClass("job-card__badge-icon--spin");
+    expect(badgeIcon(container)).toHaveClass("app-icon--spin");
     expect(screen.getByText("Running")).toBeInTheDocument();
   });
 
   it("shows a still badge while the run only waits in the queue", () => {
     const { container } = renderWithQueryClient(<ExternalJobCard job={queuedJob} />);
 
-    expect(badgeIcon(container)).not.toHaveClass("job-card__badge-icon--spin");
+    expect(badgeIcon(container)).not.toHaveClass("app-icon--spin");
     expect(screen.getByText("Queued")).toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe("ExternalJobCard", () => {
       <ExternalJobCard job={queuedJob} onStop={vi.fn<(jobId: string) => void>()} stopping />,
     );
 
-    expect(badgeIcon(container)).toHaveClass("job-card__badge-icon--spin");
+    expect(badgeIcon(container)).toHaveClass("app-icon--spin");
   });
 
   it("shows the run's samples as a compact strip", async () => {

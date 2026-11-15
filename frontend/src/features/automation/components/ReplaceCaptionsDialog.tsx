@@ -1,4 +1,4 @@
-import { TextArea } from "@/shared/ui/Field";
+import { Field, TextArea } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from "react";
@@ -77,8 +77,6 @@ export function ReplaceCaptionsDialog({
   const [error, setError] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLTextAreaElement>(null);
-  const searchId = useId();
-  const replacementId = useId();
   const errorId = useId();
 
   const isReplace = mode === "replace";
@@ -202,8 +200,6 @@ export function ReplaceCaptionsDialog({
           value={mode}
           options={MODE_OPTIONS}
           label="Edit"
-          name="replace-captions-mode"
-          groupLabel="Caption edit"
           disabled={busy}
           onChange={(value) => {
             setMode(value);
@@ -211,50 +207,48 @@ export function ReplaceCaptionsDialog({
           }}
         />
 
-        <div className="dialog__field replace-captions-dialog__terms">
-          <div className="replace-captions-dialog__term">
-            <label htmlFor={searchId} className="dialog__label">
-              Search for
-            </label>
-            {/* Multi-line, so a term can span the lines of a caption; Enter adds a line. */}
-            <TextArea
-              ref={searchRef}
-              id={searchId}
-              grow
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                clearError();
-              }}
-              placeholder={isReplace ? "e.g. dog" : "Not used in this mode"}
-              rows={1}
-              spellCheck={false}
-              autoComplete="off"
-              /* Kept visible rather than hidden in prepend/append mode, so the dialog */ /* says the term is unused instead of silently rearranging itself. */ disabled={
-                busy || !isReplace
-              }
-            />
-          </div>
+        <div className="dialog__field dialog__field-row replace-captions-dialog__terms">
+          {/* Multi-line, so a term can span the lines of a caption; Enter adds a line. Kept
+              visible in prepend/append mode, so the dialog says the term is unused instead of
+              silently rearranging itself. */}
+          <Field label="Search for">
+            {(control) => (
+              <TextArea
+                {...control}
+                ref={searchRef}
+                grow
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  clearError();
+                }}
+                placeholder={isReplace ? "e.g. dog" : "Not used in this mode"}
+                rows={1}
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy || !isReplace}
+              />
+            )}
+          </Field>
 
-          <div className="replace-captions-dialog__term">
-            <label htmlFor={replacementId} className="dialog__label">
-              {isReplace ? "Replace with" : "Text to add"}
-            </label>
-            <TextArea
-              id={replacementId}
-              grow
-              value={replacement}
-              onChange={(event) => {
-                setReplacement(event.target.value);
-                clearError();
-              }}
-              placeholder={isReplace ? "e.g. cat" : "e.g. sks person, "}
-              rows={1}
-              spellCheck={false}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
+          <Field label={isReplace ? "Replace with" : "Text to add"}>
+            {(control) => (
+              <TextArea
+                {...control}
+                grow
+                value={replacement}
+                onChange={(event) => {
+                  setReplacement(event.target.value);
+                  clearError();
+                }}
+                placeholder={isReplace ? "e.g. cat" : "e.g. sks person, "}
+                rows={1}
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
         </div>
 
         <div className="dialog__field replace-captions-dialog__toggles">

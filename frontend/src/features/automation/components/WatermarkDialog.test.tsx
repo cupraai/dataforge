@@ -59,8 +59,10 @@ function renderDialog(
   return { onConfirm, onCancel, client };
 }
 
-function group(name: string) {
-  return within(screen.getByRole("radiogroup", { name }));
+/** One mark's control, such as `group("Text", "Size")`. */
+function group(mark: "Text" | "Image", name: string) {
+  const column = screen.getByRole("region", { name: `${mark} watermark` });
+  return within(within(column).getByRole("radiogroup", { name }));
 }
 
 function preview() {
@@ -95,13 +97,13 @@ describe("WatermarkDialog", () => {
     });
 
     expect(screen.getByLabelText("Watermark text")).toHaveValue("Sample Studio");
-    expect(group("Text size").getByRole("radio", { name: "Large" })).toBeChecked();
-    expect(group("Text opacity").getByRole("radio", { name: "75%" })).toBeChecked();
-    expect(group("Text position").getByRole("radio", { name: "Top left" })).toBeChecked();
+    expect(group("Text", "Size").getByRole("radio", { name: "Large" })).toBeChecked();
+    expect(group("Text", "Opacity").getByRole("radio", { name: "75%" })).toBeChecked();
+    expect(group("Text", "Position").getByRole("radio", { name: "Top left" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Image" })).toBeChecked();
-    expect(group("Image size").getByRole("radio", { name: "Small" })).toBeChecked();
-    expect(group("Image opacity").getByRole("radio", { name: "25%" })).toBeChecked();
-    expect(group("Image position").getByRole("radio", { name: "Bottom left" })).toBeChecked();
+    expect(group("Image", "Size").getByRole("radio", { name: "Small" })).toBeChecked();
+    expect(group("Image", "Opacity").getByRole("radio", { name: "25%" })).toBeChecked();
+    expect(group("Image", "Position").getByRole("radio", { name: "Bottom left" })).toBeChecked();
   });
 
   it("defaults to text only, with the PNG fully opaque in the top right", () => {
@@ -109,32 +111,32 @@ describe("WatermarkDialog", () => {
 
     expect(screen.getByRole("checkbox", { name: "Text" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Image" })).not.toBeChecked();
-    expect(group("Text size").getByRole("radio", { name: "Medium" })).toBeChecked();
-    expect(group("Text opacity").getByRole("radio", { name: "50%" })).toBeChecked();
-    expect(group("Text position").getByRole("radio", { name: "Bottom right" })).toBeChecked();
-    expect(group("Image opacity").getByRole("radio", { name: "100%" })).toBeChecked();
-    expect(group("Image position").getByRole("radio", { name: "Top right" })).toBeChecked();
+    expect(group("Text", "Size").getByRole("radio", { name: "Medium" })).toBeChecked();
+    expect(group("Text", "Opacity").getByRole("radio", { name: "50%" })).toBeChecked();
+    expect(group("Text", "Position").getByRole("radio", { name: "Bottom right" })).toBeChecked();
+    expect(group("Image", "Opacity").getByRole("radio", { name: "100%" })).toBeChecked();
+    expect(group("Image", "Position").getByRole("radio", { name: "Top right" })).toBeChecked();
   });
 
   it("offers the text the same opacity and position choices as the PNG", () => {
     renderDialog();
 
-    const names = (label: string) =>
-      group(label)
+    const names = (mark: "Text" | "Image", label: string) =>
+      group(mark, label)
         .getAllByRole("radio")
         .map((radio) => radio.getAttribute("aria-label") ?? radio.closest("label")?.textContent);
-    expect(names("Text opacity")).toEqual(names("Image opacity"));
-    expect(names("Text opacity")).toEqual(["25%", "50%", "75%", "100%"]);
-    expect(names("Text position")).toEqual(names("Image position"));
-    expect(names("Text position")).toHaveLength(5);
+    expect(names("Text", "Opacity")).toEqual(names("Image", "Opacity"));
+    expect(names("Text", "Opacity")).toEqual(["25%", "50%", "75%", "100%"]);
+    expect(names("Text", "Position")).toEqual(names("Image", "Position"));
+    expect(names("Text", "Position")).toHaveLength(5);
   });
 
   it("submits the text at full opacity in a corner of its own", async () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog({ text: "Sample Studio" });
 
-    await user.click(group("Text opacity").getByRole("radio", { name: "100%" }));
-    await user.click(group("Text position").getByRole("radio", { name: "Top left" }));
+    await user.click(group("Text", "Opacity").getByRole("radio", { name: "100%" }));
+    await user.click(group("Text", "Position").getByRole("radio", { name: "Top left" }));
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
@@ -150,9 +152,9 @@ describe("WatermarkDialog", () => {
     const { onConfirm } = renderDialog();
 
     await user.type(screen.getByLabelText("Watermark text"), "  Sample Studio  ");
-    await user.click(group("Text size").getByRole("radio", { name: "Large" }));
-    await user.click(group("Text opacity").getByRole("radio", { name: "25%" }));
-    await user.click(group("Text position").getByRole("radio", { name: "Center" }));
+    await user.click(group("Text", "Size").getByRole("radio", { name: "Large" }));
+    await user.click(group("Text", "Opacity").getByRole("radio", { name: "25%" }));
+    await user.click(group("Text", "Position").getByRole("radio", { name: "Center" }));
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
@@ -183,14 +185,14 @@ describe("WatermarkDialog", () => {
     const user = userEvent.setup();
     renderDialog({ image_enabled: true });
 
-    await user.click(group("Text size").getByRole("radio", { name: "Small" }));
-    await user.click(group("Image size").getByRole("radio", { name: "Large" }));
+    await user.click(group("Text", "Size").getByRole("radio", { name: "Small" }));
+    await user.click(group("Image", "Size").getByRole("radio", { name: "Large" }));
 
     // A shared radio name would have cleared the other groups' selections.
-    expect(group("Text size").getByRole("radio", { name: "Small" })).toBeChecked();
-    expect(group("Image size").getByRole("radio", { name: "Large" })).toBeChecked();
-    expect(group("Text opacity").getByRole("radio", { name: "50%" })).toBeChecked();
-    expect(group("Image opacity").getByRole("radio", { name: "100%" })).toBeChecked();
+    expect(group("Text", "Size").getByRole("radio", { name: "Small" })).toBeChecked();
+    expect(group("Image", "Size").getByRole("radio", { name: "Large" })).toBeChecked();
+    expect(group("Text", "Opacity").getByRole("radio", { name: "50%" })).toBeChecked();
+    expect(group("Image", "Opacity").getByRole("radio", { name: "100%" })).toBeChecked();
   });
 
   it("passes filtergraph metacharacters through untouched", async () => {
@@ -239,15 +241,15 @@ describe("WatermarkDialog", () => {
     renderDialog();
 
     expect(screen.getByRole("button", { name: "Choose PNG..." })).toBeDisabled();
-    expect(group("Image position").getByRole("radio", { name: "Center" })).toBeDisabled();
+    expect(group("Image", "Position").getByRole("radio", { name: "Center" })).toBeDisabled();
 
     await user.click(screen.getByRole("checkbox", { name: "Image" }));
     await user.click(screen.getByRole("checkbox", { name: "Text" }));
 
     expect(screen.getByRole("button", { name: "Choose PNG..." })).toBeEnabled();
-    expect(group("Image position").getByRole("radio", { name: "Center" })).toBeEnabled();
+    expect(group("Image", "Position").getByRole("radio", { name: "Center" })).toBeEnabled();
     expect(screen.getByLabelText("Watermark text")).toBeDisabled();
-    expect(group("Text size").getByRole("radio", { name: "Large" })).toBeDisabled();
+    expect(group("Text", "Size").getByRole("radio", { name: "Large" })).toBeDisabled();
   });
 
   it("needs at least one mark", async () => {
@@ -280,7 +282,7 @@ describe("WatermarkDialog", () => {
       expect(preview()).toHaveAttribute("src", "/api/automation/watermark/image?v=42"),
     );
     expect(screen.getByText("Saved PNG, 120 × 60 px.")).toBeInTheDocument();
-    await user.click(group("Image position").getByRole("radio", { name: "Bottom left" }));
+    await user.click(group("Image", "Position").getByRole("radio", { name: "Bottom left" }));
     await confirm(user);
 
     expect(upload).not.toHaveBeenCalled();
@@ -303,7 +305,7 @@ describe("WatermarkDialog", () => {
     });
     await waitFor(() => expect(preview()).not.toBeNull());
 
-    await user.click(group("Image opacity").getByRole("radio", { name: "25%" }));
+    await user.click(group("Image", "Opacity").getByRole("radio", { name: "25%" }));
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
@@ -322,7 +324,7 @@ describe("WatermarkDialog", () => {
     renderDialog({ image_enabled: true, image_opacity: 100 });
     await waitFor(() => expect(preview()).not.toBeNull());
 
-    await user.click(group("Image opacity").getByRole("radio", { name: "50%" }));
+    await user.click(group("Image", "Opacity").getByRole("radio", { name: "50%" }));
 
     expect(preview()).toHaveStyle({ opacity: "0.5" });
   });
@@ -408,7 +410,7 @@ describe("WatermarkDialog", () => {
     renderDialog({ text: "Sample Studio", image_enabled: true }, { busy: true });
 
     expect(screen.getByLabelText("Watermark text")).toBeDisabled();
-    expect(group("Text size").getByRole("radio", { name: "Large" })).toBeDisabled();
+    expect(group("Text", "Size").getByRole("radio", { name: "Large" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "Image" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Choose PNG..." })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: /Strip metadata/ })).toBeDisabled();

@@ -3,6 +3,7 @@ import { IconButton } from "@/shared/ui/IconButton";
 import { iconBan, iconClapperboard, iconLoader2 } from "@/shared/icons";
 import type { VideoProjectExportState } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
+import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 
 interface VideoExportCardProps {
@@ -48,10 +49,9 @@ export function VideoExportCard({
         )}
 
         <div className="job-card__header-actions">
-          <span className="job-card__badge job-card__badge--active">
-            <Icon icon={iconLoader2} className="job-card__badge-icon job-card__badge-icon--spin" />
-            <span className="job-card__badge-label">Exporting</span>
-          </span>
+          <Badge tone="accent" icon={iconLoader2} spin>
+            Exporting
+          </Badge>
 
           <IconButton
             icon={iconBan}

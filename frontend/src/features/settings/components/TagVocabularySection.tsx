@@ -1,5 +1,4 @@
-import { TextArea } from "@/shared/ui/Field";
-import { useId } from "react";
+import { Field, TextArea } from "@/shared/ui/Field";
 import { iconList } from "@/shared/icons";
 import { formatCount } from "@/shared/lib/format";
 import type { TagVocabularyResponse } from "@/shared/types";
@@ -29,8 +28,6 @@ export function TagVocabularySection({
   disabled,
   onChange,
 }: TagVocabularySectionProps) {
-  const textId = useId();
-
   return (
     <SettingsGroup
       title="Your terms"
@@ -44,19 +41,18 @@ export function TagVocabularySection({
         </p>
       ) : (
         <>
-          <div className="dialog__field settings-group__fill-field">
-            <label htmlFor={textId} className="dialog__label">
-              Terms
-            </label>
-            <TextArea
-              id={textId}
-              value={value}
-              placeholder={saved ? "red dress\nhot air balloon" : "Loading..."}
-              spellCheck={false}
-              disabled={disabled || !saved}
-              onChange={(event) => onChange(event.target.value)}
-            />
-          </div>
+          <Field label="Terms" className="settings-group__fill-field">
+            {(control) => (
+              <TextArea
+                {...control}
+                value={value}
+                placeholder={saved ? "red dress\nhot air balloon" : "Loading..."}
+                spellCheck={false}
+                disabled={disabled || !saved}
+                onChange={(event) => onChange(event.target.value)}
+              />
+            )}
+          </Field>
           <p className="settings-dialog__status" role="status">
             {saved ? describeSaved(saved) : "Loading..."}
           </p>

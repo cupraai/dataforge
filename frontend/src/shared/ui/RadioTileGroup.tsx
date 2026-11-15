@@ -12,12 +12,8 @@ export interface RadioTileOption<T extends string> {
 interface RadioTileGroupProps<T extends string> {
   value: T;
   options: ReadonlyArray<RadioTileOption<T>>;
-  /** Field label above the tiles. */
+  /** Field label above the tiles, which also names the group. */
   label: string;
-  /** Radio group name; unique per group so two groups in one dialog stay independent. */
-  name: string;
-  /** Accessible name for the group, e.g. "Watermark size". */
-  groupLabel: string;
   disabled?: boolean;
   onChange: (value: T) => void;
 }
@@ -27,18 +23,16 @@ export function RadioTileGroup<T extends string>({
   value,
   options,
   label,
-  name,
-  groupLabel,
   disabled = false,
   onChange,
 }: RadioTileGroupProps<T>) {
-  const idPrefix = useId();
+  const name = useId();
 
   return (
-    <FieldGroup label={label}>
-      <div className="dialog__options" role="radiogroup" aria-label={groupLabel}>
+    <FieldGroup label={label} role="radiogroup">
+      <div className="dialog__options">
         {options.map((option) => {
-          const inputId = `${idPrefix}-${option.value}`;
+          const inputId = `${name}-${option.value}`;
 
           return (
             <label

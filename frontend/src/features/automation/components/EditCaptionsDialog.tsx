@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/Button";
-import { TextArea } from "@/shared/ui/Field";
+import { Field, TextArea } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -52,7 +52,6 @@ export function EditCaptionsDialog({
   const [backup, setBackup] = useState(initialSettings.backup ?? true);
   const [error, setError] = useState<string | null>(null);
   const instructionRef = useRef<HTMLTextAreaElement>(null);
-  const instructionId = useId();
   const errorId = useId();
 
   const settings = {
@@ -175,18 +174,10 @@ export function EditCaptionsDialog({
       }
     >
       <div className="edit-captions-dialog__body">
-        <AutomationModeSelector
-          value={mode}
-          name="edit-captions-mode"
-          groupLabel="Edit mode"
-          disabled={controlsBusy}
-          onChange={setMode}
-        />
+        <AutomationModeSelector value={mode} disabled={controlsBusy} onChange={setMode} />
 
         <ReasoningEffortSelector
           value={reasoningEffort}
-          name="edit-captions-reasoning-effort"
-          groupLabel="Edit reasoning effort"
           disabled={mode === "instruct" || controlsBusy}
           onChange={setReasoningEffort}
         />
@@ -213,11 +204,9 @@ export function EditCaptionsDialog({
           <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
         </div>
 
-        <div className="dialog__field">
-          <div className="edit-captions-dialog__instruction-header">
-            <label htmlFor={instructionId} className="dialog__label">
-              Edit instruction
-            </label>
+        <Field
+          label="Edit instruction"
+          labelEnd={
             <InstructionSnippetMenu
               instruction={instruction}
               disabled={controlsBusy}
@@ -227,23 +216,26 @@ export function EditCaptionsDialog({
                 instructionRef.current?.focus();
               }}
             />
-          </div>
-          <TextArea
-            id={instructionId}
-            ref={instructionRef}
-            grow
-            className="edit-captions-dialog__instruction"
-            value={instruction}
-            onChange={(event) => {
-              setInstruction(event.target.value);
-              setError(null);
-            }}
-            placeholder="e.g. Rewrite each caption in present tense"
-            rows={2}
-            disabled={controlsBusy}
-            data-scroll-lock-allow
-          />
-        </div>
+          }
+        >
+          {(control) => (
+            <TextArea
+              {...control}
+              ref={instructionRef}
+              grow
+              className="edit-captions-dialog__instruction"
+              value={instruction}
+              onChange={(event) => {
+                setInstruction(event.target.value);
+                setError(null);
+              }}
+              placeholder="e.g. Rewrite each caption in present tense"
+              rows={2}
+              disabled={controlsBusy}
+              data-scroll-lock-allow
+            />
+          )}
+        </Field>
 
         <CaptionPreviewPanel
           ref={previewRef}

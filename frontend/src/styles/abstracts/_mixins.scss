@@ -300,56 +300,11 @@
   }
 }
 
-@mixin btn-hover-accent {
-  &:hover:not(:disabled) {
-    @include fade-bg(var(--accent));
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-}
-
-@mixin btn-hover-warning {
-  &:hover:not(:disabled) {
-    @include fade-bg(var(--warning));
-    color: var(--bg);
-    border-color: var(--warning);
-  }
-}
-
-@mixin btn-hover-danger {
-  &:hover:not(:disabled) {
-    @include fade-bg(var(--danger));
-    color: var(--bg);
-    border-color: var(--danger);
-  }
-}
-
 @mixin btn-surface-default {
   border: 1px solid var(--border);
   @include fade-bg(var(--bg-elevated));
   color: var(--text-muted);
   @include btn-hover-default;
-}
-
-@mixin btn-surface-accent {
-  border: 1px solid var(--accent-border);
-  @include fade-bg(var(--accent-soft));
-  color: var(--accent);
-  @include btn-hover-accent;
-}
-
-@mixin btn-surface-warning {
-  border: 1px solid var(--warning-border);
-  @include fade-bg(var(--warning-soft));
-  color: var(--warning);
-  @include btn-hover-warning;
-}
-
-@mixin btn-surface-danger {
-  border: 1px solid var(--danger-border);
-  @include fade-bg(var(--danger-soft));
-  color: var(--danger);
-  @include btn-hover-danger;
 }
 
 @mixin btn-disabled {

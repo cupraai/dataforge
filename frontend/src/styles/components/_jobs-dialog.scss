@@ -450,62 +450,9 @@ $jobs-content-pad-top: 0.75rem;
     flex-shrink: 0;
   }
 
-  &__badge-icon {
-    @include icon-size-sm;
-  }
-
-  &__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    flex-shrink: 0;
-    padding: 0.1875rem 0.5rem;
-    border-radius: var(--radius-pill);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-
-    &--active {
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    &--success {
-      background: var(--success-soft);
-      color: var(--success);
-    }
-
-    &--danger {
-      background: var(--danger-soft);
-      color: var(--danger);
-    }
-
-    &--muted {
-      background: var(--surface-hover);
-      color: var(--text-muted);
-    }
-
-    &--queued {
-      border: 1px solid var(--accent-border);
-      background: transparent;
-      color: var(--accent);
-    }
-
-    &--warning {
-      background: var(--warning-soft);
-      color: var(--warning);
-      border: 1px solid var(--warning-border);
-    }
-
-    &-icon--spin {
-      @include spin;
-    }
-
-    &-label {
-      @include truncate;
-      @include trim-to-caps;
-    }
+  // Waiting, not working: the accent outline without its fill.
+  &__badge--queued {
+    background: transparent;
   }
 
   // Lines up under the title, past the type icon, so it reads as part of the heading.

@@ -31,6 +31,17 @@ describe("Field", () => {
     expect(screen.queryByText("In pixels.")).not.toBeInTheDocument();
   });
 
+  it("keeps the control's name to the label when something sits beside it", () => {
+    render(
+      <Field label="Instruction" labelEnd={<button type="button">Snippets</button>}>
+        {(control) => <TextInput {...control} />}
+      </Field>,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Instruction" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Snippets" })).toBeInTheDocument();
+  });
+
   it("names a group of controls with its legend", () => {
     render(
       <FieldGroup label="Settings">

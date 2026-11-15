@@ -1,8 +1,8 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { Button } from "@/shared/ui/Button";
 import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatApiError } from "@/shared/api/http";
 import { classNames } from "@/shared/lib/classNames";
@@ -40,7 +40,6 @@ export function VersionsDialog({ project, onRestore, onClose }: VersionsDialogPr
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const labelId = useId();
   const discard = useDiscardChanges({
     unsavedChanges: label !== "",
     busy: busy !== null,
@@ -84,35 +83,34 @@ export function VersionsDialog({ project, onRestore, onClose }: VersionsDialogPr
       }}
     >
       <div className="video-versions-dialog__body">
-        <div className="dialog__field">
-          <label className="dialog__label" htmlFor={labelId}>
-            Save this version as
-          </label>
-          <div className="video-versions-dialog__save">
-            <TextInput
-              id={labelId}
-              value={label}
-              maxLength={80}
-              placeholder="e.g. Before the music change"
-              onChange={(event) => setLabel(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void saveVersion();
-                }
-              }}
-              disabled={busy !== null}
-            />
-            <Button
-              variant="primary"
-              busy={busy === "save"}
-              disabled={busy !== null || !label.trim()}
-              onClick={() => void saveVersion()}
-            >
-              Save version
-            </Button>
-          </div>
-        </div>
+        <Field label="Save this version as">
+          {(control) => (
+            <div className="video-versions-dialog__save">
+              <TextInput
+                {...control}
+                value={label}
+                maxLength={80}
+                placeholder="e.g. Before the music change"
+                onChange={(event) => setLabel(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void saveVersion();
+                  }
+                }}
+                disabled={busy !== null}
+              />
+              <Button
+                variant="primary"
+                busy={busy === "save"}
+                disabled={busy !== null || !label.trim()}
+                onClick={() => void saveVersion()}
+              >
+                Save version
+              </Button>
+            </div>
+          )}
+        </Field>
         <div className="video-versions-dialog__history-head">
           <h3 className="video-versions-dialog__heading">History</h3>
           <span className="video-versions-dialog__heading-hint">

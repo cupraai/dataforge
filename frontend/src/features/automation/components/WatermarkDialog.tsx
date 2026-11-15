@@ -55,22 +55,19 @@ interface WatermarkDialogProps {
 /** Five spots on a frame: tiles for them would not fit the column. */
 function PositionPicker({
   value,
-  name,
-  groupLabel,
   disabled,
   onChange,
 }: {
   value: WatermarkPosition;
-  name: string;
-  groupLabel: string;
   disabled: boolean;
   onChange: (value: WatermarkPosition) => void;
 }) {
+  const name = useId();
   const current = POSITIONS.find((option) => option.value === value);
   return (
-    <FieldGroup label="Position">
+    <FieldGroup label="Position" role="radiogroup">
       <div className="watermark-dialog__position">
-        <div className="watermark-dialog__frame" role="radiogroup" aria-label={groupLabel}>
+        <div className="watermark-dialog__frame">
           {POSITIONS.map((option) => (
             <label
               key={option.value}
@@ -108,16 +105,12 @@ function PositionPicker({
 
 /** Size, opacity and position: the same three controls for both marks, so they cannot drift. */
 function MarkOptions({
-  label,
-  name,
   size,
   opacity,
   position,
   disabled,
   onChange,
 }: {
-  label: string;
-  name: string;
   size: WatermarkSizeName;
   opacity: WatermarkOpacity;
   position: WatermarkPosition;
@@ -134,8 +127,6 @@ function MarkOptions({
         value={size}
         options={SIZES}
         label="Size"
-        name={`${name}-size`}
-        groupLabel={`${label} size`}
         disabled={disabled}
         onChange={(value) => onChange({ size: value })}
       />
@@ -143,15 +134,11 @@ function MarkOptions({
         value={`${opacity}` as const}
         options={OPACITIES}
         label="Opacity"
-        name={`${name}-opacity`}
-        groupLabel={`${label} opacity`}
         disabled={disabled}
         onChange={(value) => onChange({ opacity: Number(value) as WatermarkOpacity })}
       />
       <PositionPicker
         value={position}
-        name={`${name}-position`}
-        groupLabel={`${label} position`}
         disabled={disabled}
         onChange={(value) => onChange({ position: value })}
       />
@@ -230,7 +217,6 @@ export function WatermarkDialog({
   const [error, setError] = useState<{ mark: Mark; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const errorId = useId();
-  const groupId = useId();
 
   useEffect(() => {
     if (!picked) return;
@@ -354,8 +340,6 @@ export function WatermarkDialog({
           }
         >
           <MarkOptions
-            label="Text"
-            name={`${groupId}-text`}
             size={draft.size}
             opacity={draft.opacity}
             position={draft.position}
@@ -411,8 +395,6 @@ export function WatermarkDialog({
           }
         >
           <MarkOptions
-            label="Image"
-            name={`${groupId}-image`}
             size={draft.image_size}
             opacity={draft.image_opacity}
             position={draft.image_position}

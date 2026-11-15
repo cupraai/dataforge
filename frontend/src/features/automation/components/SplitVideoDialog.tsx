@@ -1,4 +1,4 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { useId, useState } from "react";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { CLIPS_DIR_NAME, MAX_SPLIT_CLIP_SECONDS, MIN_SPLIT_CLIP_SECONDS } from "@/shared/constants";
@@ -66,8 +66,7 @@ export function SplitVideoDialog({
     frameRateChoice(initialSettings.frame_rate),
   );
   const [error, setError] = useState<string | null>(null);
-  const lengthId = useId();
-  const shortestId = useId();
+  const lengthHintId = useId();
   const errorId = useId();
 
   const scenes = mode === "scenes";
@@ -148,8 +147,6 @@ export function SplitVideoDialog({
         value={mode}
         options={MODE_OPTIONS}
         label="Cut"
-        name="split-video-mode"
-        groupLabel="Where to cut"
         disabled={busy}
         onChange={(value) => {
           setMode(value);
@@ -162,50 +159,48 @@ export function SplitVideoDialog({
         value={sensitivity}
         options={SENSITIVITY_OPTIONS}
         label="Scene sensitivity"
-        name="split-video-sensitivity"
-        groupLabel="Scene sensitivity"
         disabled={busy || !scenes}
         onChange={setSensitivity}
       />
 
       <div className="dialog__field">
-        <div className="split-video-dialog__row">
-          <div>
-            <label htmlFor={lengthId} className="dialog__label">
-              {scenes ? "Longest clip (s)" : "Clip length (s)"}
-            </label>
-            <TextInput
-              id={lengthId}
-              type="number"
-              className="split-video-dialog__number"
-              value={length}
-              min={MIN_SPLIT_CLIP_SECONDS}
-              max={MAX_SPLIT_CLIP_SECONDS}
-              step={0.5}
-              onChange={(event) => editField(setLength)(event.target.value)}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
-          <div>
-            <label htmlFor={shortestId} className="dialog__label">
-              Shortest clip (s)
-            </label>
-            <TextInput
-              id={shortestId}
-              type="number"
-              className="split-video-dialog__number"
-              value={shortest}
-              min={0}
-              max={MAX_SPLIT_CLIP_SECONDS}
-              step={0.5}
-              onChange={(event) => editField(setShortest)(event.target.value)}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
+        <div className="dialog__field-row">
+          <Field label={scenes ? "Longest clip (s)" : "Clip length (s)"}>
+            {(control) => (
+              <TextInput
+                {...control}
+                aria-describedby={lengthHintId}
+                type="number"
+                className="split-video-dialog__number"
+                value={length}
+                min={MIN_SPLIT_CLIP_SECONDS}
+                max={MAX_SPLIT_CLIP_SECONDS}
+                step={0.5}
+                onChange={(event) => editField(setLength)(event.target.value)}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
+          <Field label="Shortest clip (s)">
+            {(control) => (
+              <TextInput
+                {...control}
+                aria-describedby={lengthHintId}
+                type="number"
+                className="split-video-dialog__number"
+                value={shortest}
+                min={0}
+                max={MAX_SPLIT_CLIP_SECONDS}
+                step={0.5}
+                onChange={(event) => editField(setShortest)(event.target.value)}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
         </div>
-        <p className="dialog__hint">
+        <p id={lengthHintId} className="dialog__hint">
           {scenes
             ? "A longer scene is divided into equal parts. Shorter pieces are left out."
             : "The last piece of each video is usually shorter. Shorter pieces are left out."}

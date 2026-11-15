@@ -1,0 +1,80 @@
+@use "../abstracts/mixins" as *;
+
+// A text pill exactly as tall as its size, border included, so rows of badges keep the fixed
+// heights the masonry and paging dialogs reserve. A badge wider than its row shortens.
+.badge {
+  @include text-pill(1.25rem, 1px);
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+
+  &--md {
+    @include text-pill(1.5rem, 1px);
+    font-size: var(--text-xs);
+  }
+
+  &--plain {
+    font-weight: var(--font-medium);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  // An icon is taller than the caps, so the pill centres both in a fixed height instead.
+  &--icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    height: 1.25rem;
+    padding-block: 0;
+  }
+
+  &__icon {
+    flex: none;
+    @include icon-size-sm;
+  }
+
+  &__label {
+    @include truncate;
+    @include trim-to-caps;
+  }
+
+  &--accent {
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  &--success {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  &--warning {
+    border-color: var(--warning-border);
+    background: var(--warning-soft);
+    color: var(--warning);
+  }
+
+  &--danger {
+    border-color: var(--danger-border);
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  &--placeholder {
+    border-style: dashed;
+    background: transparent;
+    color: var(--text-subtle);
+  }
+}

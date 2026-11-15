@@ -69,18 +69,10 @@ export function VerifyCaptionsDialog({
         />
       }
     >
-      <AutomationModeSelector
-        value={mode}
-        name="verify-captions-mode"
-        groupLabel="Verification mode"
-        disabled={busy}
-        onChange={setMode}
-      />
+      <AutomationModeSelector value={mode} disabled={busy} onChange={setMode} />
 
       <ReasoningEffortSelector
         value={reasoningEffort}
-        name="verify-captions-reasoning-effort"
-        groupLabel="Verification reasoning effort"
         disabled={mode === "instruct" || busy}
         onChange={setReasoningEffort}
       />

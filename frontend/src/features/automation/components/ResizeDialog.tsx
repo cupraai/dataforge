@@ -1,4 +1,4 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
@@ -68,8 +68,6 @@ export function ResizeDialog({
   const [frameRate, setFrameRate] = useState<FrameRateChoice>(
     frameRateChoice(initialSettings.frame_rate),
   );
-  const megapixelsId = useId();
-  const multipleId = useId();
   const errorId = useId();
 
   const parsedMegapixels = parseMegapixels(megapixels);
@@ -147,47 +145,45 @@ export function ResizeDialog({
       }
     >
       <div className="dialog__field">
-        <div className="resize-dialog__row">
-          <div>
-            <label htmlFor={megapixelsId} className="dialog__label">
-              Megapixels
-            </label>
-            <TextInput
-              id={megapixelsId}
-              type="number"
-              className="resize-dialog__number"
-              value={megapixels}
-              min={0.1}
-              max={MAX_RESIZE_MEGAPIXELS}
-              step={0.1}
-              onChange={(event) => {
-                setMegapixels(event.target.value);
-                setError(null);
-              }}
-              autoComplete="off"
-              disabled={busy || reset}
-            />
-          </div>
-          <div>
-            <label htmlFor={multipleId} className="dialog__label">
-              Multiple of (px)
-            </label>
-            <TextInput
-              id={multipleId}
-              type="number"
-              className="resize-dialog__number"
-              value={multiple}
-              min={1}
-              max={MAX_RESIZE_MULTIPLE}
-              step={1}
-              onChange={(event) => {
-                setMultiple(event.target.value);
-                setError(null);
-              }}
-              autoComplete="off"
-              disabled={busy || reset}
-            />
-          </div>
+        <div className="dialog__field-row">
+          <Field label="Megapixels">
+            {(control) => (
+              <TextInput
+                {...control}
+                type="number"
+                className="resize-dialog__number"
+                value={megapixels}
+                min={0.1}
+                max={MAX_RESIZE_MEGAPIXELS}
+                step={0.1}
+                onChange={(event) => {
+                  setMegapixels(event.target.value);
+                  setError(null);
+                }}
+                autoComplete="off"
+                disabled={busy || reset}
+              />
+            )}
+          </Field>
+          <Field label="Multiple of (px)">
+            {(control) => (
+              <TextInput
+                {...control}
+                type="number"
+                className="resize-dialog__number"
+                value={multiple}
+                min={1}
+                max={MAX_RESIZE_MULTIPLE}
+                step={1}
+                onChange={(event) => {
+                  setMultiple(event.target.value);
+                  setError(null);
+                }}
+                autoComplete="off"
+                disabled={busy || reset}
+              />
+            )}
+          </Field>
         </div>
         <dl className="resize-dialog__examples" aria-label="Example sizes">
           {examples.map((example) => (

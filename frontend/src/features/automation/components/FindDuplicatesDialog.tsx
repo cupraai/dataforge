@@ -61,8 +61,6 @@ export function FindDuplicatesDialog({
         value={threshold}
         options={THRESHOLD_OPTIONS}
         label="How alike"
-        name="find-duplicates-threshold"
-        groupLabel="Duplicate threshold"
         disabled={busy}
         onChange={setThreshold}
       />

@@ -10,6 +10,7 @@ import {
 } from "@/features/jobs/lib/externalJobs";
 import { useExternalTrainingSamples } from "@/features/jobs/hooks/useTrainingSamples";
 import { classNames } from "@/shared/lib/classNames";
+import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 import { TrainingSamples } from "./TrainingSamples";
 
@@ -65,16 +66,9 @@ export function ExternalJobCard({
         )}
 
         <div className="job-card__header-actions">
-          <span className="job-card__badge job-card__badge--active">
-            <Icon
-              icon={waiting ? iconHourglass : iconLoader2}
-              className={classNames(
-                "job-card__badge-icon",
-                !waiting && "job-card__badge-icon--spin",
-              )}
-            />
-            <span className="job-card__badge-label">{externalJobStatusLabel(job, stopping)}</span>
-          </span>
+          <Badge tone="accent" icon={waiting ? iconHourglass : iconLoader2} spin={!waiting}>
+            {externalJobStatusLabel(job, stopping)}
+          </Badge>
 
           {onStop && (
             <IconButton

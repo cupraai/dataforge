@@ -31,6 +31,7 @@ import { formatDurationSeconds, formatMegapixels } from "@/shared/lib/format";
 import { CardBadge } from "./CardBadge";
 import { GalleryCardActions } from "./GalleryCardActions";
 import { GalleryCardMedia } from "./GalleryCardMedia";
+import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
@@ -228,9 +229,9 @@ export const GalleryCard = memo(function GalleryCard({
                 {/* Every tag, strongest first: the ones that do not fit wrap out of sight. */}
                 <span ref={tagListRef} className="card__tag-list">
                   {item.tags.map((tag) => (
-                    <span key={tag.label} className="card__tag">
+                    <Badge key={tag.label} uppercase={false} className="card__tag">
                       {tag.label}
-                    </span>
+                    </Badge>
                   ))}
                 </span>
                 {hiddenTags > 0 && (
@@ -242,7 +243,9 @@ export const GalleryCard = memo(function GalleryCard({
                     placement="top"
                     className="card__tags-more-tip"
                   >
-                    <span className="card__tags-more">+{hiddenTags} more</span>
+                    <Badge tone="placeholder" uppercase={false} className="card__tags-more">
+                      +{hiddenTags} more
+                    </Badge>
                   </Tooltip>
                 )}
               </span>

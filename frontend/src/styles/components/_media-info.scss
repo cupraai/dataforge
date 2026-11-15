@@ -125,18 +125,9 @@
 
   // A tag wider than the whole row shortens rather than clips.
   &__tag {
-    @include text-pill(1.5rem, 1px);
+    display: flex;
     flex: none;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-inline: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--surface-hover);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
   }
 
   &__more-tip {
@@ -145,14 +136,6 @@
   }
 
   &__more {
-    @include text-pill(1.5rem, 1px);
-    flex: none;
-    padding-inline: 0.5rem;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-pill);
-    color: var(--text-subtle);
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
     cursor: default;
   }
 

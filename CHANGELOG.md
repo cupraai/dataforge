@@ -22,7 +22,7 @@ version heading when a minor or major version is cut.
 - Videos in the viewer and inspector remember whether you muted or unmuted them, and at what volume: the next video and later visits start the same way, and the edit preview follows the mute.
 - **Save** in Settings no longer closes the dialog: the saved values show as saved and you can keep editing.
 - Settings: **Storage** and **Data & history** are now one section, **Data & storage**, with **History** and **Storage** tabs.
-- Buttons, tabs, menus, checkboxes, form fields, dropdowns, sliders, progress bars, folding sections and empty lists look and behave the same across the gallery, dialogs and the video editor. Menus can be moved through with the arrow keys, and the editing tools are tabs that screen readers announce as such.
+- Buttons, tabs, menus, checkboxes, form fields, dropdowns, sliders, progress bars, folding sections, status badges, tags and empty lists look and behave the same across the gallery, dialogs and the video editor. Menus can be moved through with the arrow keys, the editing tools are tabs that screen readers announce as such, and screen readers read each dialog field's hint with the field.
 
 ## 0.13.0 - 2026-11-10
 

@@ -1,4 +1,4 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useState } from "react";
 import { CAPTION_SIDECAR_EXTENSION_LIST } from "@/shared/lib/captionSidecar";
@@ -40,8 +40,7 @@ export function BatchRenameDialog({
   // Held as text so the field can be emptied mid-edit instead of snapping back to 0.
   const [startNumber, setStartNumber] = useState(String(initialSettings.start_number));
   const [error, setError] = useState<string | null>(null);
-  const stemId = useId();
-  const startNumberId = useId();
+  const exampleId = useId();
   const errorId = useId();
 
   const previewStem = stem.trim() || "mountain";
@@ -103,44 +102,44 @@ export function BatchRenameDialog({
       }
     >
       <div className="dialog__field">
-        <div className="batch-rename-dialog__row">
-          <div className="batch-rename-dialog__stem">
-            <label htmlFor={stemId} className="dialog__label">
-              Name stem
-            </label>
-            <TextInput
-              id={stemId}
-              value={stem}
-              onChange={(event) => {
-                setStem(event.target.value);
-                setError(null);
-              }}
-              placeholder="e.g. mountain"
-              spellCheck={false}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
-          <div className="batch-rename-dialog__start">
-            <label htmlFor={startNumberId} className="dialog__label">
-              Start number
-            </label>
-            <TextInput
-              id={startNumberId}
-              type="number"
-              value={startNumber}
-              min={0}
-              step={1}
-              onChange={(event) => {
-                setStartNumber(event.target.value);
-                setError(null);
-              }}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
+        <div className="dialog__field-row batch-rename-dialog__row">
+          <Field label="Name stem">
+            {(control) => (
+              <TextInput
+                {...control}
+                aria-describedby={exampleId}
+                value={stem}
+                onChange={(event) => {
+                  setStem(event.target.value);
+                  setError(null);
+                }}
+                placeholder="e.g. mountain"
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
+          <Field label="Start number">
+            {(control) => (
+              <TextInput
+                {...control}
+                aria-describedby={exampleId}
+                type="number"
+                value={startNumber}
+                min={0}
+                step={1}
+                onChange={(event) => {
+                  setStartNumber(event.target.value);
+                  setError(null);
+                }}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
         </div>
-        <p className="dialog__hint">
+        <p id={exampleId} className="dialog__hint">
           Example: <code>{previewFirst}</code>
           {itemCount > 1 && (
             <>

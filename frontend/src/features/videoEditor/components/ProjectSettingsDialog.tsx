@@ -52,6 +52,7 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
   const [rate, setRate] = useState(savedRate);
   const [background, setBackground] = useState(project.background);
   const backgroundId = useId();
+  const backgroundHintId = useId();
 
   const parsed = {
     width: Math.round(Number(width)),
@@ -249,11 +250,14 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
             type="color"
             value={background}
             aria-labelledby={backgroundId}
+            aria-describedby={backgroundHintId}
             onChange={(event) => setBackground(event.target.value)}
           />
           <span>{background}</span>
         </label>
-        <p className="dialog__hint">Shows in gaps, around fitted pictures and in export padding.</p>
+        <p id={backgroundHintId} className="dialog__hint">
+          Shows in gaps, around fitted pictures and in export padding.
+        </p>
       </div>
       {summary && (
         <p className="video-settings-dialog__summary" aria-live="polite">

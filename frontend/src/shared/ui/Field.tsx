@@ -16,6 +16,8 @@ export interface FieldControlProps {
 
 interface FieldProps {
   label: ReactNode;
+  /** Beside the label, such as a menu that inserts into the control. */
+  labelEnd?: ReactNode;
   /** Under the control, and read out as its description. */
   hint?: ReactNode;
   /** Replaces the hint while the value is refused, and marks the control invalid. */
@@ -25,16 +27,26 @@ interface FieldProps {
 }
 
 /** A labelled form control in the app's field rhythm. */
-export function Field({ label, hint, error, className, children }: FieldProps) {
+export function Field({ label, labelEnd, hint, error, className, children }: FieldProps) {
   const id = useId();
   const noteId = `${id}-note`;
   const note = error ?? hint;
+  const labelElement = (
+    <label htmlFor={id} className="dialog__label">
+      {label}
+    </label>
+  );
 
   return (
     <div className={classNames("dialog__field", className)}>
-      <label htmlFor={id} className="dialog__label">
-        {label}
-      </label>
+      {labelEnd ? (
+        <div className="dialog__label-row">
+          {labelElement}
+          {labelEnd}
+        </div>
+      ) : (
+        labelElement
+      )}
       {children({
         id,
         "aria-describedby": note ? noteId : undefined,
@@ -56,15 +68,18 @@ export function Field({ label, hint, error, className, children }: FieldProps) {
 /** A labelled set of controls, such as radio tiles or a list of checkboxes. */
 export function FieldGroup({
   label,
+  role,
   className,
   children,
 }: {
   label: ReactNode;
+  /** Radios that make one choice; the legend names the group either way. */
+  role?: "radiogroup";
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <fieldset className={classNames("dialog__field dialog__fieldset", className)}>
+    <fieldset role={role} className={classNames("dialog__field dialog__fieldset", className)}>
       <legend className="dialog__label">{label}</legend>
       {children}
     </fieldset>

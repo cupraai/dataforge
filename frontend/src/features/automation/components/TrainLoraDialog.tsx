@@ -1,4 +1,4 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { IconButton } from "@/shared/ui/IconButton";
 import { Button } from "@/shared/ui/Button";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -58,8 +58,6 @@ export function TrainLoraDialog({
   // Rows keep their identity across edits so removing one cannot move focus.
   const nextPromptId = useRef(initialPrompts.length);
   const nameRef = useRef<HTMLInputElement>(null);
-  const nameId = useId();
-  const triggerWordId = useId();
   const promptsId = useId();
   const errorId = useId();
 
@@ -156,40 +154,38 @@ export function TrainLoraDialog({
           )}
         </div>
 
-        <div className="dialog__field train-lora-dialog__names">
-          <div className="train-lora-dialog__name">
-            <label htmlFor={nameId} className="dialog__label">
-              LoRA name
-            </label>
-            <TextInput
-              id={nameId}
-              ref={nameRef}
-              value={loraName}
-              onChange={(event) => {
-                setLoraName(event.target.value);
-                setError(null);
-              }}
-              placeholder="e.g. mountain_style_v1"
-              spellCheck={false}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
+        <div className="dialog__field dialog__field-row">
+          <Field label="LoRA name">
+            {(control) => (
+              <TextInput
+                {...control}
+                ref={nameRef}
+                value={loraName}
+                onChange={(event) => {
+                  setLoraName(event.target.value);
+                  setError(null);
+                }}
+                placeholder="e.g. mountain_style_v1"
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
 
-          <div className="train-lora-dialog__name">
-            <label htmlFor={triggerWordId} className="dialog__label">
-              Trigger word (optional)
-            </label>
-            <TextInput
-              id={triggerWordId}
-              value={triggerWord}
-              onChange={(event) => setTriggerWord(event.target.value)}
-              placeholder="e.g. mtnstyle"
-              spellCheck={false}
-              autoComplete="off"
-              disabled={busy}
-            />
-          </div>
+          <Field label="Trigger word (optional)">
+            {(control) => (
+              <TextInput
+                {...control}
+                value={triggerWord}
+                onChange={(event) => setTriggerWord(event.target.value)}
+                placeholder="e.g. mtnstyle"
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy}
+              />
+            )}
+          </Field>
         </div>
 
         <div className="dialog__field train-lora-dialog__prompts-field">

@@ -7,8 +7,7 @@ import {
   iconLoader2,
   iconTriangleAlert,
 } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
-import { Icon } from "@/shared/ui/Icon";
+import { Badge, type BadgeTone } from "@/shared/ui/Badge";
 import {
   isActiveJobStatus,
   jobIsCancelled,
@@ -16,7 +15,17 @@ import {
   jobShowsWarningState,
   jobStatusTone,
   statusLabel,
+  type JobStatusTone,
 } from "@/features/jobs/lib/jobs";
+
+const BADGE_TONES: Record<JobStatusTone, BadgeTone> = {
+  active: "accent",
+  queued: "accent",
+  success: "success",
+  danger: "danger",
+  warning: "warning",
+  muted: "neutral",
+};
 
 export function JobStatusBadge({ job }: { job: Job }) {
   // Waiting is not working: a spinner would say the job is doing something.
@@ -34,12 +43,13 @@ export function JobStatusBadge({ job }: { job: Job }) {
             ? iconBan
             : iconCircleCheck;
   return (
-    <span className={`job-card__badge job-card__badge--${jobStatusTone(job)}`}>
-      <Icon
-        icon={icon}
-        className={classNames("job-card__badge-icon", active && "job-card__badge-icon--spin")}
-      />
-      <span className="job-card__badge-label">{statusLabel(job)}</span>
-    </span>
+    <Badge
+      tone={BADGE_TONES[jobStatusTone(job)]}
+      icon={icon}
+      spin={active}
+      className={queued ? "job-card__badge--queued" : undefined}
+    >
+      {statusLabel(job)}
+    </Badge>
   );
 }

@@ -120,47 +120,6 @@
     display: none;
   }
 
-  &__origin,
-  &__badge {
-    @include text-pill(1.25rem, 1px);
-    padding-inline: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    font-size: var(--text-2xs);
-    font-weight: var(--font-semibold);
-    letter-spacing: var(--tracking-caps);
-    text-transform: uppercase;
-  }
-
-  &__origin {
-    background: var(--surface-hover);
-    color: var(--text-muted);
-
-    &--local {
-      border-color: var(--accent-border);
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    &--draft {
-      border-color: color-mix(in srgb, var(--warning) 35%, transparent);
-      background: var(--warning-soft);
-      color: var(--warning);
-    }
-
-    &--missing {
-      border-style: dashed;
-      background: transparent;
-      color: var(--text-subtle);
-    }
-  }
-
-  &__badge {
-    border-color: color-mix(in srgb, var(--caption-error) 35%, transparent);
-    background: color-mix(in srgb, var(--caption-error) 10%, transparent);
-    color: var(--caption-error);
-  }
-
   &__source-text {
     min-width: 0;
     color: var(--text);

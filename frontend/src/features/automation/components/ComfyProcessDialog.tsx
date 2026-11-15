@@ -1,4 +1,4 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
@@ -11,7 +11,6 @@ import { DialogActions } from "@/shared/ui/Dialog";
 import { DialogSelect } from "@/shared/ui/DialogSelect";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Icon } from "@/shared/ui/Icon";
-import { classNames } from "@/shared/lib/classNames";
 import type {
   ComfyInputValue,
   ComfyPresetInput,
@@ -138,8 +137,7 @@ export function ComfyProcessDialog({
       [preset]: { ...(current[preset] ?? EMPTY_DRAFT), ...patch },
     }));
   const [error, setError] = useState<string | null>(null);
-  const promptId = useId();
-  const seedId = useId();
+  const nodeHintId = useId();
   const [overwrite, setOverwrite] = useState(initialSettings.overwrite_candidates);
   const errorId = useId();
 
@@ -266,48 +264,48 @@ export function ComfyProcessDialog({
         </div>
       )}
 
-      <div className="dialog__field comfy-process-dialog__row">
-        <div className="comfy-process-dialog__cell">
-          <label htmlFor={promptId} className="dialog__label">
-            Prompt
-          </label>
-          <TextInput
-            id={promptId}
-            value={promptBlocked ? "" : promptText}
-            onChange={(event) => {
-              updateDraft({ promptText: event.target.value });
-              setError(null);
-            }}
-            placeholder={
-              promptBlocked
-                ? "This preset has no prompt node"
-                : "e.g. sharp studio photograph, no watermark"
-            }
-            disabled={busy || promptBlocked}
-          />
-        </div>
+      <div className="dialog__field dialog__field-row comfy-process-dialog__row">
+        <Field label="Prompt">
+          {(control) => (
+            <TextInput
+              {...control}
+              aria-describedby={nodeHintId}
+              value={promptBlocked ? "" : promptText}
+              onChange={(event) => {
+                updateDraft({ promptText: event.target.value });
+                setError(null);
+              }}
+              placeholder={
+                promptBlocked
+                  ? "This preset has no prompt node"
+                  : "e.g. sharp studio photograph, no watermark"
+              }
+              disabled={busy || promptBlocked}
+            />
+          )}
+        </Field>
 
-        <div className="comfy-process-dialog__cell">
-          <label htmlFor={seedId} className="dialog__label">
-            Seed
-          </label>
-          <TextInput
-            id={seedId}
-            type="number"
-            value={seedBlocked ? "" : seedText}
-            onChange={(event) => {
-              updateDraft({ seedText: event.target.value });
-              setError(null);
-            }}
-            placeholder={seedBlocked ? "This preset has no seed node" : "e.g. 424242"}
-            spellCheck={false}
-            autoComplete="off"
-            disabled={busy || seedBlocked}
-          />
-        </div>
+        <Field label="Seed">
+          {(control) => (
+            <TextInput
+              {...control}
+              aria-describedby={nodeHintId}
+              type="number"
+              value={seedBlocked ? "" : seedText}
+              onChange={(event) => {
+                updateDraft({ seedText: event.target.value });
+                setError(null);
+              }}
+              placeholder={seedBlocked ? "This preset has no seed node" : "e.g. 424242"}
+              spellCheck={false}
+              autoComplete="off"
+              disabled={busy || seedBlocked}
+            />
+          )}
+        </Field>
       </div>
 
-      <p className="dialog__hint">
+      <p id={nodeHintId} className="dialog__hint">
         {promptBlocked && seedBlocked ? (
           <>
             This preset has neither a <strong>DataForge Prompt</strong> nor a{" "}
@@ -332,7 +330,7 @@ export function ComfyProcessDialog({
       </p>
 
       {customInputs.length > 0 && (
-        <div className="dialog__field comfy-process-dialog__inputs">
+        <div className="dialog__field dialog__field-row comfy-process-dialog__inputs">
           {customInputs.map((input) => (
             <CustomInputField
               key={input.name}
@@ -378,8 +376,6 @@ interface CustomInputFieldProps {
 
 /** One `DataForge <name>` node; the saved value is the placeholder an empty field runs with. */
 function CustomInputField({ input, text, disabled, onChange }: CustomInputFieldProps) {
-  const id = useId();
-
   if (input.kind === "boolean") {
     return (
       <DialogSelect<BooleanChoice>
@@ -398,26 +394,20 @@ function CustomInputField({ input, text, disabled, onChange }: CustomInputFieldP
 
   const numeric = input.kind !== "text";
   return (
-    <div
-      className={classNames(
-        "comfy-process-dialog__cell",
-        !numeric && "comfy-process-dialog__cell--wide",
+    <Field label={input.name} className={numeric ? undefined : "comfy-process-dialog__cell--wide"}>
+      {(control) => (
+        <TextInput
+          {...control}
+          type={numeric ? "number" : "text"}
+          step={input.kind === "integer" ? 1 : numeric ? "any" : undefined}
+          value={text}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={String(input.default)}
+          spellCheck={false}
+          autoComplete="off"
+          disabled={disabled}
+        />
       )}
-    >
-      <label htmlFor={id} className="dialog__label">
-        {input.name}
-      </label>
-      <TextInput
-        id={id}
-        type={numeric ? "number" : "text"}
-        step={input.kind === "integer" ? 1 : numeric ? "any" : undefined}
-        value={text}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={String(input.default)}
-        spellCheck={false}
-        autoComplete="off"
-        disabled={disabled}
-      />
-    </div>
+    </Field>
   );
 }

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useWrappedCount } from "@/features/gallery/hooks/useWrappedCount";
 import type { MediaTag } from "@/shared/types";
+import { Badge } from "@/shared/ui/Badge";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface MediaTagListProps {
@@ -31,13 +32,11 @@ export function MediaTagList({ tags }: MediaTagListProps) {
         <>
           <ul ref={listRef} className="media-tags__list">
             {tags.map((tag) => (
-              <li
-                key={tag.label}
-                className="media-tags__tag"
-                title={`${percent(tag.confidence)}% confidence`}
-              >
-                {tag.label}
-                <span className="media-tags__score">{percent(tag.confidence)}%</span>
+              <li key={tag.label} className="media-tags__tag">
+                <Badge size="md" uppercase={false} title={`${percent(tag.confidence)}% confidence`}>
+                  {tag.label}
+                  <span className="media-tags__score">{percent(tag.confidence)}%</span>
+                </Badge>
               </li>
             ))}
           </ul>
@@ -48,9 +47,15 @@ export function MediaTagList({ tags }: MediaTagListProps) {
               placement="top"
               className="media-tags__more-tip"
             >
-              <span className="media-tags__more" aria-hidden="true">
+              <Badge
+                tone="placeholder"
+                size="md"
+                uppercase={false}
+                className="media-tags__more"
+                aria-hidden="true"
+              >
                 +{hidden} more
-              </span>
+              </Badge>
             </Tooltip>
           )}
         </>

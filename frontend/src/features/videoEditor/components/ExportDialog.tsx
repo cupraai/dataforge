@@ -1,7 +1,7 @@
-import { TextInput } from "@/shared/ui/Field";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useId, useState } from "react";
+import { useState } from "react";
 import {
   VIDEO_PROJECT_EXPORT_EXTENSION,
   VIDEO_PROJECT_EXPORT_TAG,
@@ -99,7 +99,6 @@ export function ExportDialog({
   const [quality, setQuality] = useState<VideoProjectQuality>(saved.quality);
   const [copyCaption, setCopyCaption] = useState(saved.copy_caption);
   const [audioLevel, setAudioLevel] = useState<AudioLevel>(saved.audio_level);
-  const nameId = useId();
 
   const settings: VideoProjectExportSettings = {
     filename: filename.trim(),
@@ -140,30 +139,27 @@ export function ExportDialog({
       onClose={onCancel}
       footer={<DialogActions confirmLabel="Export" busyLabel="Starting..." onCancel={onCancel} />}
     >
-      <div className="dialog__field">
-        <label className="dialog__label" htmlFor={nameId}>
-          File name
-        </label>
-        <div className="video-export-dialog__name">
-          <TextInput
-            id={nameId}
-            value={filename}
-            maxLength={200}
-            onChange={(event) => setFilename(event.target.value)}
-            disabled={busy}
-          />
-          <span className="video-export-dialog__suffix">{VIDEO_PROJECT_EXPORT_EXTENSION}</span>
-        </div>
-        <p className="dialog__hint">
-          Saved in this folder; a taken name gets a number, so nothing is overwritten.
-        </p>
-      </div>
+      <Field
+        label="File name"
+        hint="Saved in this folder; a taken name gets a number, so nothing is overwritten."
+      >
+        {(control) => (
+          <div className="video-export-dialog__name">
+            <TextInput
+              {...control}
+              value={filename}
+              maxLength={200}
+              onChange={(event) => setFilename(event.target.value)}
+              disabled={busy}
+            />
+            <span className="video-export-dialog__suffix">{VIDEO_PROJECT_EXPORT_EXTENSION}</span>
+          </div>
+        )}
+      </Field>
       <div className="video-export-dialog__choices">
         {(marked || selectionSpan) && (
           <RadioTileGroup
             label="Part"
-            name="video-export-extent"
-            groupLabel="Part of the timeline to export"
             value={extent}
             disabled={busy}
             onChange={chooseExtent}
@@ -205,8 +201,6 @@ export function ExportDialog({
         />
         <RadioTileGroup
           label="Shape"
-          name="video-export-orientation"
-          groupLabel="Export shape"
           value={orientation}
           disabled={busy}
           onChange={setOrientation}
@@ -218,8 +212,6 @@ export function ExportDialog({
         />
         <RadioTileGroup
           label="Quality"
-          name="video-export-quality"
-          groupLabel="Export quality"
           value={quality}
           disabled={busy}
           onChange={setQuality}
@@ -231,8 +223,6 @@ export function ExportDialog({
         />
         <RadioTileGroup
           label="Sound"
-          name="video-export-audio-level"
-          groupLabel="Export sound level"
           value={audioLevel}
           disabled={busy}
           onChange={setAudioLevel}
