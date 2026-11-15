@@ -7,6 +7,7 @@ import type {
   AutoAdjustRunSettings,
   DuplicateThreshold,
   EditCaptionsRunSettings,
+  TrimVideoRunSettings,
   VideoFrameRate,
 } from "@/shared/types";
 
@@ -85,6 +86,10 @@ export type AutomationDialogsState = {
   splitVideo: FolderBusyDialogState<
     (settings: JobSettingsByType["split_video"]) => void,
     JobSettingsByType["split_video"]
+  >;
+  trimVideo: FolderBusyDialogState<
+    (settings: TrimVideoRunSettings) => void,
+    JobSettingsByType["trim_video"]
   >;
   autoAdjust: {
     open: boolean;

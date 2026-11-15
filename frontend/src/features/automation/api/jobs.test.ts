@@ -33,6 +33,8 @@ describe("automation API", () => {
       ["watermark", "watermark"],
       ["auto_adjust", "auto-adjust"],
       ["resize", "resize"],
+      ["split_video", "split-video"],
+      ["trim_video", "trim-video"],
     ];
 
     for (const [jobType, path] of routes) {

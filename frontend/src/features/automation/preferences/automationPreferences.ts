@@ -26,6 +26,7 @@ export type JobSettingsByType = {
   watermark: AutomationSettings["watermark"];
   resize: AutomationSettings["resize"];
   split_video: AutomationSettings["split_video"];
+  trim_video: AutomationSettings["trim_video"];
   comfy_process: AutomationSettings["comfy_process"];
 };
 
@@ -41,6 +42,7 @@ const DEFAULT_RESIZE_MULTIPLE = 32;
 const DEFAULT_SPLIT_INTERVAL_SECONDS = 5;
 const DEFAULT_SPLIT_LONGEST_SECONDS = 5;
 const DEFAULT_SPLIT_SHORTEST_SECONDS = 1;
+const DEFAULT_TRIM_LENGTH_SECONDS = 5;
 
 export function emptyAutomationSettings(folderPath: string): AutomationSettings {
   return {
@@ -97,6 +99,7 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       shortest_seconds: DEFAULT_SPLIT_SHORTEST_SECONDS,
       frame_rate: null,
     },
+    trim_video: { max_seconds: DEFAULT_TRIM_LENGTH_SECONDS, keep: "start" },
     comfy_process: { preset: "", overwrite_candidates: false, by_preset: {} },
   };
 }

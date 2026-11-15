@@ -14,6 +14,7 @@ import type {
   SplitVideoStartRequest,
   StripMetadataStartRequest,
   TrainLoraStartRequest,
+  TrimVideoStartRequest,
   EditCaptionsStartRequest,
   VerifyCaptionsStartRequest,
   WatermarkStartRequest,
@@ -38,6 +39,7 @@ export interface JobStartBodies {
   auto_adjust: AutoAdjustStartRequest;
   resize: ResizeStartRequest;
   split_video: SplitVideoStartRequest;
+  trim_video: TrimVideoStartRequest;
 }
 
 /** Any job's body, for callers whose job type is only known at runtime. */

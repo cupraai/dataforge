@@ -344,6 +344,10 @@ const TIMING_SPLITS: Partial<Record<JobType, TimingSplit>> = {
     slow: ["success", "skipped", "ffmpeg_error", "write_error"],
     fast: ["busy", "read_error"],
   },
+  trim_video: {
+    slow: ["success", "ffmpeg_error", "write_error"],
+    fast: ["unchanged", "busy", "read_error"],
+  },
 };
 
 export function jobTimingCounts(job: Job): { fast: number; slow: number } {

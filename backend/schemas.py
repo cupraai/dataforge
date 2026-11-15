@@ -19,6 +19,7 @@ from constants import (
     DEFAULT_SPLIT_INTERVAL_SECONDS,
     DEFAULT_SPLIT_LONGEST_SECONDS,
     DEFAULT_SPLIT_SHORTEST_SECONDS,
+    DEFAULT_TRIM_LENGTH_SECONDS,
     MAX_FILL_INSTRUCTION_LENGTH,
     MAX_IMAGE_FILLS,
     MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
@@ -26,9 +27,11 @@ from constants import (
     MAX_RESIZE_MEGAPIXELS,
     MAX_RESIZE_MULTIPLE,
     MAX_SPLIT_CLIP_SECONDS,
+    MAX_TRIM_LENGTH_SECONDS,
     MAX_WORKFLOW_NAME_LENGTH,
     MAX_WORKFLOW_STEPS,
     MIN_SPLIT_CLIP_SECONDS,
+    MIN_TRIM_LENGTH_SECONDS,
     VIDEO_PROJECT_MAX_KEYFRAMES,
     VIDEO_PROJECT_MAX_TRACKS,
     VIDEO_PROJECT_MIN_CLIP_SECONDS,
@@ -119,6 +122,7 @@ type JobType = Literal[
     "auto_adjust",
     "resize",
     "split_video",
+    "trim_video",
     "comfy_process",
 ]
 
@@ -1134,6 +1138,30 @@ class SplitVideoStartRequest(JobSelectionRequest, SplitVideoJobSettings):
     pass
 
 
+#: Which part of an overlong video Trim to length keeps.
+type TrimVideoKeep = Literal["start", "middle", "end"]
+
+
+class TrimVideoJobSettings(BaseModel):
+    #: The played length, so a sped-up video keeps more of its source.
+    max_seconds: float = Field(
+        DEFAULT_TRIM_LENGTH_SECONDS, ge=MIN_TRIM_LENGTH_SECONDS, le=MAX_TRIM_LENGTH_SECONDS
+    )
+    keep: TrimVideoKeep = "start"
+
+
+class TrimVideoRunSettings(TrimVideoJobSettings):
+    # Never remembered: discarding earlier trims must be re-chosen every run.
+    reset_trim: bool = Field(
+        default=False,
+        description="Clear the trim instead of shortening to the length.",
+    )
+
+
+class TrimVideoStartRequest(JobSelectionRequest, TrimVideoRunSettings):
+    pass
+
+
 class ResizeJobSettings(BaseModel):
     megapixels: float = Field(DEFAULT_RESIZE_MEGAPIXELS, gt=0, le=MAX_RESIZE_MEGAPIXELS)
     multiple: int = Field(DEFAULT_RESIZE_MULTIPLE, ge=1, le=MAX_RESIZE_MULTIPLE)
@@ -1376,6 +1404,11 @@ class SplitVideoStep(BaseModel):
     settings: SplitVideoJobSettings = Field(default_factory=SplitVideoJobSettings)
 
 
+class TrimVideoStep(BaseModel):
+    job_type: Literal["trim_video"] = "trim_video"
+    settings: TrimVideoRunSettings = Field(default_factory=TrimVideoRunSettings)
+
+
 class ComfyProcessStep(BaseModel):
     job_type: Literal["comfy_process"] = "comfy_process"
     settings: ComfyProcessJobSettings = Field(default_factory=ComfyProcessJobSettings)
@@ -1398,6 +1431,7 @@ type WorkflowStep = Annotated[
     | AutoAdjustStep
     | ResizeStep
     | SplitVideoStep
+    | TrimVideoStep
     | ComfyProcessStep,
     Field(discriminator="job_type"),
 ]
@@ -1461,6 +1495,7 @@ class AutomationSettingsResponse(BaseModel):
     watermark: WatermarkJobSettings = Field(default_factory=WatermarkJobSettings)
     resize: ResizeJobSettings = Field(default_factory=ResizeJobSettings)
     split_video: SplitVideoJobSettings = Field(default_factory=SplitVideoJobSettings)
+    trim_video: TrimVideoJobSettings = Field(default_factory=TrimVideoJobSettings)
     comfy_process: ComfyProcessSettingsResponse = Field(
         default_factory=ComfyProcessSettingsResponse
     )

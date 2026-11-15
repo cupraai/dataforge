@@ -250,6 +250,12 @@ Splitting a video again replaces its earlier clips, together with their captions
 
 To set a frame rate without splitting, use the **Speed** tool in the video editor (applied when you save; the preview keeps the source's rate) or **Resize** for a batch.
 
+### Trim videos to a length
+
+**Trim to length** (a Tool) shortens each MP4, MOV, or M4V in the [job scope](#scope) that plays longer than **Longest length**. **Keep** picks the part that stays: the **Start**, the **Middle**, or the **End**. The length is measured as the video plays, so a video sped up to 2x keeps twice as many seconds of footage. A video that already has a trim is shortened within it, and shorter videos are left alone.
+
+The trim is stored as an edit on the original, cut on frame boundaries: the video editor shows it and can change or revert it. **Clear the trim** instead restores each video's full length and keeps all its other edits.
+
 ## Video editor
 
 Combine videos, stills, audio, and titles on a multi-track timeline and export an MP4; see the [Video editor guide](video-editor.md).
@@ -311,6 +317,7 @@ Finished runs are kept for the [job history](configuration.md#server-storage-and
 | **Auto-adjust** | Files in place, originals kept | See [Auto-adjust a batch](#auto-adjust-a-batch) |
 | **Resize** | Files in place, originals kept | Fits images and videos to a megapixel size on a pixel grid. Can also set the videos' frame rate; **Keep** leaves each video's rate as it is |
 | **Split into clips** | MP4 clips in `clips/` | Cuts videos at scene changes or evenly; see [Split videos into clips](#split-videos-into-clips) |
+| **Trim to length** | Videos in place, originals kept | Shortens videos to a longest length, keeping the start, middle, or end; see [Trim videos to a length](#trim-videos-to-a-length) |
 | **Process with ComfyUI** | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
 | **Quick LoRA training** | Nothing in the folder | Starts and monitors a run in [AI-Toolkit](ai-toolkit.md) |
 

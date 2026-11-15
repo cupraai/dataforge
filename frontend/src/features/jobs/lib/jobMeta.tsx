@@ -18,6 +18,7 @@ import {
   iconSparkles,
   iconSpellCheck2,
   iconStamp,
+  iconTimer,
   iconWandSparkles,
 } from "@/shared/icons";
 import type { JobType } from "@/shared/types";
@@ -135,6 +136,13 @@ export const JOB_TYPE_META = {
     icon: iconScissors,
     startUi: "dialog" as const,
     menuDescription: `Cut videos into short clips in a ${CLIPS_DIR_NAME} folder, at scene changes or evenly.`,
+  },
+  trim_video: {
+    type: "trim_video" as const,
+    group: "media" as const,
+    icon: iconTimer,
+    startUi: "dialog" as const,
+    menuDescription: "Shorten videos to a longest length, keeping the start, middle or end.",
   },
   watermark: {
     type: "watermark" as const,

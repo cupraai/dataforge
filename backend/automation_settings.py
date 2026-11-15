@@ -24,6 +24,7 @@ from schemas import (
     SetCaptionsJobSettings,
     SplitVideoJobSettings,
     TrainLoraJobSettings,
+    TrimVideoJobSettings,
     VerifyCaptionsJobSettings,
     WatermarkJobSettings,
 )
@@ -45,6 +46,7 @@ JOB_SETTINGS_MODELS: dict[str, type[BaseModel]] = {
     "watermark": WatermarkJobSettings,
     "resize": ResizeJobSettings,
     "split_video": SplitVideoJobSettings,
+    "trim_video": TrimVideoJobSettings,
 }
 
 __all__ = [

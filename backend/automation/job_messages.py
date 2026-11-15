@@ -88,6 +88,15 @@ def resize_error_message(stats: dict[str, int]) -> str | None:
     )
 
 
+def trim_video_error_message(stats: dict[str, int]) -> str | None:
+    return _ffmpeg_job_message(
+        stats,
+        "trim",
+        kept_one=" It was left unchanged.",
+        kept_many=" They were left unchanged.",
+    )
+
+
 def split_video_error_message(stats: dict[str, int]) -> str | None:
     return _ffmpeg_job_message(
         stats,

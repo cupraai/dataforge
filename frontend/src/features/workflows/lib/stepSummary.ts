@@ -97,6 +97,11 @@ export function stepSummary(step: WorkflowStep): string {
         frameRate(s.frame_rate),
       ]);
     }
+    case "trim_video": {
+      const s = step.settings;
+      if (s.reset_trim) return "Clears the trim";
+      return `Up to ${seconds(s.max_seconds)}, keeps the ${s.keep}`;
+    }
     case "comfy_process": {
       const s = step.settings;
       return join([

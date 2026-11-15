@@ -63,6 +63,7 @@ from schemas import (
     TrainingTemplateCheckResponse,
     TrainingTemplateResponse,
     TrainLoraStartRequest,
+    TrimVideoStartRequest,
     VerifyCaptionsStartRequest,
     WatermarkImageInfo,
     WatermarkStartRequest,
@@ -209,6 +210,13 @@ def start_split_video_job(
     path: str = FOLDER_QUERY, body: SplitVideoStartRequest = SplitVideoStartRequest()
 ) -> JobResponse:
     return _start_job("split_video", path, body)
+
+
+@router.post("/automation/trim-video", response_model=JobResponse)
+def start_trim_video_job(
+    path: str = FOLDER_QUERY, body: TrimVideoStartRequest = TrimVideoStartRequest()
+) -> JobResponse:
+    return _start_job("trim_video", path, body)
 
 
 @router.post("/automation/restore-captions", response_model=JobResponse)

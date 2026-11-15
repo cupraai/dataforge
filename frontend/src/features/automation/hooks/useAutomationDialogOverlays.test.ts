@@ -347,6 +347,34 @@ describe("useAutomationDialogOverlays", () => {
     );
   });
 
+  it("starts a trim with the chosen length and part to keep", async () => {
+    const { result, startJob } = setupOverlays();
+
+    await act(async () => {
+      result.current.openDialogForJobType("trim_video");
+    });
+    expect(result.current.dialogs.trimVideo.initialSettings).toEqual({
+      max_seconds: 5,
+      keep: "start",
+    });
+
+    await act(async () => {
+      result.current.dialogs.trimVideo.onConfirm({
+        max_seconds: 3,
+        keep: "end",
+        reset_trim: false,
+      });
+    });
+
+    expect(result.current.dialogs.trimVideo.open).toBe(false);
+    expect(startJob).toHaveBeenCalledWith(
+      "trim_video",
+      "C:\\Photos",
+      { max_seconds: 3, keep: "end", reset_trim: false },
+      undefined,
+    );
+  });
+
   it("fetches preferences before opening the watermark dialog", async () => {
     const { result, startJob } = setupOverlays();
 
@@ -491,6 +519,8 @@ describe("useAutomationDialogOverlays saved settings", () => {
     ["trainLora", "train_lora"],
     ["watermark", "watermark"],
     ["resize", "resize"],
+    ["splitVideo", "split_video"],
+    ["trimVideo", "trim_video"],
   ] as const;
 
   it("hands every dialog its own block of this folder's settings", async () => {

@@ -12,6 +12,7 @@ import { TrainLoraDialog } from "./TrainLoraDialog";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
 import { ResizeDialog } from "./ResizeDialog";
 import { SplitVideoDialog } from "./SplitVideoDialog";
+import { TrimVideoDialog } from "./TrimVideoDialog";
 import { RestoreCaptionsDialog } from "./RestoreCaptionsDialog";
 import { WatermarkDialog } from "./WatermarkDialog";
 import type { AutomationDialogsState } from "@/features/automation/types";
@@ -34,6 +35,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     watermark,
     resize,
     splitVideo,
+    trimVideo,
     comfyProcess,
     autoAdjust,
     checkCaptionRules,
@@ -188,6 +190,17 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           confirmLabel={splitVideo.confirmLabel}
           onConfirm={splitVideo.onConfirm}
           onCancel={splitVideo.onCancel}
+        />
+      )}
+
+      {trimVideo.open && trimVideo.initialSettings && (
+        <TrimVideoDialog
+          scope={trimVideo.scope}
+          initialSettings={trimVideo.initialSettings}
+          busy={trimVideo.busy}
+          confirmLabel={trimVideo.confirmLabel}
+          onConfirm={trimVideo.onConfirm}
+          onCancel={trimVideo.onCancel}
         />
       )}
 

@@ -165,7 +165,11 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "frame_rate": 24,
         },
     ),
+    "trim_video": ("trim-video", {"max_seconds": 3.5, "keep": "middle", "reset_trim": True}),
 }
+
+#: Jobs that refuse a folder without a video.
+_VIDEO_JOBS = {"split_video", "trim_video"}
 
 
 class JobStartEndpointTests(unittest.TestCase):
@@ -185,7 +189,7 @@ class JobStartEndpointTests(unittest.TestCase):
     def test_every_body_field_reaches_the_runner(self) -> None:
         for job_type, (_endpoint, body) in _NON_DEFAULT_STARTS.items():
             with self.subTest(job_type=job_type), TempMediaFolder() as root:
-                _write_captioned_folder(root, video=job_type == "split_video")
+                _write_captioned_folder(root, video=job_type in _VIDEO_JOBS)
 
                 payload, received = self._start(job_type, root)
 
@@ -762,7 +766,7 @@ class JobSettingsPersistenceTests(unittest.TestCase):
 
     def _run(self, job_type: str, folder: Path) -> dict:
         endpoint, body = _NON_DEFAULT_STARTS[job_type]
-        _write_captioned_folder(folder, video=job_type == "split_video")
+        _write_captioned_folder(folder, video=job_type in _VIDEO_JOBS)
 
         with _patched_job_runner(job_type, _capturing_runner({})):
             response = _post(endpoint, folder, body)

@@ -59,6 +59,7 @@ from automation.job_messages import (
     set_captions_error_message,
     split_video_error_message,
     strip_metadata_error_message,
+    trim_video_error_message,
     verify_captions_failure_message,
     watermark_error_message,
 )
@@ -80,6 +81,7 @@ from automation.set_captions import run_set_captions_job, validate_set_captions_
 from automation.split_video import run_split_video_job, validate_split_video_folder
 from automation.strip_metadata import run_strip_metadata_job, validate_strip_metadata_folder
 from automation.train_lora import run_train_lora_job, validate_train_lora_folder
+from automation.trim_video import run_trim_video_job, validate_trim_video_folder
 from automation.verify_captions import run_verify_captions_job, validate_verify_captions_folder
 from automation.watermark import (
     DEFAULT_WATERMARK_IMAGE_OPACITY,
@@ -298,6 +300,10 @@ def _validate_split_video(folder: Path, **params: object) -> None:
     validate_split_video_folder(folder, _selected_paths(params))
 
 
+def _validate_trim_video(folder: Path, **params: object) -> None:
+    validate_trim_video_folder(folder, _selected_paths(params))
+
+
 def _comfy_inputs(params: dict[str, object]) -> dict[str, object]:
     inputs = params.get("inputs")
     return {str(name): value for name, value in inputs.items()} if isinstance(inputs, dict) else {}
@@ -457,6 +463,12 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         run=run_split_video_job,
         failure_message=split_video_error_message,
         validate=_validate_split_video,
+    ),
+    "trim_video": JobSpec(
+        thread_prefix="trim-video",
+        run=run_trim_video_job,
+        failure_message=trim_video_error_message,
+        validate=_validate_trim_video,
     ),
     "comfy_process": JobSpec(
         thread_prefix="comfy-process",

@@ -10,6 +10,7 @@ version heading when a minor or major version is cut.
 
 ### Added
 
+- **Trim to length** (Tools → Media) shortens videos to a longest length, keeping the start, middle or end of each. The trim is a normal edit that the video editor shows and can revert, and **Clear the trim** restores full length in a batch. It also works as a workflow step.
 - Workflows: save a chain of jobs with their own settings, edited in each job's usual dialog, and run it on the selection or folder from the toolbar or Quick actions. The steps queue back to back and stop at the first failure.
 - Jobs can be queued: starting a job while another runs in the same folder queues it to start when the one before it finishes cleanly. A job that fails, is cancelled or leaves failed files cancels everything queued after it.
 - The gallery lists, previews and captions more formats: AVIF, HEIC and TIFF images, WebM videos, and OGG, M4A and Opus audio. These are view-only: the editors, Resize, Watermark and Strip metadata skip them.

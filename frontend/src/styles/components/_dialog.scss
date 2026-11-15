@@ -299,6 +299,7 @@
   .set-captions-dialog,
   .split-video-dialog,
   .train-lora-dialog,
+  .trim-video-dialog,
   .transfer-media-dialog,
   .verify-captions-dialog,
   .workflow-run-dialog,
@@ -358,6 +359,13 @@
 }
 
 .split-video-dialog {
+  &__number {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+}
+
+.trim-video-dialog {
   &__number {
     font-variant-numeric: tabular-nums;
     text-align: right;

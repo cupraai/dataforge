@@ -290,6 +290,7 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "auto_adjust": "Auto-adjust",
     "resize": "Resize",
     "split_video": "Split into clips",
+    "trim_video": "Trim to length",
     "comfy_process": "Process with ComfyUI",
 }
 
@@ -352,6 +353,10 @@ DEFAULT_SPLIT_LONGEST_SECONDS = 5.0
 DEFAULT_SPLIT_SHORTEST_SECONDS = 1.0
 MIN_SPLIT_CLIP_SECONDS = 0.5
 MAX_SPLIT_CLIP_SECONDS = 600.0
+#: Trim to length caps each video's played length, in seconds.
+DEFAULT_TRIM_LENGTH_SECONDS = 5.0
+MIN_TRIM_LENGTH_SECONDS = 0.5
+MAX_TRIM_LENGTH_SECONDS = 3600.0
 
 #: Saved Edit captions instructions: how many, and how long a name and a text may be.
 MAX_INSTRUCTION_SNIPPETS = 100
@@ -429,6 +434,8 @@ SHARED_CONSTANTS: dict[str, object] = {
     "VIDEO_FRAME_RATES": list(VIDEO_FRAME_RATES),
     "MIN_SPLIT_CLIP_SECONDS": MIN_SPLIT_CLIP_SECONDS,
     "MAX_SPLIT_CLIP_SECONDS": MAX_SPLIT_CLIP_SECONDS,
+    "MIN_TRIM_LENGTH_SECONDS": MIN_TRIM_LENGTH_SECONDS,
+    "MAX_TRIM_LENGTH_SECONDS": MAX_TRIM_LENGTH_SECONDS,
     "MAX_INSTRUCTION_SNIPPETS": MAX_INSTRUCTION_SNIPPETS,
     "MAX_INSTRUCTION_SNIPPET_NAME_LENGTH": MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
     "MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH": MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH,

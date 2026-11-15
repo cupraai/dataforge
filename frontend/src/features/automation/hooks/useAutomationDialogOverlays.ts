@@ -21,6 +21,7 @@ import type {
   DuplicateThreshold,
   EditCaptionsRunSettings,
   JobType,
+  TrimVideoRunSettings,
   VideoFrameRate,
 } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
@@ -247,6 +248,10 @@ export function useAutomationDialogOverlays({
         ...shared("split_video"),
         onConfirm: (settings: JobSettingsByType["split_video"]) =>
           startJobFromDialog("split_video", settings),
+      },
+      trimVideo: {
+        ...shared("trim_video"),
+        onConfirm: (settings: TrimVideoRunSettings) => startJobFromDialog("trim_video", settings),
       },
       autoAdjust: {
         open: openJobType === "auto_adjust",

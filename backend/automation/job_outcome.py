@@ -21,6 +21,7 @@ _NEVER_WARN: frozenset[str] = frozenset(
         "watermark",
         "auto_adjust",
         "resize",
+        "trim_video",
     }
 )
 

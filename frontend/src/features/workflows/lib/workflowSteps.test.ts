@@ -84,6 +84,18 @@ describe("stepSummary", () => {
     expect(stepSummary({ ...resize, settings: { ...resize.settings, reset_size: true } })).toBe(
       "Resets the size",
     );
+    expect(
+      stepSummary({
+        job_type: "trim_video",
+        settings: { max_seconds: 4.5, keep: "middle", reset_trim: false },
+      }),
+    ).toBe("Up to 4.5 s, keeps the middle");
+    expect(
+      stepSummary({
+        job_type: "trim_video",
+        settings: { max_seconds: 4.5, keep: "middle", reset_trim: true },
+      }),
+    ).toBe("Clears the trim");
     expect(stepSummary(emptyStep("strip_metadata"))).toBe("No settings");
     expect(
       stepSummary({
