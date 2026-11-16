@@ -12,6 +12,7 @@ from constants import (
     AUDIO_LOW_CUT_MIN_HZ,
     AUDIO_PITCH_MAX_SEMITONES,
     AUTO_ADJUST_DEFAULT_AMOUNT,
+    DEFAULT_COMFY_GENERATE_COUNT,
     DEFAULT_GALLERY_CARD_ACTIONS,
     DEFAULT_GALLERY_SORT,
     DEFAULT_RESIZE_MEGAPIXELS,
@@ -20,6 +21,8 @@ from constants import (
     DEFAULT_SPLIT_LONGEST_SECONDS,
     DEFAULT_SPLIT_SHORTEST_SECONDS,
     DEFAULT_TRIM_LENGTH_SECONDS,
+    MAX_COMFY_GENERATE_COUNT,
+    MAX_COMFY_GENERATE_PREFIX_LENGTH,
     MAX_FILL_INSTRUCTION_LENGTH,
     MAX_IMAGE_FILLS,
     MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
@@ -124,6 +127,7 @@ type JobType = Literal[
     "split_video",
     "trim_video",
     "comfy_process",
+    "comfy_generate",
 ]
 
 type NotificationVariant = Literal["danger", "warning", "success"]
@@ -1213,6 +1217,43 @@ class ComfyProcessSettingsResponse(BaseModel):
     by_preset: dict[str, ComfyPresetSettings] = Field(default_factory=dict)
 
 
+class ComfyGenerateOutputSettings(BaseModel):
+    """Remembered per folder: how many runs, and what the files they write are called."""
+
+    count: int = Field(DEFAULT_COMFY_GENERATE_COUNT, ge=1, le=MAX_COMFY_GENERATE_COUNT)
+    #: Empty names the files after the preset.
+    name_prefix: str = Field("", max_length=MAX_COMFY_GENERATE_PREFIX_LENGTH)
+    #: Off by default: a generation prompt is rarely the caption a dataset wants.
+    caption_from_prompt: bool = False
+
+
+class ComfyGenerateJobSettings(ComfyPresetSettings, ComfyGenerateOutputSettings):
+    #: A stem, not a Literal: unknown names are the job's own 400.
+    preset: str = ""
+
+
+class ComfyEmbeddedSource(BaseModel):
+    """The workflow a media file carries, cut down to one of its outputs."""
+
+    path: str = Field(description="Absolute path to the image or video file")
+    node_id: str = Field(description="The output node the workflow is trimmed to")
+
+
+class ComfyGenerateStartRequest(JobSelectionRequest, ComfyGenerateJobSettings):
+    """``paths`` is accepted like every job's and ignored: generation reads no files."""
+
+    #: Runs a file's own workflow instead of ``preset``, once: nothing is saved or remembered.
+    source: ComfyEmbeddedSource | None = None
+
+
+class ComfyGenerateSettingsResponse(ComfyGenerateOutputSettings):
+    """Prompt, seed and inputs per preset, like Edit with ComfyUI's; the rest per folder."""
+
+    #: The preset of the most recent generation, in any folder.
+    preset: str = ""
+    by_preset: dict[str, ComfyPresetSettings] = Field(default_factory=dict)
+
+
 class ComfyPresetInput(BaseModel):
     """A node titled ``DataForge <name>`` beyond the fixed roles, editable in the dialog."""
 
@@ -1220,6 +1261,16 @@ class ComfyPresetInput(BaseModel):
     kind: ComfyInputKind
     #: What the preset was saved with, shown as the placeholder.
     default: ComfyInputValue
+
+
+class ComfyEmbeddedGeneration(BaseModel):
+    """What an embedded output takes when Generate with ComfyUI runs it."""
+
+    accepts_prompt: bool
+    accepts_seed: bool
+    inputs: list[ComfyPresetInput] = Field(default_factory=list)
+    #: The text its prompt node was saved with, for the dialog to start from.
+    prompt_text: str | None = None
 
 
 class ComfyPresetSummary(BaseModel):
@@ -1230,6 +1281,8 @@ class ComfyPresetSummary(BaseModel):
     accepts_seed: bool | None = None
     #: Empty for an unparseable preset too; queueing it names the fix.
     inputs: list[ComfyPresetInput] = Field(default_factory=list)
+    #: True without a source loader: listed under Generate, not Edit. Null when unparseable.
+    generates: bool | None = None
 
 
 class ComfyLogsResponse(BaseModel):
@@ -1499,6 +1552,9 @@ class AutomationSettingsResponse(BaseModel):
     comfy_process: ComfyProcessSettingsResponse = Field(
         default_factory=ComfyProcessSettingsResponse
     )
+    comfy_generate: ComfyGenerateSettingsResponse = Field(
+        default_factory=ComfyGenerateSettingsResponse
+    )
 
 
 class TrainingTemplateResponse(BaseModel):
@@ -1765,6 +1821,17 @@ class ComfyOutputBranch(BaseModel):
     stages: list[ComfySamplingStage] = Field(default_factory=list)
     #: The passes and what feeds them, earliest first; empty when nothing samples.
     map: list[ComfyMapNode] = Field(default_factory=list)
+    #: Set when the output can run as a generation; always null on a preset's map.
+    generation: ComfyEmbeddedGeneration | None = None
+
+
+class ComfyPresetMapResponse(BaseModel):
+    """A preset's output as the workflow map draws it, before anything runs."""
+
+    name: str
+    #: Null when the preset cannot be parsed; ``error`` then says why.
+    branch: ComfyOutputBranch | None = None
+    error: str | None = None
 
 
 class ComfyWorkflowPromptsResponse(BaseModel):

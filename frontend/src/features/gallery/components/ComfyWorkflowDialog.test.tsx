@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "@/features/gallery/api/captions";
 import { installMockBackend } from "@/test/mockBackend";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ComfyOutputBranch, ComfyWorkflowPromptsResponse } from "@/shared/types";
 import { ComfyWorkflowDialog } from "./ComfyWorkflowDialog";
 import { renderWithQueryClient } from "@/test/queryClient";
@@ -125,6 +126,60 @@ describe("ComfyWorkflowDialog", () => {
     expect(screen.getByRole("button", { name: /Text to Image/ })).toHaveTextContent(
       "Likely output — matched by filename",
     );
+  });
+
+  it("offers Generate only for an output that loads no file, and closes before handing it over", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn<() => void>();
+    const onGenerate = vi.fn<(workflow: EmbeddedGenerateWorkflow) => void>();
+    const generation = { accepts_prompt: true, accepts_seed: true, inputs: [], prompt_text: "fog" };
+    const textToImage = makeBranch({ node_id: "7", label: "Forest shot", generation });
+    vi.spyOn(api, "fetchComfyWorkflowPrompts").mockResolvedValue(
+      makeResponse({
+        branches: [
+          makeBranch({ node_id: "8", label: "Upscaled reference", generation: null }),
+          textToImage,
+        ],
+      }),
+    );
+    renderWithQueryClient(
+      <ComfyWorkflowDialog
+        mediaPath="/photos/scenery_00002_.png"
+        mediaName="scenery_00002_.png"
+        onClose={onClose}
+        onGenerate={onGenerate}
+      />,
+    );
+
+    await screen.findByRole("group", { name: "Details" });
+    expect(
+      screen.queryByRole("button", { name: "Generate with this workflow..." }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Forest shot/ }));
+    await user.click(screen.getByRole("button", { name: "Generate with this workflow..." }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onGenerate).toHaveBeenCalledWith({
+      mediaPath: "/photos/scenery_00002_.png",
+      mediaName: "scenery_00002_.png",
+      nodeId: "7",
+      generation,
+      branch: textToImage,
+    });
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
+      onGenerate.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("offers no Generate where nothing handles it", async () => {
+    const generation = { accepts_prompt: false, accepts_seed: false, inputs: [] };
+    renderDialog(makeResponse({ branches: [makeBranch({ generation })] }));
+
+    await screen.findByRole("group", { name: "Details" });
+    expect(
+      screen.queryByRole("button", { name: "Generate with this workflow..." }),
+    ).not.toBeInTheDocument();
   });
 
   it("switches the shown prompts when another output is picked", async () => {

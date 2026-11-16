@@ -1,4 +1,4 @@
-"""Run one prompt on ComfyUI at a time, for every caller: the prep job and the editor's fills.
+"""Run one prompt on ComfyUI at a time, for every caller: the ComfyUI jobs and the editor's fills.
 
 One slot means a stop request can only ever reach a prompt DataForge itself queued. ComfyUI has no
 per-prompt interrupt, so the queue is read before interrupting, and someone else's prompt is never
@@ -84,6 +84,26 @@ def await_output(
     Cancel is checked here because one file can take an hour. ``on_running`` fires once, when
     ComfyUI starts executing the prompt rather than holding it in its queue.
     """
+    return await_outputs(
+        client,
+        prompt_id,
+        output_node=output_node,
+        timeout=timeout,
+        should_cancel=should_cancel,
+        on_running=on_running,
+    )[-1]
+
+
+def await_outputs(
+    client: httpx.Client,
+    prompt_id: str,
+    *,
+    output_node: str,
+    timeout: float,
+    should_cancel: ShouldCancel | None,
+    on_running: Callable[[], None] | None = None,
+) -> list[dict[str, str]]:
+    """:func:`await_output`, but every file the output node wrote, as a batch writes several."""
     deadline = time.monotonic() + timeout
     stop_requested = False
     reported_running = on_running is None
@@ -99,7 +119,7 @@ def await_output(
             refs = history_outputs(entry, node_id=output_node)
             if not refs:
                 raise ComfyPromptError(NO_OUTPUT_MESSAGE)
-            return refs[-1]
+            return refs
 
         if not stop_requested and should_cancel and should_cancel():
             stop_requested = True

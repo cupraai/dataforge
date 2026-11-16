@@ -317,7 +317,9 @@ export function AppContent() {
                 onResolveIssue: gallery.onResolveGalleryItemIssue,
                 onReviewCandidate: candidateReview.reviewGalleryItemCandidate,
                 onResolveDuplicate: duplicateResolver.resolveGalleryItemDuplicate,
-                suspended: editorRequest !== null,
+                // The video editor, or Generate opened from this file's workflow, covers the viewer.
+                suspended: editorRequest !== null || automation.dialogs.comfyGenerate.open,
+                onGenerateFromWorkflow: automation.openEmbeddedGenerate,
               }}
               issueResolver={gallery.issueResolver.overlay}
               instructions={{

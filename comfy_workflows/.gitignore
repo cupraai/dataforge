@@ -1,3 +1,4 @@
-# Presets you drop here stay on this machine. Only the shipped example is tracked.
+# Presets you drop here stay on this machine. Only the shipped examples are tracked.
 *.json
 !example_lanczos_2x.json
+!example_solid_color.json

@@ -95,6 +95,21 @@ describe("App: workflows", () => {
     expect(await screen.findByRole("dialog", { name: "Run workflow?" })).toBeInTheDocument();
   });
 
+  it("opens the editor from Quick actions on the first workflow", async () => {
+    const user = userEvent.setup();
+    installMockBackend({ workflows: [prep] });
+    renderApp();
+    await waitForHomeFolder();
+
+    await user.keyboard("{Control>}p{/Control}");
+    const palette = await screen.findByRole("dialog", { name: "Quick actions" });
+    await user.type(within(palette).getByRole("combobox"), "Manage workflows");
+    await user.click(await within(palette).findByRole("option", { name: /Manage workflows/ }));
+
+    const editor = await screen.findByRole("dialog", { name: "Workflows" });
+    expect(within(editor).getByLabelText("Name")).toHaveValue("Prep");
+  });
+
   it("opens the editor from the menu on a new workflow", async () => {
     const user = userEvent.setup();
     installMockBackend();

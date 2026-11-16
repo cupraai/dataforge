@@ -281,6 +281,20 @@ class ValidateTests(unittest.TestCase):
         with Workspace() as workspace, self.assertRaises(ValueError):
             validate_comfy_process_folder(workspace.folder, preset="nope")
 
+    def test_a_generation_preset_is_refused_by_name(self) -> None:
+        with Workspace() as workspace:
+            (workspace.presets / "txt2img.json").write_text(
+                json.dumps(
+                    {"9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out"}}}
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as caught:
+                validate_comfy_process_folder(workspace.folder, preset="txt2img")
+
+        self.assertIn("Generate with ComfyUI", str(caught.exception))
+
     def test_an_empty_preset_name_is_refused(self) -> None:
         with Workspace() as workspace, self.assertRaises(ValueError):
             validate_comfy_process_folder(workspace.folder, preset="")

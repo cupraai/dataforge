@@ -7,7 +7,7 @@ import {
   iconScanSquare,
   iconTrash2,
 } from "@/shared/icons";
-import type { ExternalOstrisJob, Job, SidecarKind } from "@/shared/types";
+import type { ExternalOstrisJob, Job, SidecarKind, Workflow } from "@/shared/types";
 import type { QuickActionItem, QuickActionSection } from "../types";
 import {
   buildSettleAllCandidatesItems,
@@ -19,6 +19,7 @@ import {
   buildNavigationCommandItems,
   buildReviewCommandItems,
   buildSyspromptCommandItem,
+  buildManageWorkflowsCommandItem,
   buildJobItems,
   buildSelectionCommandItems,
   buildSidecarSweepItems,
@@ -302,6 +303,30 @@ describe("buildSyspromptCommandItem", () => {
   });
 });
 
+describe("buildManageWorkflowsCommandItem", () => {
+  const workflow = (name: string): Workflow => ({ name, steps: [] });
+
+  it("is found by what a workflow is", () => {
+    const item = buildManageWorkflowsCommandItem({
+      workflows: [],
+      onEditWorkflows: vi.fn<(name: string | null) => void>(),
+    });
+    expect(idsFor([item], "chain")).toEqual(["cmd:manage-workflows"]);
+  });
+
+  it("opens the first workflow, or a new one when none are saved", () => {
+    const onEditWorkflows = vi.fn<(name: string | null) => void>();
+
+    buildManageWorkflowsCommandItem({
+      workflows: [workflow("Prep"), workflow("Caption")],
+      onEditWorkflows,
+    }).run();
+    buildManageWorkflowsCommandItem({ workflows: [], onEditWorkflows }).run();
+
+    expect(onEditWorkflows.mock.calls).toEqual([["Prep"], [null]]);
+  });
+});
+
 function commandItems(overrides: Partial<CommandOptions> = {}) {
   return buildCommandItems({
     folder: { path: "C:\\Photos\\Lakes", home: "C:\\Photos", parent: "C:\\Photos" },
@@ -315,6 +340,7 @@ function commandItems(overrides: Partial<CommandOptions> = {}) {
     onCopyPath: vi.fn<(path: string) => void>(),
     onRevealInExplorer: vi.fn<(path: string) => void>(),
     onEditSysprompt: vi.fn<() => void>(),
+    workflows: { workflows: [], onEditWorkflows: vi.fn<(name: string | null) => void>() },
     review: {
       issueCount: 1,
       onResolveIssues: vi.fn<() => void>(),
@@ -376,6 +402,7 @@ describe("buildCommandItems", () => {
       "cmd:copy-selected",
       "cmd:delete-selected",
       "cmd:edit-sysprompt",
+      "cmd:manage-workflows",
       "cmd:copy-path",
       "cmd:open-in-explorer",
       "cmd:settings",
@@ -403,6 +430,7 @@ describe("buildCommandItems", () => {
       "cmd:refresh-folder",
       "cmd:resolve-issues",
       "cmd:edit-sysprompt",
+      "cmd:manage-workflows",
       "cmd:settings",
       "cmd:toggle-theme",
       "cmd:toggle-hidden-folders",

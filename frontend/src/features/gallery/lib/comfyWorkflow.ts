@@ -1,5 +1,5 @@
 import { COMFY_WORKFLOW_EXTENSIONS } from "@/shared/constants";
-import type { ComfyPassStatus } from "@/shared/types";
+import type { ComfyOutputBranch, ComfyParameter, ComfyPassStatus } from "@/shared/types";
 
 const COMFY_WORKFLOW_EXTENSION_SET = new Set<string>(COMFY_WORKFLOW_EXTENSIONS);
 
@@ -20,6 +20,26 @@ export function splitPath(path: string): { folder: string; name: string } {
 export function splitLora(lora: string): { folder: string; name: string; strength: string | null } {
   const match = /^(.*?) \(([^()]+)\)$/.exec(lora);
   return { ...splitPath(match ? match[1] : lora), strength: match ? match[2] : null };
+}
+
+/**
+ * What the workflow map's passes are numbered and show in their tooltips. Numbered as the
+ * branch's sections are; a single pass has no section, is pass 1, and owns every setting.
+ */
+export function branchPassInfo(branch: ComfyOutputBranch): {
+  passNumbers: Map<string, number>;
+  passSettings: Map<string, ComfyParameter[]>;
+} {
+  const passes =
+    branch.stages.length > 0
+      ? branch.stages.map((stage) => stage.node_id)
+      : branch.map.filter((node) => node.kind === "pass").map((node) => node.id);
+  const passNumbers = new Map(passes.map((nodeId, index) => [nodeId, index + 1]));
+  const passSettings =
+    branch.stages.length > 0
+      ? new Map(branch.stages.map((stage) => [stage.node_id, stage.parameters]))
+      : new Map(passes.map((nodeId) => [nodeId, branch.parameters]));
+  return { passNumbers, passSettings };
 }
 
 export function supportsComfyWorkflow(path: string): boolean {

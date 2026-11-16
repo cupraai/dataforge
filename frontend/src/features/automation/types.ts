@@ -1,10 +1,13 @@
 import type { TrainLoraSettings } from "@/features/automation/api/jobs";
+import type { ComfyGenerateSettings } from "@/features/automation/components/ComfyGenerateDialog";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type {
   AutoAdjustRunSettings,
+  ComfyEmbeddedGeneration,
+  ComfyOutputBranch,
   DuplicateThreshold,
   EditCaptionsRunSettings,
   TrimVideoRunSettings,
@@ -74,6 +77,13 @@ export type AutomationDialogsState = {
     (settings: ComfyProcessSettings) => void,
     JobSettingsByType["comfy_process"]
   >;
+  comfyGenerate: FolderBusyDialogState<
+    (settings: ComfyGenerateSettings) => void,
+    JobSettingsByType["comfy_generate"]
+  > & {
+    /** Set when the dialog runs a file's own workflow instead of a preset. */
+    embedded?: EmbeddedGenerateWorkflow;
+  };
   resize: FolderBusyDialogState<
     (
       megapixels: number,
@@ -120,3 +130,13 @@ export type AutomationDialogsState = {
     onCancel: () => void;
   };
 };
+
+/** One output of a file's own workflow, handed from the workflow dialog to Generate. */
+export interface EmbeddedGenerateWorkflow {
+  mediaPath: string;
+  mediaName: string;
+  nodeId: string;
+  generation: ComfyEmbeddedGeneration;
+  /** Drawn as the map, so the dialog shows what it runs without another request. */
+  branch: ComfyOutputBranch;
+}

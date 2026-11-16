@@ -5,8 +5,11 @@ import type { JobType, Workflow, WorkflowStep } from "@/shared/types";
 
 export type WorkflowJobType = WorkflowStep["job_type"];
 
-/** LoRA training's run name is a per-run resume key, and it ignores the scope. */
-const NOT_A_STEP: ReadonlySet<JobType> = new Set<JobType>(["train_lora"]);
+/**
+ * LoRA training's run name is a per-run resume key, and it ignores the scope. Generation reads no
+ * files, and what it makes is outside the scope later steps were fixed to.
+ */
+const NOT_A_STEP: ReadonlySet<JobType> = new Set<JobType>(["train_lora", "comfy_generate"]);
 
 export function isWorkflowJobType(type: JobType): type is WorkflowJobType {
   return !NOT_A_STEP.has(type);

@@ -150,6 +150,28 @@ def comfy_process_error_message(stats: dict[str, int]) -> str | None:
     )
 
 
+def comfy_generate_error_message(stats: dict[str, int]) -> str | None:
+    """Per run, not per file: one run of a batch preset writes several files."""
+    comfy_errors = _count(stats, "comfy_error")
+    error_count = _count(stats, "comfy_error", "write_error")
+    if error_count == 0:
+        return None
+
+    if comfy_errors == error_count:
+        return _plural(
+            comfy_errors,
+            "ComfyUI could not finish 1 generation. Check that it is running and that the "
+            "preset's models are installed.",
+            "ComfyUI could not finish {n} generations. Check that it is running and that the "
+            "preset's models are installed.",
+        )
+    return _plural(
+        error_count,
+        "1 generation could not be saved. Files already written by it were kept.",
+        "{n} generations could not be saved. Files already written by them were kept.",
+    )
+
+
 def check_caption_rules_error_message(stats: dict[str, int]) -> str | None:
     failed = _count(stats, "read_error", "write_error")
     if failed == 0:

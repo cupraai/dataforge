@@ -1,6 +1,7 @@
 """Automation job settings, remembered per folder with a most-recent fallback.
 
-ComfyUI processing is the exception: its prompt and seed are remembered per workflow preset.
+The ComfyUI jobs are the exception: their prompt, seed and inputs are remembered per workflow
+preset, each job in its own store.
 """
 
 from __future__ import annotations
@@ -14,6 +15,9 @@ from schemas import (
     AutomationSettingsResponse,
     BackupCaptionsJobSettings,
     BatchRenameJobSettings,
+    ComfyGenerateJobSettings,
+    ComfyGenerateOutputSettings,
+    ComfyGenerateSettingsResponse,
     ComfyPresetSettings,
     ComfyProcessJobSettings,
     ComfyProcessSettingsResponse,
@@ -31,6 +35,7 @@ from schemas import (
 
 AUTOMATION_SETTINGS_KEY_PREFIX = "automation_settings"
 COMFY_PROCESS_JOB_TYPE = "comfy_process"
+COMFY_GENERATE_JOB_TYPE = "comfy_generate"
 
 #: Keys are job types and field names of AutomationSettingsResponse; jobs with no dialog are absent.
 JOB_SETTINGS_MODELS: dict[str, type[BaseModel]] = {
@@ -51,6 +56,7 @@ JOB_SETTINGS_MODELS: dict[str, type[BaseModel]] = {
 
 __all__ = [
     "AUTOMATION_SETTINGS_KEY_PREFIX",
+    "COMFY_GENERATE_JOB_TYPE",
     "COMFY_PROCESS_JOB_TYPE",
     "JOB_SETTINGS_MODELS",
     "automation_settings_key",
@@ -82,27 +88,54 @@ _COMFY_FOLDER_STORE: FolderScopedPreference[_ComfyFolderSettings] = FolderScoped
 )
 
 
-class _ComfyProcessEnvelope(BaseModel):
+_COMFY_GENERATE_FOLDER_STORE: FolderScopedPreference[ComfyGenerateOutputSettings] = (
+    FolderScopedPreference(
+        automation_settings_key(COMFY_GENERATE_JOB_TYPE), ComfyGenerateOutputSettings
+    )
+)
+
+
+class _ComfyPresetEnvelope(BaseModel):
     """Payloads stay untyped so one corrupt preset cannot fail the rest."""
 
     preset: str = ""
     by_preset: dict[str, dict[str, object]] = Field(default_factory=dict)
 
 
-_COMFY_STORE: JsonPreference[_ComfyProcessEnvelope] = JsonPreference(
-    f"{automation_settings_key(COMFY_PROCESS_JOB_TYPE)}.presets", _ComfyProcessEnvelope
-)
+def _preset_store(job_type: str) -> JsonPreference[_ComfyPresetEnvelope]:
+    return JsonPreference(f"{automation_settings_key(job_type)}.presets", _ComfyPresetEnvelope)
+
+
+_COMFY_STORE = _preset_store(COMFY_PROCESS_JOB_TYPE)
+_COMFY_GENERATE_STORE = _preset_store(COMFY_GENERATE_JOB_TYPE)
+
+
+def _remembered_presets(
+    store: JsonPreference[_ComfyPresetEnvelope],
+) -> tuple[str, dict[str, ComfyPresetSettings]]:
+    envelope = store.get()
+    return envelope.preset, {
+        name: validated_or_default(ComfyPresetSettings, payload)
+        for name, payload in envelope.by_preset.items()
+    }
+
+
+def _remember_preset(
+    store: JsonPreference[_ComfyPresetEnvelope], preset: str, run: BaseModel
+) -> None:
+    payload = run.model_dump(mode="json", include=set(ComfyPresetSettings.model_fields))
+    envelope = store.get()
+    store.save(
+        _ComfyPresetEnvelope(preset=preset, by_preset={**envelope.by_preset, preset: payload})
+    )
 
 
 def _get_comfy_process_settings(folder_key: str) -> ComfyProcessSettingsResponse:
-    envelope = _COMFY_STORE.get()
+    preset, by_preset = _remembered_presets(_COMFY_STORE)
     return ComfyProcessSettingsResponse(
-        preset=envelope.preset,
+        preset=preset,
         overwrite_candidates=_COMFY_FOLDER_STORE.get(folder_key).overwrite_candidates,
-        by_preset={
-            name: validated_or_default(ComfyPresetSettings, payload)
-            for name, payload in envelope.by_preset.items()
-        },
+        by_preset=by_preset,
     )
 
 
@@ -113,13 +146,33 @@ def _remember_comfy_process_settings(body: BaseModel, folder_key: str) -> None:
     _COMFY_FOLDER_STORE.save(
         folder_key, _ComfyFolderSettings(overwrite_candidates=run.overwrite_candidates)
     )
-    payload = run.model_dump(mode="json", include=set(ComfyPresetSettings.model_fields))
-    envelope = _COMFY_STORE.get()
-    _COMFY_STORE.save(
-        _ComfyProcessEnvelope(
-            preset=run.preset, by_preset={**envelope.by_preset, run.preset: payload}
-        )
+    _remember_preset(_COMFY_STORE, run.preset, run)
+
+
+def _get_comfy_generate_settings(folder_key: str) -> ComfyGenerateSettingsResponse:
+    preset, by_preset = _remembered_presets(_COMFY_GENERATE_STORE)
+    return ComfyGenerateSettingsResponse(
+        preset=preset,
+        by_preset=by_preset,
+        **_COMFY_GENERATE_FOLDER_STORE.get(folder_key).model_dump(),
     )
+
+
+def _remember_comfy_generate_settings(body: BaseModel, folder_key: str) -> None:
+    # A file's own workflow is a one-off: its stem is no preset to come back to.
+    if getattr(body, "source", None) is not None:
+        return
+    run = ComfyGenerateJobSettings.model_validate(
+        body.model_dump(include=set(ComfyGenerateJobSettings.model_fields))
+    )
+    _COMFY_GENERATE_FOLDER_STORE.save(
+        folder_key,
+        ComfyGenerateOutputSettings.model_validate(
+            run.model_dump(include=set(ComfyGenerateOutputSettings.model_fields))
+        ),
+    )
+    # Never the seed: a remembered one would repeat the last images on the next open.
+    _remember_preset(_COMFY_GENERATE_STORE, run.preset, run.model_copy(update={"seed": None}))
 
 
 def get_automation_settings(*, folder_path: str) -> AutomationSettingsResponse:
@@ -127,6 +180,7 @@ def get_automation_settings(*, folder_path: str) -> AutomationSettingsResponse:
     return AutomationSettingsResponse(
         folder_path=folder_key,
         comfy_process=_get_comfy_process_settings(folder_key),
+        comfy_generate=_get_comfy_generate_settings(folder_key),
         **{job_type: store.get(folder_key) for job_type, store in _STORES.items()},
     )
 
@@ -135,6 +189,9 @@ def remember_job_settings(job_type: str, body: BaseModel, *, folder_path: str) -
     """A job type with no registered model is skipped, which keeps settings-less jobs free."""
     if job_type == COMFY_PROCESS_JOB_TYPE:
         _remember_comfy_process_settings(body, preference_folder_key(folder_path))
+        return
+    if job_type == COMFY_GENERATE_JOB_TYPE:
+        _remember_comfy_generate_settings(body, preference_folder_key(folder_path))
         return
 
     model = JOB_SETTINGS_MODELS.get(job_type)
@@ -146,7 +203,7 @@ def remember_job_settings(job_type: str, body: BaseModel, *, folder_path: str) -
 
 
 def _folder_stores() -> list[FolderScopedPreference]:
-    return [*_STORES.values(), _COMFY_FOLDER_STORE]
+    return [*_STORES.values(), _COMFY_FOLDER_STORE, _COMFY_GENERATE_FOLDER_STORE]
 
 
 def remembered_folder_count() -> int:

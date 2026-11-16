@@ -18,6 +18,7 @@ const ready: JobStartContext = {
     hasCaptionBackup: true,
     ostrisAvailable: true,
     comfyPresetsAvailable: true,
+    comfyGeneratePresetsAvailable: true,
   },
 };
 
@@ -27,10 +28,21 @@ describe("jobStartBlock", () => {
     ["restore_captions", "hasCaptionBackup"],
     ["train_lora", "ostrisAvailable"],
     ["comfy_process", "comfyPresetsAvailable"],
+    ["comfy_generate", "comfyGeneratePresetsAvailable"],
   ] as const)("blocks only %s when %s is missing", (jobType, flag) => {
     const context = { ...ready, availability: { ...ready.availability, [flag]: false } };
     expect(JOB_TYPES.filter((type) => jobStartBlock(type, context).blocked)).toEqual([jobType]);
     expect(jobStartBlock(jobType, ready)).toEqual({ blocked: false, reason: null });
+  });
+});
+
+describe("jobStartBlock scope", () => {
+  it("lets generation start in an empty folder, which nothing else can run on", () => {
+    const empty = { ...ready, itemCount: 0, folderCount: 0 };
+
+    expect(JOB_TYPES.filter((type) => !jobStartBlock(type, empty).blocked)).toEqual([
+      "comfy_generate",
+    ]);
   });
 });
 
@@ -81,6 +93,6 @@ describe("JOB_GROUPS", () => {
       "backup_captions",
       "restore_captions",
     ]);
-    expect(byId.integrations).toEqual(["comfy_process", "train_lora"]);
+    expect(byId.integrations).toEqual(["comfy_generate", "comfy_process", "train_lora"]);
   });
 });

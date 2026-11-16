@@ -292,6 +292,7 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "split_video": "Split into clips",
     "trim_video": "Trim to length",
     "comfy_process": "Edit with ComfyUI",
+    "comfy_generate": "Generate with ComfyUI",
 }
 
 #: Adjust tools rest at 0: tones and colors span ±1, detail tools 0..1, hue is degrees.
@@ -357,6 +358,11 @@ MAX_SPLIT_CLIP_SECONDS = 600.0
 DEFAULT_TRIM_LENGTH_SECONDS = 5.0
 MIN_TRIM_LENGTH_SECONDS = 0.5
 MAX_TRIM_LENGTH_SECONDS = 3600.0
+#: Generate with ComfyUI runs its preset this many times per job.
+DEFAULT_COMFY_GENERATE_COUNT = 1
+MAX_COMFY_GENERATE_COUNT = 100
+#: Generated files are named ``<prefix>_0001``; the prefix is a stem, so it stays short.
+MAX_COMFY_GENERATE_PREFIX_LENGTH = 80
 
 #: Saved Edit captions instructions: how many, and how long a name and a text may be.
 MAX_INSTRUCTION_SNIPPETS = 100
@@ -436,6 +442,9 @@ SHARED_CONSTANTS: dict[str, object] = {
     "MAX_SPLIT_CLIP_SECONDS": MAX_SPLIT_CLIP_SECONDS,
     "MIN_TRIM_LENGTH_SECONDS": MIN_TRIM_LENGTH_SECONDS,
     "MAX_TRIM_LENGTH_SECONDS": MAX_TRIM_LENGTH_SECONDS,
+    "DEFAULT_COMFY_GENERATE_COUNT": DEFAULT_COMFY_GENERATE_COUNT,
+    "MAX_COMFY_GENERATE_COUNT": MAX_COMFY_GENERATE_COUNT,
+    "MAX_COMFY_GENERATE_PREFIX_LENGTH": MAX_COMFY_GENERATE_PREFIX_LENGTH,
     "MAX_INSTRUCTION_SNIPPETS": MAX_INSTRUCTION_SNIPPETS,
     "MAX_INSTRUCTION_SNIPPET_NAME_LENGTH": MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
     "MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH": MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH,

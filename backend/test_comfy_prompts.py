@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import json
 import unittest
+from typing import ClassVar
 
-from comfy_prompts import extract_workflow_prompts
+from comfy_prompts import (
+    PROMPT_BOX_DETAIL,
+    SOURCE_BOX_LABEL,
+    extract_graph_branch,
+    extract_workflow_prompts,
+)
 from testing_fixtures import TempMediaFolder, write_media, write_mp4_video
 
 LOADER = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "landscape.safetensors"}}
@@ -1619,6 +1625,73 @@ class BypassedPassTests(unittest.TestCase):
         workflow = {"nodes": [{"id": 7, "type": "SaveImage", "mode": 0}], "links": []}
 
         self.assertEqual(self._branch(workflow).stages, [])
+
+
+class PresetGraphMapTests(unittest.TestCase):
+    """A preset is mapped before anything runs, so the dialogs can show what it will do."""
+
+    UPSCALE: ClassVar[dict[str, dict]] = {
+        "1": {"class_type": "LoadImage", "inputs": {"image": "placeholder.png"}},
+        # A model-based frame interpolator or restorer, read by its checkpoint input.
+        "2": {"class_type": "ModelLoader", "inputs": {"ckpt_name": "rife49.pth"}},
+        "3": {
+            "class_type": "ImageUpscaleWithModel",
+            "inputs": {"upscale_model": ["2", 0], "image": ["1", 0]},
+        },
+        "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["3", 0]}},
+    }
+
+    TXT2IMG: ClassVar[dict[str, dict]] = {
+        "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "base.safetensors"}},
+        "6": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "a lighthouse", "clip": ["4", 1]},
+        },
+        "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512}},
+        "3": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 1,
+                "steps": 20,
+                "model": ["4", 0],
+                "positive": ["6", 0],
+                "latent_image": ["5", 0],
+            },
+        },
+        "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
+        "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["8", 0]}},
+    }
+
+    def test_a_preset_without_a_sampler_still_maps_its_loaders(self) -> None:
+        branch = extract_graph_branch(self.UPSCALE, "9")
+        assert branch is not None
+
+        boxes = {node.id: node for node in branch.map}
+        self.assertEqual({node.kind for node in branch.map}, {"input", "model", "output"})
+        # Without a pass the upscale model is the flow, not a VAE side-route.
+        self.assertEqual(boxes["2"].feeds, ["9"])
+        self.assertEqual(boxes["1"].feeds, ["9"])
+
+    def test_the_boxes_a_run_fills_in_say_so(self) -> None:
+        upscale = extract_graph_branch(self.UPSCALE, "9", source_node="1")
+        txt2img = extract_graph_branch(self.TXT2IMG, "9", prompt_node="6")
+        assert upscale is not None and txt2img is not None
+
+        source = next(node for node in upscale.map if node.id == "1")
+        self.assertEqual(source.label, SOURCE_BOX_LABEL)
+        self.assertNotIn("placeholder", " ".join(source.detail))
+        prompt = next(node for node in txt2img.map if node.kind == "prompt")
+        self.assertEqual(prompt.detail, [PROMPT_BOX_DETAIL, "a lighthouse"])
+
+    def test_a_sampling_preset_maps_like_an_embedded_workflow(self) -> None:
+        branch = extract_graph_branch(self.TXT2IMG, "9")
+        assert branch is not None
+
+        self.assertEqual([node.kind for node in branch.map], ["model", "prompt", "pass", "output"])
+        self.assertFalse(branch.matches_filename)
+
+    def test_an_unknown_output_maps_nothing(self) -> None:
+        self.assertIsNone(extract_graph_branch(self.UPSCALE, "42"))
 
 
 if __name__ == "__main__":

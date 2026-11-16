@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { BulkScopeKind } from "@/features/automation/lib/bulkScope";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
 import { useAutomationDialogOverlays } from "@/features/automation/hooks/useAutomationDialogOverlays";
 import type { useFolderAutomation } from "@/features/automation/hooks/useFolderAutomation";
@@ -29,6 +30,7 @@ type UseAutomationHostOptions = {
   hasCaptionBackup: boolean;
   ostrisAvailable: boolean;
   comfyPresetsAvailable: boolean;
+  comfyGeneratePresetsAvailable: boolean;
   getJobPaths: () => string[] | undefined;
   jobScopeKind?: BulkScopeKind;
   requestTransition?: WorkspaceTransition;
@@ -54,6 +56,7 @@ export function useAutomationHost({
   hasCaptionBackup,
   ostrisAvailable,
   comfyPresetsAvailable,
+  comfyGeneratePresetsAvailable,
   getJobPaths,
   jobScopeKind,
   requestTransition,
@@ -124,10 +127,17 @@ export function useAutomationHost({
       starting: automation.startingJobType !== null,
       itemCount: jobItemCount,
       folderCount: items.length,
-      availability: { syspromptApplies, hasCaptionBackup, ostrisAvailable, comfyPresetsAvailable },
+      availability: {
+        syspromptApplies,
+        hasCaptionBackup,
+        ostrisAvailable,
+        comfyPresetsAvailable,
+        comfyGeneratePresetsAvailable,
+      },
     }),
     [
       automation.startingJobType,
+      comfyGeneratePresetsAvailable,
       comfyPresetsAvailable,
       folder,
       hasCaptionBackup,
@@ -170,6 +180,19 @@ export function useAutomationHost({
       requestTransition,
       startContext,
     ],
+  );
+
+  /** Generate with a file's own workflow: no preset is needed, so only the folder can block it. */
+  const openEmbeddedGenerate = useCallback(
+    (embedded: EmbeddedGenerateWorkflow) => {
+      const block = jobStartBlock("comfy_generate", {
+        ...startContext,
+        availability: { ...startContext.availability, comfyGeneratePresetsAvailable: true },
+      });
+      if (block.blocked) return;
+      openDialogForJobType("comfy_generate", { embedded });
+    },
+    [openDialogForJobType, startContext],
   );
 
   const actions = useMemo<AutomationActions>(
@@ -224,6 +247,7 @@ export function useAutomationHost({
   return {
     actions,
     requestStart,
+    openEmbeddedGenerate,
     dialogs: automationDialogs,
     workflowOverlays: workflowHost.overlays,
     jobStartConfirm: {

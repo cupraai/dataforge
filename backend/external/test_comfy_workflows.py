@@ -14,6 +14,8 @@ from external.comfy_workflows import (
     parse_comfy_workflow,
     preset_roles,
     read_comfy_preset_text,
+    require_generation,
+    require_source_input,
     resolve_custom_inputs,
 )
 
@@ -242,13 +244,64 @@ class ResolveRolesTests(unittest.TestCase):
 
         self.assertIn("Only one node can be the input", str(caught.exception))
 
-    def test_a_graph_with_no_loader_names_the_fix(self) -> None:
-        payload = {"3": node("SaveImage", {"filename_prefix": "out"})}
+    def test_a_graph_with_no_loader_is_a_generation_preset(self) -> None:
+        workflow = parse({"3": node("SaveImage", {"filename_prefix": "out"})})
 
+        self.assertTrue(workflow.generates)
+        self.assertIsNone(workflow.input_node)
         with self.assertRaises(ComfyWorkflowError) as caught:
-            parse(payload)
-
+            require_source_input(workflow)
         self.assertIn("has no input node", str(caught.exception))
+        self.assertIn("Generate with ComfyUI", str(caught.exception))
+
+    def test_any_source_loader_makes_an_edit_preset(self) -> None:
+        workflow = parse(graph())
+
+        self.assertFalse(workflow.generates)
+        with self.assertRaises(ComfyWorkflowError) as caught:
+            require_generation(workflow)
+        self.assertIn("Edit with ComfyUI", str(caught.exception))
+
+    def test_a_mask_loader_alone_still_generates(self) -> None:
+        workflow = parse(
+            {
+                "1": node("LoadImageMask", {"image": "mask.png"}),
+                "3": node("SaveImage", {"filename_prefix": "out"}),
+            }
+        )
+
+        self.assertTrue(workflow.generates)
+
+    def test_a_generation_preset_seeds_its_untitled_samplers(self) -> None:
+        """Left alone, every run of a generation would sample the one saved seed."""
+        workflow = parse(
+            {
+                "3": node("KSampler", {"seed": 1, "steps": 20}),
+                "4": node("SamplerCustom", {"noise_seed": 2}),
+                "5": node("KSampler", {"seed": ["9", 0]}),
+                "6": node("PrimitiveInt", {"value": 1024}),
+                "9": node("SaveImage", {"filename_prefix": "out"}),
+            }
+        )
+
+        # A wired seed and a bare Int are not seeds; the Int is as likely a width.
+        self.assertEqual(workflow.seed_nodes, ("3", "4"))
+
+    def test_a_titled_seed_node_wins_over_the_samplers(self) -> None:
+        workflow = parse(
+            {
+                "3": node("KSampler", {"seed": 1}),
+                "4": node("PrimitiveInt", {"value": 5}, "DataForge Seed"),
+                "9": node("SaveImage", {"filename_prefix": "out"}),
+            }
+        )
+
+        self.assertEqual(workflow.seed_nodes, ("4",))
+
+    def test_an_edit_preset_never_seeds_untitled_samplers(self) -> None:
+        workflow = parse(graph(**{"5": node("KSampler", {"seed": 99})}))
+
+        self.assertEqual(workflow.seed_nodes, ())
 
     def test_a_preview_node_counts_as_the_output(self) -> None:
         payload = {
@@ -429,6 +482,26 @@ class CustomInputTests(unittest.TestCase):
 
 
 class BuildPromptTests(unittest.TestCase):
+    def test_a_generation_preset_takes_no_source(self) -> None:
+        workflow = parse({"9": node("SaveImage", {"filename_prefix": "out"})})
+
+        prompt = build_comfy_prompt(workflow, media_ref=None, filename_prefix="DataForge/g/x")
+
+        self.assertEqual(prompt["9"]["inputs"]["filename_prefix"], "DataForge/g/x")
+        with self.assertRaises(ComfyWorkflowError):
+            build_comfy_prompt(workflow, media_ref="a.png", filename_prefix="out")
+
+    def test_an_edit_preset_refuses_to_run_without_a_source(self) -> None:
+        with self.assertRaises(ComfyWorkflowError):
+            build_comfy_prompt(parse(graph()), media_ref=None, filename_prefix="out")
+
+    def test_the_saved_prompt_text_is_kept_for_the_caption(self) -> None:
+        workflow = parse(
+            graph(**{"7": node("CLIPTextEncode", {"text": "as saved"}, "DataForge Prompt")})
+        )
+
+        self.assertEqual(workflow.saved_prompt_text, "as saved")
+
     def test_the_image_and_prefix_are_filled_in(self) -> None:
         workflow = parse(graph())
 
@@ -564,6 +637,16 @@ class PresetDiscoveryTests(unittest.TestCase):
             [preset.name for preset in list_comfy_presets()], ["fix-faces", "upscale-2x"]
         )
 
+    def test_listing_says_which_job_each_preset_belongs_to(self) -> None:
+        self.write("upscale-2x", graph())
+        self.write("txt2img", {"9": node("SaveImage", {"filename_prefix": "out"})})
+        self.write("broken", "{not json")
+
+        self.assertEqual(
+            {preset.name: preset.generates for preset in list_comfy_presets()},
+            {"broken": None, "txt2img": True, "upscale-2x": False},
+        )
+
     def test_a_broken_preset_still_lists(self) -> None:
         # Listing does not parse; a broken preset is refused at queue time.
         self.write("broken", "{not json")
@@ -602,6 +685,13 @@ class ShippedExampleTests(unittest.TestCase):
 
         self.assertEqual(workflow.input_node, "1")
         self.assertEqual(workflow.output_node, "3")
+
+    def test_the_generation_example_parses(self) -> None:
+        path = Path(__file__).resolve().parents[2] / "comfy_workflows" / "example_solid_color.json"
+        workflow = parse_comfy_workflow(path.read_text(encoding="utf-8"), source=path.stem)
+
+        self.assertTrue(workflow.generates)
+        self.assertEqual([entry.name for entry in workflow.custom_inputs], ["Batch size", "Color"])
 
 
 class PresetRoleTests(unittest.TestCase):

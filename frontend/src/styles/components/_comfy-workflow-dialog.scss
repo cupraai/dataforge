@@ -64,6 +64,12 @@ $map-chip-font-size: 0.59375rem;
     min-height: var(--control-height-xs);
   }
 
+  &__details-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.375rem;
+  }
+
   // ---- Output list -----------------------------------------------------------------------------
 
   &__outputs {

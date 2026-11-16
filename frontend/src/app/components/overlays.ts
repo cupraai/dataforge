@@ -1,6 +1,6 @@
 import type { WorkflowOverlaysState } from "@/features/workflows/hooks/useWorkflowHost";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
-import type { AutomationDialogsState } from "@/features/automation/types";
+import type { AutomationDialogsState, EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { GalleryItemOpenIntent } from "@/features/gallery/hooks/useGalleryOverlays";
 import type { ConfirmableJobType } from "@/features/jobs/lib/jobMeta";
 import type { SelectionActionOverlaysProps } from "@/features/gallery/components/SelectionActionOverlays";
@@ -36,7 +36,7 @@ type GalleryOverlayState = {
   onFocusViewChange?: (focus: boolean) => void;
   onEditExpandedChange?: (expanded: boolean) => void;
   transitionRef?: RefObject<WorkspaceTransition | null>;
-  /** The video editor covers the viewer; its keys and focus trap must stay off meanwhile. */
+  /** Another dialog covers the viewer; its keys and focus trap must stay off meanwhile. */
   suspended?: boolean;
   onClose: () => void;
   onPrevious: () => void;
@@ -49,6 +49,8 @@ type GalleryOverlayState = {
   onResolveIssue?: (item: GalleryItem) => void;
   onReviewCandidate?: (item: GalleryItem) => void;
   onResolveDuplicate?: (item: GalleryItem) => void;
+  /** Opens Generate with ComfyUI on one output of the file's own workflow. */
+  onGenerateFromWorkflow?: (workflow: EmbeddedGenerateWorkflow) => void;
 };
 
 type IssueResolverOverlayState = {

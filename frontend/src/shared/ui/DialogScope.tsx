@@ -6,7 +6,8 @@ import type { BulkScopeKind } from "@/features/automation/lib/bulkScope";
 export interface DialogScopeInfo {
   itemCount: number;
   folderLabel: string;
-  kind: BulkScopeKind;
+  /** `destination`: the job reads no files and adds new ones, so the count is not shown. */
+  kind: BulkScopeKind | "destination";
   note?: ReactNode;
   /** The job, or count of jobs, a start now waits for; absent when it would start at once. */
   queuedAfter?: string;
@@ -14,6 +15,25 @@ export interface DialogScopeInfo {
 
 export function DialogScope({ itemCount, folderLabel, kind, note, queuedAfter }: DialogScopeInfo) {
   const files = itemCount === 1 ? "file" : "files";
+
+  if (kind === "destination") {
+    return (
+      <div className="dialog-scope">
+        <p className="dialog-scope__line">
+          <Icon icon={iconFolder} className="dialog-scope__icon" />
+          <span>
+            New files go to <strong className="dialog-scope__folder">{folderLabel}</strong>
+            {queuedAfter && (
+              <span className="dialog-scope__queue">
+                , queued after <strong>{queuedAfter}</strong>
+              </span>
+            )}
+          </span>
+        </p>
+        {note && <p className="dialog-scope__note">{note}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="dialog-scope">

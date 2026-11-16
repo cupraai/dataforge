@@ -27,6 +27,7 @@ import { WorkflowsMenu } from "@/features/workflows/components/WorkflowsMenu";
 import { JobStatusBadge } from "@/features/jobs/components/JobStatusBadge";
 import { useJobTimeLabel } from "@/features/jobs/hooks/useJobTimeLabel";
 import { failedCountFromStats } from "@/features/jobs/lib/jobFileResults";
+import { jobUnitWord } from "@/features/jobs/lib/jobInsights";
 import { dismissJob, readDismissedJobIds } from "@/features/jobs/lib/jobSeen";
 import { Menu, MenuFooter, MenuItem } from "@/shared/ui/Menu";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
@@ -321,7 +322,7 @@ export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
             <JobStatusBadge job={job} />
             {job.total > 0 && (
               <span className="workspace-activity__count">
-                {job.processed} of {job.total} {job.job_type === "train_lora" ? "steps" : "files"}
+                {job.processed} of {job.total} {jobUnitWord(job, job.total)}
               </span>
             )}
             {!active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}

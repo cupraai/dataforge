@@ -1,9 +1,14 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchComfyPresets } from "@/features/automation/api/jobs";
+import { fetchComfyPresetMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
-import type { ComfyPresetInput, ComfyPresetSettings, ComfyPresetsResponse } from "@/shared/types";
+import type {
+  ComfyPresetInput,
+  ComfyPresetMapResponse,
+  ComfyPresetSettings,
+  ComfyPresetsResponse,
+} from "@/shared/types";
 import { ComfyProcessDialog } from "./ComfyProcessDialog";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
@@ -11,9 +16,53 @@ import { stubDialogClock } from "@/test/dialogClock";
 
 vi.mock("@/features/automation/api/jobs", () => ({
   fetchComfyPresets: vi.fn<typeof fetchComfyPresets>(),
+  fetchComfyPresetMap: vi.fn<typeof fetchComfyPresetMap>(),
 }));
 
 const fetchPresets = vi.mocked(fetchComfyPresets);
+const fetchMap = vi.mocked(fetchComfyPresetMap);
+
+function mapOf(name: string, labels: string[]): ComfyPresetMapResponse {
+  return {
+    name,
+    error: null,
+    branch: {
+      node_id: "9",
+      class_type: "SaveImage",
+      label: "Save Image",
+      filename_prefix: null,
+      filename: null,
+      is_preview: false,
+      matches_filename: false,
+      prompts: [],
+      parameters: [],
+      loras: [],
+      stages: [],
+      map: [
+        ...labels.map((label, index) => ({
+          id: String(index),
+          kind: "model" as const,
+          label,
+          detail: [`${label}.safetensors`],
+          status: "ran" as const,
+          feeds: ["9"],
+          role: null,
+          media: null,
+        })),
+        {
+          id: "9",
+          kind: "output" as const,
+          label: "Output",
+          detail: [],
+          status: "ran" as const,
+          feeds: [],
+          role: null,
+          media: "image" as const,
+        },
+      ],
+    },
+  };
+}
 
 const SCOPE = { itemCount: 12, folderLabel: "Photos", kind: "folder" as const };
 
@@ -64,9 +113,55 @@ function renderDialog(initialSettings = settings()) {
   return { onConfirm, onCancel };
 }
 
+function presetNames(): (string | null)[] {
+  return screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"));
+}
+
 describe("ComfyProcessDialog", () => {
   beforeEach(() => {
     fetchPresets.mockReset().mockResolvedValue(presets(["fix-faces", "upscale-2x"]));
+    fetchMap
+      .mockReset()
+      .mockImplementation(async (name) =>
+        mapOf(name, [name === "fix-faces" ? "face-model" : "upscaler"]),
+      );
+  });
+
+  describe("workflow map", () => {
+    it("draws the selected preset and follows a switch", async () => {
+      const user = userEvent.setup();
+      renderDialog();
+
+      const map = await screen.findByRole("group", { name: "Workflow map" });
+      expect(map).toHaveTextContent("face-model");
+
+      await user.click(screen.getByRole("radio", { name: "upscale-2x" }));
+
+      await waitFor(() =>
+        expect(screen.getByRole("group", { name: "Workflow map" })).toHaveTextContent("upscaler"),
+      );
+      expect(fetchMap).toHaveBeenCalledWith("upscale-2x", expect.anything());
+    });
+
+    it("says why a preset cannot be drawn", async () => {
+      fetchMap.mockResolvedValue({
+        name: "fix-faces",
+        branch: null,
+        error: 'The preset "fix-faces" is an editor workflow, not an API-format one.',
+      });
+      renderDialog();
+
+      expect(await screen.findByText(/editor workflow, not an API-format one/)).toBeInTheDocument();
+    });
+
+    it("shows that ComfyUI answered", async () => {
+      renderDialog();
+
+      expect(await screen.findByText("ComfyUI ready")).toHaveAttribute(
+        "title",
+        "http://127.0.0.1:9000",
+      );
+    });
   });
 
   it("blocks Enter while a remembered preset is still loading", async () => {
@@ -90,32 +185,57 @@ describe("ComfyProcessDialog", () => {
     expect(await screen.findByText(/writes the result as a/, { exact: false })).toBeInTheDocument();
   });
 
-  // A select rather than a tile each: the folder of presets has no ceiling, and a
-  // dozen tiles would grow the panel until it scrolled.
-  it("offers every preset on disk in one control", async () => {
+  it("lists every preset on disk with what it takes", async () => {
     renderDialog();
 
-    const workflow = await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-    expect(workflow.tagName).toBe("SELECT");
-    expect([...(workflow as HTMLSelectElement).options].map((option) => option.value)).toEqual([
-      "fix-faces",
-      "upscale-2x",
-    ]);
+    expect(presetNames()).toEqual(["fix-faces", "upscale-2x"]);
+    expect(screen.getByRole("radio", { name: "fix-faces" })).toHaveAccessibleDescription(
+      "Prompt · Seed",
+    );
+  });
+
+  it("says which presets could not be read before one is chosen", async () => {
+    const listed = presets(["fix-faces", "broken"]);
+    listed.presets[1] = {
+      ...listed.presets[1],
+      accepts_prompt: null,
+      accepts_seed: null,
+      generates: null,
+    };
+    fetchPresets.mockResolvedValue(listed);
+    renderDialog();
+
+    expect(await screen.findByRole("radio", { name: "broken" })).toHaveAccessibleDescription(
+      "Could not be read",
+    );
+  });
+
+  it("leaves generation presets to Generate with ComfyUI", async () => {
+    const listed = presets(["txt2img", "upscale-2x"]);
+    listed.presets[0] = { ...listed.presets[0], generates: true };
+    fetchPresets.mockResolvedValue(listed);
+    renderDialog(settings({ preset: "txt2img" }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    expect(presetNames()).toEqual(["upscale-2x"]);
+    expect(screen.getByRole("radio", { name: "upscale-2x" })).toBeChecked();
   });
 
   it("starts from the preset the last run used", async () => {
     renderDialog(settings({ preset: "upscale-2x" }));
 
-    await waitFor(() => expect(screen.getByLabelText("Workflow")).toHaveValue("upscale-2x"));
+    expect(await screen.findByRole("radio", { name: "upscale-2x" })).toBeChecked();
   });
 
   it("falls back to the first preset when the remembered one is gone", async () => {
     // Presets are files the user adds and removes, so a stored name can outlive its
-    // file; a select left on a value it has no option for shows blank and confirms it.
+    // file; a list with nothing checked would confirm a name that is not there.
     renderDialog(settings({ preset: "deleted-preset" }));
 
-    await waitFor(() => expect(screen.getByLabelText("Workflow")).toHaveValue("fix-faces"));
+    expect(await screen.findByRole("radio", { name: "fix-faces" })).toBeChecked();
   });
 
   it("explains how to add one when there are none", async () => {
@@ -169,7 +289,7 @@ describe("ComfyProcessDialog", () => {
 
     resolvePresets(presets(["upscale-2x"]));
 
-    expect(await screen.findByLabelText("Workflow")).toBeInTheDocument();
+    expect(await screen.findByRole("radiogroup", { name: "Workflow presets" })).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -177,7 +297,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await user.selectOptions(await screen.findByLabelText("Workflow"), "upscale-2x");
+    await user.click(await screen.findByRole("radio", { name: "upscale-2x" }));
     await user.type(screen.getByLabelText("Seed"), "4321");
 
     await user.click(screen.getByRole("button", { name: "Start processing" }));
@@ -195,7 +315,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.click(screen.getByLabelText(/Replace candidates already waiting/));
     await user.click(screen.getByRole("button", { name: "Start processing" }));
 
@@ -206,7 +326,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.click(screen.getByRole("button", { name: "Start processing" }));
 
     expect(onConfirm).toHaveBeenCalledWith(
@@ -218,7 +338,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Prompt"), "sharp studio photograph");
 
     await user.click(screen.getByRole("button", { name: "Start processing" }));
@@ -236,7 +356,7 @@ describe("ComfyProcessDialog", () => {
       }),
     );
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
     expect(screen.getByLabelText("Prompt")).toHaveValue("no watermark");
   });
@@ -254,7 +374,7 @@ describe("ComfyProcessDialog", () => {
       }),
     );
 
-    await user.selectOptions(await screen.findByLabelText("Workflow"), "upscale-2x");
+    await user.click(await screen.findByRole("radio", { name: "upscale-2x" }));
 
     expect(screen.getByLabelText("Prompt")).toHaveValue("crisp");
     expect(screen.getByLabelText("Seed")).toHaveValue(null);
@@ -266,11 +386,11 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    const workflow = await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Prompt"), "sharp");
-    await user.selectOptions(workflow, "upscale-2x");
+    await user.click(screen.getByRole("radio", { name: "upscale-2x" }));
     expect(screen.getByLabelText("Prompt")).toHaveValue("");
-    await user.selectOptions(workflow, "fix-faces");
+    await user.click(screen.getByRole("radio", { name: "fix-faces" }));
 
     await user.click(screen.getByRole("button", { name: "Start processing" }));
 
@@ -285,7 +405,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Prompt"), "   ");
 
     await user.click(screen.getByRole("button", { name: "Start processing" }));
@@ -306,7 +426,7 @@ describe("ComfyProcessDialog", () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
 
-    await screen.findByLabelText("Workflow");
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Seed"), "-5");
 
     await user.click(screen.getByRole("button", { name: "Start processing" }));
@@ -341,7 +461,7 @@ describe("ComfyProcessDialog", () => {
       fetchPresets.mockResolvedValue(withInputs());
       renderDialog();
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
       expect(screen.getByLabelText("Denoise")).toHaveAttribute("placeholder", "0.5");
       expect(screen.getByLabelText("Steps")).toHaveAttribute("placeholder", "20");
@@ -354,7 +474,7 @@ describe("ComfyProcessDialog", () => {
       const user = userEvent.setup();
       const { onConfirm } = renderDialog();
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
       await user.type(screen.getByLabelText("Denoise"), "0.35");
       await user.selectOptions(screen.getByLabelText("Tiled"), "on");
       await user.click(screen.getByRole("button", { name: "Start processing" }));
@@ -369,7 +489,7 @@ describe("ComfyProcessDialog", () => {
       const user = userEvent.setup();
       const { onConfirm } = renderDialog();
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
       await user.type(screen.getByLabelText("Steps"), "2.5");
       await user.click(screen.getByRole("button", { name: "Start processing" }));
 
@@ -387,7 +507,7 @@ describe("ComfyProcessDialog", () => {
         }),
       );
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
       expect(screen.getByLabelText("Steps")).toHaveValue(30);
       await user.click(screen.getByRole("button", { name: "Start processing" }));
 
@@ -399,7 +519,7 @@ describe("ComfyProcessDialog", () => {
       const user = userEvent.setup();
       renderDialog();
 
-      await user.selectOptions(await screen.findByLabelText("Workflow"), "upscale-2x");
+      await user.click(await screen.findByRole("radio", { name: "upscale-2x" }));
 
       expect(screen.queryByLabelText("Denoise")).not.toBeInTheDocument();
     });
@@ -422,7 +542,7 @@ describe("ComfyProcessDialog", () => {
         }),
       );
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
       await user.click(screen.getByRole("button", { name: "Start processing" }));
 
       expect(onConfirm).toHaveBeenCalledWith(
@@ -439,8 +559,8 @@ describe("ComfyProcessDialog", () => {
         }),
       );
 
-      // Prompt renders before the presets land, so only Workflow marks the load as done.
-      await screen.findByLabelText("Workflow");
+      // Prompt renders before the presets land, so only the preset list marks the load as done.
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
       const prompt = screen.getByLabelText("Prompt");
       expect(prompt).toBeDisabled();
@@ -464,7 +584,7 @@ describe("ComfyProcessDialog", () => {
         }),
       );
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
       expect(await screen.findByLabelText("Seed")).toBeDisabled();
       await user.click(screen.getByRole("button", { name: "Start processing" }));
 
@@ -483,7 +603,7 @@ describe("ComfyProcessDialog", () => {
       );
       renderDialog();
 
-      await screen.findByLabelText("Workflow");
+      await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
       expect(screen.getByLabelText("Prompt")).toBeEnabled();
       expect(screen.getByLabelText("Seed")).toBeEnabled();

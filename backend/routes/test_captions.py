@@ -41,6 +41,31 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
         self.assertEqual(payload["branches"][0]["class_type"], "SwiftVRRestoreVideo")
         self.assertEqual(payload["branches"][0]["label"], "Restored video")
 
+    def test_only_an_output_that_loads_no_file_offers_generation(self) -> None:
+        graph = {
+            "1": {"class_type": "EmptyImage", "inputs": {"width": 8, "height": 8, "color": 0}},
+            "2": {
+                "class_type": "SaveImage",
+                "inputs": {"images": ["1", 0], "filename_prefix": "a"},
+            },
+            "3": {"class_type": "LoadImage", "inputs": {"image": "reference.png"}},
+            "4": {
+                "class_type": "SaveImage",
+                "inputs": {"images": ["3", 0], "filename_prefix": "b"},
+            },
+        }
+        with TempMediaFolder() as root:
+            media = write_media(root, "comfy.png", text_chunks={"prompt": json.dumps(graph)})
+            response = client.get(f"/api/comfy-workflow/prompts?path={quote(str(media))}")
+
+        self.assertEqual(response.status_code, 200)
+        branches = {branch["node_id"]: branch for branch in response.json()["branches"]}
+        self.assertEqual(
+            branches["2"]["generation"],
+            {"accepts_prompt": False, "accepts_seed": False, "inputs": [], "prompt_text": None},
+        )
+        self.assertIsNone(branches["4"]["generation"])
+
     def test_editor_workflow_is_trimmed_to_the_requested_output(self) -> None:
         prompt = json.dumps(
             {

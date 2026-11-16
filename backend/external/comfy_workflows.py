@@ -1,4 +1,8 @@
-"""Discover, validate and patch the ComfyUI workflow presets a prep job runs."""
+"""Discover, validate and patch the ComfyUI workflow presets the ComfyUI jobs run.
+
+A preset with a source loader edits files (Edit with ComfyUI); one without makes new media from
+nothing (Generate with ComfyUI). The loader alone decides which, so one folder holds both.
+"""
 
 from __future__ import annotations
 
@@ -61,6 +65,10 @@ OUTPUT_WIDGET_KEYS = ("filename_prefix", "filename")
 #: KSampler holds "seed", SamplerCustom "noise_seed", and the native Int node "value".
 _SEED_INPUT_KEYS = ("seed", "noise_seed", "value")
 
+#: How a generation preset without a seed node has its samplers' seeds found. "value" is left
+#: out: an untitled Int node is as likely a width or a step count.
+_SAMPLER_SEED_KEYS = ("seed", "noise_seed")
+
 #: CLIPTextEncode holds "text", Text (Multiline) "value", and Qwen's encoders "prompt".
 _PROMPT_INPUT_KEYS = ("text", "value", "prompt")
 
@@ -89,6 +97,8 @@ class ComfyPreset:
     accepts_prompt: bool | None = None
     accepts_seed: bool | None = None
     custom_inputs: tuple[ComfyCustomInput, ...] = ()
+    #: True without a source loader. None when unparseable, so both dialogs list it.
+    generates: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -109,8 +119,9 @@ class ComfyWorkflow:
 
     preset: str
     prompt: dict[str, Any]
-    input_node: str
-    input_key: str
+    #: None for a generation preset, which loads no source file.
+    input_node: str | None
+    input_key: str | None
     output_node: str
     #: None for a node that names nothing, such as PreviewImage.
     output_key: str | None
@@ -121,6 +132,33 @@ class ComfyWorkflow:
     #: The loader for an uploaded mask; None when the workflow takes none.
     mask_node: str | None = None
     mask_key: str | None = None
+    #: The prompt node's own saved text, which runs when no prompt is supplied.
+    saved_prompt_text: str | None = None
+
+    @property
+    def generates(self) -> bool:
+        return self.input_node is None
+
+
+def require_source_input(workflow: ComfyWorkflow) -> None:
+    """Refuse a generation preset where a file has to be loaded into the graph."""
+    if workflow.generates:
+        raise ComfyWorkflowError(
+            f'The preset "{workflow.preset}" has no input node, so it cannot load a file. '
+            f'Title the loader you want in ComfyUI "{INPUT_NODE_TITLE}" and re-export it, or run '
+            "it with Generate with ComfyUI."
+        )
+
+
+def require_generation(workflow: ComfyWorkflow) -> None:
+    """Refuse an edit preset where new media is made from nothing."""
+    if not workflow.generates:
+        raise ComfyWorkflowError(
+            f'The preset "{workflow.preset}" loads a source file, so it runs with Edit with '
+            "ComfyUI. To generate from a fixed reference image, title its loader something other "
+            f'than "{INPUT_NODE_TITLE}" and use a loader other than '
+            f"{', '.join(sorted(INPUT_CLASSES))}."
+        )
 
 
 def _node_title(node: dict[str, Any]) -> str:
@@ -185,6 +223,14 @@ def _optional_titled_node(prompt: dict[str, Any], title: str) -> str | None:
     return titled[0] if len(titled) == 1 else None
 
 
+def _has_source_loader(prompt: dict[str, Any]) -> bool:
+    """A titled input, or any loader that could stand in for one, makes this an edit preset."""
+    return any(
+        _node_title(node) == INPUT_NODE_TITLE or node["class_type"] in INPUT_CLASSES
+        for _, node in _nodes(prompt)
+    )
+
+
 def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     """The first key holding a number of its own. A linked input is a list and must not match."""
     inputs = _node_inputs(node)
@@ -194,7 +240,7 @@ def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     return None
 
 
-def _prompt_key(node: dict[str, Any]) -> str | None:
+def prompt_input_key(node: dict[str, Any]) -> str | None:
     """The first key holding text of its own. A linked input is a list and must not match."""
     inputs = _node_inputs(node)
     for key in _PROMPT_INPUT_KEYS:
@@ -205,6 +251,15 @@ def _prompt_key(node: dict[str, Any]) -> str | None:
 
 def _seed_key(node: dict[str, Any]) -> str | None:
     return _numeric_key(node, _SEED_INPUT_KEYS)
+
+
+def _sampler_seed_nodes(prompt: dict[str, Any]) -> tuple[str, ...]:
+    """Every node holding its own sampler seed. Left alone, a generation run repeats one image."""
+    return tuple(
+        node_id
+        for node_id, node in _nodes(prompt)
+        if _numeric_key(node, _SAMPLER_SEED_KEYS) is not None
+    )
 
 
 def _input_widget_key(node: dict[str, Any]) -> str | None:
@@ -342,20 +397,23 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
                 "that chunks frames within one prompt."
             )
 
-    input_node = _resolve_role(
-        source, payload, title=INPUT_NODE_TITLE, classes=INPUT_CLASSES, role="input"
-    )
+    input_node: str | None = None
+    input_key: str | None = None
+    if _has_source_loader(payload):
+        input_node = _resolve_role(
+            source, payload, title=INPUT_NODE_TITLE, classes=INPUT_CLASSES, role="input"
+        )
+        input_key = _input_widget_key(payload[input_node])
+        if input_key is None:
+            keys = " or ".join(repr(key) for key in INPUT_WIDGET_KEYS)
+            raise ComfyWorkflowError(
+                f'The input node of preset "{source}" takes no filename under {keys}. '
+                f"Title a loading node {INPUT_NODE_TITLE!r} instead."
+            )
+
     output_node = _resolve_role(
         source, payload, title=OUTPUT_NODE_TITLE, classes=OUTPUT_CLASSES, role="output"
     )
-
-    input_key = _input_widget_key(payload[input_node])
-    if input_key is None:
-        keys = " or ".join(repr(key) for key in INPUT_WIDGET_KEYS)
-        raise ComfyWorkflowError(
-            f'The input node of preset "{source}" takes no filename under {keys}. '
-            f"Title a loading node {INPUT_NODE_TITLE!r} instead."
-        )
 
     output_class = payload[output_node]["class_type"]
     output_key = _output_widget_key(payload[output_node])
@@ -373,9 +431,15 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
             f'The node titled "{SEED_NODE_TITLE}" in preset "{source}" has no seed input. '
             f"Title a node holding its own number under one of {keys}, such as KSampler or Int."
         )
+    if seed_node is not None:
+        seed_nodes: tuple[str, ...] = (seed_node,)
+    elif input_node is None:
+        seed_nodes = _sampler_seed_nodes(payload)
+    else:
+        seed_nodes = ()
 
     prompt_node = _optional_titled_node(payload, PROMPT_NODE_TITLE)
-    prompt_key = _prompt_key(payload[prompt_node]) if prompt_node else None
+    prompt_key = prompt_input_key(payload[prompt_node]) if prompt_node else None
     if prompt_node is not None and prompt_key is None:
         keys = ", ".join(repr(key) for key in _PROMPT_INPUT_KEYS)
         raise ComfyWorkflowError(
@@ -399,9 +463,12 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
         input_key=input_key,
         output_node=output_node,
         output_key=output_key,
-        seed_nodes=(seed_node,) if seed_node else (),
+        seed_nodes=seed_nodes,
         prompt_node=prompt_node,
         prompt_key=prompt_key,
+        saved_prompt_text=(
+            payload[prompt_node]["inputs"][prompt_key] if prompt_node and prompt_key else None
+        ),
         custom_inputs=_custom_inputs(payload, source),
         mask_node=mask_node,
         mask_key=mask_key,
@@ -460,6 +527,7 @@ def list_comfy_presets() -> list[ComfyPreset]:
                 accepts_prompt=None if workflow is None else workflow.prompt_node is not None,
                 accepts_seed=None if workflow is None else bool(workflow.seed_nodes),
                 custom_inputs=() if workflow is None else workflow.custom_inputs,
+                generates=None if workflow is None else workflow.generates,
             )
         )
 
@@ -497,21 +565,28 @@ def _output_name(key: str, saved: object, filename_prefix: str) -> str:
 def build_comfy_prompt(
     workflow: ComfyWorkflow,
     *,
-    media_ref: str,
+    media_ref: str | None,
     filename_prefix: str,
     seed: int | None = None,
     prompt_text: str | None = None,
     custom_values: Mapping[str, ComfyInputValue] | None = None,
     mask_ref: str | None = None,
 ) -> dict[str, Any]:
-    """A run-ready copy of the graph with this file's values filled in.
+    """A run-ready copy of the graph with this run's values filled in.
 
+    ``media_ref`` is the uploaded source, and None exactly when the preset generates.
     ``custom_values`` must come from :func:`resolve_custom_inputs`; names missing from it run as
     saved. ``mask_ref`` is refused by a workflow without a mask node rather than dropped.
     """
     prompt = deepcopy(workflow.prompt)
 
-    prompt[workflow.input_node]["inputs"][workflow.input_key] = media_ref
+    if workflow.input_node is None or workflow.input_key is None:
+        if media_ref is not None:
+            require_source_input(workflow)
+    else:
+        if media_ref is None:
+            require_generation(workflow)
+        prompt[workflow.input_node]["inputs"][workflow.input_key] = media_ref
 
     if mask_ref is not None:
         if workflow.mask_node is None or workflow.mask_key is None:

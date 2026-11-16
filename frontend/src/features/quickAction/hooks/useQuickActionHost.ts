@@ -180,6 +180,10 @@ export function useQuickActionHost({
         onCopyPath: copyFolderPath,
         onRevealInExplorer: revealInExplorer,
         onEditSysprompt: panel.onEditSysprompt,
+        workflows: {
+          workflows: panel.workflows.workflows,
+          onEditWorkflows: panel.workflows.onEditWorkflows,
+        },
         review: {
           scope: panel.reviewScope,
           issueCount: panel.issueCount ?? 0,
@@ -244,6 +248,8 @@ export function useQuickActionHost({
       panel.onResolveDuplicates,
       panel.onResolveIssues,
       panel.onReviewCandidates,
+      panel.workflows.onEditWorkflows,
+      panel.workflows.workflows,
       refreshFolder,
       revealInExplorer,
       selectedCount,

@@ -636,6 +636,29 @@ export function buildSyspromptCommandItem(onEditSysprompt: () => void): QuickAct
   };
 }
 
+export interface ManageWorkflowsCommandOptions {
+  workflows: readonly Workflow[];
+  /** Opens the editor on `name`, or on a new workflow when null. */
+  onEditWorkflows: (name: string | null) => void;
+}
+
+/** Opens the editor as the toolbar menu does: on the first workflow, or a new one when none. */
+export function buildManageWorkflowsCommandItem({
+  workflows,
+  onEditWorkflows,
+}: ManageWorkflowsCommandOptions): QuickActionItem {
+  const first = workflows.at(0);
+  return {
+    id: "cmd:manage-workflows",
+    section: "commands",
+    label: "Manage workflows...",
+    detail: first ? "Edit, reorder, or create saved job chains" : "Create a saved job chain",
+    icon: iconWorkflow,
+    keywords: "workflow chain pipeline steps edit new create delete rename",
+    run: () => onEditWorkflows(first?.name ?? null),
+  };
+}
+
 export interface FolderPathCommandOptions {
   folderPath: string;
   onCopyPath: (path: string) => void;
@@ -748,6 +771,7 @@ export interface CommandOptions {
   onCopyPath: (path: string) => void;
   onRevealInExplorer: (path: string) => void;
   onEditSysprompt: () => void;
+  workflows: ManageWorkflowsCommandOptions;
   review: ReviewCommandOptions;
   settleAllCandidates: Omit<SettleAllCandidatesOptions, "hasFolder">;
   sidecarSweep: Omit<SidecarSweepOptions, "hasFolder">;
@@ -770,6 +794,7 @@ export function buildCommandItems({
   onCopyPath,
   onRevealInExplorer,
   onEditSysprompt,
+  workflows,
   review,
   settleAllCandidates,
   sidecarSweep,
@@ -803,6 +828,7 @@ export function buildCommandItems({
     ...buildSidecarSweepItems({ ...sidecarSweep, hasFolder: folderFound }),
     ...buildSelectionCommandItems({ ...selection, hasFolder: folderFound }),
     buildSyspromptCommandItem(onEditSysprompt),
+    buildManageWorkflowsCommandItem(workflows),
     ...(folderFound
       ? buildFolderPathCommandItems({ folderPath: folder.path, onCopyPath, onRevealInExplorer })
       : []),

@@ -1,0 +1,42 @@
+{
+  "1": {
+    "class_type": "EmptyImage",
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": ["2", 0],
+      "color": ["3", 0]
+    },
+    "_meta": {
+      "title": "Solid color"
+    }
+  },
+  "2": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 1
+    },
+    "_meta": {
+      "title": "DataForge Batch size"
+    }
+  },
+  "3": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 3381759
+    },
+    "_meta": {
+      "title": "DataForge Color"
+    }
+  },
+  "4": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "DataForge/example",
+      "images": ["1", 0]
+    },
+    "_meta": {
+      "title": "DataForge Output"
+    }
+  }
+}

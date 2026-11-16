@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from automation_settings import (
+    COMFY_GENERATE_JOB_TYPE,
     COMFY_PROCESS_JOB_TYPE,
     JOB_SETTINGS_MODELS,
     automation_settings_key,
@@ -15,6 +16,8 @@ from schemas import (
     AutomationSettingsResponse,
     BackupCaptionsStartRequest,
     BatchRenameStartRequest,
+    ComfyGenerateSettingsResponse,
+    ComfyGenerateStartRequest,
     ComfyProcessSettingsResponse,
     ComfyProcessStartRequest,
     EditCaptionsStartRequest,
@@ -57,7 +60,10 @@ class RegistryShapeTests(unittest.TestCase):
     def test_the_registry_and_the_response_name_the_same_jobs(self) -> None:
         response_jobs = set(AutomationSettingsResponse.model_fields) - {"folder_path"}
 
-        self.assertEqual(set(JOB_SETTINGS_MODELS) | {COMFY_PROCESS_JOB_TYPE}, response_jobs)
+        self.assertEqual(
+            set(JOB_SETTINGS_MODELS) | {COMFY_PROCESS_JOB_TYPE, COMFY_GENERATE_JOB_TYPE},
+            response_jobs,
+        )
 
     def test_every_response_field_holds_its_registered_model(self) -> None:
         for job_type, model in JOB_SETTINGS_MODELS.items():
@@ -232,6 +238,70 @@ class ComfyProcessSettingsTests(unittest.TestCase):
 
         stored = get_automation_settings(folder_path=r"C:\Photos").comfy_process
         self.assertNotIn("paths", stored.by_preset["txt2img"].model_dump())
+
+
+class ComfyGenerateSettingsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        _clear()
+
+    def tearDown(self) -> None:
+        _clear()
+
+    def _remember(self, folder_path: str = r"C:\Photos", **settings: object) -> None:
+        remember_job_settings(
+            COMFY_GENERATE_JOB_TYPE,
+            ComfyGenerateStartRequest.model_validate(settings),
+            folder_path=folder_path,
+        )
+
+    def test_it_reads_the_defaults_before_any_run(self) -> None:
+        self.assertEqual(
+            get_automation_settings(folder_path=r"C:\Photos").comfy_generate,
+            ComfyGenerateSettingsResponse(),
+        )
+
+    def test_prompts_follow_the_preset_the_output_stays_per_folder_and_seeds_go(self) -> None:
+        self._remember(
+            folder_path=r"C:\Photos",
+            preset="txt2img",
+            prompt_text="a lake",
+            seed=5,
+            count=12,
+            name_prefix="lake",
+            caption_from_prompt=True,
+        )
+
+        renders = get_automation_settings(folder_path=r"C:\Renders").comfy_generate
+        self.assertEqual(renders.preset, "txt2img")
+        self.assertEqual(renders.by_preset["txt2img"].prompt_text, "a lake")
+        # A remembered seed would repeat the last images; the next open draws at random.
+        self.assertIsNone(renders.by_preset["txt2img"].seed)
+        self.assertNotIn("count", renders.by_preset["txt2img"].model_dump())
+
+        photos = get_automation_settings(folder_path=r"C:\Photos").comfy_generate
+        self.assertEqual(
+            (photos.count, photos.name_prefix, photos.caption_from_prompt), (12, "lake", True)
+        )
+
+    def test_a_files_own_workflow_remembers_nothing(self) -> None:
+        self._remember(
+            preset="",
+            prompt_text="a lake",
+            count=9,
+            source={"path": r"C:\Photos\render_0001.png", "node_id": "9"},
+        )
+
+        self.assertEqual(
+            get_automation_settings(folder_path=r"C:\Photos").comfy_generate,
+            ComfyGenerateSettingsResponse(),
+        )
+
+    def test_it_keeps_apart_from_the_edit_jobs_presets(self) -> None:
+        self._remember(preset="txt2img", prompt_text="a lake")
+
+        stored = get_automation_settings(folder_path=r"C:\Photos")
+        self.assertEqual(stored.comfy_process.by_preset, {})
+        self.assertEqual(stored.comfy_process.preset, "")
 
 
 if __name__ == "__main__":

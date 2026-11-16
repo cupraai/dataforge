@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trainLoraBody, type TrainLoraSettings } from "@/features/automation/api/jobs";
+import type { ComfyGenerateSettings } from "@/features/automation/components/ComfyGenerateDialog";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
 import {
@@ -8,7 +9,7 @@ import {
   type AutomationSettings,
   type JobSettingsByType,
 } from "@/features/automation/preferences/automationPreferences";
-import type { AutomationDialogsState } from "@/features/automation/types";
+import type { AutomationDialogsState, EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { JobStartBodies, JobStartBody } from "@/shared/api/jobStartBodies";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import {
@@ -49,10 +50,15 @@ type UseAutomationDialogOverlaysOptions = {
   stepMode?: { confirmLabel: string; note: string };
 };
 
+/** Jobs the selection cannot narrow: they read the whole folder, or no files at all. */
+const FOLDER_WIDE_JOBS: ReadonlySet<JobType> = new Set<JobType>(["train_lora", "comfy_generate"]);
+
 /** What `openDialogForJobType` can preset: the scope, and a workflow step's own settings. */
 export interface DialogOpenOverride extends Partial<BulkScopeSnapshot> {
   /** Shown instead of the folder's remembered settings, in the dialog's own settings shape. */
   initialSettings?: unknown;
+  /** Generate with ComfyUI runs this file's own workflow instead of a preset. */
+  embedded?: EmbeddedGenerateWorkflow;
 }
 
 export function useAutomationDialogOverlays({
@@ -73,6 +79,7 @@ export function useAutomationDialogOverlays({
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<AutomationSettings | null>(null);
   const [stepSettings, setStepSettings] = useState<unknown>(undefined);
+  const [embedded, setEmbedded] = useState<EmbeddedGenerateWorkflow | undefined>(undefined);
   const [snapshot, setSnapshot] = useState<BulkScopeSnapshot | null>(null);
   const editingStep = stepMode !== undefined;
   const folderRef = useLatestRef(folderPath);
@@ -82,6 +89,7 @@ export function useAutomationDialogOverlays({
     setOpenJobType(null);
     setSettings(null);
     setStepSettings(undefined);
+    setEmbedded(undefined);
     setSnapshot(null);
     openRevisionRef.current += 1;
   }, []);
@@ -89,6 +97,7 @@ export function useAutomationDialogOverlays({
   if (useChanged(folderPath)) {
     setOpenJobType(null);
     setSettings(null);
+    setEmbedded(undefined);
     setSnapshot(null);
   }
   useEffect(() => {
@@ -98,18 +107,10 @@ export function useAutomationDialogOverlays({
   /** Closes the dialog, then starts its job; a rejection is already reported by the context. */
   const startJobFromDialog = useCallback(
     <T extends JobType>(jobType: T, body?: JobStartBodies[T]) => {
-      if (
-        !folderPath ||
-        (!editingStep && jobType !== "train_lora" && snapshot?.paths?.length === 0)
-      )
-        return;
+      const folderWide = FOLDER_WIDE_JOBS.has(jobType);
+      if (!folderPath || (!editingStep && !folderWide && snapshot?.paths?.length === 0)) return;
       closeDialog();
-      startJob(
-        jobType,
-        folderPath,
-        body,
-        jobType === "train_lora" ? undefined : snapshot?.paths,
-      ).catch(() => {});
+      startJob(jobType, folderPath, body, folderWide ? undefined : snapshot?.paths).catch(() => {});
     },
     [closeDialog, editingStep, folderPath, snapshot, startJob],
   );
@@ -128,6 +129,11 @@ export function useAutomationDialogOverlays({
       note: "AI-Toolkit trains on the whole folder. Search, filters, and selection do not limit training.",
       queuedAfter,
     }),
+    [folderItemCount, folderLabel, queuedAfter],
+  );
+
+  const generateScope = useMemo<DialogScopeInfo>(
+    () => ({ itemCount: folderItemCount, folderLabel, kind: "destination", queuedAfter }),
     [folderItemCount, folderLabel, queuedAfter],
   );
 
@@ -229,6 +235,23 @@ export function useAutomationDialogOverlays({
             overwrite_candidates: draft.overwriteCandidates,
           }),
       },
+      comfyGenerate: {
+        ...shared("comfy_generate"),
+        scope: generateScope,
+        embedded,
+        onConfirm: (draft: ComfyGenerateSettings) =>
+          startJobFromDialog("comfy_generate", {
+            // A file's own workflow has no preset; its stem only names it in the dialog.
+            preset: embedded ? "" : draft.preset,
+            ...(embedded && { source: { path: embedded.mediaPath, node_id: embedded.nodeId } }),
+            seed: draft.seed,
+            prompt_text: draft.promptText,
+            inputs: draft.inputs,
+            count: draft.count,
+            name_prefix: draft.namePrefix,
+            caption_from_prompt: draft.captionFromPrompt,
+          }),
+      },
       resize: {
         ...shared("resize"),
         onConfirm: (
@@ -300,6 +323,8 @@ export function useAutomationDialogOverlays({
     stepScope,
     stepSettings,
     trainLoraScope,
+    generateScope,
+    embedded,
     snapshot,
   ]);
 
@@ -308,7 +333,7 @@ export function useAutomationDialogOverlays({
     (jobType: JobType, override?: DialogOpenOverride) => {
       if (!folderPath) return;
       const paths = override?.paths ?? getJobPaths?.();
-      if (!editingStep && jobType !== "train_lora" && paths?.length === 0) return;
+      if (!editingStep && !FOLDER_WIDE_JOBS.has(jobType) && paths?.length === 0) return;
       setSnapshot(
         snapshotBulkScope(override?.scope ?? { itemCount, folderLabel, kind: scopeKind }, paths),
       );
@@ -318,6 +343,7 @@ export function useAutomationDialogOverlays({
         if (folderRef.current !== folderPath || revision !== openRevisionRef.current) return;
         setSettings(loaded);
         setStepSettings(override?.initialSettings);
+        setEmbedded(override?.embedded);
         setOpenJobType(jobType);
       })();
     },

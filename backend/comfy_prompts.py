@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from comfy_computed import math_expression, math_expression_output, resolution_selector
 from comfy_editor_graph import EditorNode, flatten_editor_graph
+from comfy_embedded_generation import embedded_generation, generation_workflow
 from comfy_metadata import read_media_metadata_values
+from external.comfy_workflows import ComfyWorkflow, ComfyWorkflowError
 from media_dimensions import media_dimensions
 from schemas import ComfyMapNodeKind, ComfyMediaKind, ComfyPassStatus, ComfyPromptRole
 
@@ -145,6 +147,8 @@ class OutputBranch:
     #: Widths and heights the stage was set to render at, for telling same-named outputs apart.
     widths: frozenset[int] = frozenset()
     heights: frozenset[int] = frozenset()
+    #: The output as a runnable generation; None when it loads a source file or cannot parse.
+    generation: ComfyWorkflow | None = None
 
 
 @dataclass
@@ -623,16 +627,20 @@ def _branch_map(
     live: set[str],
     bypassed: set[str],
     prompts: list[PromptText],
+    *,
+    passless: bool = False,
 ) -> list[MapNode]:
     """The output's passes and what feeds them: models, LoRAs, CLIPs, VAEs, media and prompts.
 
     Each box links to the nearest boxes downstream. A prompt never blocks the walk, since its
     text often sits on a node that also takes the image or the model. A chain of LoRA loaders
     is one box, and so are twin loaders of one file, such as one per subgraph. Empty when
-    nothing on the branch samples.
+    nothing on the branch samples, unless ``passless``: a preset that only upscales still has
+    loaders worth drawing, and its models then feed the output directly.
     """
     boxes = {step: box for step in members if step != root and (box := _map_box(graph, step))}
-    if not any(kind == "pass" for kind, _, _ in boxes.values()):
+    has_pass = any(kind == "pass" for kind, _, _ in boxes.values())
+    if not has_pass and not passless:
         return []
     prompt_ids: dict[str, list[str]] = {}
     for prompt in prompts:
@@ -652,7 +660,8 @@ def _branch_map(
                 edges.update((prompt_id, target) for prompt_id in prompt_ids.get(source, []))
                 if source in boxes:
                     # A checkpoint's VAE reaches the decode before the output; that is no flow.
-                    if not (boxes[source][0] == "model" and target == root):
+                    # Without a pass the model is the flow, as in an upscale.
+                    if not has_pass or not (boxes[source][0] == "model" and target == root):
                         edges.add((source, target))
                     continue
                 queue.append(source)
@@ -1329,6 +1338,98 @@ def _empty() -> WorkflowPrompts:
     )
 
 
+def _output_branch(
+    graph: dict[str, dict],
+    full: dict[str, dict],
+    editor: dict[str, EditorNode],
+    node_id: str,
+    stages: tuple[set[str], set[str], set[str]],
+    subgraph_labels: dict[str, str],
+    *,
+    file_path: Path | None,
+    passless: bool = False,
+) -> OutputBranch:
+    """One output's prompts, settings and map. ``file_path`` is None for a graph no file holds."""
+    node = graph[node_id]
+    class_type = _node_class(node)
+    ancestry = _ancestors(graph, node_id)
+    live = _live_nodes(graph, node_id)
+    ran = [step for step in ancestry if step in live]
+    # Only the stage that made the file sets its size; an earlier stage has its own.
+    sized = [step for step in _stage_ancestors(graph, node_id, stages) if step in live]
+    prefix = _declared_name(graph, node, "filename_prefix")
+    filename = _declared_name(graph, node, "filename")
+    bypassed = _bypassed_on_path(graph, editor, node_id, set(ancestry))
+    shared, passes = _split_by_pass(full, ancestry, bypassed, live, editor, subgraph_labels)
+    prompts = _collect_prompts(graph, ran)
+    branch_map = _branch_map(
+        full,
+        editor,
+        node_id,
+        ancestry + bypassed,
+        live,
+        set(bypassed),
+        prompts,
+        passless=passless,
+    )
+    parameters, loras = _collect_parameters(graph, shared)
+
+    return OutputBranch(
+        node_id=node_id,
+        class_type=class_type,
+        label=_branch_label(node, ancestry, subgraph_labels),
+        filename_prefix=prefix,
+        filename=filename,
+        is_preview=_is_preview(graph, node),
+        matches_filename=file_path is not None
+        and _matches_filename(prefix, filename, file_path, class_type),
+        prompts=prompts,
+        parameters=parameters,
+        loras=loras,
+        stages=passes,
+        map=branch_map,
+        widths=_declared_sizes(graph, sized, "width"),
+        heights=_declared_sizes(graph, sized, "height"),
+    )
+
+
+#: How a preset's map names the boxes DataForge fills in on every run.
+SOURCE_BOX_LABEL = "Each source file"
+SOURCE_BOX_DETAIL = "DataForge loads each file the job runs on here."
+PROMPT_BOX_DETAIL = "DataForge writes the dialog's prompt here; empty runs this saved text."
+
+
+def extract_graph_branch(
+    graph: dict[str, dict],
+    output_node: str,
+    *,
+    source_node: str | None = None,
+    prompt_node: str | None = None,
+) -> OutputBranch | None:
+    """One output of an API-format graph no file holds, such as a preset, mapped even when
+    nothing on it samples. None when the node is not in the graph.
+
+    ``source_node`` and ``prompt_node`` are the nodes a run fills in: their boxes say so instead
+    of showing the placeholder file or text the preset was saved with as if it were used.
+    """
+    if output_node not in graph or not isinstance(graph[output_node], dict):
+        return None
+    stages = _generation_stages(graph, _output_nodes(graph) | {output_node})
+    branch = _output_branch(
+        graph, graph, {}, output_node, stages, {}, file_path=None, passless=True
+    )
+
+    def filled(box: MapNode) -> MapNode:
+        if source_node is not None and box.id == source_node:
+            return replace(box, label=SOURCE_BOX_LABEL, detail=[SOURCE_BOX_DETAIL])
+        if prompt_node is not None and box.id.startswith(f"prompt:{prompt_node}:"):
+            return replace(box, detail=[PROMPT_BOX_DETAIL, *box.detail])
+        return box
+
+    branch.map = [filled(box) for box in branch.map]
+    return branch
+
+
 def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
     values = _metadata_values(file_path)
     if not values:
@@ -1349,6 +1450,8 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
     if graph is None:
         return _empty()
 
+    # Generation runs what the file recorded, not the routes added here for reading it.
+    raw_graph = graph
     subgraph_labels = _subgraph_labels(workflow)
     graph = _with_virtual_routes(graph, workflow)
 
@@ -1363,53 +1466,18 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
         **graph,
     }
 
-    for node_id, node in graph.items():
-        class_type = _node_class(node)
+    for node_id in graph:
         if node_id not in outputs:
             continue
-
+        branch = _output_branch(
+            graph, full, editor, node_id, stages, subgraph_labels, file_path=file_path
+        )
+        branch.generation = embedded_generation(
+            raw_graph, node_id, _positive_prompt_nodes(branch), source=file_path.stem
+        )
         # The whole chain that made the file, earlier stages such as a reference image included.
-        ancestry = _ancestors(graph, node_id)
-        covered.update(ancestry)
-        live = _live_nodes(graph, node_id)
-        ran = [step for step in ancestry if step in live]
-        # Only the stage that made the file sets its size; an earlier stage has its own.
-        sized = [step for step in _stage_ancestors(graph, node_id, stages) if step in live]
-        prefix = _declared_name(graph, node, "filename_prefix")
-        filename = _declared_name(graph, node, "filename")
-        bypassed = _bypassed_on_path(graph, editor, node_id, set(ancestry))
-        shared, passes = _split_by_pass(full, ancestry, bypassed, live, editor, subgraph_labels)
-        prompts = _collect_prompts(graph, ran)
-        members = ancestry + bypassed
-        branch_map = _branch_map(
-            full,
-            editor,
-            node_id,
-            members,
-            live,
-            set(bypassed),
-            prompts,
-        )
-        parameters, loras = _collect_parameters(graph, shared)
-
-        branches.append(
-            OutputBranch(
-                node_id=node_id,
-                class_type=class_type,
-                label=_branch_label(node, ancestry, subgraph_labels),
-                filename_prefix=prefix,
-                filename=filename,
-                is_preview=_is_preview(graph, node),
-                matches_filename=_matches_filename(prefix, filename, file_path, class_type),
-                prompts=prompts,
-                parameters=parameters,
-                loras=loras,
-                stages=passes,
-                map=branch_map,
-                widths=_declared_sizes(graph, sized, "width"),
-                heights=_declared_sizes(graph, sized, "height"),
-            )
-        )
+        covered.update(_ancestors(graph, node_id))
+        branches.append(branch)
 
     # A temp file shares a saved file's name pattern, so a preview claims the file only when no
     # saving output does: then the file was copied out of the temp folder.
@@ -1430,4 +1498,37 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
         orphan_prompts=orphans,
         has_editor_workflow=_editor_workflow(values) is not None,
         matched_by_size=by_size is not None,
+    )
+
+
+def _positive_prompt_nodes(branch: OutputBranch) -> list[str]:
+    return [prompt.node_id for prompt in branch.prompts if prompt.role == "positive"]
+
+
+def load_embedded_generation(file_path: Path, node_id: str) -> ComfyWorkflow:
+    """One output of the file's workflow as a generation, or the reason it cannot be one."""
+    extracted = extract_workflow_prompts(file_path)
+    if not extracted.has_workflow:
+        raise ComfyWorkflowError(f"{file_path.name} carries no ComfyUI workflow.")
+    branch = next((entry for entry in extracted.branches if entry.node_id == node_id), None)
+    if branch is None:
+        raise ComfyWorkflowError(
+            f"The workflow in {file_path.name} has no output node {node_id}. Re-open its "
+            "workflow to pick another."
+        )
+    if branch.generation is not None:
+        return branch.generation
+
+    values = _metadata_values(file_path)
+    graph = next(
+        (
+            parsed
+            for key in ("prompt", "Prompt", "PROMPT")
+            if (parsed := _parse_graph(values.get(key, "")))
+        ),
+        None,
+    )
+    # Re-derived only to name the reason; extraction keeps None, not the error.
+    return generation_workflow(
+        graph or {}, node_id, _positive_prompt_nodes(branch), source=file_path.stem
     )

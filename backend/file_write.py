@@ -46,6 +46,21 @@ def write_bytes_atomic(destination: Path, data: bytes) -> None:
         os.replace(temporary, destination)
 
 
+def publish_new_file(temporary: Path, destination: Path) -> bool:
+    """Give ``temporary`` the name ``destination`` only while no file holds it; False if one does.
+
+    On POSIX the temporary name survives as a second link, so the caller still removes it.
+    """
+    try:
+        if os.name == "nt":
+            os.rename(temporary, destination)
+        else:
+            os.link(temporary, destination)
+    except FileExistsError:
+        return False
+    return True
+
+
 def copy_file_atomic(source: Path, destination: Path, *, overwrite: bool = True) -> bool:
     if not overwrite and destination.exists():
         return False
@@ -54,11 +69,5 @@ def copy_file_atomic(source: Path, destination: Path, *, overwrite: bool = True)
         if overwrite:
             os.replace(temporary, destination)
         else:
-            try:
-                if os.name == "nt":
-                    os.rename(temporary, destination)
-                else:
-                    os.link(temporary, destination)
-            except FileExistsError:
-                return False
+            return publish_new_file(temporary, destination)
     return True

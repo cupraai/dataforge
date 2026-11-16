@@ -45,6 +45,7 @@ function renderActions(
         hasCaptionBackup: true,
         ostrisAvailable: true,
         comfyPresetsAvailable: true,
+        comfyGeneratePresetsAvailable: true,
       },
       ...context,
     },
@@ -325,6 +326,7 @@ describe("Workspace tools", () => {
           hasCaptionBackup: false,
           ostrisAvailable: false,
           comfyPresetsAvailable: false,
+          comfyGeneratePresetsAvailable: false,
         },
       },
     );
@@ -367,6 +369,7 @@ describe("Workspace tools", () => {
           hasCaptionBackup: false,
           ostrisAvailable: false,
           comfyPresetsAvailable: false,
+          comfyGeneratePresetsAvailable: false,
         },
       },
     );

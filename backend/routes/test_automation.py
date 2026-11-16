@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import tempfile
 import unittest
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
@@ -150,6 +151,19 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             # The example preset has no prompt node; a non-empty prompt would be a 400.
             "prompt_text": "",
             "overwrite_candidates": True,
+        },
+    ),
+    # The shipped generation example is the fixture; it has no prompt node either.
+    "comfy_generate": (
+        "comfy-generate",
+        {
+            "preset": "example_solid_color",
+            "seed": 99,
+            "prompt_text": "",
+            "inputs": {"Color": 255},
+            "count": 3,
+            "name_prefix": "swatch",
+            "caption_from_prompt": True,
         },
     ),
     "auto_adjust": ("auto-adjust", {"replace_adjustments": True}),
@@ -713,6 +727,9 @@ class ComfyPresetsEndpointTests(unittest.TestCase):
         payload = response.json()
         self.assertIn("example_lanczos_2x", [preset["name"] for preset in payload["presets"]])
         self.assertTrue(payload["available"])
+        generates = {preset["name"]: preset["generates"] for preset in payload["presets"]}
+        self.assertIs(generates["example_lanczos_2x"], False)
+        self.assertIs(generates["example_solid_color"], True)
 
     def test_names_the_origin_it_probed(self) -> None:
         """A bare "not answering" cannot tell a stopped ComfyUI from a wrong port."""
@@ -729,6 +746,35 @@ class ComfyPresetsEndpointTests(unittest.TestCase):
 
                 self.assertEqual(payload["available"], available)
                 self.assertEqual(payload["base_url"], expected)
+
+
+class ComfyPresetMapEndpointTests(unittest.TestCase):
+    """The dialogs draw the selected preset before anything runs."""
+
+    def test_maps_a_shipped_preset_with_its_source_marked(self) -> None:
+        response = client.get("/api/automation/comfy-process/presets/example_lanczos_2x/map")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIsNone(payload["error"])
+        boxes = {node["kind"]: node for node in payload["branch"]["map"]}
+        self.assertEqual(boxes["input"]["label"], "Each source file")
+        self.assertEqual(boxes["input"]["feeds"], [boxes["output"]["id"]])
+
+    def test_a_broken_preset_answers_with_its_reason(self) -> None:
+        with tempfile.TemporaryDirectory() as presets:
+            Path(presets, "editor.json").write_text('{"nodes": [], "links": []}', encoding="utf-8")
+            with patch.dict(os.environ, {"COMFY_WORKFLOWS_DIR": presets}):
+                response = client.get("/api/automation/comfy-process/presets/editor/map")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["branch"])
+        self.assertIn("API-format", response.json()["error"])
+
+    def test_a_missing_preset_is_a_404(self) -> None:
+        response = client.get("/api/automation/comfy-process/presets/no-such-preset/map")
+
+        self.assertEqual(response.status_code, 404)
 
 
 class ComfyLogsEndpointTests(unittest.TestCase):
@@ -762,7 +808,10 @@ class JobSettingsPersistenceTests(unittest.TestCase):
         self.addCleanup(forget_preferences, AUTOMATION_SETTINGS_KEY_PREFIX)
 
     def test_the_table_covers_every_job_that_registers_settings(self) -> None:
-        self.assertLessEqual(set(JOB_SETTINGS_MODELS) | {"comfy_process"}, set(_NON_DEFAULT_STARTS))
+        self.assertLessEqual(
+            set(JOB_SETTINGS_MODELS) | {"comfy_process", "comfy_generate"},
+            set(_NON_DEFAULT_STARTS),
+        )
 
     def _run(self, job_type: str, folder: Path) -> dict:
         endpoint, body = _NON_DEFAULT_STARTS[job_type]
@@ -815,6 +864,30 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                             "seed": body["seed"],
                             "prompt_text": body["prompt_text"],
                             "inputs": {},
+                        }
+                    },
+                },
+            )
+
+    def test_comfy_generate_remembers_its_prompt_per_preset_and_its_output_per_folder_not_seed(
+        self,
+    ) -> None:
+        with TempMediaFolder() as root:
+            body = self._run("comfy_generate", root)
+
+            self.assertEqual(
+                _stored_settings(root)["comfy_generate"],
+                {
+                    "preset": body["preset"],
+                    "count": body["count"],
+                    "name_prefix": body["name_prefix"],
+                    "caption_from_prompt": body["caption_from_prompt"],
+                    "by_preset": {
+                        body["preset"]: {
+                            # A remembered seed would repeat the last images.
+                            "seed": None,
+                            "prompt_text": body["prompt_text"],
+                            "inputs": body["inputs"],
                         }
                     },
                 },

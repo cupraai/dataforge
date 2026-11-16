@@ -82,8 +82,15 @@ def load_fill_template(preset: FillPreset) -> FillTemplate:
         ) from error
 
     workflow = parse_comfy_workflow(raw, source=name)
-    if workflow.mask_node is None or workflow.prompt_node is None or not workflow.seed_nodes:
-        raise ComfyWorkflowError(f"The {name} fill template lacks its mask, prompt or seed node")
+    if (
+        workflow.generates
+        or workflow.mask_node is None
+        or workflow.prompt_node is None
+        or not workflow.seed_nodes
+    ):
+        raise ComfyWorkflowError(
+            f"The {name} fill template lacks its input, mask, prompt or seed node"
+        )
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
     return FillTemplate(preset=preset, workflow=workflow, identity=f"{name}@{digest}")
 

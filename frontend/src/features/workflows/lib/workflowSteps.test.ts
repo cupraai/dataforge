@@ -23,14 +23,16 @@ const rename: WorkflowStep = {
 };
 
 describe("workflow steps", () => {
-  it("uses the Tools groups with LoRA training excluded", () => {
+  it("uses the Tools groups with LoRA training and generation excluded", () => {
     expect(WORKFLOW_STEP_GROUPS).toEqual(
       JOB_GROUPS.map(({ label, types }) => ({
         label,
-        types: types.filter((type) => type !== "train_lora"),
+        types: types.filter((type) => type !== "train_lora" && type !== "comfy_generate"),
       })),
     );
     expect(isWorkflowJobType("train_lora")).toBe(false);
+    // What it makes lies outside the scope fixed for the steps after it.
+    expect(isWorkflowJobType("comfy_generate")).toBe(false);
   });
 
   it("stores a dialog's start body without the paths a run supplies", () => {

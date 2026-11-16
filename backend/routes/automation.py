@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import asdict
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
@@ -15,11 +16,13 @@ from automation.watermark import (
     watermark_image_path,
 )
 from automation_settings import remember_job_settings
+from comfy_prompts import extract_graph_branch
 from comfy_settings import get_comfy_base_url
 from external.comfy_client import probe_available, read_log_lines
 from external.comfy_workflows import (
     ComfyWorkflowError,
     list_comfy_presets,
+    parse_comfy_workflow,
     read_comfy_preset_text,
 )
 from external.ostris_training import (
@@ -36,8 +39,11 @@ from schemas import (
     BackupCaptionsStartRequest,
     BatchRenameStartRequest,
     CheckCaptionRulesStartRequest,
+    ComfyGenerateStartRequest,
     ComfyLogsResponse,
+    ComfyOutputBranch,
     ComfyPresetInput,
+    ComfyPresetMapResponse,
     ComfyPresetsResponse,
     ComfyPresetSummary,
     ComfyPresetTextResponse,
@@ -320,9 +326,16 @@ def start_comfy_process_job(
     return _start_job("comfy_process", path, body)
 
 
+@router.post("/automation/comfy-generate", response_model=JobResponse)
+def start_comfy_generate_job(
+    path: str = FOLDER_QUERY, body: ComfyGenerateStartRequest = ComfyGenerateStartRequest()
+) -> JobResponse:
+    return _start_job("comfy_generate", path, body)
+
+
 @router.get("/automation/comfy-process/presets", response_model=ComfyPresetsResponse)
 def list_comfy_process_presets() -> ComfyPresetsResponse:
-    """Every workflow preset on disk, and whether ComfyUI is answering right now."""
+    """Every workflow preset on disk, for both ComfyUI jobs, and whether ComfyUI is answering."""
     return ComfyPresetsResponse(
         presets=[
             ComfyPresetSummary(
@@ -334,6 +347,7 @@ def list_comfy_process_presets() -> ComfyPresetsResponse:
                     ComfyPresetInput(name=entry.name, kind=entry.kind, default=entry.default)
                     for entry in preset.custom_inputs
                 ],
+                generates=preset.generates,
             )
             for preset in list_comfy_presets()
         ],
@@ -359,6 +373,30 @@ def get_comfy_process_preset(name: str) -> ComfyPresetTextResponse:
         return ComfyPresetTextResponse(name=name, content=read_comfy_preset_text(name))
     except ComfyWorkflowError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/automation/comfy-process/presets/{name}/map", response_model=ComfyPresetMapResponse)
+def get_comfy_process_preset_map(name: str) -> ComfyPresetMapResponse:
+    """The preset's output, mapped like an embedded workflow; a broken preset says why."""
+    try:
+        raw = read_comfy_preset_text(name)
+    except ComfyWorkflowError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    try:
+        workflow = parse_comfy_workflow(raw, source=name)
+    except ComfyWorkflowError as exc:
+        return ComfyPresetMapResponse(name=name, error=str(exc))
+
+    branch = extract_graph_branch(
+        workflow.prompt,
+        workflow.output_node,
+        source_node=workflow.input_node,
+        prompt_node=workflow.prompt_node,
+    )
+    return ComfyPresetMapResponse(
+        name=name,
+        branch=None if branch is None else ComfyOutputBranch.model_validate(asdict(branch)),
+    )
 
 
 @router.post("/automation/train-lora", response_model=JobResponse)

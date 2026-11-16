@@ -257,7 +257,8 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
             : undefined
         }
         onRetryFailed={
-          actions?.onRetryFailed
+          // A failed generation has no file to retry on; starting the job again is the retry.
+          actions?.onRetryFailed && job.job_type !== "comfy_generate"
             ? (paths) => {
                 closeDrawer();
                 actions.onRetryFailed?.(job.job_type, paths);

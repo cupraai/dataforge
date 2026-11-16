@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-Run images or videos through ComfyUI workflows such as upscaling, restoration, or interpolation. DataForge stages each result for review, so processing never changes the source until you accept. ComfyUI also powers the image editor's [generative fill](#generative-fill). Install and run ComfyUI separately.
+Run images or videos through ComfyUI workflows such as upscaling, restoration, or interpolation. DataForge stages each result for review, so processing never changes the source until you accept. You can also [generate new media](#generate-media) into a folder, and ComfyUI powers the image editor's [generative fill](#generative-fill). Install and run ComfyUI separately.
 
 ## Connect ComfyUI
 
@@ -14,8 +14,8 @@ You can also set the connection in `.env`; environment changes need a restart, a
 | --- | --- | --- |
 | `COMFY_BASE_URL` | `http://127.0.0.1:9000` | HTTP(S) origin; also in Settings |
 | `COMFY_WORKFLOWS_DIR` | `comfy_workflows/` | Folder of API-format JSON presets |
-| `COMFY_IMAGE_TIMEOUT` | `900` | Seconds per image, and per generative fill; values below 30 or malformed values use the default |
-| `COMFY_VIDEO_TIMEOUT` | `7200` | Seconds per GIF or video; values below 60 or malformed values use the default |
+| `COMFY_IMAGE_TIMEOUT` | `900` | Seconds per image, per generation with an image saver, and per generative fill; values below 30 or malformed values use the default |
+| `COMFY_VIDEO_TIMEOUT` | `7200` | Seconds per GIF or video, and per generation with any other saver; values below 60 or malformed values use the default |
 
 The generative fill variables are listed under [Presets and settings](#presets-and-settings).
 
@@ -27,13 +27,15 @@ The processing menu appears whenever presets exist, even if ComfyUI is stopped; 
 
 The bundled [`example_lanczos_2x.json`](../comfy_workflows/example_lanczos_2x.json) resizes images 2× with core nodes and needs no model downloads. To try review without a run, open [`sample_media/`](../sample_media/) and choose **Review candidates**.
 
+The bundled [`example_solid_color.json`](../comfy_workflows/example_solid_color.json) tries [generation](#generate-media) the same way: it writes a 512 × 512 solid-color image, with **Color** and **Batch size** fields.
+
 ## Run a folder
 
 1. Open the dataset itself, not its `staging/` folder.
 2. Select files, or search and filter, to limit the run; otherwise it covers the whole folder. See [job scope](user-guide.md#scope).
-3. Choose **Edit with ComfyUI** and a preset that suits those files.
-4. Optionally enter **Prompt**, **Seed**, or the preset's [custom inputs](#custom-inputs). Each field is enabled only when the workflow has the matching titled node.
-5. Choose whether to overwrite previously staged results, then start.
+3. Choose **Edit with ComfyUI**, then a preset from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs.
+4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Workflow inputs**. Each field is enabled only when the workflow has the matching titled node.
+5. Under **Output**, choose whether to overwrite previously staged results, then start.
 
 DataForge uploads one file at a time and stages the workflow's output with a `.comfy.json` run record.
 
@@ -43,6 +45,36 @@ DataForge uploads one file at a time and stages the workflow's output with a `.c
 - The workflow decides which inputs it supports. An unsupported or failed file is reported, and processing continues.
 
 The panel shows ComfyUI's console, including output from other work on that server. Cancelling removes the queued prompt or interrupts the running one; results already staged remain.
+
+## Generate media
+
+**Generate with ComfyUI** runs a generation preset a number of times and adds what it makes to the open folder as new files. It reads no files, so search, filters, and selection do not apply, and it runs in an empty folder too.
+
+1. Open the folder the new files should go to. A `staging/` folder is refused.
+2. Choose **Generate with ComfyUI** and a preset from **Workflow presets**. Only [generation presets](#edit-and-generation-presets) are listed, and the [workflow map](#the-workflow-map) shows what the selected one runs.
+3. Optionally enter **Prompt**, **Seed**, and the preset's [custom inputs](#custom-inputs).
+4. Under **Output**, set **Generations**, how many times the workflow runs, and optionally a **File name prefix**.
+5. Optionally turn on **Save as caption** beside **Prompt**, then start.
+
+Files are named `<prefix>_0001.png` onwards, in the format the workflow produces. The prefix is the preset's name unless you enter one. Numbering continues after the highest number the prefix already uses in the folder, counting captions and other related files, so a re-run adds to the series. A file is never replaced: if a name is taken while a result downloads, the next free number is used. A workflow that saves a batch writes one file per image, all from one generation.
+
+- **Seed.** Leave it empty for a new random seed per generation. A number seeds the first generation and counts up for each one after, so running the same settings again repeats the images. The seed goes to the **DataForge Seed** node, or, when a generation preset has none, to every sampler that holds its own `seed` or `noise_seed`. A preset with neither repeats the same settings each time. Each file's row in the Jobs drawer names its seed.
+- **Prompt.** An empty field runs the prompt saved in the preset. The caption option saves the prompt the run used, typed or saved, as each file's `.txt` caption. It is unavailable for presets without a **DataForge Prompt** node.
+- **What is kept.** The file is saved exactly as ComfyUI wrote it, including its embedded workflow, so the [ComfyUI badge](#inspect-embedded-workflows) can show how it was made. It must decode before it gets a name in the folder; video validation needs ffmpeg.
+- **Failures.** A generation that fails is reported and the rest continue. Files a failed batch already wrote are kept. Cancelling stops after the current generation is interrupted or removed from ComfyUI's queue.
+
+Generation shares one queue with processing and fills, so it never runs at the same time as them. It cannot be a [workflow](user-guide.md#workflows) step, because the steps after it run on a scope fixed before its files exist.
+
+## The workflow map
+
+Both dialogs draw the selected preset between the preset list and its settings, in the same style as the [embedded workflow map](#inspect-embedded-workflows): the models, CLIPs, VAEs, LoRAs, prompts and input media that feed each sampling pass, and the output. Hover a box for its details and connections.
+
+- The box DataForge loads each source file into reads **Each source file**, not the placeholder file the preset was saved with.
+- The prompt box shows the preset's saved text; its details note that a prompt you enter replaces it.
+- A preset without a sampler shows its loaders feeding the output directly. One that loads nothing shows only the output.
+- A preset that cannot be parsed shows the reason instead of a map, so you can fix it before starting.
+
+The dot at the top right says **ComfyUI ready** when ComfyUI answered as the dialog opened. If it did not, a warning names the address that was tried. The job can still start; ComfyUI only has to be running when the first file or generation is sent.
 
 ## Review candidates
 
@@ -84,13 +116,19 @@ The difference score is the percentage of bits that differ in a perceptual hash,
 1. Build a workflow in ComfyUI and test it on one file.
 2. Export it with **Save (API Format)**. A regular workflow save is not accepted.
 3. Put the `.json` file in `comfy_workflows/`, or the folder set by `COMFY_WORKFLOWS_DIR`.
-4. Reopen **Edit with ComfyUI** to load it.
+4. Reopen **Edit with ComfyUI** or **Generate with ComfyUI** to load it.
 
-The file name becomes the preset name: `upscale-2x.json` appears as `upscale-2x`. Git tracks only the bundled example; your presets in the default folder are ignored.
+The file name becomes the preset name: `upscale-2x.json` appears as `upscale-2x`. Git tracks only the bundled examples; your presets in the default folder are ignored.
+
+### Edit and generation presets
+
+One folder holds both kinds. A preset with a source loader, a node titled `DataForge Input` or any `LoadImage` or `VHS_LoadVideo` node, is an edit preset and lists under **Edit with ComfyUI**. A preset without one is a generation preset and lists under **Generate with ComfyUI**. A preset that cannot be parsed lists under both, so starting it names the fix.
+
+A generation preset that loads a fixed reference image, for example for a ControlNet, must load it with a node other than `LoadImage` or `VHS_LoadVideo`, or it counts as an edit preset.
 
 ### Input and output nodes
 
-A workflow with one loader and one saver works without titles: `LoadImage`/`SaveImage` for images, or `VHS_LoadVideo`/`VHS_VideoCombine` for video. If there is more than one candidate, give these **node titles** (not node types):
+Generation presets need only the output node. A workflow with one loader and one saver works without titles: `LoadImage`/`SaveImage` for images, or `VHS_LoadVideo`/`VHS_VideoCombine` for video. If there is more than one candidate, give these **node titles** (not node types):
 
 | Node title | Node | Input DataForge changes |
 | --- | --- | --- |
@@ -201,7 +239,7 @@ An output whose file name matches is marked **Likely output**. This is only a hi
 
 ## Troubleshooting
 
-**Preset missing.** Check the preset folder and the `.json` extension. Export in API format, then reopen the dialog.
+**Preset missing.** Check the preset folder and the `.json` extension. Export in API format, then reopen the dialog. A preset with a source loader lists only under **Edit with ComfyUI**, and one without only under **Generate with ComfyUI**; see [Edit and generation presets](#edit-and-generation-presets).
 
 **ComfyUI unavailable.** Start it, check its origin in Settings, and test the connection before saving.
 

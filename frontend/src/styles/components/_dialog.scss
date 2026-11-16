@@ -287,7 +287,6 @@
   .auto-caption-dialog,
   .backup-captions-dialog,
   .batch-rename-dialog,
-  .comfy-process-dialog,
   .create-folder-dialog,
   .edit-captions-dialog,
   .filter-ranges-dialog,
@@ -989,14 +988,305 @@
   }
 }
 
-.comfy-process-dialog {
+// Both ComfyUI dialogs take the workflow editor's footprint and its three-column shape: the
+// presets down the side, the selected one's map in the middle, the values it takes on the right.
+.dialog__panel:is(.comfy-process-dialog, .comfy-generate-dialog) {
+  display: flex;
+  flex-direction: column;
+  width: min($dialog-width-full, 100%);
+  height: $dialog-height-full;
+  max-height: none;
+  overflow: hidden;
+
+  // Stacked on a phone-sized window, the one case where the panel itself may scroll.
+  @media (max-width: 44rem) {
+    height: auto;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+.comfy-preset-layout {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 16rem minmax(0, 1fr) 25rem;
+  grid-template-areas: "presets map form";
+  gap: 1rem;
+  min-height: 0;
+  margin-top: 1rem;
+
+  @media (max-width: 72rem) {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "presets form"
+      "map form";
+  }
+
+  @media (max-width: 44rem) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      "presets"
+      "form"
+      "map";
+  }
+
+  &__heading {
+    @include section-label;
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+  }
+
+  // A framed pane like the map's, so the list reads as the thing being chosen from.
+  &__presets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    grid-area: presets;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.875rem 0.5rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-card) 55%, transparent);
+
+    > :not(.comfy-preset-list) {
+      margin: 0;
+      padding: 0 0.375rem;
+    }
+
+    @media (max-width: 72rem) {
+      max-height: 13rem;
+    }
+  }
+
+  // Never sets the row height: the map scrolls inside whatever height the grid gives it.
+  &__preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    grid-area: map;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-card) 55%, transparent);
+
+    @media (max-width: 44rem) {
+      min-height: 20rem;
+    }
+  }
+
+  &__preview-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+  }
+
+  &__map {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__map-scroll {
+    @include app-scrollbar;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  // The prompt absorbs the column's spare height. Scrolling is a last resort for a preset with
+  // many inputs; the padding keeps the fields' focus rings clear of the clip.
+  &__form {
+    @include app-scrollbar;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    grid-area: form;
+    min-width: 0;
+    min-height: 0;
+    margin: -0.25rem;
+    padding: 0.25rem;
+    overflow-y: auto;
+
+    > *,
+    .comfy-preset-layout__section > * {
+      margin-top: 0;
+    }
+  }
+
+  &__prompt {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+
+    textarea {
+      flex: 1;
+      min-height: 5.5rem;
+      resize: none;
+    }
+  }
+
+  // Belongs to the prompt and seed, not a field of its own.
+  &__hint {
+    margin-top: -0.5rem;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0.875rem 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  // Floated so the legend sits inside the section like a heading, not on its border.
+  &__section-label {
+    @include section-label;
+    float: left;
+    width: 100%;
+    padding: 0;
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+
+    + * {
+      clear: both;
+    }
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+
+  &__status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--success);
+    box-shadow: 0 0 0 3px var(--success-soft);
+  }
+
+  &__status--offline {
+    flex-basis: 100%;
+    align-items: flex-start;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--warning-border);
+    border-radius: var(--radius-sm);
+    background: var(--warning-soft);
+    color: var(--text);
+    line-height: 1.45;
+  }
+
+  &__status-icon {
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+    color: var(--warning);
+    @include icon-size(var(--icon-size-sm));
+  }
+
+  [type="number"] {
+    @include tabular-nums;
+    text-align: right;
+  }
+
+  // Left of the footer's buttons, which stay where they are.
+  &__error {
+    flex: 1;
+    align-self: center;
+    margin: 0;
+  }
+}
+
+// Rows like the workflow editor's saved-workflow list, backed by native radios.
+.comfy-preset-list {
+  @include app-scrollbar;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  &__item {
+    @include control-interactive;
+    position: relative;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+
+    &:hover {
+      @include fade-bg(var(--surface-hover));
+      color: var(--text);
+    }
+
+    &--current,
+    &--current:hover {
+      @include fade-bg(var(--accent-soft));
+      border-color: var(--accent-border);
+      color: var(--text);
+    }
+
+    &:has(:focus-visible) {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    &:has(:disabled) {
+      @include disabled-state;
+    }
+  }
+
+  &__radio {
+    @include visually-hidden;
+  }
+
+  &__name {
+    @include truncate;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+  }
+
+  &__meta {
+    color: var(--text-subtle);
+    font-size: var(--text-2xs);
+  }
+
+  &__meta--problem {
+    color: var(--warning);
+  }
+}
+
+.comfy-preset-fields {
   // Holds roughly the preset-group height so the panel does not jump when presets arrive.
   &__loading {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.4375rem;
-    min-height: 5rem;
+    min-height: 3.75rem;
     margin: 0;
     color: var(--text-muted);
     font-size: var(--text-sm);
@@ -1007,12 +1297,7 @@
     @include icon-size(var(--icon-size-base));
   }
 
-  // Seed column is sized to its digits so the prompt keeps everything left over.
-  &__row {
-    grid-template-columns: 1fr 6rem;
-  }
-
-  // Custom inputs pack three to a row; text takes a whole row like the prompt.
+  // The seed and custom inputs pack three to a row; text takes a whole row like the prompt.
   &__inputs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1020,10 +1305,35 @@
   &__cell--wide {
     grid-column: 1 / -1;
   }
+}
 
-  [type="number"] {
-    @include tabular-nums;
-    text-align: right;
+.comfy-preset-map {
+  &__skeleton {
+    flex-shrink: 0;
+    height: 12rem;
+    border-radius: var(--radius-sm);
+    @include skeleton-shimmer;
+  }
+
+  &__message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
+  &__message--problem {
+    color: var(--warning);
+  }
+}
+
+.comfy-generate-dialog {
+  &__output {
+    grid-template-columns: 7rem minmax(0, 1fr);
+  }
+
+  // Sits in the Prompt label row, so it reads at the label's size.
+  &__caption .checkbox__label {
+    font-size: var(--text-xs);
   }
 }
 

@@ -30,6 +30,7 @@ export interface JobAvailability {
   hasCaptionBackup: boolean;
   ostrisAvailable: boolean;
   comfyPresetsAvailable: boolean;
+  comfyGeneratePresetsAvailable: boolean;
 }
 
 /**
@@ -185,6 +186,17 @@ export const JOB_TYPE_META = {
     menuDescription: "Bring captions back from the .backup folder.",
     requires: { flag: "hasCaptionBackup", reason: "No caption backup in this folder." },
   },
+  comfy_generate: {
+    type: "comfy_generate" as const,
+    group: "integrations" as const,
+    icon: iconComfyUi,
+    startUi: "dialog" as const,
+    menuDescription: "Make new images or videos in this folder with a ComfyUI workflow.",
+    requires: {
+      flag: "comfyGeneratePresetsAvailable",
+      reason: "No ComfyUI generation presets are available. Add one to the presets folder.",
+    },
+  },
   comfy_process: {
     type: "comfy_process" as const,
     group: "integrations" as const,
@@ -263,7 +275,13 @@ export interface JobStartBlock {
 export function jobStartBlock(type: JobType, context: JobStartContext): JobStartBlock {
   const requirement = jobTypeMeta(type).requires;
   const reason = requirement && !context.availability[requirement.flag] ? requirement.reason : null;
-  const emptyScope = type === "train_lora" ? context.folderCount === 0 : context.itemCount === 0;
+  // Generation reads no files, so even an empty folder can take it.
+  const emptyScope =
+    type === "comfy_generate"
+      ? false
+      : type === "train_lora"
+        ? context.folderCount === 0
+        : context.itemCount === 0;
   return {
     blocked: !context.hasFolder || context.starting || emptyScope || reason !== null,
     reason,

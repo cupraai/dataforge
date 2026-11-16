@@ -48,7 +48,7 @@ export function useAppWorkspace() {
   const mainRef = useRef<HTMLElement>(null);
   const selection = useGallerySelection();
   const { ostrisAvailable } = useJobs();
-  const comfyPresetsAvailable = useComfyPresetsAvailable();
+  const comfyPresets = useComfyPresetsAvailable();
 
   const {
     folder,
@@ -306,7 +306,8 @@ export function useAppWorkspace() {
     syspromptApplies: folder?.sysprompt_applies ?? false,
     hasCaptionBackup: folder?.has_caption_backup ?? false,
     ostrisAvailable,
-    comfyPresetsAvailable,
+    comfyPresetsAvailable: comfyPresets.edit,
+    comfyGeneratePresetsAvailable: comfyPresets.generate,
     getJobPaths: gallery.getJobPaths,
     jobScopeKind: gallery.jobScopeKind,
     requestTransition,

@@ -149,6 +149,7 @@ export function AppOverlays({
           onResolveIssue={gallery.onResolveIssue}
           onReviewCandidate={gallery.onReviewCandidate}
           onResolveDuplicate={gallery.onResolveDuplicate}
+          onGenerateFromWorkflow={gallery.onGenerateFromWorkflow}
           selected={selectedPaths.has(gallery.selectedPath)}
           onToggleSelect={toggleSelectedPath}
         />

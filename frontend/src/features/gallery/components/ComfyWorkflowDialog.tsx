@@ -1,11 +1,12 @@
 import { Button } from "@/shared/ui/Button";
 import { useMemo, useState, type ReactNode } from "react";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { fetchComfyEditorWorkflow } from "@/features/gallery/api/captions";
 import { ComfyWorkflowMap } from "@/features/gallery/components/ComfyWorkflowMap";
-import { PASS_NOT_RUN, splitLora } from "@/features/gallery/lib/comfyWorkflow";
+import { branchPassInfo, PASS_NOT_RUN, splitLora } from "@/features/gallery/lib/comfyWorkflow";
 import { useComfyWorkflowPrompts } from "@/features/gallery/hooks/useComfyWorkflowPrompts";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
-import { iconCopy, iconLoader2 } from "@/shared/icons";
+import { iconComfyUi, iconCopy, iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import type { ComfyOutputBranch, ComfyParameter } from "@/shared/types";
 import { Dialog } from "@/shared/ui/Dialog";
@@ -17,6 +18,8 @@ interface ComfyWorkflowDialogProps {
   mediaPath: string;
   mediaName: string;
   onClose: () => void;
+  /** Offered for an output that runs without a source file; this dialog closes first. */
+  onGenerate?: (workflow: EmbeddedGenerateWorkflow) => void;
 }
 
 const LIKELY_OUTPUT_LABEL = "Likely output — matched by filename";
@@ -290,6 +293,7 @@ function BranchDetails({
   onlyOutput,
   mediaPath,
   canCopyWorkflow,
+  onGenerate,
 }: {
   branch: ComfyOutputBranch;
   matchedNodeId: string | null | undefined;
@@ -297,31 +301,29 @@ function BranchDetails({
   onlyOutput: boolean;
   mediaPath: string;
   canCopyWorkflow: boolean;
+  /** Set only when this output can run as a generation. */
+  onGenerate?: () => void;
 }) {
   // Filled by the sections' ref callbacks; stable for the dialog's lifetime.
   const [sections] = useState(() => new Map<string, HTMLElement>());
-  // Numbered as their sections are; a single pass has no section and is simply pass 1.
-  const passNumbers = useMemo(() => {
-    const passes =
-      branch.stages.length > 0
-        ? branch.stages.map((stage) => stage.node_id)
-        : branch.map.filter((node) => node.kind === "pass").map((node) => node.id);
-    return new Map(passes.map((nodeId, index) => [nodeId, index + 1]));
-  }, [branch]);
-  // A single pass owns every setting on the branch; otherwise each pass has its own.
-  const passSettings = useMemo(
-    () =>
-      branch.stages.length > 0
-        ? new Map(branch.stages.map((stage) => [stage.node_id, stage.parameters]))
-        : new Map([...passNumbers.keys()].map((nodeId) => [nodeId, branch.parameters])),
-    [branch, passNumbers],
-  );
+  const { passNumbers, passSettings } = useMemo(() => branchPassInfo(branch), [branch]);
 
   return (
     <div className="dialog__field comfy-workflow-dialog__details-field">
       <div className="dialog__label">
         Details
-        {canCopyWorkflow && <CopyWorkflowButton mediaPath={mediaPath} nodeId={branch.node_id} />}
+        {(canCopyWorkflow || onGenerate) && (
+          <span className="comfy-workflow-dialog__details-actions">
+            {onGenerate && (
+              <Button icon={iconComfyUi} size="xs" onClick={onGenerate}>
+                Generate with this workflow...
+              </Button>
+            )}
+            {canCopyWorkflow && (
+              <CopyWorkflowButton mediaPath={mediaPath} nodeId={branch.node_id} />
+            )}
+          </span>
+        )}
       </div>
 
       <div className="comfy-workflow-dialog__details" role="group" aria-label="Details">
@@ -445,7 +447,12 @@ function DetailsSkeleton() {
   );
 }
 
-export function ComfyWorkflowDialog({ mediaPath, mediaName, onClose }: ComfyWorkflowDialogProps) {
+export function ComfyWorkflowDialog({
+  mediaPath,
+  mediaName,
+  onClose,
+  onGenerate,
+}: ComfyWorkflowDialogProps) {
   const { loading, error, data } = useComfyWorkflowPrompts(mediaPath, true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -472,6 +479,7 @@ export function ComfyWorkflowDialog({ mediaPath, mediaName, onClose }: ComfyWork
         ? "This file carries no ComfyUI workflow."
         : describe(branches, data?.matched_node_id, data?.matched_by_size === true, mediaName);
   const likelyLabel = data?.matched_by_size ? LIKELY_BY_SIZE_LABEL : LIKELY_OUTPUT_LABEL;
+  const generation = selected?.generation;
 
   return (
     <Dialog
@@ -504,6 +512,21 @@ export function ComfyWorkflowDialog({ mediaPath, mediaName, onClose }: ComfyWork
             onlyOutput={branches.length === 1}
             mediaPath={mediaPath}
             canCopyWorkflow={data?.has_editor_workflow === true}
+            onGenerate={
+              onGenerate && generation
+                ? () => {
+                    // Closed first: Generate opens as a dialog of its own, not over this one.
+                    onClose();
+                    onGenerate({
+                      mediaPath,
+                      mediaName,
+                      nodeId: selected.node_id,
+                      generation,
+                      branch: selected,
+                    });
+                  }
+                : undefined
+            }
           />
         </div>
       )}

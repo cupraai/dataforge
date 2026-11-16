@@ -4,6 +4,7 @@ import type { JobStartBodies, JobStartBody } from "@/shared/api/jobStartBodies";
 import type {
   AutoCaptionPreviewResponse,
   ComfyLogsResponse,
+  ComfyPresetMapResponse,
   ComfyPresetsResponse,
   Job,
   JobType,
@@ -98,6 +99,16 @@ export async function previewCaptionEdits(
 
 export async function fetchComfyPresets(signal?: AbortSignal): Promise<ComfyPresetsResponse> {
   return requestJson<ComfyPresetsResponse>("/api/automation/comfy-process/presets", { signal });
+}
+
+export async function fetchComfyPresetMap(
+  name: string,
+  signal?: AbortSignal,
+): Promise<ComfyPresetMapResponse> {
+  return requestJson<ComfyPresetMapResponse>(
+    `/api/automation/comfy-process/presets/${encodeURIComponent(name)}/map`,
+    { signal },
+  );
 }
 
 export async function fetchComfyLogs(signal?: AbortSignal): Promise<ComfyLogsResponse> {

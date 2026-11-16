@@ -14,15 +14,18 @@ from comfy_prompts import (
     read_editor_workflow,
 )
 from constants import COMFY_WORKFLOW_EXTENSIONS
+from external.comfy_workflows import ComfyWorkflow
 from routes._helpers import resolve_captioned_file, resolve_media_file
 from schemas import (
     CaptionBackupResponse,
     CaptionSaveResponse,
     CaptionUpdate,
     ComfyEditorWorkflowResponse,
+    ComfyEmbeddedGeneration,
     ComfyMapNode,
     ComfyOutputBranch,
     ComfyParameter,
+    ComfyPresetInput,
     ComfyPromptText,
     ComfySamplingStage,
     ComfyWorkflowPromptsResponse,
@@ -40,6 +43,20 @@ def _resolve_comfy_media(path: str) -> Path:
             detail="ComfyUI workflow metadata is only supported for PNG, MP4, MOV, and M4V files",
         )
     return file_path
+
+
+def _generation(workflow: ComfyWorkflow | None) -> ComfyEmbeddedGeneration | None:
+    if workflow is None:
+        return None
+    return ComfyEmbeddedGeneration(
+        accepts_prompt=workflow.prompt_node is not None,
+        accepts_seed=bool(workflow.seed_nodes),
+        inputs=[
+            ComfyPresetInput(name=entry.name, kind=entry.kind, default=entry.default)
+            for entry in workflow.custom_inputs
+        ],
+        prompt_text=workflow.saved_prompt_text,
+    )
 
 
 def _prompt_text(prompt: PromptText) -> ComfyPromptText:
@@ -129,6 +146,7 @@ def read_comfy_workflow_prompts(
                 loras=branch.loras,
                 stages=[_sampling_stage(stage) for stage in branch.stages],
                 map=[_map_node(node) for node in branch.map],
+                generation=_generation(branch.generation),
             )
             for branch in extracted.branches
         ],

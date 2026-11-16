@@ -12,6 +12,7 @@ import {
   type RefObject,
 } from "react";
 import type { WorkspaceAction, WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { readStored, writeStored } from "@/shared/lib/storage";
 import { InspectorPanel } from "@/shared/ui/InspectorPanel";
@@ -176,6 +177,8 @@ interface GalleryItemDialogProps {
   onResolveIssue?: (item: GalleryItem) => void;
   onReviewCandidate?: (item: GalleryItem) => void;
   onResolveDuplicate?: (item: GalleryItem) => void;
+  /** Offered in the ComfyUI workflow dialog for an output that can run as a generation. */
+  onGenerateFromWorkflow?: (workflow: EmbeddedGenerateWorkflow) => void;
   /** Whether the open item is in the gallery selection; X toggles it when this is given. */
   selected?: boolean;
   onToggleSelect?: (path: string) => void;
@@ -212,6 +215,7 @@ export function GalleryItemDialog({
   onResolveIssue,
   onReviewCandidate,
   onResolveDuplicate,
+  onGenerateFromWorkflow,
   selected = false,
   onToggleSelect,
   focusView = true,
@@ -1680,6 +1684,7 @@ export function GalleryItemDialog({
           mediaPath={item.path}
           mediaName={item.name}
           onClose={() => setComfyWorkflowOpen(false)}
+          onGenerate={onGenerateFromWorkflow}
         />
       )}
 

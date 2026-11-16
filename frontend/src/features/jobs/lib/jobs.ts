@@ -330,6 +330,7 @@ const TIMING_SPLITS: Partial<Record<JobType, TimingSplit>> = {
     slow: ["success", "comfy_error", "write_error"],
     fast: ["skipped", "read_error"],
   },
+  comfy_generate: { slow: ["success", "comfy_error", "write_error"], fast: [] },
   watermark: MEDIA_KIND_SPLIT,
   strip_metadata: MEDIA_KIND_SPLIT,
   auto_adjust: {

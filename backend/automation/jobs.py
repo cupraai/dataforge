@@ -35,6 +35,7 @@ from automation.check_caption_rules import (
     run_check_caption_rules_job,
     validate_check_caption_rules_folder,
 )
+from automation.comfy_generate import run_comfy_generate_job, validate_comfy_generate_folder
 from automation.comfy_process import run_comfy_process_job, validate_comfy_process_folder
 from automation.edit_captions import run_edit_captions_job, validate_edit_captions_folder
 from automation.find_duplicates import (
@@ -49,6 +50,7 @@ from automation.job_messages import (
     auto_caption_failure_message,
     backup_captions_error_message,
     check_caption_rules_error_message,
+    comfy_generate_error_message,
     comfy_process_error_message,
     edit_captions_failure_message,
     find_duplicates_error_message,
@@ -319,6 +321,22 @@ def _validate_comfy_process(folder: Path, **params: object) -> None:
     )
 
 
+def _validate_comfy_generate(folder: Path, **params: object) -> None:
+    validate_comfy_generate_folder(
+        folder,
+        preset=str(params.get("preset", "")),
+        prompt_text=str(params.get("prompt_text", "")),
+        inputs=_comfy_inputs(params),
+        name_prefix=str(params.get("name_prefix", "")),
+        source=_comfy_source(params),
+    )
+
+
+def _comfy_source(params: dict[str, object]) -> dict[str, object] | None:
+    source = params.get("source")
+    return source if isinstance(source, dict) else None
+
+
 def _train_lora_external_ref(params: dict[str, object]) -> str | None:
     return str(params.get("lora_name", "")).strip() or None
 
@@ -331,6 +349,14 @@ def _resume_train_lora(job: Job) -> dict[str, object] | None:
 
 def _comfy_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
     return str(params.get("preset", "")).strip() or None, False
+
+
+def _comfy_generate_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
+    """A file's own workflow is named by the file it came from."""
+    source = _comfy_source(params)
+    if source is not None:
+        return path_leaf_name(str(source.get("path", ""))) or None, False
+    return _comfy_workflow(params)
 
 
 def _train_lora_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
@@ -477,6 +503,13 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         validate=_validate_comfy_process,
         workflow=_comfy_workflow,
         # No resume: prompt ids are never persisted and ComfyUI history is bounded.
+    ),
+    "comfy_generate": JobSpec(
+        thread_prefix="comfy-generate",
+        run=run_comfy_generate_job,
+        failure_message=comfy_generate_error_message,
+        validate=_validate_comfy_generate,
+        workflow=_comfy_generate_workflow,
     ),
     "train_lora": JobSpec(
         thread_prefix="train-lora",

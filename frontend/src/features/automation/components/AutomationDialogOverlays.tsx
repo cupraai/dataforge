@@ -7,6 +7,7 @@ import { EditCaptionsDialog } from "./EditCaptionsDialog";
 import { FindDuplicatesDialog } from "./FindDuplicatesDialog";
 import { BatchRenameDialog } from "./BatchRenameDialog";
 import { CheckCaptionRulesDialog } from "./CheckCaptionRulesDialog";
+import { ComfyGenerateDialog } from "./ComfyGenerateDialog";
 import { ComfyProcessDialog } from "./ComfyProcessDialog";
 import { TrainLoraDialog } from "./TrainLoraDialog";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
@@ -37,6 +38,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     splitVideo,
     trimVideo,
     comfyProcess,
+    comfyGenerate,
     autoAdjust,
     checkCaptionRules,
     restoreCaptions,
@@ -157,6 +159,17 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           confirmLabel={watermark.confirmLabel}
           onConfirm={watermark.onConfirm}
           onCancel={watermark.onCancel}
+        />
+      )}
+
+      {comfyGenerate.open && comfyGenerate.initialSettings && (
+        <ComfyGenerateDialog
+          scope={comfyGenerate.scope}
+          initialSettings={comfyGenerate.initialSettings}
+          busy={comfyGenerate.busy}
+          embedded={comfyGenerate.embedded}
+          onConfirm={comfyGenerate.onConfirm}
+          onCancel={comfyGenerate.onCancel}
         />
       )}
 

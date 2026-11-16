@@ -190,6 +190,7 @@ export function ComfyWorkflowMap({
   passSettings,
   output,
   onSelect,
+  heading = "Workflow map",
 }: {
   map: ComfyMapNode[];
   /** 1-based numbers of the passes, matching their sections. */
@@ -199,6 +200,8 @@ export function ComfyWorkflowMap({
   /** What the output box's tooltip names it. */
   output: string;
   onSelect?: (nodeId: string) => void;
+  /** Null when the surrounding panel already names the map. */
+  heading?: string | null;
 }) {
   const baseId = useId().replace(/[^\w-]/g, "");
   const gridId = `workflow-map-grid-${baseId}`;
@@ -233,7 +236,7 @@ export function ComfyWorkflowMap({
 
   return (
     <div className="comfy-workflow-dialog__group">
-      <span className="comfy-workflow-dialog__group-label">Workflow map</span>
+      {heading && <span className="comfy-workflow-dialog__group-label">{heading}</span>}
       <div
         ref={mapRef}
         className={classNames(

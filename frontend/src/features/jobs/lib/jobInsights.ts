@@ -27,13 +27,13 @@ function plural(count: number, one: string, many = `${one}s`): string {
 }
 
 export function jobUnitWord(job: Job, count: number): string {
-  return job.job_type === "train_lora"
-    ? count === 1
-      ? "step"
-      : "steps"
-    : count === 1
-      ? "file"
-      : "files";
+  const [one, many] =
+    job.job_type === "train_lora"
+      ? ["step", "steps"]
+      : job.job_type === "comfy_generate"
+        ? ["generation", "generations"]
+        : ["file", "files"];
+  return count === 1 ? one : many;
 }
 
 /**
@@ -88,7 +88,7 @@ function formatRate(secondsPerUnit: number, unit: string): string {
   return `${Math.round(1 / secondsPerUnit)} ${unit}s/s`;
 }
 
-/** How fast the finished run went: training's own step speed, otherwise wall clock per file. */
+/** How fast the finished run went: training's own step speed, otherwise wall clock per unit. */
 export function jobThroughputLabel(job: Job): string | null {
   if (!isTerminalJobStatus(job.status)) return null;
 
@@ -99,7 +99,7 @@ export function jobThroughputLabel(job: Job): string | null {
 
   const elapsed = jobElapsedSeconds(job);
   if (elapsed === null || elapsed <= 0 || job.processed < 2) return null;
-  return formatRate(elapsed / job.processed, "file");
+  return formatRate(elapsed / job.processed, jobUnitWord(job, 1));
 }
 
 export interface JobWorkflow {
@@ -116,6 +116,7 @@ export function jobWorkflow(job: Job): JobWorkflow | null {
 
   switch (job.job_type) {
     case "comfy_process":
+    case "comfy_generate":
       return { kind: "Workflow", name: job.workflow, edited: false };
     case "train_lora":
       return {

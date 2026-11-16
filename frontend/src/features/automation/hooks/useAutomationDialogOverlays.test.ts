@@ -1,6 +1,7 @@
 import { act, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { JobType } from "@/shared/types";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import {
   emptyAutomationSettings,
   loadAutomationSettings,
@@ -217,6 +218,131 @@ describe("useAutomationDialogOverlays scope", () => {
       kind: "folder" as const,
     });
     expect(result.current.dialogs.trainLora.scope.note).toMatch(/whole folder/i);
+  });
+
+  it("names generation's destination and never sends the selection", async () => {
+    const startJob = vi
+      .fn<
+        (
+          jobType: JobType,
+          folder: string,
+          body?: JobStartBody,
+          paths?: string[],
+        ) => Promise<unknown>
+      >()
+      .mockResolvedValue({ id: "job-1" });
+    const { result } = renderHookWithQueryClient(() =>
+      useAutomationDialogOverlays({
+        folderPath: "C:Photos",
+        folderLabel: "Photos",
+        startingJobType: null,
+        // Filters that match nothing still leave a folder to generate into.
+        itemCount: 0,
+        folderItemCount: 0,
+        scopeKind: "visible",
+        startJob,
+        getJobPaths: () => [],
+      }),
+    );
+
+    await act(async () => result.current.openDialogForJobType("comfy_generate"));
+    expect(result.current.dialogs.comfyGenerate.open).toBe(true);
+    expect(result.current.dialogs.comfyGenerate.scope).toMatchObject({
+      kind: "destination",
+      folderLabel: "Photos",
+    });
+
+    await act(async () =>
+      result.current.dialogs.comfyGenerate.onConfirm({
+        preset: "txt2img",
+        seed: null,
+        promptText: "a lake",
+        inputs: { Steps: 8 },
+        count: 3,
+        namePrefix: "lake",
+        captionFromPrompt: true,
+      }),
+    );
+    expect(startJob).toHaveBeenCalledWith(
+      "comfy_generate",
+      "C:Photos",
+      {
+        preset: "txt2img",
+        seed: null,
+        prompt_text: "a lake",
+        inputs: { Steps: 8 },
+        count: 3,
+        name_prefix: "lake",
+        caption_from_prompt: true,
+      },
+      undefined,
+    );
+  });
+
+  it("runs a file's own workflow as the job's source, never as a preset", async () => {
+    const startJob = vi
+      .fn<
+        (
+          jobType: JobType,
+          folder: string,
+          body?: JobStartBody,
+          paths?: string[],
+        ) => Promise<unknown>
+      >()
+      .mockResolvedValue({ id: "job-1" });
+    const embedded: EmbeddedGenerateWorkflow = {
+      mediaPath: "C:Photos/render_.png",
+      mediaName: "render_.png",
+      nodeId: "9",
+      generation: { accepts_prompt: true, accepts_seed: true, inputs: [] },
+      branch: {
+        node_id: "9",
+        class_type: "SaveImage",
+        label: "Render",
+        is_preview: false,
+        matches_filename: true,
+        prompts: [],
+        parameters: [],
+        loras: [],
+        stages: [],
+        map: [],
+      },
+    };
+    const { result } = renderHookWithQueryClient(() =>
+      useAutomationDialogOverlays({
+        folderPath: "C:Photos",
+        folderLabel: "Photos",
+        startingJobType: null,
+        itemCount: 1,
+        folderItemCount: 1,
+        startJob,
+      }),
+    );
+
+    await act(async () => result.current.openDialogForJobType("comfy_generate", { embedded }));
+    expect(result.current.dialogs.comfyGenerate.embedded).toBe(embedded);
+
+    await act(async () =>
+      result.current.dialogs.comfyGenerate.onConfirm({
+        preset: "render_",
+        seed: null,
+        promptText: "",
+        inputs: {},
+        count: 1,
+        namePrefix: "",
+        captionFromPrompt: false,
+      }),
+    );
+    expect(startJob).toHaveBeenCalledWith(
+      "comfy_generate",
+      "C:Photos",
+      expect.objectContaining({
+        preset: "",
+        source: { path: "C:Photos/render_.png", node_id: "9" },
+      }),
+      undefined,
+    );
+    expect(result.current.dialogs.comfyGenerate.embedded).toBeUndefined();
   });
 
   it("always explains that search and filters do not narrow LoRA training", () => {
@@ -521,6 +647,7 @@ describe("useAutomationDialogOverlays saved settings", () => {
     ["resize", "resize"],
     ["splitVideo", "split_video"],
     ["trimVideo", "trim_video"],
+    ["comfyGenerate", "comfy_generate"],
   ] as const;
 
   it("hands every dialog its own block of this folder's settings", async () => {

@@ -54,6 +54,7 @@ from external.comfy_workflows import (
     ComfyWorkflowError,
     build_comfy_prompt,
     load_comfy_workflow,
+    require_source_input,
     resolve_custom_inputs,
 )
 from file_publish import publish_replacing
@@ -136,6 +137,7 @@ def validate_comfy_process_folder(
 
     try:
         workflow = load_comfy_workflow(preset)
+        require_source_input(workflow)
         resolve_custom_inputs(workflow, inputs or {})
     except ComfyWorkflowError as exc:
         # ValueError is a 400; ComfyWorkflowError would escape the route as a 500.
