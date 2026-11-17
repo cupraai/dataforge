@@ -73,7 +73,6 @@
     border-radius: var(--radius-xs) var(--radius-xs) 0 0;
     background: transparent;
     cursor: pointer;
-    @include focus-ring;
   }
 
   &__bar-fill {

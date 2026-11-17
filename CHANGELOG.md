@@ -18,6 +18,7 @@ version heading when a minor or major version is cut.
 
 ### Changed
 
+- Keyboard focus looks the same on every control: one accent ring drawn along the control's own edge, so it is no longer cut off at the edge of lists, menus and dialogs. Checkboxes, radio buttons, slider thumbs and handles get the ring a little way out from them instead.
 - The **Edit with ComfyUI** dialog now opens at the size of the Workflows editor, with every preset listed down the side along with what it takes, and the selected one drawn as a workflow map: the models, LoRAs, prompt and passes it runs, with the box for each source file marked. A preset that cannot be read says why there, and a dot shows whether ComfyUI answered.
 
 ### Fixed

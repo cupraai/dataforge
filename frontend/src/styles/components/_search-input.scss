@@ -13,7 +13,7 @@
   background: var(--bg-elevated);
   color: var(--text-subtle);
   @include icon-scope-sm;
-  @include input-focus("&:focus-within");
+  @include focus-ring-within;
 
   &:focus-within &__icon {
     color: var(--accent);
@@ -29,7 +29,6 @@
     height: 100%;
     padding: 0;
     border: 0;
-    outline: none;
     background: transparent;
     color: var(--text);
     font: inherit;
@@ -46,7 +45,8 @@
   }
 
   // The field draws the focus ring for everything inside it.
-  &__clear:focus-visible {
-    outline: none;
+  &__field,
+  &__clear {
+    @include focus-ring-none;
   }
 }

@@ -223,7 +223,6 @@ $hero-font-size: 3rem;
   }
 
   &__timeline-fill {
-    @include focus-ring;
     position: relative;
     display: block;
     height: 100%;
@@ -237,8 +236,10 @@ $hero-font-size: 3rem;
       color-mix(in srgb, var(--accent) 65%, var(--bg-elevated))
     );
 
+    // The ring takes the page colour: an accent one would vanish into the solid fill.
     &:hover,
     &:focus-visible {
+      --focus-ring-color: var(--bg);
       background: var(--accent);
     }
   }
@@ -517,6 +518,8 @@ $hero-font-size: 3rem;
     padding: 0.1875rem 0.25rem;
     margin: 0 -0.25rem;
     border-radius: var(--radius-sm);
+    // The label clips its overflow, so the row rings the bucket its button filters by.
+    @include focus-ring-within("&:has(.stats-dialog__bar-button:focus-visible)");
   }
 
   &__bar-label {
@@ -539,6 +542,7 @@ $hero-font-size: 3rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    @include focus-ring-none;
 
     &:hover {
       color: var(--text);

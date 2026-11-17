@@ -48,9 +48,7 @@
     line-height: var(--leading-snug);
 
     // The panel border already frames the field; a focus ring inside it would read as a second control.
-    &:focus {
-      outline: none;
-    }
+    @include focus-ring-none;
 
     &::placeholder {
       color: var(--text-subtle);

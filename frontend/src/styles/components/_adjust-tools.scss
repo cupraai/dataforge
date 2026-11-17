@@ -30,8 +30,8 @@ $adjust-tab-size: var(--control-height-sm);
     @container edit-panel (width < 56rem) {
       flex-basis: 100%;
     }
-    // Room for the tabs' inset focus ring and rings without clipping them at the scroll edge;
-    // the margin cancels it, so Adjust is no taller than the other tools.
+    // Room for the tabs' rings without clipping them at the scroll edge; the margin cancels it,
+    // so Adjust is no taller than the other tools.
     margin-block: -0.125rem;
     padding: 0.125rem;
     overflow-x: auto;
@@ -100,11 +100,6 @@ $adjust-tab-size: var(--control-height-sm);
     &:hover:not(:disabled) {
       @include fade-bg(var(--bg-elevated));
       color: var(--text);
-    }
-
-    // Inset: the strip scrolls and would crop a ring drawn outside the tab.
-    &:focus-visible {
-      outline-offset: -2px;
     }
 
     &[aria-selected="true"] {

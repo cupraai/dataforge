@@ -84,7 +84,7 @@ $sound-track-height: 2.5rem;
   }
 
   &__handle {
-    @include focus-ring;
+    @include focus-ring-detached;
     position: absolute;
     top: 50%;
     width: $handle-width;

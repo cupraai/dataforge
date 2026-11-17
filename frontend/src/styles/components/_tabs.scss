@@ -22,7 +22,6 @@
     white-space: nowrap;
     cursor: pointer;
     transition: color var(--transition);
-    @include focus-ring;
 
     &::after {
       content: "";

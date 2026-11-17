@@ -280,9 +280,13 @@
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  // Over the media, which would cover an outline; above the inspected ring on `::after`.
+  @include focus-ring-overlay(before, 4, $border: 1px);
+
+  @media (hover: hover) {
+    .card-cell:hover > .card-cell__tip > &:focus-visible {
+      border-color: var(--focus-ring-color, var(--focus-ring));
+    }
   }
 
   // Caption state reads as a line where the media meets the body; uncaptioned cards draw none.

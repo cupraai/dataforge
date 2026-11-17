@@ -432,6 +432,7 @@ def _check_steps(
         steps.append(
             Step("Transitions", [str(interpreter), str(SCRIPTS / "check_transitions.py")])
         )
+        steps.append(Step("Focus rings", [str(interpreter), str(SCRIPTS / "check_focus.py")]))
     steps.append(
         Step(
             "Comments",

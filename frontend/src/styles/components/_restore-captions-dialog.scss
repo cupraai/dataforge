@@ -78,10 +78,7 @@ $thumb-size: 6rem;
       color: var(--text);
     }
 
-    &:has(:focus-visible) {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
-    }
+    @include focus-ring-within;
 
     &--active,
     &--active:hover {

@@ -49,6 +49,9 @@
     }
   }
 
+  // Over the coverage bar, which would cover the bottom of an outline.
+  @include focus-ring-overlay(before, $border: 1px);
+
   &:disabled {
     @include disabled-state;
   }

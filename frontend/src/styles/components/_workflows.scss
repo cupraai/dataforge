@@ -79,11 +79,6 @@
       @include fade-bg(var(--accent-soft));
     }
 
-    &:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
-    }
-
     &:disabled {
       cursor: default;
     }
@@ -561,12 +556,6 @@
 
     &:hover {
       border-color: var(--border);
-    }
-
-    &:focus-visible {
-      border-color: var(--accent);
-      outline: none;
-      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
     &[aria-invalid="true"] {

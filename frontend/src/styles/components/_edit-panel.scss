@@ -86,7 +86,8 @@
     align-items: flex-end;
     min-width: 0;
     gap: 1.25rem;
-    // The padding keeps focus rings clear of the scroll clip; the margin cancels it in layout.
+    // The padding keeps slider thumbs' detached focus rings clear of the scroll clip; the
+    // margin cancels it in layout.
     margin: -0.125rem;
     padding: 0.125rem;
     overflow-x: auto;

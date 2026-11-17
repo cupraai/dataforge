@@ -515,7 +515,6 @@ $map-chip-font-size: 0.59375rem;
   // Native buttons: the passes, which open their section.
   button.comfy-workflow-dialog__map-node {
     cursor: pointer;
-    @include focus-ring;
 
     &:hover {
       border-color: var(--map-tone);

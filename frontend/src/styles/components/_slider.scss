@@ -70,17 +70,10 @@
     transform: scale(1.15);
   }
 
-  &:focus-visible {
-    outline: none;
-
-    &::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px var(--accent-border);
-    }
-
-    &::-moz-range-thumb {
-      box-shadow: 0 0 0 3px var(--accent-border);
-    }
-  }
+  // The thumb is the mark that moves, so it carries the ring.
+  @include focus-ring-none;
+  @include focus-ring-detached("&:focus-visible::-webkit-slider-thumb");
+  @include focus-ring-detached("&:focus-visible::-moz-range-thumb");
 
   &:disabled {
     @include disabled-state;

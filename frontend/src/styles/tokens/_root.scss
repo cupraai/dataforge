@@ -44,7 +44,6 @@
   --shimmer-mid: rgba(255, 255, 255, 0.07);
   --initial-loading-glow: rgba(124, 156, 255, 0.14);
   --caption-input-bg: rgba(0, 0, 0, 0.2);
-  --caption-focus: #60a5fa;
   --caption-saved: #4ade80;
   --caption-error: #f87171;
   --meta-badge: #fcd34d;
@@ -154,6 +153,9 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.3),
     0 24px 64px rgba(0, 0, 0, 0.5);
   --shadow-drawer: -12px 0 40px rgba(0, 0, 0, 0.35);
+  // One ring for keyboard focus; a component retunes it with `--focus-ring-color`.
+  --focus-ring: var(--accent);
+  --focus-ring-width: #{$focus-ring-width};
   --control-height: #{$control-height};
   --control-height-sm: #{$control-height-sm};
   --control-height-xs: #{$control-height-xs};

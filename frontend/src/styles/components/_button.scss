@@ -18,7 +18,9 @@
   @include fade-bg(var(--#{$tone}-soft));
   color: var(--#{$tone});
 
+  // The ring takes the label's colour on the solid fill, where its own tone would vanish.
   &:hover:not(:disabled) {
+    --focus-ring-color: var(--bg);
     @include fade-bg(var(--#{$tone}));
     color: var(--bg);
     border-color: var(--#{$tone});

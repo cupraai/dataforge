@@ -48,10 +48,7 @@
       color: var(--text);
     }
 
-    &:has(:focus-visible) {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
-    }
+    @include focus-ring-within;
 
     // No weight change: a bolder label is wider, and would push every option after it.
     &:has(:checked),

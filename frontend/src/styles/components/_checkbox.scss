@@ -31,10 +31,7 @@
     @include custom-checkbox-box-checked;
   }
 
-  &__input:focus-visible + &__box {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+  @include focus-ring-detached("&__input:focus-visible + &__box");
 
   &__input:disabled + &__box {
     @include disabled-state;

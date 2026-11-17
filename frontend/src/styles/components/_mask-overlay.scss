@@ -46,7 +46,6 @@ $remove-size: 1.125rem;
   }
 
   &__surface {
-    @include focus-ring;
     position: absolute;
     inset: 0;
     padding: 0;
@@ -80,7 +79,7 @@ $remove-size: 1.125rem;
   }
 
   &__remove {
-    @include focus-ring;
+    @include focus-ring-detached;
     @include inline-flex-center;
     position: absolute;
     // Centred like the readout; the transform carries it to the on-screen top-right.
@@ -107,7 +106,7 @@ $remove-size: 1.125rem;
   }
 
   &__handle {
-    @include focus-ring;
+    @include focus-ring-detached;
     position: absolute;
     width: $handle-size;
     height: $handle-size;

@@ -62,20 +62,16 @@
     opacity: 0.65;
   }
 
-  &:focus-within:not(.code-editor--saved):not(.code-editor--error)::after {
-    box-shadow: inset 0 0 0 1px var(--caption-focus);
+  // Save state tints the frame at rest and the focus ring.
+  &--saved {
+    --focus-ring-color: var(--caption-saved);
   }
 
-  &--saved::after,
-  &--saved:focus-within::after {
-    box-shadow: inset 0 0 0 1px var(--caption-saved);
+  &--error {
+    --focus-ring-color: var(--caption-error);
   }
 
-  &--error::after,
-  &--error:focus-within::after {
-    box-shadow: inset 0 0 0 1px var(--caption-error);
-  }
-
+  // A frame over the editor, whose opaque background would cover the wrapper's own outline.
   &::after {
     content: "";
     position: absolute;
@@ -83,6 +79,13 @@
     z-index: 2;
     pointer-events: none;
   }
+
+  &--saved::after,
+  &--error::after {
+    box-shadow: inset 0 0 0 1px var(--focus-ring-color);
+  }
+
+  @include focus-ring-overlay(after, 2, "&:focus-within");
 
   &__codemirror {
     height: 100%;
@@ -98,8 +101,10 @@
     color: var(--code-text);
   }
 
-  .cm-editor.cm-focused {
-    outline: none;
+  // The frame draws the ring for the whole editor.
+  .cm-editor.cm-focused,
+  .cm-content {
+    @include focus-ring-none("&");
   }
 
   // Keep the Ctrl+F panel inside the editor chrome (parent is overflow: hidden).
@@ -311,10 +316,7 @@
         opacity: 1;
       }
 
-      &:has(input:focus-visible)::before {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
+      @include focus-ring-detached("&:has(input:focus-visible)::before");
 
       &:hover:has(input:not(:disabled))::before {
         border-color: var(--accent-border);
@@ -405,17 +407,14 @@
       border-left-color: var(--text);
     }
 
-    &:focus-within:not(.code-editor--saved):not(.code-editor--error) {
-      border-color: var(--accent);
-    }
+    // Its editor is transparent, so the wrapper's own ring shows through.
+    @include focus-ring-within("&:focus-within");
 
-    &.code-editor--saved,
-    &.code-editor--saved:focus-within {
+    &.code-editor--saved {
       border-color: var(--caption-saved);
     }
 
-    &.code-editor--error,
-    &.code-editor--error:focus-within {
+    &.code-editor--error {
       border-color: var(--caption-error);
     }
   }

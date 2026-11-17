@@ -132,11 +132,8 @@ $toolbar-search-width-max: 22rem;
     // After --filtering and hover/focus so the error wins over both.
     &--invalid,
     &--invalid:hover:not(:disabled) {
+      --focus-ring-color: var(--danger);
       border-color: var(--danger-border);
-    }
-
-    &--invalid:focus-within {
-      outline-color: var(--danger);
     }
 
     &--invalid &-icon,
@@ -180,11 +177,6 @@ $toolbar-search-width-max: 22rem;
       color: var(--text);
       font-size: var(--text-sm);
       line-height: 1;
-      outline: none;
-
-      &:focus-visible {
-        outline: none;
-      }
 
       &::placeholder {
         color: var(--text-subtle);
@@ -196,8 +188,9 @@ $toolbar-search-width-max: 22rem;
     }
 
     // The field draws the focus ring for everything inside it.
-    &-button:focus-visible {
-      outline: none;
+    &-input,
+    &-button {
+      @include focus-ring-none;
     }
   }
 
@@ -319,7 +312,7 @@ $toolbar-search-width-max: 22rem;
     background: none;
     font-family: inherit;
     cursor: pointer;
-    @include focus-ring;
+    @include focus-ring-detached;
 
     &:hover {
       .stat__icon {

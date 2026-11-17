@@ -10,8 +10,8 @@
   padding: 0 0.75rem 0 0.625rem;
   cursor: pointer;
 
-  // The mixin's :focus/:disabled cannot fire on a wrapper.
-  @include input-focus("&:focus-within");
+  // The ring sits on the wrap, round the arrow too.
+  @include focus-ring-within;
 
   &:has(select:disabled) {
     @include disabled-state;
@@ -45,7 +45,7 @@
     font-family: inherit;
     font-size: inherit;
     cursor: pointer;
-    outline: none;
+    @include focus-ring-none;
 
     &:disabled {
       cursor: not-allowed;

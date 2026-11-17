@@ -4,9 +4,11 @@
 .comfy-process-log {
   @include job-panel-card;
 
+  // Bleeds into the panel gutter, so the focus ring clears the chevron and the text keeps its line.
   &__toggle {
-    width: 100%;
-    padding: 0.25rem 0;
+    width: calc(100% + 0.75rem);
+    margin-inline: -0.375rem;
+    padding: 0.25rem 0.375rem;
   }
 
   &__panel {

@@ -29,9 +29,8 @@
     @include app-scrollbar;
     display: flex;
     gap: 0.5rem;
-    // Buttons focus inside this scroller, which would otherwise clip their outline.
-    margin: -#{$focus-ring-space};
-    padding: $focus-ring-space;
+    margin: 0;
+    padding: 0;
     list-style: none;
     overflow-x: auto;
     overflow-y: hidden;
@@ -43,11 +42,14 @@
 
   &__button {
     @include control-interactive;
+    position: relative;
     display: block;
     width: 6rem;
     height: 6rem;
     padding: 0;
     overflow: hidden;
+    // The image scales on hover, which paints it over an outline.
+    @include focus-ring-overlay(before, $border: 1px);
     background: var(--bg-media);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);

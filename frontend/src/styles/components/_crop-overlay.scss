@@ -104,7 +104,7 @@ $handle-size: 0.75rem;
   }
 
   &__handle {
-    @include focus-ring;
+    @include focus-ring-detached;
     position: absolute;
     width: $handle-size;
     height: $handle-size;
