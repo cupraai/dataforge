@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -23,6 +24,7 @@ from schemas import ColorAdjust, EditCropRect, ImageEditSpec
 from testing_fixtures import (
     TempMediaFolder,
     forget_preferences,
+    make_png_bytes,
     reset_job_manager,
     wait_for_job,
     write_caption_rules,
@@ -748,11 +750,46 @@ class ComfyPresetsEndpointTests(unittest.TestCase):
                 self.assertEqual(payload["base_url"], expected)
 
 
+#: A generation whose face pass runs only when its "DataForge Detail" input is switched on.
+SWITCHED_PRESET: dict[str, dict] = {
+    "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "base.safetensors"}},
+    "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "a lighthouse", "clip": ["4", 1]}},
+    "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512}},
+    "3": {
+        "class_type": "KSampler",
+        "inputs": {
+            "seed": 1,
+            "steps": 20,
+            "model": ["4", 0],
+            "positive": ["6", 0],
+            "latent_image": ["5", 0],
+        },
+    },
+    "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
+    "20": {
+        "class_type": "FaceDetailer",
+        "inputs": {"steps": 6, "sampler_name": "lcm", "image": ["8", 0], "model": ["4", 0]},
+    },
+    "21": {
+        "class_type": "PrimitiveBoolean",
+        "inputs": {"value": False},
+        "_meta": {"title": "DataForge Detail"},
+    },
+    "22": {
+        "class_type": "ComfySwitchNode",
+        "inputs": {"switch": ["21", 0], "on_true": ["20", 0], "on_false": ["8", 0]},
+    },
+    "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["22", 0]}},
+}
+
+
 class ComfyPresetMapEndpointTests(unittest.TestCase):
     """The dialogs draw the selected preset before anything runs."""
 
     def test_maps_a_shipped_preset_with_its_source_marked(self) -> None:
-        response = client.get("/api/automation/comfy-process/presets/example_lanczos_2x/map")
+        response = client.post(
+            "/api/automation/comfy-process/map", json={"preset": "example_lanczos_2x"}
+        )
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -765,16 +802,58 @@ class ComfyPresetMapEndpointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as presets:
             Path(presets, "editor.json").write_text('{"nodes": [], "links": []}', encoding="utf-8")
             with patch.dict(os.environ, {"COMFY_WORKFLOWS_DIR": presets}):
-                response = client.get("/api/automation/comfy-process/presets/editor/map")
+                response = client.post(
+                    "/api/automation/comfy-process/map", json={"preset": "editor"}
+                )
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()["branch"])
         self.assertIn("API-format", response.json()["error"])
 
     def test_a_missing_preset_is_a_404(self) -> None:
-        response = client.get("/api/automation/comfy-process/presets/no-such-preset/map")
+        response = client.post(
+            "/api/automation/comfy-process/map", json={"preset": "no-such-preset"}
+        )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_an_edited_switch_draws_the_branch_it_picks(self) -> None:
+        with tempfile.TemporaryDirectory() as presets:
+            Path(presets, "switched.json").write_text(json.dumps(SWITCHED_PRESET), encoding="utf-8")
+            with patch.dict(os.environ, {"COMFY_WORKFLOWS_DIR": presets}):
+                statuses = {}
+                for body in ({}, {"Detail": True}, {"Detail": "not a boolean"}):
+                    response = client.post(
+                        "/api/automation/comfy-process/map",
+                        json={"preset": "switched", "inputs": body},
+                    )
+                    self.assertEqual(response.status_code, 200)
+                    passes = response.json()["branch"]["map"]
+                    statuses[str(body)] = {
+                        node["id"]: node["status"] for node in passes if node["kind"] == "pass"
+                    }
+
+        self.assertEqual(statuses["{}"], {"3": "ran", "20": "switched_off"})
+        self.assertEqual(statuses["{'Detail': True}"], {"3": "ran", "20": "ran"})
+        # A value the job would refuse is drawn as saved.
+        self.assertEqual(statuses["{'Detail': 'not a boolean'}"], statuses["{}"])
+
+    def test_maps_a_files_own_workflow_with_its_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            media = Path(raw, "made.png")
+            media.write_bytes(make_png_bytes(text_chunks={"prompt": json.dumps(SWITCHED_PRESET)}))
+            response = client.post(
+                "/api/automation/comfy-process/map",
+                json={
+                    "source": {"path": str(media), "node_id": "9"},
+                    "inputs": {"Detail": True},
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["error"])
+        passes = [node for node in response.json()["branch"]["map"] if node["kind"] == "pass"]
+        self.assertEqual({node["status"] for node in passes}, {"ran"})
 
 
 class ComfyLogsEndpointTests(unittest.TestCase):

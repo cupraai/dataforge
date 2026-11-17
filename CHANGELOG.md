@@ -21,6 +21,8 @@ version heading when a minor or major version is cut.
 ### Fixed
 
 - Accepting a ComfyUI result with **Keep original metadata** no longer erases its workflow when the source image has no metadata to carry over, so the **ComfyUI workflow** button still shows on the accepted file.
+- The workflow map in **Edit with ComfyUI** and **Generate with ComfyUI** now redraws as you change the workflow's inputs, so switching on an input such as a face detailer shows that pass as run.
+- Workflow maps name the sampler a pass uses when it comes from a sampler node such as SamplerLCM, which previously showed no sampler at all.
 
 ## 0.14.0 - 2026-11-16
 

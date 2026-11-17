@@ -71,6 +71,7 @@ Both dialogs draw the selected preset between the preset list and its settings, 
 
 - The box DataForge loads each source file into reads **Each source file**, not the placeholder file the preset was saved with.
 - The prompt box shows the preset's saved text; its details note that a prompt you enter replaces it.
+- The map follows the **Workflow inputs** you set: switching a boolean that drives an If/Else or Impact switch marks the pass it turns off as not run, or draws the one it turns on. An input whose value does not parse is drawn as saved.
 - A preset without a sampler shows its loaders feeding the output directly. One that loads nothing shows only the output.
 - A preset that cannot be parsed shows the reason instead of a map, so you can fix it before starting.
 

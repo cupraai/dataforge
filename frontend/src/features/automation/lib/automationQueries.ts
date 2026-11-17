@@ -1,10 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
-  fetchComfyPresetMap,
   fetchComfyPresets,
+  fetchComfyWorkflowMap,
   fetchWatermarkImageInfo,
 } from "@/features/automation/api/jobs";
 import { fetchSystemSpecs } from "@/features/automation/api/system";
+import type { ComfyWorkflowMapRequest } from "@/shared/types";
 
 /** Reads shared by more than one reader, kept with their keys so the readers cannot drift. */
 export function systemSpecsQueryOptions() {
@@ -21,11 +22,12 @@ export function comfyPresetsQueryOptions() {
   });
 }
 
-/** One preset's workflow map, read again on each open since presets are edited on disk. */
-export function comfyPresetMapQueryOptions(name: string) {
+/** A workflow's map as it would run with the request's inputs, read again on each open since
+ * presets are edited on disk. */
+export function comfyWorkflowMapQueryOptions(request: ComfyWorkflowMapRequest) {
   return queryOptions({
-    queryKey: ["comfy-preset-map", name],
-    queryFn: ({ signal }) => fetchComfyPresetMap(name, signal),
+    queryKey: ["comfy-workflow-map", request],
+    queryFn: ({ signal }) => fetchComfyWorkflowMap(request, signal),
     retry: false,
   });
 }

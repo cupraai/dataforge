@@ -615,8 +615,16 @@ def build_comfy_prompt(
     ):
         prompt[workflow.prompt_node]["inputs"][workflow.prompt_key] = prompt_text
 
-    for entry in workflow.custom_inputs:
-        if custom_values is not None and entry.name in custom_values:
-            prompt[entry.node]["inputs"][entry.key] = custom_values[entry.name]
+    return with_custom_inputs(workflow, prompt, custom_values or {})
 
+
+def with_custom_inputs(
+    workflow: ComfyWorkflow,
+    prompt: dict[str, Any],
+    custom_values: Mapping[str, ComfyInputValue],
+) -> dict[str, Any]:
+    """``prompt`` with each resolved custom value written into its node; returns ``prompt``."""
+    for entry in workflow.custom_inputs:
+        if entry.name in custom_values:
+            prompt[entry.node]["inputs"][entry.key] = custom_values[entry.name]
     return prompt

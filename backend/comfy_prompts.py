@@ -58,6 +58,10 @@ _BOOLEAN_SWITCHES = {
 #: Impact Pack's indexed switches evaluate only `input{select}`.
 _INDEXED_SWITCHES = frozenset({"ImpactSwitch", "LatentSwitch", "SEGSSwitch"})
 _INDEXED_INPUT = re.compile(r"input\d+")
+#: Sampler nodes such as SamplerLCM or SamplerEulerAncestral: the class names the sampler.
+_SAMPLER_OBJECT_PREFIX = "Sampler"
+#: Where a class name's words meet: `EulerAncestral`, `SASolver`; `DPMPP_2M` already has `_`.
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 type ScalarValue = str | int | float | bool
 
@@ -1036,6 +1040,22 @@ def _stacked_lora_names(graph: dict[str, dict], value: object) -> list[str]:
     return names
 
 
+def _sampler_object_name(node: object) -> str | None:
+    """The sampler a node such as SamplerLCM hands SamplerCustom, named as KSamplerSelect would.
+
+    Its class is the choice, so it has no ``sampler_name`` to read.
+    """
+    class_type = _node_class(node)
+    if (
+        not class_type.startswith(_SAMPLER_OBJECT_PREFIX)
+        or "sampler_name" in _node_inputs(node)
+        or _is_sampling_node(node)
+    ):
+        return None
+    name = _CAMEL_BOUNDARY.sub("_", class_type.removeprefix(_SAMPLER_OBJECT_PREFIX))
+    return name.lower() or None
+
+
 def _collect_parameters(
     graph: dict[str, dict], node_ids: list[str]
 ) -> tuple[list[Parameter], list[str]]:
@@ -1044,6 +1064,11 @@ def _collect_parameters(
     seen: set[tuple[str, str]] = set()
 
     for node_id in node_ids:
+        sampler = _sampler_object_name(graph.get(node_id))
+        if sampler is not None and ("Sampler", sampler) not in seen:
+            seen.add(("Sampler", sampler))
+            parameters.append(Parameter(label="Sampler", value=sampler))
+
         inputs = _node_inputs(graph.get(node_id))
         for input_name, value in inputs.items():
             if input_name.startswith("lora") or input_name == "stack_data":

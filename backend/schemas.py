@@ -1825,6 +1825,16 @@ class ComfyOutputBranch(BaseModel):
     generation: ComfyEmbeddedGeneration | None = None
 
 
+class ComfyWorkflowMapRequest(BaseModel):
+    """A preset, or a file's own workflow, to draw as it would run with ``inputs``."""
+
+    #: A stem, ignored when ``source`` is given.
+    preset: str = ""
+    source: ComfyEmbeddedSource | None = None
+    #: By custom input name, as a job takes them; a value that does not fit is drawn as saved.
+    inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
+
+
 class ComfyPresetMapResponse(BaseModel):
     """A preset's output as the workflow map draws it, before anything runs."""
 

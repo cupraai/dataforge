@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchComfyPresetMap, fetchComfyPresets } from "@/features/automation/api/jobs";
+import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ComfyPresetSummary, ComfyPresetsResponse } from "@/shared/types";
@@ -10,11 +10,11 @@ import { ComfyGenerateDialog, type ComfyGenerateSettings } from "./ComfyGenerate
 
 vi.mock("@/features/automation/api/jobs", () => ({
   fetchComfyPresets: vi.fn<typeof fetchComfyPresets>(),
-  fetchComfyPresetMap: vi.fn<typeof fetchComfyPresetMap>(),
+  fetchComfyWorkflowMap: vi.fn<typeof fetchComfyWorkflowMap>(),
 }));
 
 const fetchPresets = vi.mocked(fetchComfyPresets);
-const fetchMap = vi.mocked(fetchComfyPresetMap);
+const fetchMap = vi.mocked(fetchComfyWorkflowMap);
 
 const SCOPE = { itemCount: 0, folderLabel: "Renders", kind: "destination" as const };
 

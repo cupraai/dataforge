@@ -162,6 +162,11 @@ export function useComfyPresetForm(
   const promptBlocked = selected?.accepts_prompt === false;
   const seedBlocked = selected?.accepts_seed === false;
   const customInputs = selected?.inputs ?? [];
+  const mapInputs: Record<string, ComfyInputValue> = {};
+  for (const input of customInputs) {
+    const value = parseInput(input, draft.inputs[input.name] ?? "");
+    if (value !== undefined && value !== null) mapInputs[input.name] = value;
+  }
 
   const changed =
     preset !== resolvePreset(initial.preset) ||
@@ -210,6 +215,8 @@ export function useComfyPresetForm(
     promptBlocked,
     seedBlocked,
     customInputs,
+    /** The inputs whose text parses, for drawing the map; the rest are drawn as saved. */
+    mapInputs,
     changed,
     resolve,
   };

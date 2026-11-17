@@ -90,7 +90,7 @@ def _source_file(source: Mapping[str, object]) -> tuple[Path, str]:
     return file_path, node_id
 
 
-def _load_generation(preset: str, source: Mapping[str, object] | None) -> ComfyWorkflow:
+def load_generation(preset: str, source: Mapping[str, object] | None) -> ComfyWorkflow:
     """The preset, or the file's own workflow, checked to be a generation."""
     if source is not None:
         if preset.strip():
@@ -143,7 +143,7 @@ def validate_comfy_generate_folder(
         )
 
     try:
-        workflow = _load_generation(preset, source)
+        workflow = load_generation(preset, source)
         resolve_custom_inputs(workflow, inputs or {})
     except ComfyWorkflowError as exc:
         # ValueError is a 400; ComfyWorkflowError would escape the route as a 500.

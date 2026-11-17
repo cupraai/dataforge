@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchComfyPresetMap, fetchComfyPresets } from "@/features/automation/api/jobs";
+import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type {
   ComfyPresetInput,
@@ -16,11 +16,11 @@ import { stubDialogClock } from "@/test/dialogClock";
 
 vi.mock("@/features/automation/api/jobs", () => ({
   fetchComfyPresets: vi.fn<typeof fetchComfyPresets>(),
-  fetchComfyPresetMap: vi.fn<typeof fetchComfyPresetMap>(),
+  fetchComfyWorkflowMap: vi.fn<typeof fetchComfyWorkflowMap>(),
 }));
 
 const fetchPresets = vi.mocked(fetchComfyPresets);
-const fetchMap = vi.mocked(fetchComfyPresetMap);
+const fetchMap = vi.mocked(fetchComfyWorkflowMap);
 
 function mapOf(name: string, labels: string[]): ComfyPresetMapResponse {
   return {
@@ -122,7 +122,7 @@ describe("ComfyProcessDialog", () => {
     fetchPresets.mockReset().mockResolvedValue(presets(["fix-faces", "upscale-2x"]));
     fetchMap
       .mockReset()
-      .mockImplementation(async (name) =>
+      .mockImplementation(async ({ preset: name = "" }) =>
         mapOf(name, [name === "fix-faces" ? "face-model" : "upscaler"]),
       );
   });
@@ -140,7 +140,10 @@ describe("ComfyProcessDialog", () => {
       await waitFor(() =>
         expect(screen.getByRole("group", { name: "Workflow map" })).toHaveTextContent("upscaler"),
       );
-      expect(fetchMap).toHaveBeenCalledWith("upscale-2x", expect.anything());
+      expect(fetchMap).toHaveBeenCalledWith(
+        expect.objectContaining({ preset: "upscale-2x" }),
+        expect.anything(),
+      );
     });
 
     it("says why a preset cannot be drawn", async () => {
@@ -522,6 +525,30 @@ describe("ComfyProcessDialog", () => {
       await user.click(await screen.findByRole("radio", { name: "upscale-2x" }));
 
       expect(screen.queryByLabelText("Denoise")).not.toBeInTheDocument();
+    });
+
+    it("redraws the map as the inputs would run, skipping one that does not parse", async () => {
+      // A switch input picks a branch; the map has to show the one this run would take.
+      fetchPresets.mockResolvedValue(withInputs());
+      fetchMap.mockImplementation(async ({ preset: name = "", inputs = {} }) =>
+        mapOf(name, [inputs.Tiled === true ? "tiled-pass" : "plain-pass"]),
+      );
+      const user = userEvent.setup();
+      renderDialog();
+
+      const map = await screen.findByRole("group", { name: "Workflow map" });
+      expect(map).toHaveTextContent("plain-pass");
+
+      await user.type(screen.getByLabelText("Steps"), "2.5");
+      await user.selectOptions(screen.getByLabelText("Tiled"), "on");
+
+      await waitFor(() =>
+        expect(screen.getByRole("group", { name: "Workflow map" })).toHaveTextContent("tiled-pass"),
+      );
+      expect(fetchMap).toHaveBeenLastCalledWith(
+        { preset: "detailer", inputs: { Tiled: true } },
+        expect.anything(),
+      );
     });
   });
 

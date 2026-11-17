@@ -6,11 +6,11 @@ import type {
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { iconLoader2, iconTriangleAlert } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import type { ComfyPresetInput, ComfyPresetSummary } from "@/shared/types";
+import type { ComfyPresetInput, ComfyPresetSummary, ComfyWorkflowMapRequest } from "@/shared/types";
 import { DialogSelect } from "@/shared/ui/DialogSelect";
 import { Field, TextArea, TextInput } from "@/shared/ui/Field";
 import { Icon } from "@/shared/ui/Icon";
-import { ComfyPresetMap, PresetBranchMap } from "./ComfyPresetMap";
+import { ComfyPresetMap } from "./ComfyPresetMap";
 
 type BooleanChoice = "" | "on" | "off";
 
@@ -209,8 +209,11 @@ export function ComfyPresetFields({
 }: ComfyPresetFieldsProps) {
   const nodeHintId = useId();
   const presetsId = useId();
-  const { state, preset, draft, promptBlocked, seedBlocked, customInputs } = form;
+  const { state, preset, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
   const ready = state.status === "ready";
+  const mapRequest: ComfyWorkflowMapRequest = embedded
+    ? { source: { path: embedded.mediaPath, node_id: embedded.nodeId }, inputs: mapInputs }
+    : { preset, inputs: mapInputs };
   const hasPresets = ready && state.presets.length > 0;
 
   return (
@@ -262,12 +265,9 @@ export function ComfyPresetFields({
             {state.status === "loading" && (
               <div className="comfy-preset-map__skeleton" aria-hidden="true" />
             )}
-            {hasPresets &&
-              (embedded ? (
-                <PresetBranchMap branch={embedded.branch} />
-              ) : (
-                <ComfyPresetMap preset={preset} />
-              ))}
+            {hasPresets && (
+              <ComfyPresetMap request={mapRequest} saved={embedded ? embedded.branch : undefined} />
+            )}
             {ready && state.presets.length === 0 && (
               <p className="comfy-preset-map__message">The selected workflow is drawn here.</p>
             )}

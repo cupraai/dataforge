@@ -6,6 +6,7 @@ import type {
   ComfyLogsResponse,
   ComfyPresetMapResponse,
   ComfyPresetsResponse,
+  ComfyWorkflowMapRequest,
   Job,
   JobType,
   EditCaptionsPreviewRequest,
@@ -101,14 +102,13 @@ export async function fetchComfyPresets(signal?: AbortSignal): Promise<ComfyPres
   return requestJson<ComfyPresetsResponse>("/api/automation/comfy-process/presets", { signal });
 }
 
-export async function fetchComfyPresetMap(
-  name: string,
+export async function fetchComfyWorkflowMap(
+  request: ComfyWorkflowMapRequest,
   signal?: AbortSignal,
 ): Promise<ComfyPresetMapResponse> {
-  return requestJson<ComfyPresetMapResponse>(
-    `/api/automation/comfy-process/presets/${encodeURIComponent(name)}/map`,
-    { signal },
-  );
+  return postJson<ComfyPresetMapResponse>("/api/automation/comfy-process/map", request, {
+    signal,
+  });
 }
 
 export async function fetchComfyLogs(signal?: AbortSignal): Promise<ComfyLogsResponse> {

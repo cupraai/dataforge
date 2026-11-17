@@ -1693,6 +1693,34 @@ class PresetGraphMapTests(unittest.TestCase):
     def test_an_unknown_output_maps_nothing(self) -> None:
         self.assertIsNone(extract_graph_branch(self.UPSCALE, "42"))
 
+    def test_a_sampler_node_names_the_sampler_its_pass_uses(self) -> None:
+        """SamplerLCM has no sampler_name: its class is the choice."""
+        for class_type, expected in (
+            ("SamplerLCM", "lcm"),
+            ("SamplerEulerAncestral", "euler_ancestral"),
+            ("SamplerDPMPP_2M_SDE", "dpmpp_2m_sde"),
+            ("SamplerSASolver", "sa_solver"),
+        ):
+            with self.subTest(class_type=class_type):
+                graph = {
+                    **self.TXT2IMG,
+                    "10": {"class_type": class_type, "inputs": {"s_noise": 1.0}},
+                    "11": {"class_type": "BasicScheduler", "inputs": {"steps": 6}},
+                    "3": {
+                        "class_type": "SamplerCustomAdvanced",
+                        "inputs": {
+                            "sampler": ["10", 0],
+                            "sigmas": ["11", 0],
+                            "latent_image": ["5", 0],
+                        },
+                    },
+                }
+                branch = extract_graph_branch(graph, "9")
+                assert branch is not None
+
+                labelled = {(p.label, p.value) for p in branch.parameters}
+                self.assertIn(("Sampler", expected), labelled)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import UTC, datetime
 
@@ -6,6 +7,7 @@ from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 
 from automation.auto_caption import preview_auto_caption
 from automation.backup_captions import preview_restore_captions
+from automation.comfy_generate import load_generation
 from automation.edit_captions import preview_caption_edits
 from automation.jobs import JobType, job_manager
 from automation.replace_captions import preview_caption_replacements
@@ -20,10 +22,13 @@ from comfy_prompts import extract_graph_branch
 from comfy_settings import get_comfy_base_url
 from external.comfy_client import probe_available, read_log_lines
 from external.comfy_workflows import (
+    ComfyWorkflow,
     ComfyWorkflowError,
     list_comfy_presets,
     parse_comfy_workflow,
     read_comfy_preset_text,
+    resolve_custom_inputs,
+    with_custom_inputs,
 )
 from external.ostris_training import (
     OstrisTrainingError,
@@ -48,6 +53,7 @@ from schemas import (
     ComfyPresetSummary,
     ComfyPresetTextResponse,
     ComfyProcessStartRequest,
+    ComfyWorkflowMapRequest,
     EditCaptionsPreviewRequest,
     EditCaptionsPreviewResponse,
     EditCaptionsStartRequest,
@@ -375,26 +381,44 @@ def get_comfy_process_preset(name: str) -> ComfyPresetTextResponse:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/automation/comfy-process/presets/{name}/map", response_model=ComfyPresetMapResponse)
-def get_comfy_process_preset_map(name: str) -> ComfyPresetMapResponse:
-    """The preset's output, mapped like an embedded workflow; a broken preset says why."""
+def _map_workflow(body: ComfyWorkflowMapRequest) -> ComfyWorkflow:
+    """The workflow to draw: a missing preset is a 404, one that will not parse raises."""
+    if body.source is not None:
+        try:
+            return load_generation("", body.source.model_dump())
+        except ValueError as exc:
+            raise ComfyWorkflowError(str(exc)) from exc
     try:
-        raw = read_comfy_preset_text(name)
+        raw = read_comfy_preset_text(body.preset)
     except ComfyWorkflowError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    try:
-        workflow = parse_comfy_workflow(raw, source=name)
-    except ComfyWorkflowError as exc:
-        return ComfyPresetMapResponse(name=name, error=str(exc))
+    return parse_comfy_workflow(raw, source=body.preset)
 
+
+@router.post("/automation/comfy-process/map", response_model=ComfyPresetMapResponse)
+def map_comfy_workflow(body: ComfyWorkflowMapRequest) -> ComfyPresetMapResponse:
+    """The output mapped as it would run with ``inputs``, so a switch shows the branch it picks.
+
+    A broken workflow says why instead of failing.
+    """
+    try:
+        workflow = _map_workflow(body)
+    except ComfyWorkflowError as exc:
+        return ComfyPresetMapResponse(name=body.preset, error=str(exc))
+
+    try:
+        values = resolve_custom_inputs(workflow, body.inputs)
+    except ComfyWorkflowError:
+        # A value the job would refuse draws the graph as saved; queueing it names the problem.
+        values = {}
     branch = extract_graph_branch(
-        workflow.prompt,
+        with_custom_inputs(workflow, deepcopy(workflow.prompt), values),
         workflow.output_node,
         source_node=workflow.input_node,
         prompt_node=workflow.prompt_node,
     )
     return ComfyPresetMapResponse(
-        name=name,
+        name=workflow.preset,
         branch=None if branch is None else ComfyOutputBranch.model_validate(asdict(branch)),
     )
 
