@@ -24,7 +24,7 @@ test("resets only color adjustments through the auto-adjust dialog", async ({ pa
 
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
   await page.getByRole("button", { name: "Tools", exact: true }).click();
-  await page.getByRole("menuitem", { name: /^Auto-adjust / }).click();
+  await page.getByRole("menuitem", { name: "Auto-adjust", exact: true }).click();
   const dialog = page.getByRole("dialog");
   const replace = dialog.getByRole("checkbox", { name: "Replace earlier adjustments" });
   const reset = dialog.getByRole("checkbox", { name: "Reset all color adjustments to zero" });

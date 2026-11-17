@@ -102,6 +102,8 @@ test("form cancellation preserves edits until discard is confirmed", async ({ pa
   await expect(menu).toBeFocused();
   await expect(autoCaption).toBeEnabled();
   await page.keyboard.press("Tab");
+  await expect(menu.getByRole("menuitem", { name: "Set captions", exact: true })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(autoCaption).toBeFocused();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Start auto-caption?" });

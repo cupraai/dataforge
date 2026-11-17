@@ -279,15 +279,10 @@ for (const theme of ["dark", "light"]) {
         const boxes = (await Promise.all(groups.map((group) => group.boundingBox()))).map(
           (box) => box!,
         );
-        // The columns share one row; Integrations spans the menu beneath them.
-        const columns = boxes.slice(0, -1);
-        const integrations = boxes.at(-1)!;
+        // Every group is a column in one row.
         expect(
-          Math.max(...columns.map((box) => box.y)) - Math.min(...columns.map((box) => box.y)),
+          Math.max(...boxes.map((box) => box.y)) - Math.min(...boxes.map((box) => box.y)),
         ).toBeLessThan(1);
-        expect(integrations.y).toBeGreaterThanOrEqual(
-          Math.max(...columns.map((box) => box.y + box.height)),
-        );
       }
       await page.screenshot({ animations: "disabled", path: testInfo.outputPath("tools.png") });
       await page.keyboard.press("Escape");
