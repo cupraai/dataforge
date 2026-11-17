@@ -90,6 +90,7 @@ export function ImageEditStage({ edit, path, alt, disabled }: ImageEditStageProp
           sourceHeight={edit.sourceHeight}
           crop={edit.draft.crop}
           scale={edit.draft.scale}
+          effect={edit.draft.effect}
           controls={edit.adjust}
           onPictureChange={setPicture}
           onShowingChange={setCovered}

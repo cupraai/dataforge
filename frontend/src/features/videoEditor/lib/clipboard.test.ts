@@ -76,6 +76,7 @@ describe("paste attributes", () => {
           kind: "video",
           source_id: "film",
           adjust: graded,
+          effect: { preset: "faded", strength: 0.7 },
           fade_in: 0.2,
           transform: { x: 0.1, y: 0, scale: 0.5, rotation: 0, opacity: 0.8 },
         }),
@@ -86,16 +87,23 @@ describe("paste attributes", () => {
     const donor = project.clips[0];
     expect(pastableGroups(donor, project.clips.slice(1))).toEqual([
       "color",
+      "effects",
       "transform",
       "crop",
       "fades",
     ]);
 
-    const result = pasteAttributes(project, ["still", "sound"], donor, ["color", "fades"]);
+    const result = pasteAttributes(project, ["still", "sound"], donor, [
+      "color",
+      "effects",
+      "fades",
+    ]);
 
     const still = result.project!.clips.find((clip) => clip.id === "still")!;
     const sound = result.project!.clips.find((clip) => clip.id === "sound")!;
     expect(still.adjust).toEqual(graded);
+    expect(still.effect).toEqual(donor.effect);
+    expect(sound.effect).toBeFalsy();
     expect(still.fade_in).toBe(0.2);
     expect(still.transform.scale).toBe(1);
     expect(sound.adjust).toEqual(restingAdjust());

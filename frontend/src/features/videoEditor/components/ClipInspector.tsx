@@ -1,5 +1,6 @@
 import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import { Button } from "@/shared/ui/Button";
+import { Select } from "@/shared/ui/Select";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { Fragment, useId } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   iconLink,
   iconMusic,
   iconPalette,
+  iconSparkles,
   iconScaling,
   iconTimer,
   iconTrash2,
@@ -23,8 +25,13 @@ import {
 import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 import { AUTO_ADJUST_DEFAULT_AMOUNT } from "@/shared/constants";
-import type { VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
-import { adjustRange, isAdjustIdentity, type AdjustTool } from "@/features/gallery/lib/colorAdjust";
+import type { StyleEffect, VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
+import {
+  EFFECT_PRESETS,
+  adjustRange,
+  isAdjustIdentity,
+  type AdjustTool,
+} from "@/features/gallery/lib/colorAdjust";
 import { rescaleAuto, withoutAuto } from "@/features/gallery/lib/autoAdjust";
 import { SPEED_PRESETS } from "@/features/gallery/lib/videoEdit";
 import {
@@ -611,6 +618,7 @@ function InspectorContent({
         <>
           <CropPanel clip={clip} onEdit={onEdit} />
           <ColorPanel clip={clip} onEdit={onEdit} autoPending={autoPending} onAuto={onAuto} />
+          <EffectsPanel clip={clip} onEdit={onEdit} />
         </>
       )}
 
@@ -769,6 +777,44 @@ function CropPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
           ))}
         </SliderPair>
       ))}
+    </Panel>
+  );
+}
+
+function EffectsPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
+  const effect = clip.effect ?? null;
+  return (
+    <Panel title="Effects" icon={iconSparkles} defaultOpen={false} changed={Boolean(effect)}>
+      <label className="video-editor__field">
+        <span>Style</span>
+        <Select
+          size="xs"
+          value={effect?.preset ?? ""}
+          onChange={(event) => {
+            const preset = event.target.value as StyleEffect["preset"] | "";
+            onEdit({ effect: preset ? { preset, strength: effect?.strength ?? 1 } : null }, true);
+          }}
+        >
+          <option value="">None</option>
+          {EFFECT_PRESETS.map(([preset, label]) => (
+            <option key={preset} value={preset}>
+              {label}
+            </option>
+          ))}
+        </Select>
+      </label>
+      {effect && (
+        <Slider
+          label="Effect strength"
+          value={effect.strength}
+          min={0}
+          max={1}
+          step={0.01}
+          resting={1}
+          unit={percent}
+          onChange={(strength, final) => onEdit({ effect: { ...effect, strength } }, final)}
+        />
+      )}
     </Panel>
   );
 }

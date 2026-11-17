@@ -379,6 +379,44 @@ DEFAULT_GALLERY_SORT: Final = "date-desc"
 #: The card actions shown until the user picks others.
 DEFAULT_GALLERY_CARD_ACTIONS: Final = ("open", "copy_caption", "delete")
 
+# Each look is a second color grade, blended over the user's manual grade in the LUT.
+STYLE_PRESETS: dict[str, dict[str, float]] = {
+    "vivid": {"vibrance": 0.55, "contrast": 0.32, "brilliance": 0.24},
+    "golden": {"warmth": 0.78, "tint": 0.14, "shadows": 0.28, "highlights": -0.24},
+    "arctic": {"warmth": -0.74, "contrast": 0.28, "saturation": -0.18},
+    "glacier": {
+        "warmth": -1.0,
+        "tint": -0.46,
+        "shadows": 0.34,
+        "brilliance": 0.25,
+        "highlights": -0.2,
+    },
+    "blue_hour": {
+        "warmth": -1.0,
+        "tint": 0.24,
+        "exposure": -0.2,
+        "contrast": 0.4,
+        "vibrance": 0.32,
+    },
+    "moonlight": {
+        "warmth": -0.72,
+        "tint": 0.82,
+        "saturation": -0.25,
+        "black_point": -0.32,
+        "highlights": -0.32,
+    },
+    "faded": {"black_point": -0.72, "white_point": -0.3, "saturation": -0.32, "warmth": 0.2},
+    "cinema": {"contrast": 0.68, "black_point": 0.24, "saturation": -0.36, "warmth": -0.22},
+    "noir": {"saturation": -1.0, "contrast": 0.72, "black_point": 0.2},
+}
+
+# Additive sRGB casts peak in the midtones and taper to zero at black and white.
+STYLE_TINTS: dict[str, tuple[float, float, float]] = {
+    "glacier": (-0.06, 0.025, 0.1),
+    "blue_hour": (-0.11, 0.015, 0.15),
+    "moonlight": (-0.035, -0.025, 0.13),
+}
+
 #: Emitted into ``frontend/src/shared/constants.ts``. Sets are sorted; sequences keep walk order.
 SHARED_CONSTANTS: dict[str, object] = {
     "IMPORT_EXTENSIONS": sorted(IMPORT_EXTENSIONS),
@@ -428,6 +466,8 @@ SHARED_CONSTANTS: dict[str, object] = {
     "JOB_TYPE_LABELS": JOB_TYPE_LABELS,
     "ADJUST_MAX_HUE": ADJUST_MAX_HUE,
     "COLOR_ADJUST": COLOR_ADJUST,
+    "STYLE_PRESETS": STYLE_PRESETS,
+    "STYLE_TINTS": STYLE_TINTS,
     "COLOR_DETAIL": COLOR_DETAIL,
     "ADJUST_PREVIEW_LUT_SIZE": ADJUST_PREVIEW_LUT_SIZE,
     "AUTO_ADJUST_DEFAULT_AMOUNT": AUTO_ADJUST_DEFAULT_AMOUNT,

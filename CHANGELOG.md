@@ -10,6 +10,8 @@ version heading when a minor or major version is cut.
 
 ### Added
 
+- **Effects** adds nine adjustable looks to gallery images and videos and to individual picture clips in the video editor.
+
 - **Generate with ComfyUI** (Tools → Integrations) runs a ComfyUI workflow a chosen number of times and adds what it makes to the open folder as new files, named `<prefix>_0001` onwards without replacing anything. Each generation draws a random seed unless you enter one, and the prompt can be saved as each file's caption. Presets without a source loader list here instead of under **Edit with ComfyUI**; try the bundled `example_solid_color` preset, which needs no models.
 - The **ComfyUI workflow** dialog of a generated file offers **Generate with this workflow...** for an output that loads no source file. It opens Generate with ComfyUI on that output, starting from the prompt the file was made with, and runs it without saving a preset.
 - **Manage workflows...** in Quick actions opens the workflow editor, on your first saved workflow or on a new one when none are saved.

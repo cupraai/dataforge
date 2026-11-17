@@ -177,7 +177,7 @@ test("the adjust preview matches the image Apply writes", async ({ page }) => {
   await page.getByRole("button", { name: "Edit adjust.png" }).click();
 
   const heights = new Set<number>();
-  for (const tool of ["Crop", "Size", "Rotate", "Blur", "Adjust"]) {
+  for (const tool of ["Crop", "Size", "Rotate", "Blur", "Effects", "Adjust"]) {
     await page.getByRole("tab", { name: new RegExp(`^${tool}`) }).click();
     heights.add((await page.locator(".edit-panel").boundingBox())?.height ?? -1);
   }
@@ -269,3 +269,87 @@ for (const [index, { label, tools }] of videoAdjustments.entries()) {
     expect(worst, `worst gap at ${where} with ${version}`).toBeLessThan(8);
   });
 }
+
+for (const kind of ["image", "video"] as const) {
+  test(`Effects preview, save and reopen on a gallery ${kind}`, async ({ page }, testInfo) => {
+    const name = kind === "video" ? stillVideo("effect.mp4") : "effect.jpg";
+    if (kind === "image") {
+      fs.copyFileSync(path.join(projectRoot, "sample_media", "sunset.jpg"), freshMedia(name));
+    }
+    await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
+    await page.getByRole("button", { name: `View ${name}` }).click();
+    const edit = page.getByRole("button", { name: `Edit ${name}` });
+    await edit.click();
+    const adjust = page.getByRole("tab", { name: "Adjust", exact: true });
+    await adjust.click();
+    if (kind === "image") await setTool(page, "Shadows", "Shift+ArrowRight", 2);
+    await page.getByRole("tab", { name: /^Adjust(?:, changed)?$/ }).press("ArrowRight");
+    const effects = page.getByRole("tab", { name: /^Effects/ });
+    await expect(effects).toBeFocused();
+    const preset = page.getByRole("button", { name: kind === "image" ? "Blue Hour" : "Glacier" });
+    await preset.click();
+    const slider = page.getByRole("slider", { name: "Effect strength" });
+    await slider.press("ArrowLeft");
+    await expect(slider).toHaveValue("99");
+    const preview = await blocks(page, "preview");
+    expect(difference(preview, await blocks(page, { file: name })).mean).toBeGreaterThan(5);
+    await page.screenshot({
+      path: testInfo.outputPath("gallery-effects.png"),
+      animations: "disabled",
+    });
+
+    await applyAndWait(page);
+    expect(difference(preview, await blocks(page, { file: name })).mean).toBeLessThan(1.5);
+    await page.getByRole("button", { name: `Exit ${kind} editing for ${name}` }).click();
+    await edit.click();
+    await effects.click();
+    await expect(preset).toHaveAttribute("aria-pressed", "true");
+    await expect(slider).toHaveValue("99");
+    await page.getByRole("button", { name: "None", exact: true }).click();
+    await expect(effects).toHaveAccessibleName("Effects");
+    if (kind === "image") {
+      await page.getByRole("tab", { name: "Adjust, changed" }).click();
+      await expect(page.getByRole("tab", { name: "Shadows, +20" })).toBeVisible();
+    }
+    await expect(page.getByRole("button", { name: "Apply" })).toBeEnabled();
+  });
+}
+
+test("a cool effect changes the timeline monitor and survives reopening the project", async ({
+  page,
+}, testInfo) => {
+  const file = "look.mp4";
+  const folder = fs.mkdtempSync(path.join(WORKSPACE, "clip-effects-"));
+  stillVideo(path.relative(WORKSPACE, path.join(folder, file)));
+  await page.goto(`/?path=${encodeURIComponent(folder)}`);
+  await page.getByRole("button", { name: `View ${file}` }).click();
+  await page.getByRole("button", { name: `Open ${file} in the video editor` }).click();
+  const clip = page.getByRole("button", { name: /^look\.mp4, 00:/ });
+  await clip.click();
+  const monitor = page.getByLabel("Timeline preview", { exact: true });
+  const blueCast = () =>
+    monitor.evaluate((monitor) => {
+      const sample = document.createElement("canvas");
+      sample.width = sample.height = 1;
+      const ctx = sample.getContext("2d")!;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(monitor as HTMLCanvasElement, 0, 0, 1, 1);
+      const [r, , b] = ctx.getImageData(0, 0, 1, 1).data;
+      return b - r;
+    });
+  await expect.poll(blueCast).toBeLessThan(-15);
+  const effects = page.getByRole("button", { name: "Effects", exact: true });
+  await effects.click();
+  const style = page.getByRole("combobox", { name: "Style", exact: true });
+  await style.selectOption("blue_hour");
+  await expect.poll(blueCast).toBeGreaterThan(15);
+  await expect(page.locator(".video-editor__save")).toHaveText("Saved");
+  await page.reload();
+  await clip.click();
+  await expect(style).toHaveValue("blue_hour");
+  await expect.poll(blueCast).toBeGreaterThan(15);
+  await page.getByRole("slider", { name: "Effect strength", exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath("clip-effects.png"), animations: "disabled" });
+  await style.selectOption("");
+  await expect.poll(blueCast).toBeLessThan(-15);
+});

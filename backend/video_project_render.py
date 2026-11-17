@@ -351,17 +351,17 @@ def _visual_chain(
 
     tail: list[str] = []
     stage_label = f"pre{index}"
-    adjusted = clip.kind != "title" and not is_adjust_identity(clip.adjust)
+    adjusted = clip.kind != "title" and not is_adjust_identity(clip.adjust, clip.effect)
     if adjusted:
         cube = f"clip{index}.cube"
         stage = build_adjust_stage(
-            VideoEditSpec(adjust=clip.adjust),
+            VideoEditSpec(adjust=clip.adjust, effect=clip.effect),
             cropped_size(frame, clip),
             color=color,
             cube_name=cube,
         )
-        if not is_global_identity(clip.adjust):
-            write_cube(workspace / cube, adjust_lut(clip.adjust))
+        if not is_global_identity(clip.adjust, clip.effect):
+            write_cube(workspace / cube, adjust_lut(clip.adjust, effect=clip.effect))
         head += stage.head
         if stage.definition is not None:
             links.append(f"[{input_label}]{','.join(head)}[{stage_label}]")
@@ -574,7 +574,7 @@ def _picture_links(
                     index = _still_input(inputs, still, clip, project)
                 else:
                     index = _video_input(inputs, path, clip, source)
-                    if not is_adjust_identity(clip.adjust):
+                    if not is_adjust_identity(clip.adjust, clip.effect):
                         color = probe_color(path)
             links += _visual_chain(
                 clip,

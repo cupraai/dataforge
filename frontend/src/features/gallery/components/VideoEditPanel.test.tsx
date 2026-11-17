@@ -68,6 +68,7 @@ function makeEdit(overrides: Partial<VideoEdit> = {}): VideoEdit {
     selectAspect: vi.fn<(aspectId: string) => void>(),
     toggleMuted: vi.fn<() => void>(),
     setSpeed: vi.fn<(speed: number) => void>(),
+    setEffect: vi.fn<VideoEdit["setEffect"]>(),
     setScale: vi.fn<(scale: number) => void>(),
     setVolume: vi.fn<(volume: number) => void>(),
     adjust: makeAdjustControls({ values: draft.adjust }),

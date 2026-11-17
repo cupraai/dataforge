@@ -649,6 +649,7 @@ describe("GalleryItemDialog", () => {
         transcode: false,
         adjust: { ...RESTING_ADJUST },
         auto_adjust: null,
+        effect: null,
       });
       await waitFor(() => expect(props.onCopied).toHaveBeenCalled());
       // Nothing about the surface changes: the editor was already playing the original,
@@ -674,6 +675,7 @@ describe("GalleryItemDialog", () => {
       expect(applyMock.mock.calls[0][1]).toMatchObject({
         adjust: { ...RESTING_ADJUST, warmth: 0.1 },
         auto_adjust: null,
+        effect: null,
       });
     });
 

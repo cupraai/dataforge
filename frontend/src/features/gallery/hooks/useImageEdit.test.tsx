@@ -54,6 +54,7 @@ function spec(overrides: Partial<ImageEditSpec> = {}): ImageEditSpec {
     scale: 1,
     fit: null,
     adjust: { ...RESTING_ADJUST },
+    effect: null,
     auto_adjust: null,
     ...overrides,
   };
@@ -129,6 +130,7 @@ describe("useImageEdit", () => {
         fit: null,
         adjust: { ...RESTING_ADJUST },
         autoAdjust: null,
+        effect: null,
       });
       expect(result.current.dirty).toBe(false);
     });

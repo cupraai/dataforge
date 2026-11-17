@@ -449,6 +449,7 @@ describe("GalleryItemDialog", () => {
           fit: null,
           adjust: { ...RESTING_ADJUST },
           auto_adjust: null,
+          effect: null,
         });
         await waitFor(() => expect(props.onCopied).toHaveBeenCalled());
         // Nothing about the surface changes: the editor was already showing the original,

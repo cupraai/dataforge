@@ -2049,6 +2049,13 @@ class ColorAdjust(BaseModel):
     noise_reduction: AdjustDetail = 0.0
 
 
+class StyleEffect(BaseModel):
+    preset: Literal[
+        "vivid", "golden", "arctic", "glacier", "blue_hour", "moonlight", "faded", "cinema", "noir"
+    ]
+    strength: float = Field(1.0, ge=0.0, le=1.0)
+
+
 class AutoAdjust(BaseModel):
     """What the wand last read, kept so its dial can rescale it after a reopen. Never rendered."""
 
@@ -2088,6 +2095,7 @@ class VideoEditSpec(BaseModel):
     #: Audio gain: 1 unchanged, 0 mutes (the track is dropped), up to 2 for a boost.
     volume: float = Field(1.0, ge=MIN_EDIT_VOLUME, le=MAX_EDIT_VOLUME)
     adjust: ColorAdjust = Field(default_factory=ColorAdjust)
+    effect: StyleEffect | None = None
     auto_adjust: AutoAdjust | None = None
     #: Re-encoded to H.264 and AAC so a browser can play it, so the spec renders even with
     #: nothing else changed. Every render is H.264 anyway; this keeps a reset from reverting
@@ -2192,6 +2200,7 @@ class ImageEditSpec(BaseModel):
     scale: float = Field(1.0, ge=MIN_EDIT_SCALE, le=1.0)
     fit: SizeFit | None = None
     adjust: ColorAdjust = Field(default_factory=ColorAdjust)
+    effect: StyleEffect | None = None
     auto_adjust: AutoAdjust | None = None
 
     @model_validator(mode="after")
@@ -2620,6 +2629,7 @@ class VideoProjectClip(BaseModel):
     crop: EditCropRect | None = None
     fit: VideoProjectFitMode = "fit"
     adjust: ColorAdjust = Field(default_factory=ColorAdjust)
+    effect: StyleEffect | None = None
     #: What the wand last read, so its dial can rescale it; ``adjust`` already includes it.
     auto_adjust: AutoAdjust | None = None
     #: Audio clips only.
@@ -2653,6 +2663,8 @@ class VideoProjectClip(BaseModel):
                 raise ValueError("Only pictures and titles animate a transform")
         elif keys.gain or keys.bass or keys.mid or keys.treble:
             raise ValueError("Only sound clips animate their sound")
+        if self.effect is not None and self.kind not in ("image", "video"):
+            raise ValueError("Only image and video clips carry style effects")
         if self.kind != "audio" and self.audio_effects != AudioEffects():
             raise ValueError("Only sound clips carry sound effects")
         return self

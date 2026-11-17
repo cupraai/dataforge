@@ -24,12 +24,14 @@ import {
   iconMaximize2,
   iconScissors,
   iconSliders,
+  iconPalette,
   iconVolume2,
 } from "@/shared/icons";
 import { VIDEO_FRAME_RATES } from "@/shared/constants";
 import type { VideoFrameRate } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
+import { EffectOutput, EffectTools } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import {
   AspectTools,
@@ -48,6 +50,7 @@ import {
 } from "./EditPanelParts";
 import {
   BLUR_HINT,
+  EFFECTS_HINT,
   CROP_HINT,
   SIZE_HINT,
   TRIM_HINT,
@@ -55,7 +58,7 @@ import {
 } from "@/features/gallery/lib/toolHints";
 import { VideoEditTimeline } from "./VideoEditTimeline";
 
-type ToolId = "trim" | "crop" | "blur" | "speed" | "size" | "volume" | "adjust";
+type ToolId = "trim" | "crop" | "blur" | "speed" | "size" | "volume" | "effects" | "adjust";
 
 const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "trim", label: "Trim", icon: iconScissors },
@@ -64,6 +67,7 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "crop", label: "Crop", icon: iconCrop },
   { id: "size", label: "Size", icon: iconMaximize2 },
   { id: "adjust", label: "Adjust", icon: iconSliders },
+  { id: "effects", label: "Effects", icon: iconPalette },
   { id: "blur", label: "Blur", icon: iconDroplets },
 ];
 
@@ -85,6 +89,7 @@ const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   volume: { message: "Applies to the whole clip; Mute removes the sound." },
   crop: CROP_HINT,
   size: SIZE_HINT,
+  effects: EFFECTS_HINT,
   blur: BLUR_HINT,
 };
 
@@ -110,6 +115,7 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
     size: edit.draft.scale !== 1 || edit.draft.fit !== null,
     volume: edit.draft.volume !== 1,
     adjust: !isAdjustIdentity(edit.draft.adjust),
+    effects: Boolean(edit.draft.effect),
   };
 
   const { setCropActive, setMaskActive } = edit;
@@ -220,6 +226,9 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
           )}
 
           {activeTool === "adjust" && <AdjustTools controls={edit.adjust} disabled={locked} />}
+          {activeTool === "effects" && (
+            <EffectTools effect={edit.draft.effect} onChange={edit.setEffect} disabled={locked} />
+          )}
 
           {activeTool === "crop" && (
             <AspectTools aspectId={edit.aspectId} disabled={locked} onSelect={edit.selectAspect} />
@@ -273,6 +282,12 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
                 <OutputPart>
                   {edit.draft.volume === 0 ? "Muted" : `Volume ${formatVolume(edit.draft.volume)}`}
                 </OutputPart>
+              )}
+              {edit.draft.effect && (
+                <EffectOutput
+                  effect={edit.draft.effect}
+                  previewAvailable={edit.adjust.previewAvailable}
+                />
               )}
               {modified.adjust && (
                 <OutputPart>

@@ -764,7 +764,7 @@ export class PreviewEngine {
     }
     const { source, sourceWidth, sourceHeight } = picture;
     const crop = clip.kind === "title" ? null : clip.crop;
-    const adjusted = clip.kind !== "title" && !isAdjustIdentity(clip.adjust);
+    const adjusted = clip.kind !== "title" && !isAdjustIdentity(clip.adjust, clip.effect);
     const sx = crop ? crop.x * sourceWidth : 0;
     const sy = crop ? crop.y * sourceHeight : 0;
     const sw = crop ? crop.width * sourceWidth : sourceWidth;
@@ -858,10 +858,12 @@ export class PreviewEngine {
     const staging = slot.staging.getContext("2d");
     if (!staging) return null;
     staging.drawImage(source, sx, sy, sw, sh, 0, 0, width, height);
-    const key = JSON.stringify(clip.adjust);
+    const key = JSON.stringify([clip.adjust, clip.effect]);
     if (slot.key !== key) {
       renderer.setLut(
-        isGlobalIdentity(clip.adjust) ? null : buildAdjustLut(clip.adjust, ADJUST_PREVIEW_LUT_SIZE),
+        isGlobalIdentity(clip.adjust, clip.effect)
+          ? null
+          : buildAdjustLut(clip.adjust, ADJUST_PREVIEW_LUT_SIZE, clip.effect),
         ADJUST_PREVIEW_LUT_SIZE,
       );
       slot.key = key;

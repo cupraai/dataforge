@@ -142,7 +142,13 @@ export function replaceClip(
     const track = freeTrackAt({ ...project, clips }, "audio", anchor.start, duration);
     if (track) {
       link ??= newId();
-      clips.push({ ...replaced(anchor), id: newId(), kind: "audio", track_id: track.id });
+      clips.push({
+        ...replaced(anchor),
+        id: newId(),
+        kind: "audio",
+        track_id: track.id,
+        effect: null,
+      });
     } else {
       note = `${note ? `${note} ` : ""}Its sound was left out: no audio track is free there.`;
     }

@@ -75,7 +75,7 @@ def is_identity_spec(spec: VideoEditSpec) -> bool:
         and spec.fit is None
         and spec.frame_rate is None
         and abs(spec.volume - 1.0) < IDENTITY_EPSILON
-        and is_adjust_identity(spec.adjust)
+        and is_adjust_identity(spec.adjust, spec.effect)
         and spec.trim_start < IDENTITY_EPSILON
         and spec.trim_end is None
         and not spec.transcode
@@ -393,7 +393,7 @@ def build_adjust_stage(
 ) -> AdjustStage:
     """Detail on full-range planes, then the LUT, then back to limited range for the encoder."""
     adjust = spec.adjust
-    if is_adjust_identity(adjust):
+    if is_adjust_identity(adjust, spec.effect):
         return AdjustStage([], None, [])
 
     head: list[str] = []
@@ -425,7 +425,7 @@ def build_adjust_stage(
             )
         definition = definition_params(adjust.definition, frame)
 
-    if not is_global_identity(adjust):
+    if not is_global_identity(adjust, spec.effect):
         # Float planes: swscale's 8-bit RGB round trip alone darkens by about a level.
         tail.append(f"format=gbrpf32le,lut3d=file={cube_name}:interp=trilinear")
     if ranged:
@@ -488,7 +488,7 @@ def ffmpeg_filters(executable: str) -> frozenset[str]:
 def required_filters(spec: VideoEditSpec) -> set[str]:
     adjust = spec.adjust
     needed: set[str] = set()
-    if not is_global_identity(adjust):
+    if not is_global_identity(adjust, spec.effect):
         needed.add("lut3d")
     if adjust.noise_reduction > IDENTITY_EPSILON:
         needed.add("guided")
@@ -674,7 +674,7 @@ def _apply_claimed(
     temp_path = temp_path_for(media)
     # Probed from the backup: the live file may already have been retimed or rescaled.
     probe = probe or probe_source(source)
-    adjusted = not is_adjust_identity(spec.adjust)
+    adjusted = not is_adjust_identity(spec.adjust, spec.effect)
     command = build_video_edit_command(
         source,
         temp_path,
@@ -688,8 +688,10 @@ def _apply_claimed(
 
     # A cancelled ffmpeg can still hold the cube open on Windows; the folder then goes later.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as workspace:
-        if not is_global_identity(spec.adjust):
-            write_cube(Path(workspace) / ADJUST_CUBE_NAME, adjust_lut(spec.adjust))
+        if not is_global_identity(spec.adjust, spec.effect):
+            write_cube(
+                Path(workspace) / ADJUST_CUBE_NAME, adjust_lut(spec.adjust, effect=spec.effect)
+            )
         try:
             run_ffmpeg(
                 command,

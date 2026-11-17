@@ -1,7 +1,32 @@
-import { ADJUST_MAX_HUE, COLOR_ADJUST } from "@/shared/constants";
-import type { ColorAdjust } from "@/shared/types";
+import { ADJUST_MAX_HUE, COLOR_ADJUST, STYLE_PRESETS, STYLE_TINTS } from "@/shared/constants";
+import type { ColorAdjust, StyleEffect } from "@/shared/types";
 
 /** Mirrors backend/color_adjust.py; the generated parity cases hold the two together. */
+
+const EFFECT_LABELS: Record<StyleEffect["preset"], string> = {
+  vivid: "Vivid",
+  golden: "Golden",
+  arctic: "Arctic",
+  glacier: "Glacier",
+  blue_hour: "Blue Hour",
+  moonlight: "Moonlight",
+  faded: "Faded",
+  cinema: "Cinema",
+  noir: "Noir",
+};
+
+/** Every style preset with its name, in menu order. */
+export const EFFECT_PRESETS = Object.entries(EFFECT_LABELS) as ReadonlyArray<
+  [StyleEffect["preset"], string]
+>;
+
+export function formatEffect(effect: StyleEffect): string {
+  return `${EFFECT_LABELS[effect.preset]} ${Math.round(effect.strength * 100)}%`;
+}
+
+export function effectEqual(a?: StyleEffect | null, b?: StyleEffect | null): boolean {
+  return a?.preset === b?.preset && a?.strength === b?.strength;
+}
 
 export type AdjustTool = keyof ColorAdjust;
 export type Rgb = [number, number, number];
@@ -57,12 +82,16 @@ export function clampAdjust(adjust: ColorAdjust): ColorAdjust {
   return clamped;
 }
 
-export function isAdjustIdentity(adjust: ColorAdjust): boolean {
-  return ADJUST_TOOL_IDS.every((tool) => Math.abs(adjust[tool]) < IDENTITY_EPSILON);
+export function isAdjustIdentity(adjust: ColorAdjust, effect?: StyleEffect | null): boolean {
+  return (
+    !effect?.strength && ADJUST_TOOL_IDS.every((tool) => Math.abs(adjust[tool]) < IDENTITY_EPSILON)
+  );
 }
 
-export function isGlobalIdentity(adjust: ColorAdjust): boolean {
-  return GLOBAL_TOOLS.every((tool) => Math.abs(adjust[tool]) < IDENTITY_EPSILON);
+export function isGlobalIdentity(adjust: ColorAdjust, effect?: StyleEffect | null): boolean {
+  return (
+    !effect?.strength && GLOBAL_TOOLS.every((tool) => Math.abs(adjust[tool]) < IDENTITY_EPSILON)
+  );
 }
 
 export function adjustEqual(a: ColorAdjust, b: ColorAdjust): boolean {
@@ -279,16 +308,53 @@ function compile(adjust: ColorAdjust): LinearPixel {
   };
 }
 
+function compileLook(adjust: ColorAdjust, effect?: StyleEffect | null): LinearPixel {
+  const grade = compile(adjust);
+  if (!effect?.strength) return grade;
+  const style = compile({ ...RESTING_ADJUST, ...STYLE_PRESETS[effect.preset] });
+  const tints: Partial<Record<StyleEffect["preset"], Readonly<Rgb>>> = STYLE_TINTS;
+  const tint = tints[effect.preset];
+  const base: Rgb = [0, 0, 0];
+  return (r, g, b, out, at) => {
+    grade(r, g, b, base, 0);
+    style(srgbToLinear(base[0]), srgbToLinear(base[1]), srgbToLinear(base[2]), out, at);
+    if (tint) {
+      const luma = out[at] * LUMA[0] + out[at + 1] * LUMA[1] + out[at + 2] * LUMA[2];
+      const weight = 4 * luma * (1 - luma);
+      for (let i = 0; i < 3; i++) {
+        out[at + i] = Math.max(0, Math.min(1, out[at + i] + weight * tint[i]));
+      }
+    }
+    for (let i = 0; i < 3; i++) {
+      out[at + i] = base[i] + effect.strength * (out[at + i] - base[i]);
+    }
+  };
+}
+
 /** sRGB-encoded in 0..1 to the same, through every global tool. */
-export function adjustPixel(rgb: Readonly<Rgb>, adjust: ColorAdjust): Rgb {
+export function adjustPixel(
+  rgb: Readonly<Rgb>,
+  adjust: ColorAdjust,
+  effect?: StyleEffect | null,
+): Rgb {
   const out: Rgb = [0, 0, 0];
-  compile(adjust)(srgbToLinear(rgb[0]), srgbToLinear(rgb[1]), srgbToLinear(rgb[2]), out, 0);
+  compileLook(adjust, effect)(
+    srgbToLinear(rgb[0]),
+    srgbToLinear(rgb[1]),
+    srgbToLinear(rgb[2]),
+    out,
+    0,
+  );
   return out;
 }
 
 /** RGBA floats, red varying fastest, then green, then blue: a WebGL 3D texture's layout. */
-export function buildAdjustLut(adjust: ColorAdjust, size: number): Float32Array {
-  const pixel = compile(adjust);
+export function buildAdjustLut(
+  adjust: ColorAdjust,
+  size: number,
+  effect?: StyleEffect | null,
+): Float32Array {
+  const pixel = compileLook(adjust, effect);
   const levels = Array.from({ length: size }, (_, index) => srgbToLinear(index / (size - 1)));
   const lut = new Float32Array(size * size * size * 4);
   let index = 0;

@@ -319,6 +319,19 @@ class TitleImageTests(unittest.TestCase):
 
 @unittest.skipUnless(ffmpeg_path(), "ffmpeg is not installed")
 class CompositeTests(unittest.TestCase):
+    def test_effect_is_rendered_only_on_its_own_clip(self) -> None:
+        with TempMediaFolder() as root:
+            write_image(root, "red.png", color=RED)
+            plain = still("red.png", "v1", 0, 1)
+            noir = still("red.png", "v1", 1, 1, effect={"preset": "noir"})
+            project = project_with(root, [plain, noir], sources=["red.png"])
+            video = render(root, project)
+
+            self.assertTrue(close(pixel(video, 0.5), RED))
+            grey = pixel(video, 1.5)
+            self.assertLess(max(grey) - min(grey), 4)
+            self.assertGreater(min(grey), 20)
+
     def test_a_clip_shows_only_between_its_start_and_end_and_gaps_are_black(self) -> None:
         with TempMediaFolder() as root:
             write_image(root, "red.png", color=RED)

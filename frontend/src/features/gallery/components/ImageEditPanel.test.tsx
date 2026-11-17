@@ -65,6 +65,7 @@ function makeEdit(overrides: Partial<ImageEdit> = {}): ImageEdit {
     rotateCounterClockwise: vi.fn<() => void>(),
     toggleMirrorH: vi.fn<() => void>(),
     toggleMirrorV: vi.fn<() => void>(),
+    setEffect: vi.fn<ImageEdit["setEffect"]>(),
     setScale: vi.fn<(scale: number) => void>(),
     adjust: makeAdjustControls({ values: draft.adjust }),
     fill: makeFillControls(),
@@ -121,6 +122,9 @@ describe("ImageEditPanel", () => {
       await user.click(tools().getByRole("tab", { name: "Rotate" }));
       expect(slot()).toHaveTextContent("quarter steps");
       expect(slot().querySelector(".stage-hint__keys")).toBeNull();
+
+      await user.click(tools().getByRole("tab", { name: "Effects" }));
+      expect(slot()).toHaveTextContent("Pick a style, then set how strongly it applies");
 
       await user.click(tools().getByRole("tab", { name: "Adjust" }));
       expect(slot()).toHaveTextContent("turn its ruler");

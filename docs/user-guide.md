@@ -171,8 +171,8 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 
 | Media | Formats | Tools |
 | --- | --- | --- |
-| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, masks, [generative fill](#generative-fill) |
-| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Adjust, masks. Rendering shows progress and can be cancelled |
+| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, Effects, masks, [generative fill](#generative-fill) |
+| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Adjust, Effects, masks. Rendering shows progress and can be cancelled |
 | Audio | WAV, MP3, FLAC | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
 
 - **Masks** blur, pixelate, or black out regions.
@@ -188,6 +188,10 @@ Adjust has Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Blac
 The **Auto** wand analyzes the original inside the crop, ignoring masks; for videos, it samples the trimmed range. It corrects exposure, contrast, color intensity, and color casts toward a natural look. Its slider sets the amount; click the wand again to turn it off.
 
 Hold the compare button to see the original. Click the preview to inspect it at output resolution when that is larger than the display, then move the pointer to pan. Live preview needs WebGL 2; saving works without it.
+
+### Effects in the editor
+
+Open **Effects** next to **Adjust** to choose a look. For cooler colors, try **Arctic** for crisp whites, **Glacier** for teal shadows, **Blue Hour** for deeper blues, or **Moonlight** for softer violet tones. Drag **Strength** to blend the look with your adjustments. Choose **None** to remove the look, or **Apply** to save it.
 
 ### Generative fill
 

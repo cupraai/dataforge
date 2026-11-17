@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 from PIL import ImageFilter
 
-from constants import ADJUST_RENDER_LUT_SIZE, COLOR_ADJUST
-from schemas import ColorAdjust
+from constants import ADJUST_RENDER_LUT_SIZE, COLOR_ADJUST, STYLE_PRESETS, STYLE_TINTS
+from schemas import ColorAdjust, StyleEffect
 
 IDENTITY_EPSILON = 1e-9
 
@@ -40,12 +40,16 @@ GLOBAL_TOOLS = (
 _DARK_LUMINANCE = 1e-6
 
 
-def is_adjust_identity(adjust: ColorAdjust) -> bool:
-    return all(abs(value) < IDENTITY_EPSILON for value in adjust.model_dump().values())
+def is_adjust_identity(adjust: ColorAdjust, effect: StyleEffect | None = None) -> bool:
+    return (effect is None or effect.strength == 0) and all(
+        abs(value) < IDENTITY_EPSILON for value in adjust.model_dump().values()
+    )
 
 
-def is_global_identity(adjust: ColorAdjust) -> bool:
-    return all(abs(getattr(adjust, tool)) < IDENTITY_EPSILON for tool in GLOBAL_TOOLS)
+def is_global_identity(adjust: ColorAdjust, effect: StyleEffect | None = None) -> bool:
+    return (effect is None or effect.strength == 0) and all(
+        abs(getattr(adjust, tool)) < IDENTITY_EPSILON for tool in GLOBAL_TOOLS
+    )
 
 
 def srgb_to_linear(encoded: np.ndarray) -> np.ndarray:
@@ -207,16 +211,26 @@ def adjust_pixels(rgb: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
     return linear_to_srgb(fit_gamut(linear))
 
 
-def adjust_lut(adjust: ColorAdjust, size: int = ADJUST_RENDER_LUT_SIZE) -> np.ndarray:
+def adjust_lut(
+    adjust: ColorAdjust, size: int = ADJUST_RENDER_LUT_SIZE, *, effect: StyleEffect | None = None
+) -> np.ndarray:
     """``(size, size, size, 3)`` indexed ``[b, g, r]``: red varies fastest, as .cube and Pillow read it."""
     axis = np.linspace(0.0, 1.0, size)
     blue, green, red = np.meshgrid(axis, axis, axis, indexing="ij")
-    return adjust_pixels(np.stack([red, green, blue], axis=-1), adjust).astype(np.float32)
+    rgb = adjust_pixels(np.stack([red, green, blue], axis=-1), adjust)
+    if effect is not None and effect.strength > 0:
+        styled = adjust_pixels(rgb, ColorAdjust.model_validate(STYLE_PRESETS[effect.preset]))
+        tint = STYLE_TINTS.get(effect.preset)
+        if tint:
+            luma = (styled @ LUMA)[..., None]
+            styled = np.clip(styled + 4 * luma * (1 - luma) * tint, 0.0, 1.0)
+        rgb += effect.strength * (styled - rgb)
+    return rgb.astype(np.float32)
 
 
-def lut_filter(adjust: ColorAdjust) -> ImageFilter.Color3DLUT:
+def lut_filter(adjust: ColorAdjust, effect: StyleEffect | None = None) -> ImageFilter.Color3DLUT:
     """Three channels, so an alpha band passes through untouched."""
-    return ImageFilter.Color3DLUT(ADJUST_RENDER_LUT_SIZE, adjust_lut(adjust))
+    return ImageFilter.Color3DLUT(ADJUST_RENDER_LUT_SIZE, adjust_lut(adjust, effect=effect))
 
 
 def write_cube(path: Path, lut: np.ndarray) -> None:

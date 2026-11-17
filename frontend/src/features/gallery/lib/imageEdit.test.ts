@@ -37,6 +37,7 @@ function spec(overrides: Partial<ImageEditSpec> = {}): ImageEditSpec {
     scale: 1,
     fit: null,
     adjust: { ...RESTING_ADJUST },
+    effect: null,
     ...overrides,
   };
 }
@@ -250,6 +251,7 @@ describe("wire conversion", () => {
       rotate: 180,
       scale: 0.75,
       adjust: { ...RESTING_ADJUST, exposure: 0.2, shadows: -0.3, hue: 45, definition: 0.4 },
+      effect: { preset: "arctic", strength: 0.65 },
       auto_adjust: { amount: 0.7, suggestion: { ...RESTING_ADJUST, exposure: 0.1 } },
     });
 

@@ -169,6 +169,7 @@ Select a picture clip to use the inspector:
 - **Transform** sets position, scale, rotation, and opacity. **Fit** shows the whole picture within the canvas; **Fill** covers the canvas and can cut off its edges. In the timeline monitor, drag the selected picture to move it or use its corner handles to scale it.
 - **Crop** sets the visible source area before fitting and transforming it.
 - **Color** provides manual adjustments and **Auto**, which analyzes the clip's frames to correct levels and color cast. Save adjustments as a named grade to reuse in any project.
+- **Effects** applies a built-in look to an image or video clip. Set its strength, or choose **None** to return to the clip’s color adjustments.
 - **Timing** sets fade in and fade out, as well as clip timing and speed. Double-click a slider's label to reset that setting.
 
 With several clips selected, the inspector can apply fades, gain, fit, scale, opacity, still or title length, or a saved grade to all of them as one undo step.

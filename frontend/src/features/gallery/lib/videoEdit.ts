@@ -2,7 +2,13 @@ import { IDENTITY_CROP, isIdentityCrop, type CropRect, type Size } from "./crop"
 import { snapToFrame } from "./frameGrid";
 import { maskDraftsFromSpec, masksEqual, toMaskRegions, type MaskDraft } from "./mask";
 import { autoAdjustEqual } from "./autoAdjust";
-import { RESTING_ADJUST, adjustEqual, clampAdjust, isAdjustIdentity } from "./colorAdjust";
+import {
+  RESTING_ADJUST,
+  adjustEqual,
+  clampAdjust,
+  effectEqual,
+  isAdjustIdentity,
+} from "./colorAdjust";
 import {
   IDENTITY_EPSILON,
   MIN_SCALE,
@@ -17,6 +23,7 @@ import type {
   AutoAdjust,
   ColorAdjust,
   SizeFit,
+  StyleEffect,
   VideoEditSpec,
   VideoFrameRate,
 } from "@/shared/types";
@@ -46,6 +53,7 @@ export interface VideoEditDraft {
   frameRate: VideoFrameRate | null;
   volume: number;
   adjust: ColorAdjust;
+  effect: StyleEffect | null;
   /** The wand's last reading, so its dial can rescale it; never rendered. */
   autoAdjust: AutoAdjust | null;
   /** Re-encoded so the browser can play it: renders even with nothing else changed. */
@@ -73,6 +81,7 @@ export function emptyDraft(duration: number): VideoEditDraft {
     volume: 1,
     adjust: { ...RESTING_ADJUST },
     autoAdjust: null,
+    effect: null,
     transcode: false,
   };
 }
@@ -104,7 +113,7 @@ export function isIdentityEdit(draft: VideoEditDraft, duration: number): boolean
     draft.fit === null &&
     draft.frameRate === null &&
     Math.abs(draft.volume - 1) < IDENTITY_EPSILON &&
-    isAdjustIdentity(draft.adjust) &&
+    isAdjustIdentity(draft.adjust, draft.effect) &&
     !draft.transcode
   );
 }
@@ -242,6 +251,7 @@ export function toVideoEditSpec(draft: VideoEditDraft, duration: number): VideoE
     volume: draft.volume,
     adjust: clampAdjust(draft.adjust),
     auto_adjust: draft.autoAdjust,
+    effect: draft.effect,
     transcode: draft.transcode,
   };
 }
@@ -262,6 +272,7 @@ export function draftFromSpec(spec: VideoEditSpec | null, duration: number): Vid
     volume: spec.volume,
     adjust: { ...spec.adjust },
     autoAdjust: spec.auto_adjust ?? null,
+    effect: spec.effect ?? null,
     transcode: spec.transcode,
   };
 }
@@ -280,6 +291,7 @@ export function specsEqual(a: VideoEditSpec, b: VideoEditSpec): boolean {
     sizeFitsEqual(a.fit, b.fit) &&
     (a.frame_rate ?? null) === (b.frame_rate ?? null) &&
     sameNumber(a.volume, b.volume) &&
+    effectEqual(a.effect, b.effect) &&
     adjustEqual(a.adjust, b.adjust) &&
     autoAdjustEqual(a.auto_adjust ?? null, b.auto_adjust ?? null) &&
     a.transcode === b.transcode

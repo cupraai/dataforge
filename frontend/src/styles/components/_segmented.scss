@@ -53,6 +53,7 @@
       outline-offset: 1px;
     }
 
+    // No weight change: a bolder label is wider, and would push every option after it.
     &:has(:checked),
     &:has(:checked):hover,
     &[aria-pressed="true"],
@@ -60,7 +61,6 @@
       @include fade-bg(var(--accent-soft));
       border-color: var(--accent-border);
       color: var(--accent);
-      font-weight: var(--font-semibold);
     }
 
     &:disabled,

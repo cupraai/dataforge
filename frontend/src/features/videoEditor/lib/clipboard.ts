@@ -146,10 +146,12 @@ export function pasteClips(
   return { project: result.project, placed: clips.map((clip) => clip.id), added };
 }
 
-export type AttributeGroup = "color" | "transform" | "crop" | "fades" | "audio" | "sound" | "title";
+export type AttributeGroup =
+  "color" | "effects" | "transform" | "crop" | "fades" | "audio" | "sound" | "title";
 
 export const ATTRIBUTE_LABELS: Record<AttributeGroup, string> = {
   color: "Color adjustments",
+  effects: "Effects",
   transform: "Transform, fit and animation",
   crop: "Crop",
   fades: "Fades",
@@ -166,6 +168,8 @@ function attributePatch(group: AttributeGroup, donor: Clip, target: Clip): Parti
       return pictured(donor) && pictured(target)
         ? { adjust: donor.adjust, auto_adjust: donor.auto_adjust ?? null }
         : null;
+    case "effects":
+      return pictured(donor) && pictured(target) ? { effect: donor.effect ?? null } : null;
     case "crop":
       return pictured(donor) && pictured(target) ? { crop: donor.crop } : null;
     case "transform": {

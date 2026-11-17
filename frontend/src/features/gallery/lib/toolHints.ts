@@ -33,6 +33,10 @@ export const SIZE_HINT: ToolHintEntry = {
   message: "Pick a scale, or type a width or height; the other follows.",
 };
 
+export const EFFECTS_HINT: ToolHintEntry = {
+  message: "Pick a style, then set how strongly it applies; it goes on top of Adjust.",
+};
+
 export const BLUR_HINT: ToolHintEntry = {
   message: "Add a region, then drag it over what to hide.",
   gestures: [...HANDLE_GESTURES, { shortcut: SHORTCUTS.removeMask, does: "Remove" }],

@@ -19,7 +19,8 @@ from color_adjust import (
     tone_curve,
     write_cube,
 )
-from schemas import ColorAdjust
+from constants import STYLE_PRESETS
+from schemas import ColorAdjust, StyleEffect
 
 MID_GREY = np.array([0.5, 0.5, 0.5])
 LIGHT_GREY = np.array([0.9, 0.9, 0.9])
@@ -211,6 +212,31 @@ class LutTests(unittest.TestCase):
         blue, green, red = 1, 3, 4
         expected = adjust_pixels(np.array([red, green, blue]) / 4.0, self.ADJUST)
         np.testing.assert_allclose(lut[blue, green, red], expected, atol=1e-6)
+
+    def test_each_effect_blends_over_the_manual_grade(self) -> None:
+        base = adjust_lut(self.ADJUST, size=5)
+        for preset in STYLE_PRESETS:
+            with self.subTest(preset=preset):
+                effect = StyleEffect.model_validate({"preset": preset, "strength": 0.4})
+                full = adjust_lut(
+                    self.ADJUST, size=5, effect=effect.model_copy(update={"strength": 1})
+                )
+                self.assertGreater(np.max(np.abs(full - base)), 0.01)
+                blended = adjust_lut(self.ADJUST, size=5, effect=effect)
+                np.testing.assert_allclose(blended, base + 0.4 * (full - base), atol=1e-6)
+
+    def test_cool_styles_color_a_neutral_midtone(self) -> None:
+        for preset in ("glacier", "blue_hour", "moonlight"):
+            effect = StyleEffect.model_validate({"preset": preset})
+            red, green, blue = adjust_lut(ColorAdjust(), size=3, effect=effect)[1, 1, 1]
+            with self.subTest(preset=preset):
+                self.assertGreater(blue - red, 0.16)
+                if preset == "glacier":
+                    self.assertGreater(green - red, 0.12)
+                elif preset == "blue_hour":
+                    self.assertGreater(blue - green, 0.18)
+                else:
+                    self.assertGreater(red, green)
 
     def test_pillow_reads_the_table_in_the_same_order(self) -> None:
         image = Image.new("RGB", (1, 1), (255, 0, 0))

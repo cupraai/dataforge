@@ -46,6 +46,7 @@ function cut(patch: Partial<Project> = {}): Project {
         source_in: 0.5,
         link_id: "l",
         adjust: graded,
+        effect: { preset: "arctic", strength: 0.5 },
         fade_in: 0.2,
         transform: { x: 0.1, y: 0, scale: 0.5, rotation: 0, opacity: 1 },
       }),
@@ -152,6 +153,8 @@ describe("replaceClip", () => {
     const shot = byId(result.project, "shot");
     const sound = result.project?.clips.find((clip) => clip.kind === "audio");
     expect(shot?.link_id).toBeTruthy();
+    expect(shot?.effect).toEqual({ preset: "arctic", strength: 0.5 });
+    expect(sound?.effect).toBeNull();
     expect(sound).toMatchObject({ link_id: shot?.link_id, start: 1, duration: 2, track_id: "a1" });
   });
 

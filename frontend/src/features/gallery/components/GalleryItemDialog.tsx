@@ -1232,6 +1232,7 @@ export function GalleryItemDialog({
                   sourceHeight={videoEdit.sourceHeight}
                   crop={videoEdit.draft.crop}
                   scale={videoEdit.draft.scale}
+                  effect={videoEdit.draft.effect}
                   controls={videoEdit.adjust}
                   onPictureChange={setVideoPicture}
                 />

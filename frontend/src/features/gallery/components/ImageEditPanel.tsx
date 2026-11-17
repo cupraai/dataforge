@@ -19,10 +19,12 @@ import {
   iconRotateCcw,
   iconRotateCw,
   iconSliders,
+  iconPalette,
   iconSparkles,
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
+import { EffectOutput, EffectTools } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import { FillTools } from "./FillTools";
 import {
@@ -40,18 +42,20 @@ import {
 } from "./EditPanelParts";
 import {
   BLUR_HINT,
+  EFFECTS_HINT,
   CROP_HINT,
   SIZE_HINT,
   type ToolHintEntry,
 } from "@/features/gallery/lib/toolHints";
 
-type ToolId = "crop" | "blur" | "rotate" | "size" | "adjust" | "fill";
+type ToolId = "crop" | "blur" | "rotate" | "size" | "effects" | "adjust" | "fill";
 
 const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "crop", label: "Crop", icon: iconCrop },
   { id: "size", label: "Size", icon: iconMaximize2 },
   { id: "rotate", label: "Rotate", icon: iconRotateCw },
   { id: "adjust", label: "Adjust", icon: iconSliders },
+  { id: "effects", label: "Effects", icon: iconPalette },
   { id: "blur", label: "Blur", icon: iconDroplets },
   { id: "fill", label: "Fill", icon: iconSparkles },
 ];
@@ -61,6 +65,7 @@ const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   crop: CROP_HINT,
   size: SIZE_HINT,
   rotate: { message: "Turns go in quarter steps; flips mirror the picture." },
+  effects: EFFECTS_HINT,
   blur: BLUR_HINT,
 };
 
@@ -84,6 +89,7 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
     rotate: edit.draft.rotate !== 0 || edit.draft.mirrorH || edit.draft.mirrorV,
     size: edit.draft.scale !== 1 || edit.draft.fit !== null,
     adjust: !isAdjustIdentity(edit.draft.adjust),
+    effects: Boolean(edit.draft.effect),
     fill: edit.draft.fills.length > 0,
   };
 
@@ -172,6 +178,9 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
           )}
 
           {activeTool === "adjust" && <AdjustTools controls={edit.adjust} disabled={locked} />}
+          {activeTool === "effects" && (
+            <EffectTools effect={edit.draft.effect} onChange={edit.setEffect} disabled={locked} />
+          )}
 
           {activeTool === "blur" && (
             <BlurTools masks={edit} hasRegions={modified.blur} disabled={locked} />
@@ -206,6 +215,12 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
                   {edit.draft.mirrorH && " mirrored"}
                   {edit.draft.mirrorV && " flipped"}
                 </OutputPart>
+              )}
+              {edit.draft.effect && (
+                <EffectOutput
+                  effect={edit.draft.effect}
+                  previewAvailable={edit.adjust.previewAvailable}
+                />
               )}
               {modified.adjust && (
                 <OutputPart>

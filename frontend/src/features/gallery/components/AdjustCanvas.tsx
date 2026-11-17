@@ -24,6 +24,7 @@ import {
 } from "@/features/gallery/lib/colorAdjust";
 import { ADJUST_PREVIEW_LUT_SIZE } from "@/shared/constants";
 import { classNames } from "@/shared/lib/classNames";
+import type { StyleEffect } from "@/shared/types";
 import type { CropRect } from "@/features/gallery/lib/crop";
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
@@ -40,6 +41,7 @@ interface AdjustCanvasProps {
   crop: CropRect;
   scale: number;
   controls: ColorAdjustControls;
+  effect?: StyleEffect | null;
   onPictureChange?: (picture: AdjustedPicture | null) => void;
   onShowingChange?: (showing: boolean) => void;
 }
@@ -57,6 +59,7 @@ export function AdjustCanvas({
   crop,
   scale,
   controls,
+  effect,
   onPictureChange,
   onShowingChange,
 }: AdjustCanvasProps) {
@@ -74,7 +77,7 @@ export function AdjustCanvas({
 
   const { values, comparing, zoomed, active, setZoomed, setPreviewAvailable } = controls;
   const previewAvailable = available && (noiseAvailable || values.noise_reduction < 1e-9);
-  const live = previewAvailable && (active || !isAdjustIdentity(values));
+  const live = previewAvailable && (active || !isAdjustIdentity(values, effect));
 
   useEffect(() => {
     setPreviewAvailable(previewAvailable);
@@ -82,6 +85,7 @@ export function AdjustCanvas({
 
   const stateRef = useLatestRef({
     values,
+    effect,
     comparing,
     zoomed,
     crop,
@@ -109,16 +113,22 @@ export function AdjustCanvas({
     if (!renderer || !canvas || !renderer.hasSource) return;
     const state = stateRef.current;
 
-    const lutKey = GLOBAL_TOOLS.map((tool) => state.values[tool]).join(",");
+    const lutKey = [
+      state.effect?.preset,
+      state.effect?.strength,
+      ...GLOBAL_TOOLS.map((tool) => state.values[tool]),
+    ].join(",");
     if (lutKey !== lutKeyRef.current) {
       lutKeyRef.current = lutKey;
-      const global = !isGlobalIdentity(state.values);
+      const global = !isGlobalIdentity(state.values, state.effect);
       renderer.setLut(
-        global ? buildAdjustLut(state.values, ADJUST_PREVIEW_LUT_SIZE) : null,
+        global ? buildAdjustLut(state.values, ADJUST_PREVIEW_LUT_SIZE, state.effect) : null,
         ADJUST_PREVIEW_LUT_SIZE,
       );
       if (pictureRef.current) {
-        const [r, g, b] = adjustPixel([0, 0, 0], state.values).map((v) => Math.round(v * 255));
+        const [r, g, b] = adjustPixel([0, 0, 0], state.values, state.effect).map((v) =>
+          Math.round(v * 255),
+        );
         pictureRef.current.blackout = `rgb(${r}, ${g}, ${b})`;
       }
     }
@@ -240,7 +250,18 @@ export function AdjustCanvas({
 
   useEffect(() => {
     if (live) scheduleRender();
-  }, [live, values, comparing, zoomed, crop, scale, backingWidth, backingHeight, scheduleRender]);
+  }, [
+    live,
+    values,
+    effect,
+    comparing,
+    zoomed,
+    crop,
+    scale,
+    backingWidth,
+    backingHeight,
+    scheduleRender,
+  ]);
 
   useEffect(() => {
     onShowingChange?.(live);

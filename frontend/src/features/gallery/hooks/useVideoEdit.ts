@@ -40,7 +40,7 @@ import { formatApiError } from "@/shared/api/http";
 import { useServerEvent } from "@/shared/events/serverEvents";
 import { useNotify } from "@/shared/notifications/notifications";
 import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
-import type { GalleryItem, VideoEditSpec, VideoFrameRate } from "@/shared/types";
+import type { GalleryItem, StyleEffect, VideoEditSpec, VideoFrameRate } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { useStoredStore } from "@/shared/lib/storedStore";
@@ -99,6 +99,7 @@ export interface VideoEdit extends MaskRegionControls {
   setSpeed: (speed: number) => void;
   /** null keeps the source's rate. */
   setFrameRate: (frameRate: VideoFrameRate | null) => void;
+  setEffect: (effect: StyleEffect | null) => void;
   setScale: (scale: number) => void;
   setVolume: (volume: number) => void;
   adjust: ColorAdjustControls;
@@ -388,6 +389,10 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     setDraft((current) => ({ ...current, frameRate }));
   }, []);
 
+  const setEffect = useCallback((effect: StyleEffect | null) => {
+    setDraft((current) => ({ ...current, effect }));
+  }, []);
+
   const setScale = useCallback((scale: number) => {
     setDraft((current) => ({ ...current, scale, fit: null }));
   }, []);
@@ -593,6 +598,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     setSpeed,
     setFrameRate,
     setScale,
+    setEffect,
     setVolume,
     adjust,
     pending: adjust.autoPending,

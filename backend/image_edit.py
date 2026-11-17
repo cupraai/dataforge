@@ -30,7 +30,14 @@ from image_fill import (
 from image_io import load_image_for_edit, save_image_preserving_format
 from media_claims import claim
 from media_dimensions import media_dimensions
-from schemas import ColorAdjust, EditCropRect, ImageEditResponse, ImageEditSpec, MaskRegion
+from schemas import (
+    ColorAdjust,
+    EditCropRect,
+    ImageEditResponse,
+    ImageEditSpec,
+    MaskRegion,
+    StyleEffect,
+)
 from size_fit import fitted_size
 
 IDENTITY_EPSILON = 1e-9
@@ -60,7 +67,7 @@ def is_identity_spec(spec: ImageEditSpec) -> bool:
         and spec.rotate == 0
         and abs(spec.scale - 1.0) < IDENTITY_EPSILON
         and spec.fit is None
-        and is_adjust_identity(spec.adjust)
+        and is_adjust_identity(spec.adjust, spec.effect)
     )
 
 
@@ -153,7 +160,9 @@ def masked_image(image: Image.Image, regions: list[MaskRegion]) -> Image.Image:
     return masked
 
 
-def adjusted_image(image: Image.Image, adjust: ColorAdjust) -> Image.Image:
+def adjusted_image(
+    image: Image.Image, adjust: ColorAdjust, effect: StyleEffect | None = None
+) -> Image.Image:
     """Detail first, then the LUT. Alpha and ``info`` (ICC, DPI) survive the round trip."""
     if not is_detail_identity(adjust):
         pixels = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
@@ -163,8 +172,8 @@ def adjusted_image(image: Image.Image, adjust: ColorAdjust) -> Image.Image:
         detailed.info.update(image.info)
         image = detailed
 
-    if not is_global_identity(adjust):
-        image = image.filter(lut_filter(adjust))
+    if not is_global_identity(adjust, effect):
+        image = image.filter(lut_filter(adjust, effect))
 
     return image
 
@@ -192,8 +201,8 @@ def render_image_edit(image: Image.Image, spec: ImageEditSpec) -> Image.Image:
     elif abs(spec.scale - 1.0) > IDENTITY_EPSILON:
         image = image.resize(scaled_size(image.size, spec.scale), Image.Resampling.LANCZOS)
 
-    if not is_adjust_identity(spec.adjust):
-        image = adjusted_image(image, spec.adjust)
+    if not is_adjust_identity(spec.adjust, spec.effect):
+        image = adjusted_image(image, spec.adjust, spec.effect)
 
     return image
 

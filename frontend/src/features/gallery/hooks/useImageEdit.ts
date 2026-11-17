@@ -34,7 +34,7 @@ import {
 import { formatApiError } from "@/shared/api/http";
 import { useNotify } from "@/shared/notifications/notifications";
 import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
-import type { GalleryItem, ImageEditSpec, ImageFill } from "@/shared/types";
+import type { GalleryItem, StyleEffect, ImageEditSpec, ImageFill } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
 
@@ -70,6 +70,7 @@ export interface ImageEdit extends MaskRegionControls {
   rotateCounterClockwise: () => void;
   toggleMirrorH: () => void;
   toggleMirrorV: () => void;
+  setEffect: (effect: StyleEffect | null) => void;
   setScale: (scale: number) => void;
   adjust: ColorAdjustControls;
   fill: ImageFillControls;
@@ -227,6 +228,10 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
 
   const toggleMirrorV = useCallback(() => {
     setDraft((current) => ({ ...current, mirrorV: !current.mirrorV }));
+  }, []);
+
+  const setEffect = useCallback((effect: StyleEffect | null) => {
+    setDraft((current) => ({ ...current, effect }));
   }, []);
 
   const setScale = useCallback((scale: number) => {
@@ -423,6 +428,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     toggleMirrorH,
     toggleMirrorV,
     setScale,
+    setEffect,
     adjust,
     fill,
     fillActive,
