@@ -61,10 +61,9 @@ def _source_png_chunks(source: Path) -> list[bytes]:
     return chunks
 
 
-def _png_with_source_metadata(source: Path, candidate: Path) -> bytes:
-    """Candidate pixels and rendering chunks, with the source's metadata right after IHDR."""
+def _png_with_metadata(candidate: Path, transplanted: list[bytes]) -> bytes:
+    """Candidate pixels and rendering chunks, with ``transplanted`` right after IHDR."""
     stripped = strip_png_chunks(candidate.read_bytes())
-    transplanted = _source_png_chunks(source)
 
     parts = [PNG_SIGNATURE]
     for chunk_type, chunk in iter_png_chunks(stripped):
@@ -122,6 +121,8 @@ def write_with_source_metadata(
     profile, gamma, stream rotation) stays. A PNG candidate takes an image source's metadata, an
     MP4/MOV candidate a video source's. Any other pairing, such as a GIF candidate or a still
     turned into a clip, has nowhere to carry the metadata, so the candidate is copied unchanged.
+    So is a PNG candidate whose source has no metadata: replacing would only erase ComfyUI's
+    workflow. A clip is always remuxed: not every tag a video source carries can be read here.
 
     Raises ``ValueError`` when the metadata cannot be read or written.
     """
@@ -136,7 +137,11 @@ def write_with_source_metadata(
 
     try:
         if still:
-            destination.write_bytes(_png_with_source_metadata(source, candidate))
+            transplanted = _source_png_chunks(source)
+            if not transplanted:
+                shutil.copy2(candidate, destination)
+                return
+            destination.write_bytes(_png_with_metadata(candidate, transplanted))
         else:
             _remux_with_source_metadata(source, candidate, destination, ffmpeg=ffmpeg)
     # UnidentifiedImageError is an OSError, so an unreadable source lands here too.

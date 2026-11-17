@@ -84,7 +84,7 @@ Open **Review > Pending candidates** (**Review candidates** in Quick actions) fo
 - **Reject** (`Ctrl+Backspace`) removes the candidate and its run record, leaving the source unchanged.
 - **Skip**, **Back**, the arrow keys, and `Home` / `End` navigate without deciding.
 
-**Keep original metadata** is on by default and remembered for individual and bulk acceptance. It replaces the result's EXIF, XMP, and text/workflow metadata with the source's. Turn it off to keep the result's own metadata. It works for image sources with PNG results and video sources with MP4 or MOV results; other pairings keep the result's metadata. If a supported transfer fails, the result stays staged and the source is unchanged.
+**Keep original metadata** is on by default and remembered for individual and bulk acceptance. It replaces the result's EXIF, XMP, and text/workflow metadata with the source's. Turn it off to keep the result's own metadata. It works for image sources with PNG results and video sources with MP4 or MOV results; other pairings, and an image source with no metadata at all, keep the result's metadata. If a supported transfer fails, the result stays staged and the source is unchanged.
 
 **Edited sources.** If the source has an edit, accepting asks before discarding its settings and kept original; the candidate becomes the new original. Cancelling that question leaves both versions unchanged.
 

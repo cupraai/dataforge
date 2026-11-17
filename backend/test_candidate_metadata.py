@@ -114,15 +114,19 @@ class StillMetadataTests(unittest.TestCase):
                     self.assertEqual(ImageOps.exif_transpose(image).size, (32, 64))
                     self.assertEqual(image.getexif()[0x010E], "A lake at dawn")
 
-    def test_a_bmp_source_leaves_the_candidate_without_metadata(self) -> None:
-        source = self.root / "photo.bmp"
-        Image.new("RGB", (8, 8)).save(source)
+    def test_a_source_without_metadata_keeps_the_candidates_workflow(self) -> None:
+        """Replacing with nothing would only erase what ComfyUI wrote."""
+        plain_png = self.root / "plain.png"
+        plain_png.write_bytes(with_chunk_after_ihdr(make_png_bytes(), ICC_PROFILE))
+        for name in ("photo.jpg", "photo.bmp", "plain.png"):
+            with self.subTest(source=name):
+                source = self.root / name
+                if not source.exists():
+                    Image.new("RGB", (8, 8)).save(source)
 
-        write_with_source_metadata(source, self.candidate, self.output)
+                write_with_source_metadata(source, self.candidate, self.output)
 
-        types = chunk_types(self.output)
-        self.assertNotIn(b"tEXt", types)
-        self.assertIn(b"iCCP", types)
+                self.assertEqual(self.output.read_bytes(), self.candidate.read_bytes())
 
     def test_an_unreadable_source_refuses_with_a_way_out(self) -> None:
         source = self.root / "photo.jpg"

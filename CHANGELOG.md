@@ -18,6 +18,10 @@ version heading when a minor or major version is cut.
 
 - The **Edit with ComfyUI** dialog now opens at the size of the Workflows editor, with every preset listed down the side along with what it takes, and the selected one drawn as a workflow map: the models, LoRAs, prompt and passes it runs, with the box for each source file marked. A preset that cannot be read says why there, and a dot shows whether ComfyUI answered.
 
+### Fixed
+
+- Accepting a ComfyUI result with **Keep original metadata** no longer erases its workflow when the source image has no metadata to carry over, so the **ComfyUI workflow** button still shows on the accepted file.
+
 ## 0.14.0 - 2026-11-16
 
 ### Added
