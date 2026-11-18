@@ -38,6 +38,7 @@ import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
+import { IconButton } from "@/shared/ui/IconButton";
 
 interface TransferMediaDialogProps {
   mode: MediaTransferMode;
@@ -382,8 +383,8 @@ export function TransferMediaDialog({
         />
       }
     >
-      <div className="dialog__field">
-        <div className="dialog__label">Destination</div>
+      <div className="field">
+        <div className="field__label">Destination</div>
         <div
           className={classNames(
             "transfer-media-dialog__destination",
@@ -396,8 +397,8 @@ export function TransferMediaDialog({
         </div>
       </div>
 
-      <div className="dialog__field transfer-media-dialog__tree-field">
-        <div className="dialog__label">Folders</div>
+      <div className="field transfer-media-dialog__tree-field">
+        <div className="field__label">Folders</div>
         <div
           ref={treeRef}
           className="transfer-media-dialog__tree"
@@ -452,32 +453,24 @@ export function TransferMediaDialog({
                   >
                     <div className="transfer-media-dialog__tree-row">
                       {canExpand ? (
-                        <button
-                          type="button"
+                        // The tree owns focus and arrow keys; the chevron is for the pointer.
+                        <IconButton
+                          icon={expanded ? iconChevronDown : iconChevronRight}
+                          label={expanded ? `Collapse ${entry.name}` : `Expand ${entry.name}`}
+                          tooltip={false}
                           className="transfer-media-dialog__tree-toggle"
+                          size="xs"
+                          variant="ghost"
+                          busy={loading}
+                          disabled={busy}
+                          tabIndex={-1}
                           onClick={(event) => {
                             event.stopPropagation();
                             toggleExpanded(entry.path);
                           }}
-                          aria-label={expanded ? `Collapse ${entry.name}` : `Expand ${entry.name}`}
-                          disabled={busy}
-                          tabIndex={-1}
-                        >
-                          {loading ? (
-                            <Icon
-                              icon={iconLoader2}
-                              spin
-                              className="transfer-media-dialog__tree-icon"
-                            />
-                          ) : (
-                            <Icon
-                              icon={expanded ? iconChevronDown : iconChevronRight}
-                              className="transfer-media-dialog__tree-icon"
-                            />
-                          )}
-                        </button>
+                        />
                       ) : (
-                        <span className="transfer-media-dialog__tree-toggle transfer-media-dialog__tree-toggle--spacer" />
+                        <span className="transfer-media-dialog__tree-spacer" />
                       )}
 
                       <button

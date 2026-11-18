@@ -309,10 +309,6 @@ $lane-inset: 4px;
     @include truncate;
   }
 
-  &__export-text-tip {
-    min-width: 0;
-  }
-
   &__export-bar {
     flex-shrink: 0;
     width: 3.5rem;
@@ -619,13 +615,10 @@ $lane-inset: 4px;
   }
 
   // The tooltip wrapper anchors the bubble, so it is what floats on the picture.
-  &__media-list--grid &__media-add-tip {
+  &__media-list--grid &__media-add {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-  }
-
-  &__media-list--grid &__media-add {
     box-shadow: var(--elevation-1);
     opacity: 0;
     transition:
@@ -947,6 +940,8 @@ $lane-inset: 4px;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+    // Both tags as tall as the held one with its close button, so the pair lines up.
+    min-height: 1.5rem;
     padding: 0.125rem 0.5rem;
     border-radius: var(--radius-pill);
     background: var(--media-scrim);
@@ -959,21 +954,11 @@ $lane-inset: 4px;
 
     &--held {
       left: 0.5rem;
+      padding-right: 0.125rem;
     }
 
     &--live {
       right: 0.5rem;
-    }
-
-    button {
-      display: inline-flex;
-      padding: 0;
-      border: 0;
-      border-radius: var(--radius-pill);
-      background: none;
-      color: inherit;
-      cursor: pointer;
-      @include focus-ring-detached;
     }
   }
 
@@ -2096,13 +2081,6 @@ $lane-inset: 4px;
     cursor: pointer;
   }
 
-  // The tooltip wrapper sits on the marker's time; the flag hangs centred from it.
-  &__marker-tip {
-    position: absolute;
-    top: 0;
-    z-index: 1;
-  }
-
   &__marker-note {
     display: block;
     color: var(--text-muted);
@@ -2224,11 +2202,6 @@ $lane-inset: 4px;
   &__header-row {
     display: flex;
     align-items: center;
-    min-width: 0;
-  }
-
-  &__name-tip {
-    flex: 1;
     min-width: 0;
   }
 
@@ -2764,7 +2737,7 @@ $lane-inset: 4px;
     align-items: center;
     gap: 0.375rem;
 
-    .dialog__input {
+    .text-input {
       flex: 1;
     }
   }
@@ -2790,14 +2763,14 @@ $lane-inset: 4px;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 0.5rem;
     row-gap: 0.75rem;
-    @include dialog-form-field;
+    @include form-field;
 
     // The grid keeps the dialog's rhythm above it; its own rows are spaced by the gap.
-    .dialog__field {
+    .field {
       margin-top: 0;
     }
 
-    .dialog__input {
+    .text-input {
       @include tabular-nums;
       text-align: right;
     }
@@ -2832,13 +2805,9 @@ $lane-inset: 4px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 0.75rem;
 
-  // The card's tooltip wrapper is the grid item, so the card has to fill it.
-  &__cell {
-    align-items: stretch;
-
-    > .video-project-card {
-      flex: 1;
-    }
+  // The grid item, inside its tooltip's trigger span, which draws no box.
+  .video-project-card {
+    min-width: 0;
   }
 }
 
@@ -3058,11 +3027,11 @@ $lane-inset: 4px;
   margin-top: 1.125rem;
 
   // Each field's label and tiles join the grid; the label is centred on its row of tiles.
-  .dialog__field {
+  .field {
     display: contents;
   }
 
-  .dialog__label {
+  .field__label {
     margin: 0;
   }
 }
@@ -3093,7 +3062,7 @@ $lane-inset: 4px;
     align-items: center;
     gap: 0.5rem;
 
-    .dialog__input {
+    .text-input {
       flex: 1;
     }
   }
@@ -3108,7 +3077,7 @@ $lane-inset: 4px;
   }
 
   &__heading {
-    @include dialog-form-label;
+    @include form-label;
     margin: 0;
   }
 
@@ -3203,8 +3172,9 @@ $lane-inset: 4px;
   }
 }
 
-// Exact entry: a time typed in the format the editor shows.
-.video-editor__timecode-field {
+// Exact entry: a time typed in the format the editor shows, or a value such as a speed.
+.video-editor__timecode-field,
+.video-editor__value-field {
   width: 8.5rem;
   height: var(--control-height-xs);
   padding: 0 0.375rem;
@@ -3324,8 +3294,7 @@ $lane-inset: 4px;
 }
 
 .video-editor__marker-name,
-.video-editor__marker-note,
-.video-editor__marker-filter input {
+.video-editor__marker-note {
   min-width: 0;
   height: var(--control-height-xs);
   padding: 0 0.375rem;
@@ -3347,14 +3316,5 @@ $lane-inset: 4px;
 }
 
 .video-editor__marker-filter {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
   margin-bottom: 0.5rem;
-  color: var(--text-subtle);
-  @include icon-scope-sm;
-
-  input {
-    flex: 1;
-  }
 }

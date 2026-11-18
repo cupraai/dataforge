@@ -1,12 +1,7 @@
+// The hover wrapper draws no box: the trigger takes its place in any layout, so no flex or grid
+// parent has to reach through it, and the bubble is anchored to the trigger itself.
 .tooltip {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  vertical-align: top;
-
-  &--disabled-wrap {
-    cursor: not-allowed;
-  }
+  display: contents;
 
   // Portalled to the body by `AnchoredLayer`, so this is styled on its own, not as a descendant of the wrapper.
   &__bubble {

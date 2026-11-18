@@ -7,29 +7,27 @@ import { TabList, type TabItem } from "./TabList";
 
 type Page = "general" | "advanced";
 
-function Harness({ items }: { items: TabItem<Page>[] }) {
+const PAGES: readonly Page[] = ["general", "advanced"];
+
+function Harness({ items }: { items: Record<Page, TabItem> }) {
   const [active, setActive] = useState<Page>("general");
-  const tabs = useTabList(
-    items.map((item) => item.id),
-    active,
-    setActive,
-  );
+  const tabs = useTabList(PAGES, active, setActive);
   return (
     <>
-      <TabList tabs={tabs} items={items} label="Settings pages" />
-      {items.map((item) => (
-        <div key={item.id} {...tabs.panelProps(item.id)}>
-          {item.label} page
+      <TabList tabs={tabs} item={(id) => items[id]} label="Settings pages" />
+      {PAGES.map((id) => (
+        <div key={id} {...tabs.panelProps(id)}>
+          {items[id].label} page
         </div>
       ))}
     </>
   );
 }
 
-const ITEMS: TabItem<Page>[] = [
-  { id: "general", label: "General" },
-  { id: "advanced", label: "Advanced" },
-];
+const ITEMS: Record<Page, TabItem> = {
+  general: { label: "General" },
+  advanced: { label: "Advanced" },
+};
 
 describe("TabList", () => {
   it("selects with arrow keys and shows the selected tab's panel", async () => {
@@ -51,7 +49,7 @@ describe("TabList", () => {
   });
 
   it("reads a marked tab's state out with its name", () => {
-    render(<Harness items={[ITEMS[0], { ...ITEMS[1], mark: "unsaved" }]} />);
+    render(<Harness items={{ ...ITEMS, advanced: { ...ITEMS.advanced, mark: "unsaved" } }} />);
 
     expect(screen.getByRole("tab", { name: "Advanced, unsaved" })).toBeInTheDocument();
   });

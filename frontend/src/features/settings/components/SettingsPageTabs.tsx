@@ -31,11 +31,10 @@ export function SettingsPageTabs<P extends { id: string; label: string }>({
       <TabList
         tabs={tabs}
         label={label}
-        items={pages.map((page) => ({
-          id: page.id,
-          label: page.label,
-          mark: isEdited(page) ? "unsaved" : undefined,
-        }))}
+        item={(id) => {
+          const page = pages.find((entry) => entry.id === id)!;
+          return { label: page.label, mark: isEdited(page) ? "unsaved" : undefined };
+        }}
         className="settings-dialog__pages"
       />
       {pages.map((page) => (

@@ -11,6 +11,15 @@ function px(value: string): number {
   return parseFloat(value) || 0;
 }
 
+/** The element that draws `element`'s box: a tooltip's trigger span draws none of its own. */
+function layoutBox(element: Element): Element {
+  let box = element;
+  while (getComputedStyle(box).display === "contents" && box.firstElementChild) {
+    box = box.firstElementChild;
+  }
+  return box;
+}
+
 function labelSavings(actions: HTMLElement): number {
   let total = 0;
   for (const label of actions.querySelectorAll<HTMLElement>(`.${COLLAPSIBLE_LABEL_CLASS}`)) {
@@ -32,7 +41,7 @@ function measureToolbarRow(toolbar: HTMLElement): ToolbarRowWidths | null {
   const stats = toolbar.querySelector<HTMLElement>(".toolbar__stats");
   const statsWidth =
     stats && getComputedStyle(stats).flexBasis !== "100%" ? stats.getBoundingClientRect().width : 0;
-  const children = Array.from(controls.children);
+  const children = Array.from(controls.children, layoutBox);
   const first = children.at(0)?.getBoundingClientRect();
   const last = children.at(-1)?.getBoundingClientRect();
   const style = getComputedStyle(toolbar);
@@ -76,7 +85,7 @@ export function useToolbarCompactMode(toolbarRef: RefObject<HTMLElement | null>)
       resizes.observe(toolbar.querySelector(".toolbar__measure") ?? toolbar);
       toolbar
         .querySelectorAll(".toolbar__stats, .toolbar__controls > *")
-        .forEach((element) => resizes.observe(element));
+        .forEach((element) => resizes.observe(layoutBox(element)));
     };
     const mutations = new MutationObserver(() => {
       observe();

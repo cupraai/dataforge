@@ -1,7 +1,20 @@
 import type { StyleEffect } from "@/shared/types";
+import type { SegmentOption } from "@/shared/ui/SegmentedControl";
 import { Slider } from "@/shared/ui/Slider";
-import { EFFECT_PRESETS, formatEffect } from "@/features/gallery/lib/colorAdjust";
-import { OutputPart, PresetButton, ToolGroup, ToolPresets } from "./EditPanelParts";
+import { EFFECT_PRESETS, effectGradient, formatEffect } from "@/features/gallery/lib/colorAdjust";
+import { OutputPart, ToolChoices, ToolGroup } from "./EditPanelParts";
+
+type EffectChoice = StyleEffect["preset"] | "none";
+
+// Graded once: the looks are fixed, and a chosen one shows its own.
+const EFFECT_OPTIONS: ReadonlyArray<SegmentOption<EffectChoice>> = [
+  { value: "none", label: "None" },
+  ...EFFECT_PRESETS.map(([preset, label]) => ({
+    value: preset,
+    label,
+    swatch: effectGradient(preset),
+  })),
+];
 
 export function EffectTools({
   effect,
@@ -15,21 +28,15 @@ export function EffectTools({
   const strength = Math.round((effect?.strength ?? 1) * 100);
   return (
     <>
-      <ToolPresets label="Style">
-        <PresetButton active={!effect} disabled={disabled} onClick={() => onChange(null)}>
-          None
-        </PresetButton>
-        {EFFECT_PRESETS.map(([preset, label]) => (
-          <PresetButton
-            key={preset}
-            active={effect?.preset === preset}
-            disabled={disabled}
-            onClick={() => onChange({ preset, strength: effect?.strength ?? 1 })}
-          >
-            {label}
-          </PresetButton>
-        ))}
-      </ToolPresets>
+      <ToolChoices
+        label="Style"
+        value={effect?.preset ?? "none"}
+        options={EFFECT_OPTIONS}
+        disabled={disabled}
+        onChange={(preset) =>
+          onChange(preset === "none" ? null : { preset, strength: effect?.strength ?? 1 })
+        }
+      />
       <ToolGroup label="Strength" className="edit-panel__tool-actions">
         <Slider
           size="sm"

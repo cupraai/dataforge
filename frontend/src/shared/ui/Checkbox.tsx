@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { classNames } from "@/shared/lib/classNames";
 
 interface CheckboxProps {
   label: ReactNode;
@@ -7,7 +8,7 @@ interface CheckboxProps {
   checked: boolean;
   disabled?: boolean;
   onChange: (checked: boolean) => void;
-  /** Classes for the wrapper; dialog forms pass `dialog__field` for the field rhythm. */
+  /** Layout classes for the wrapper, which is a field and spaces itself like one. */
   className?: string;
 }
 
@@ -23,7 +24,7 @@ export function Checkbox({
   const hintId = `${id}-hint`;
 
   return (
-    <div className={className}>
+    <div className={classNames("field field--check", className)}>
       <label className="checkbox" htmlFor={id}>
         <input
           id={id}
@@ -38,7 +39,7 @@ export function Checkbox({
         <span className="checkbox__label">{label}</span>
       </label>
       {hint && (
-        <p id={hintId} className="dialog__hint">
+        <p id={hintId} className="field__hint">
           {hint}
         </p>
       )}

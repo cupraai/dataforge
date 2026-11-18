@@ -12,15 +12,7 @@
   }
 
   &__chip {
-    @include count-pill($accent: false);
     margin-left: auto;
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-
-    &--failed {
-      background: var(--danger-soft);
-      color: var(--danger);
-    }
   }
 
   &__panel {

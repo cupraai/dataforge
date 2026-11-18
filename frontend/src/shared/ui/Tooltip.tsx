@@ -5,9 +5,9 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type FocusEvent,
   type MouseEvent,
   type ReactElement,
@@ -52,11 +52,15 @@ interface TooltipProps {
   trigger?: "hover-focus";
   /** Preferred side of the trigger; the bubble flips only when that side cannot hold it. */
   placement?: AnchoredSide;
-  /** Extra classes on the hover wrapper, e.g. when it has to be a flex item. */
-  className?: string;
   /** Extra classes on the bubble, for content richer than a line of text. */
   bubbleClassName?: string;
-  style?: CSSProperties;
+}
+
+/** The trigger element inside the wrapper, past any tooltip wrapped directly around it. */
+function triggerOf(wrapper: HTMLElement | null): HTMLElement | null {
+  let element = wrapper?.firstElementChild ?? null;
+  while (element?.classList.contains("tooltip")) element = element.firstElementChild;
+  return element instanceof HTMLElement ? element : null;
 }
 
 export function Tooltip({
@@ -67,13 +71,20 @@ export function Tooltip({
   open = false,
   trigger = "hover-focus",
   placement = "bottom",
-  className,
   bubbleClassName,
-  style,
 }: TooltipProps) {
   const id = useId();
   const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const wrapperRef = useRef<HTMLSpanElement>(null);
+  // The wrapper draws no box, so the bubble points at the trigger inside it.
+  const anchorRef = useMemo(
+    () => ({
+      get current() {
+        return triggerOf(wrapperRef.current);
+      },
+    }),
+    [],
+  );
   const [visible, setVisible] = useState(false);
   const [openDismissed, setOpenDismissed] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
@@ -218,6 +229,7 @@ export function Tooltip({
     ...focusHandlers,
   });
 
+  // `display: contents`: the trigger lays out as if unwrapped, and its hover still lands here.
   return (
     /* oxlint-disable-next-line
        jsx-a11y/click-events-have-key-events,
@@ -225,8 +237,7 @@ export function Tooltip({
        -- pointer-only wrapper */
     <span
       ref={wrapperRef}
-      className={classNames("tooltip", childDisabled && "tooltip--disabled-wrap", className)}
-      style={style}
+      className="tooltip"
       onMouseEnter={showOnHover}
       /* oxlint-disable-next-line
          jsx-a11y/mouse-events-have-key-events
@@ -238,7 +249,7 @@ export function Tooltip({
     >
       {triggerElement}
       <AnchoredLayer
-        anchorRef={wrapperRef}
+        anchorRef={anchorRef}
         open={shown}
         placement={`${placement}-center`}
         offset={8}

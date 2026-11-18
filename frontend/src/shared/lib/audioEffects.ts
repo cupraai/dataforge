@@ -53,6 +53,20 @@ export function effectsEqual(a: AudioEffects, b: AudioEffects): boolean {
   );
 }
 
+/** The fade shapes to choose from, in menu order. */
+export const FADE_CURVES: ReadonlyArray<{
+  value: VideoProjectFadeCurve;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "equal_power",
+    label: "Equal power",
+    hint: "Keeps a crossfade's loudness steady; best for music and ambience",
+  },
+  { value: "linear", label: "Linear", hint: "A straight ramp; dips in the middle of a crossfade" },
+];
+
 /** A ramp's level for `progress` 0..1; equal power is ffmpeg's quarter sine, `qsin`. */
 export function fadeCurveLevel(curve: VideoProjectFadeCurve, progress: number): number {
   const level = Math.min(1, Math.max(0, progress));

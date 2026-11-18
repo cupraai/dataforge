@@ -402,14 +402,12 @@ function MediaMix({ buckets, total }: { buckets: StatBucket[]; total: number }) 
     <figure className="stats-dialog__mix" aria-label={`File extensions: ${summary}`}>
       <div className="stats-dialog__mix-track">
         {buckets.map((bucket) => (
-          <Tooltip
-            key={bucket.label}
-            content={formatName(bucket.label)}
-            delay={0}
-            className="stats-dialog__mix-cell"
-            style={{ flexGrow: bucket.count }}
-          >
-            <span className="stats-dialog__mix-segment" data-extension={bucket.label} />
+          <Tooltip key={bucket.label} content={formatName(bucket.label)} delay={0}>
+            <span
+              className="stats-dialog__mix-segment"
+              data-extension={bucket.label}
+              style={{ flexGrow: bucket.count }}
+            />
           </Tooltip>
         ))}
       </div>

@@ -29,8 +29,27 @@ import { Icon } from "@/shared/ui/Icon";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { holdToCompareProps } from "@/features/gallery/lib/holdToCompare";
-import { PresetButton, ToolGroup, ToolPresets } from "./EditPanelParts";
+import { ToolChoices, ToolGroup } from "./EditPanelParts";
 import { FillStatusBar } from "./FillStatusBar";
+import type { BrushMode } from "@/features/gallery/lib/fillMask";
+import type { SegmentOption } from "@/shared/ui/SegmentedControl";
+
+const BRUSH_OPTIONS: ReadonlyArray<SegmentOption<BrushMode>> = [
+  {
+    value: "paint",
+    label: "Paint",
+    icon: iconPencilLine,
+    hint: "Paint the selection",
+    shortcut: SHORTCUTS.fillBrush,
+  },
+  {
+    value: "erase",
+    label: "Erase",
+    icon: iconEraser,
+    hint: "Erase the selection",
+    shortcut: SHORTCUTS.fillEraser,
+  },
+];
 
 const PRESETS: ReadonlyArray<{ id: FillPreset; label: string; tip: string }> = [
   { id: "fast", label: "Fast", tip: "Fewer steps: quicker, a little less detail" },
@@ -78,26 +97,13 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
       {/* While a result waits, painting is settled; the request stays, to tweak and regenerate. */}
       {!deciding && (
         <>
-          <ToolPresets label="Brush">
-            <PresetButton
-              active={fill.brushMode === "paint"}
-              disabled={paintLocked}
-              onClick={() => fill.setBrushMode("paint")}
-              shortcut={{ definition: SHORTCUTS.fillBrush, label: "Paint the selection" }}
-            >
-              <Icon icon={iconPencilLine} />
-              Paint
-            </PresetButton>
-            <PresetButton
-              active={fill.brushMode === "erase"}
-              disabled={paintLocked}
-              onClick={() => fill.setBrushMode("erase")}
-              shortcut={{ definition: SHORTCUTS.fillEraser, label: "Erase the selection" }}
-            >
-              <Icon icon={iconEraser} />
-              Erase
-            </PresetButton>
-          </ToolPresets>
+          <ToolChoices
+            label="Brush"
+            value={fill.brushMode}
+            options={BRUSH_OPTIONS}
+            disabled={paintLocked}
+            onChange={fill.setBrushMode}
+          />
 
           <ToolGroup label="Size" className="edit-panel__tool-actions">
             <Tooltip
@@ -162,19 +168,13 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
         />
       </ToolGroup>
 
-      <ToolPresets label="Preset">
-        {PRESETS.map((entry) => (
-          <Tooltip key={entry.id} content={entry.tip}>
-            <PresetButton
-              active={fill.preset === entry.id}
-              disabled={requestLocked}
-              onClick={() => fill.setPreset(entry.id)}
-            >
-              {entry.label}
-            </PresetButton>
-          </Tooltip>
-        ))}
-      </ToolPresets>
+      <ToolChoices
+        label="Preset"
+        value={fill.preset}
+        options={PRESETS.map((entry) => ({ value: entry.id, label: entry.label, hint: entry.tip }))}
+        disabled={requestLocked}
+        onChange={fill.setPreset}
+      />
 
       <ToolGroup label={deciding ? "Result" : "Generate"} className="edit-panel__tool-actions">
         {fill.generating ? (

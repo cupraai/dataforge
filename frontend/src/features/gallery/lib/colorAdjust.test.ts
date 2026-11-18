@@ -6,6 +6,7 @@ import {
   adjustPixel,
   buildAdjustLut,
   clampAdjust,
+  effectGradient,
   formatAdjustValue,
   isAdjustIdentity,
   isGlobalIdentity,
@@ -32,6 +33,20 @@ describe("adjustPixel", () => {
         expect(value).toBeCloseTo(color[channel], 9),
       );
     }
+  });
+});
+
+describe("effectGradient", () => {
+  const stops = (preset: Parameters<typeof effectGradient>[0]) =>
+    [...effectGradient(preset).matchAll(/rgb\((\d+) (\d+) (\d+)\)/g)].map((match) =>
+      match.slice(1).map(Number),
+    );
+
+  it("paints the scene through the look itself", () => {
+    expect(stops("noir").every(([r, g, b]) => r === g && g === b)).toBe(true);
+    const warmth = (preset: "golden" | "arctic") =>
+      stops(preset).reduce((sum, [r, , b]) => sum + r - b, 0);
+    expect(warmth("golden")).toBeGreaterThan(warmth("arctic"));
   });
 });
 

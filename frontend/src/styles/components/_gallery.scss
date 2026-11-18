@@ -96,24 +96,17 @@
   }
 }
 
-// The grid item: the card's tooltip wrapper fills it, and the actions bar floats beside it.
+// The grid item: the card fills it, and the actions bar floats beside it.
 .card-cell {
   position: relative;
   display: flex;
   align-items: stretch;
   width: 100%;
 
-  // `.tooltip` centres its child; a card has to stretch to its row's height instead.
-  > .card-cell__tip {
-    display: flex;
+  // Inside its tooltip's trigger span, which draws no box.
+  .card {
     flex: 1;
-    align-items: stretch;
     min-width: 0;
-
-    > .card {
-      flex: 1;
-      min-width: 0;
-    }
   }
 
   // The bar moves with the card it belongs to.
@@ -598,11 +591,6 @@
     min-width: 0;
     height: 1.25rem;
     overflow: hidden;
-  }
-
-  &__tags-more-tip {
-    display: inline-flex;
-    flex: none;
   }
 
   // Plain text where the caption would be: a pill inside a clickable card reads as a button.

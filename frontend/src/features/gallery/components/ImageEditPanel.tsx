@@ -14,7 +14,6 @@ import {
   iconDroplets,
   iconFlipHorizontal,
   iconFlipVertical,
-  iconLoader2,
   iconMaximize2,
   iconRotateCcw,
   iconRotateCw,
@@ -28,6 +27,7 @@ import { EffectOutput, EffectTools } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import { FillTools } from "./FillTools";
 import {
+  ApplyProgress,
   AspectTools,
   BlurTools,
   EditActions,
@@ -236,12 +236,7 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
         </p>
 
         {edit.applying ? (
-          <div className="edit-panel__actions">
-            <span className="edit-panel__rendering" role="status">
-              <Icon icon={iconLoader2} spin />
-              Saving
-            </span>
-          </div>
+          <ApplyProgress label="Saving" />
         ) : (
           <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />
         )}

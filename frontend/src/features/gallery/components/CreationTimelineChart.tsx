@@ -94,11 +94,10 @@ export function CreationTimelineChart({
                           content={`${bucket.label}: ${countLabel}`}
                           delay={0}
                           placement="top"
-                          className="stats-dialog__timeline-bar"
-                          style={{ height: `${(bucket.count / maximum) * progress}%` }}
                         >
                           <span
                             className="stats-dialog__timeline-fill"
+                            style={{ height: `${(bucket.count / maximum) * progress}%` }}
                             /* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex --
                                focusable so keyboard users get the bar's tooltip */
                             tabIndex={0}

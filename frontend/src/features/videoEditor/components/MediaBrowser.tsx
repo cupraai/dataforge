@@ -63,6 +63,10 @@ interface MediaBrowserProps {
 }
 
 const BROWSER_TABS = ["media", "projects"] as const;
+const BROWSER_TAB_LABELS: Record<(typeof BROWSER_TABS)[number], string> = {
+  media: "Media",
+  projects: "Projects",
+};
 
 export function MediaBrowser({
   tab,
@@ -85,10 +89,7 @@ export function MediaBrowser({
           tabs={tabs}
           label="Browser"
           size="sm"
-          items={[
-            { id: "media", label: "Media" },
-            { id: "projects", label: "Projects" },
-          ]}
+          item={(id) => ({ label: BROWSER_TAB_LABELS[id] })}
           className="video-editor__tabs"
         />
         {tab === "media" && (
@@ -286,7 +287,6 @@ function MediaRow({
         icon={iconPlus}
         label={`Add ${item.name} to the timeline`}
         tooltip="Add at the playhead"
-        tooltipClassName="video-editor__media-add-tip"
         size="xs"
         shape="round"
         className="video-editor__media-add"

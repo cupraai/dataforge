@@ -98,8 +98,8 @@ function BranchList({
   onSelect: (nodeId: string) => void;
 }) {
   return (
-    <div className="dialog__field comfy-workflow-dialog__outputs-field">
-      <div className="dialog__label">Outputs ({branches.length})</div>
+    <div className="field comfy-workflow-dialog__outputs-field">
+      <div className="field__label">Outputs ({branches.length})</div>
       <ul className="comfy-workflow-dialog__outputs" aria-label="Workflow outputs">
         {branches.map((branch) => (
           <li key={branch.node_id}>
@@ -309,8 +309,8 @@ function BranchDetails({
   const { passNumbers, passSettings } = useMemo(() => branchPassInfo(branch), [branch]);
 
   return (
-    <div className="dialog__field comfy-workflow-dialog__details-field">
-      <div className="dialog__label">
+    <div className="field comfy-workflow-dialog__details-field">
+      <div className="field__label">
         Details
         {(canCopyWorkflow || onGenerate) && (
           <span className="comfy-workflow-dialog__details-actions">
@@ -413,8 +413,8 @@ function DetailsSkeleton() {
       aria-label="Loading workflow"
       aria-busy="true"
     >
-      <div className="dialog__field comfy-workflow-dialog__details-field" aria-hidden="true">
-        <div className="dialog__label">
+      <div className="field comfy-workflow-dialog__details-field" aria-hidden="true">
+        <div className="field__label">
           Details
           <Icon icon={iconLoader2} spin className="comfy-workflow-dialog__status-icon" />
         </div>

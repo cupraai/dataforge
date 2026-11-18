@@ -107,6 +107,11 @@
   color: var(--text);
 }
 
+// The reference tags sit over the editor's picture, so their close button keeps the dark theme.
+:root[data-theme="light"] .video-editor__reference-tag {
+  @include root.dark-theme;
+}
+
 :root[data-theme="light"] .card__media {
   .card__badge--video,
   .card__badge--candidate,

@@ -232,17 +232,16 @@ export function ExportDialog({
             { value: "unchanged", title: "As mixed" },
           ]}
         />
-        <p className="dialog__hint video-export-dialog__sound-hint">
+        <p className="field__hint video-export-dialog__sound-hint">
           {AUDIO_LEVEL_HINTS[audioLevel]}
         </p>
         {span && (
-          <p className="dialog__hint video-export-dialog__sound-hint">
+          <p className="field__hint video-export-dialog__sound-hint">
             A part is for checking a passage: it is saved without the project snapshot or a caption.
           </p>
         )}
       </div>
       <Checkbox
-        className="dialog__field"
         label="Copy initial video's caption"
         checked={copyCaption}
         disabled={busy || span !== null}

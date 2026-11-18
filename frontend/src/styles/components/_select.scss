@@ -3,10 +3,10 @@
 // Native selects. The border lives on the wrap so the UA arrow is not cramped against it; the
 // wrap's gutter forwards clicks to the select (see `Select`).
 .select {
-  @include dialog-form-input(2.75rem);
+  @include form-input(2.75rem);
   display: flex;
   align-items: center;
-  // Left matches `dialog__input`; right is wider for the arrow.
+  // Left matches `text-input`; right is wider for the arrow.
   padding: 0 0.75rem 0 0.625rem;
   cursor: pointer;
 

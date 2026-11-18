@@ -747,7 +747,7 @@ export function GalleryItemDialog({
         if (
           event.defaultPrevented ||
           getScrollLockDepth() > 0 ||
-          isEditableTarget(event.target) ||
+          isEditableTarget(event) ||
           target?.closest(OUTSIDE_ARROW_OWNERS)
         )
           return;
@@ -792,7 +792,7 @@ export function GalleryItemDialog({
         return;
       }
       // A focused scrubber is exempt via isEditableTarget so arrows still step frames.
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event)) return;
 
       if (matchesShortcut(event, SHORTCUTS.deleteItem)) {
         if (editing || frameCapture.frameMode) return;

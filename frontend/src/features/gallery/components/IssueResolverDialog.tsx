@@ -219,7 +219,7 @@ export function IssueResolverDialog({
         void handleResolve();
         return;
       }
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event)) return;
 
       const step = queueStepFor(event);
       if (!step) return;

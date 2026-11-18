@@ -212,7 +212,7 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
         <IconButton
           icon={iconArrowLeftRight}
           label="Swap width and height"
-          tooltipClassName="video-settings-dialog__swap"
+          className="video-settings-dialog__swap"
           onClick={() => {
             setWidth(height);
             setHeight(width);
@@ -241,8 +241,8 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
           )}
         </Field>
       </div>
-      <div className="dialog__field">
-        <span className="dialog__label" id={backgroundId}>
+      <div className="field">
+        <span className="field__label" id={backgroundId}>
           Background
         </span>
         <label className="video-editor__swatch video-settings-dialog__background">
@@ -255,7 +255,7 @@ export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSett
           />
           <span>{background}</span>
         </label>
-        <p id={backgroundHintId} className="dialog__hint">
+        <p id={backgroundHintId} className="field__hint">
           Shows in gaps, around fitted pictures and in export padding.
         </p>
       </div>

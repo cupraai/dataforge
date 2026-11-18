@@ -19,8 +19,6 @@ interface IconButtonProps extends Omit<
   /** Tooltip content when it should say more than the label; false where the name shows nearby. */
   tooltip?: ReactNode | false;
   tooltipPlacement?: AnchoredSide;
-  /** Classes on the tooltip's wrapper, which is the element a parent's layout sees. */
-  tooltipClassName?: string;
   shortcut?: ShortcutDefinition;
   /** lg is for round controls over media; 2xs for buttons inside a field, such as a clear. */
   size?: IconButtonSize;
@@ -41,7 +39,6 @@ export function IconButton({
   label,
   tooltip,
   tooltipPlacement,
-  tooltipClassName,
   shortcut,
   size = "md",
   variant = "surface",
@@ -87,7 +84,6 @@ export function IconButton({
     <Tooltip
       content={shortcut ? <ShortcutHint shortcut={shortcut}>{content}</ShortcutHint> : content}
       placement={tooltipPlacement}
-      className={tooltipClassName}
     >
       {button}
     </Tooltip>

@@ -344,9 +344,7 @@ export function ComfyWorkflowMap({
           return (
             <Tooltip
               key={node.id}
-              className="comfy-workflow-dialog__map-slot"
               bubbleClassName="workflow-map-tip-bubble"
-              style={slot}
               content={
                 <MapTip
                   node={node}
@@ -361,6 +359,7 @@ export function ComfyWorkflowMap({
                 <button
                   type="button"
                   className={className}
+                  style={slot}
                   aria-label={`Pass ${number}: ${node.label}${notRun ? `, ${notRun.status}` : ""}`}
                   onClick={() => onSelect(node.id)}
                   {...traceHandlers}
@@ -368,7 +367,7 @@ export function ComfyWorkflowMap({
                   {body}
                 </button>
               ) : (
-                <span className={className} {...traceHandlers}>
+                <span className={className} style={slot} {...traceHandlers}>
                   {body}
                 </span>
               )}

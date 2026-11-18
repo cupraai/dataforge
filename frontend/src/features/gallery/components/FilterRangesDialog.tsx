@@ -277,7 +277,7 @@ export function FilterRangesDialog({
         })}
       </div>
 
-      <p className="dialog__hint filter-ranges-dialog__count" role="status">
+      <p className="field__hint filter-ranges-dialog__count" role="status">
         {matching === null
           ? "Fix the ranges to see how many files match."
           : `${formatCount(matching)} ${matching === 1 ? "file matches" : "files match"}, with the other filters and search.`}

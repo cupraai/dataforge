@@ -15,6 +15,11 @@
   @include icon-scope-sm;
   @include focus-ring-within;
 
+  &--xs {
+    height: var(--control-height-xs);
+    padding-left: 0.5rem;
+  }
+
   &:focus-within &__icon {
     color: var(--accent);
   }

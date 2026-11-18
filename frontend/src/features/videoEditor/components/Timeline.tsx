@@ -670,12 +670,11 @@ export function Timeline({
                     )}
                   </>
                 }
-                className="video-timeline__marker-tip"
-                style={{ left: at(marker.time) }}
               >
                 <button
                   type="button"
                   className="video-timeline__marker"
+                  style={{ left: at(marker.time) }}
                   aria-label={`${markerLabel(project, marker)}, ${formatTimecode(marker.time, project.frame_rate)}`}
                   tabIndex={-1}
                   onPointerDown={(event) => {
@@ -988,7 +987,7 @@ function TrackHeader({
             }}
           />
         ) : (
-          <Tooltip content="Double-click to rename" className="video-timeline__name-tip">
+          <Tooltip content="Double-click to rename">
             <button
               type="button"
               className="video-timeline__name"

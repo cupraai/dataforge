@@ -113,10 +113,6 @@
   display: inline-flex;
   box-sizing: border-box;
   height: var(--toolbar-control-height);
-
-  > .tooltip {
-    height: 100%;
-  }
 }
 
 .notifications-button {

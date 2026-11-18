@@ -154,7 +154,7 @@ export function TrainLoraDialog({
           )}
         </div>
 
-        <div className="dialog__field dialog__field-row">
+        <div className="field field-row">
           <Field label="LoRA name">
             {(control) => (
               <TextInput
@@ -188,9 +188,9 @@ export function TrainLoraDialog({
           </Field>
         </div>
 
-        <div className="dialog__field train-lora-dialog__prompts-field">
+        <div className="field train-lora-dialog__prompts-field">
           <div className="train-lora-dialog__prompts-header">
-            <span id={promptsId} className="dialog__label">
+            <span id={promptsId} className="field__label">
               Sample prompts
             </span>
             <Button

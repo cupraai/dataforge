@@ -101,6 +101,29 @@ describe("useGlobalShortcut", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves a radio only the keys it moves on, so a letter still works after a click", () => {
+    const letter = vi.fn<GlobalShortcutHandler>();
+    const arrow = vi.fn<GlobalShortcutHandler>();
+    renderHook(
+      () => {
+        useGlobalShortcut({ group: "global", label: "Letter", chords: [{ key: "e" }] }, letter);
+        useGlobalShortcut(
+          { group: "global", label: "Arrow", chords: [{ key: "ArrowRight" }] },
+          arrow,
+        );
+      },
+      { wrapper: StrictMode },
+    );
+    const radio = document.body.appendChild(document.createElement("input"));
+    radio.type = "radio";
+
+    press({ key: "e", ctrlKey: false }, radio);
+    press({ key: "ArrowRight", ctrlKey: false }, radio);
+
+    expect(letter).toHaveBeenCalledTimes(1);
+    expect(arrow).not.toHaveBeenCalled();
+  });
+
   it("does nothing while disabled", () => {
     const handler = vi.fn<(event: KeyboardEvent) => void | boolean>();
     renderShortcut(handler, { enabled: false });

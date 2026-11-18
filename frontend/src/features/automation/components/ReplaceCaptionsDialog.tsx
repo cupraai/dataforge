@@ -207,7 +207,7 @@ export function ReplaceCaptionsDialog({
           }}
         />
 
-        <div className="dialog__field dialog__field-row replace-captions-dialog__terms">
+        <div className="field field-row replace-captions-dialog__terms">
           {/* Multi-line, so a term can span the lines of a caption; Enter adds a line. Kept
               visible in prepend/append mode, so the dialog says the term is unused instead of
               silently rearranging itself. */}
@@ -251,7 +251,7 @@ export function ReplaceCaptionsDialog({
           </Field>
         </div>
 
-        <div className="dialog__field replace-captions-dialog__toggles">
+        <div className="field replace-captions-dialog__toggles">
           <Checkbox
             className="replace-captions-dialog__toggle"
             label="Regular expression"
@@ -275,11 +275,9 @@ export function ReplaceCaptionsDialog({
           />
         </div>
 
-        {hint && <p className="dialog__hint">{hint}</p>}
+        {hint && <p className="field__hint">{hint}</p>}
 
-        <div className="dialog__field">
-          <CaptionBackupOption checked={backup} disabled={busy} onChange={setBackup} />
-        </div>
+        <CaptionBackupOption checked={backup} disabled={busy} onChange={setBackup} />
 
         <ReplacePreview preview={preview} pending={previewPending} />
 

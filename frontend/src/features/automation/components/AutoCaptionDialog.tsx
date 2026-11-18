@@ -95,7 +95,7 @@ export function AutoCaptionDialog({
       }
     >
       {plan.data && (
-        <p className="dialog__hint" role="status">
+        <p className="field__hint" role="status">
           {autoCaptionPlan(plan.data)}
         </p>
       )}
@@ -109,7 +109,6 @@ export function AutoCaptionDialog({
       />
 
       <Checkbox
-        className="dialog__field"
         label="Preserve thinking"
         checked={preserveThinking}
         disabled={mode === "instruct" || busy}
@@ -118,7 +117,6 @@ export function AutoCaptionDialog({
       />
 
       <Checkbox
-        className="dialog__field"
         label="Caption audio"
         checked={captionAudio}
         disabled={busy}
@@ -132,7 +130,7 @@ export function AutoCaptionDialog({
         </p>
       )}
       {!editingStep && instructions?.sysprompt.state.status === "missing" && (
-        <p className="dialog__hint">
+        <p className="field__hint">
           No system prompt was found in this folder or above it. Add one in Folder instructions,
           starting with a # heading.
         </p>

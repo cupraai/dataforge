@@ -26,12 +26,12 @@ const SEED_PLACEHOLDERS: Record<ComfyPresetKind, string> = {
 
 function EmptyHint({ kind }: { kind: ComfyPresetKind }) {
   return kind === "generate" ? (
-    <p className="dialog__hint">
+    <p className="field__hint">
       No generation presets found. Export a workflow without a source loader from ComfyUI with{" "}
       <strong>Save (API Format)</strong> into the <strong>comfy_workflows</strong> folder.
     </p>
   ) : (
-    <p className="dialog__hint">
+    <p className="field__hint">
       No workflow presets found. Export one from ComfyUI with <strong>Save (API Format)</strong>{" "}
       into the <strong>comfy_workflows</strong> folder, titling its loader node{" "}
       <strong>DataForge Input</strong>.
@@ -247,7 +247,7 @@ export function ComfyPresetFields({
           />
         )}
         {embedded && (
-          <p className="dialog__hint">
+          <p className="field__hint">
             Output <strong>{embedded.branch.label}</strong> of the workflow in{" "}
             <strong>{embedded.mediaName}</strong>. It runs for this job only and is not saved as a
             preset.
@@ -295,13 +295,13 @@ export function ComfyPresetFields({
           )}
         </Field>
 
-        <p id={nodeHintId} className="dialog__hint comfy-preset-layout__hint">
+        <p id={nodeHintId} className="field__hint comfy-preset-layout__hint">
           <NodeHint kind={kind} promptBlocked={promptBlocked} seedBlocked={seedBlocked} />
         </p>
 
         <fieldset className="comfy-preset-layout__section">
           <legend className="comfy-preset-layout__section-label">Workflow inputs</legend>
-          <div className="dialog__field-row comfy-preset-fields__inputs">
+          <div className="field-row comfy-preset-fields__inputs">
             <Field label="Seed">
               {(control) => (
                 <TextInput

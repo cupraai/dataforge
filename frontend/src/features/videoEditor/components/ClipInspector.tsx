@@ -25,7 +25,8 @@ import {
 import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 import { AUTO_ADJUST_DEFAULT_AMOUNT } from "@/shared/constants";
-import type { StyleEffect, VideoProjectFadeCurve, VideoProjectTitleAlign } from "@/shared/types";
+import type { StyleEffect, VideoProjectTitleAlign } from "@/shared/types";
+import { FADE_CURVES } from "@/shared/lib/audioEffects";
 import {
   EFFECT_PRESETS,
   adjustRange,
@@ -33,7 +34,7 @@ import {
   type AdjustTool,
 } from "@/features/gallery/lib/colorAdjust";
 import { rescaleAuto, withoutAuto } from "@/features/gallery/lib/autoAdjust";
-import { SPEED_PRESETS } from "@/features/gallery/lib/videoEdit";
+import { MAX_SPEED, MIN_SPEED } from "@/features/videoEditor/lib/assembly";
 import {
   clipEnd,
   clipLabel,
@@ -55,6 +56,7 @@ import {
   degrees,
   percent,
   seconds,
+  speed,
 } from "@/features/videoEditor/lib/sliderUnits";
 import { formatClockSeconds } from "@/features/videoEditor/lib/timecode";
 
@@ -67,9 +69,10 @@ import {
   Panel,
   ResetButton,
   SectionMemory,
-  Slider,
+  InspectorSlider,
   SliderPair,
   Subgroup,
+  ValueField,
   type ClipEdit,
 } from "./InspectorParts";
 import { KeyedSlider, KeyframeBar } from "./KeyframeControls";
@@ -295,7 +298,7 @@ function InspectorContent({
           <p className="video-editor__hint">
             Its length is the overlap; changing it slides the incoming clip and its sound.
           </p>
-          <Slider
+          <InspectorSlider
             label="Duration"
             value={overlap}
             min={MIN_CLIP_SECONDS}
@@ -465,15 +468,18 @@ function InspectorContent({
           </label>
         </div>
         {timed && (
-          <div className="video-editor__field video-editor__field--stacked">
+          <div className="video-editor__field">
             <span>Speed</span>
-            <SegmentedControl
+            {/* Any rate the preview can play, typed or set by a fitted replace. */}
+            <ValueField
               label="Speed"
-              size="sm"
-              stretch
-              value={SPEED_PRESETS.find((speed) => speed === clip.speed) ?? null}
-              options={SPEED_PRESETS.map((speed) => ({ value: speed, label: `${speed}×` }))}
-              onChange={onSpeed}
+              className="video-editor__value-field"
+              value={clip.speed}
+              min={MIN_SPEED}
+              max={MAX_SPEED}
+              step={SPEED_STEP}
+              unit={speed}
+              onCommit={onSpeed}
             />
           </div>
         )}
@@ -482,7 +488,7 @@ function InspectorContent({
         )}
         {/* Both scales span the whole clip, so moving one fade never moves the other's thumb;
             a fade dragged into the other stops where that one begins. */}
-        <Slider
+        <InspectorSlider
           label="Fade in"
           value={clip.fade_in}
           resting={0}
@@ -494,7 +500,7 @@ function InspectorContent({
             onEdit({ fade_in: Math.min(value, clip.duration - clip.fade_out) }, final)
           }
         />
-        <Slider
+        <InspectorSlider
           label="Fade out"
           value={clip.fade_out}
           resting={0}
@@ -660,15 +666,6 @@ function sameTransform(a: Clip["transform"], b: Clip["transform"]): boolean {
   );
 }
 
-const FADE_CURVES: { value: VideoProjectFadeCurve; label: string; hint: string }[] = [
-  {
-    value: "equal_power",
-    label: "Equal power",
-    hint: "Keeps a crossfade's loudness steady; best for music and ambience",
-  },
-  { value: "linear", label: "Linear", hint: "A straight ramp; dips in the middle of a crossfade" },
-];
-
 function TransformSliders({ clip, time, onEdit }: { clip: Clip; time: number; onEdit: ClipEdit }) {
   const common = { clip, time, onEdit };
   const position = { resting: 0, min: -1, max: 1, step: 0.005, unit: percent };
@@ -763,7 +760,7 @@ function CropPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
       {CROP_EDGES.map((pair) => (
         <SliderPair key={pair[0].edge}>
           {pair.map(({ edge, label, opposite }) => (
-            <Slider
+            <InspectorSlider
               key={edge}
               label={label}
               value={edges[edge]}
@@ -780,6 +777,9 @@ function CropPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
     </Panel>
   );
 }
+
+/** Typed speeds land on hundredths, as precise as the field shows them. */
+const SPEED_STEP = 0.01;
 
 function EffectsPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
   const effect = clip.effect ?? null;
@@ -804,7 +804,7 @@ function EffectsPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
         </Select>
       </label>
       {effect && (
-        <Slider
+        <InspectorSlider
           label="Effect strength"
           value={effect.strength}
           min={0}
@@ -867,7 +867,7 @@ function ColorPanel({
           </Button>
         </Tooltip>
         {auto ? (
-          <Slider
+          <InspectorSlider
             label="Amount"
             value={auto.amount}
             resting={AUTO_ADJUST_DEFAULT_AMOUNT}
@@ -911,7 +911,7 @@ function ColorPanel({
             {group.tools.map((tool) => {
               const range = adjustRange(tool.id);
               return (
-                <Slider
+                <InspectorSlider
                   key={tool.id}
                   label={tool.label}
                   value={clip.adjust[tool.id]}
@@ -964,7 +964,7 @@ function TitlePanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
         options={ALIGN_OPTIONS}
         onChange={(align) => set({ align }, true)}
       />
-      <Slider
+      <InspectorSlider
         label="Size"
         value={title.size}
         resting={0.08}
@@ -975,14 +975,14 @@ function TitlePanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
         onChange={(size, f) => set({ size }, f)}
       />
       <SliderPair label="Position">
-        <Slider
+        <InspectorSlider
           {...position}
           label="Position X"
           short="X"
           value={title.x}
           onChange={(x, f) => set({ x }, f)}
         />
-        <Slider
+        <InspectorSlider
           {...position}
           label="Position Y"
           short="Y"
@@ -990,7 +990,7 @@ function TitlePanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
           onChange={(y, f) => set({ y }, f)}
         />
       </SliderPair>
-      <Slider
+      <InspectorSlider
         label="Outline"
         value={title.outline}
         resting={0.04}

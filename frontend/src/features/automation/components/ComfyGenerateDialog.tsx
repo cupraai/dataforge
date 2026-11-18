@@ -166,7 +166,7 @@ export function ComfyGenerateDialog({
           />
         }
       >
-        <div className="dialog__field-row comfy-generate-dialog__output">
+        <div className="field-row comfy-generate-dialog__output">
           <Field label="Generations">
             {(control) => (
               <TextInput

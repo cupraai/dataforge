@@ -175,12 +175,12 @@ describe("GalleryItemDialog audio editing", () => {
     expect(within(panel).getByRole("button", { name: "Apply" })).toBeDisabled();
     await user.click(within(panel).getByRole("tab", { name: "Fades" }));
     await user.click(
-      within(within(panel).getByRole("group", { name: "Fade out" })).getByRole("button", {
+      within(within(panel).getByRole("radiogroup", { name: "Fade out" })).getByRole("radio", {
         name: "2s",
       }),
     );
     await user.click(within(panel).getByRole("tab", { name: "Volume" }));
-    await user.click(within(panel).getByRole("button", { name: "Limit peaks" }));
+    await user.click(within(panel).getByRole("radio", { name: "Limit peaks" }));
     await user.click(within(panel).getByRole("button", { name: "Apply" }));
 
     await waitFor(() => expect(applyMock).toHaveBeenCalledTimes(1));

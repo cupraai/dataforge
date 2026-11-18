@@ -16,7 +16,7 @@ import {
 import type { SliderUnit } from "@/features/videoEditor/lib/sliderUnits";
 import { formatClockSeconds } from "@/features/videoEditor/lib/timecode";
 import { clipEnd, type Clip } from "@/features/videoEditor/lib/timeline";
-import { Slider, type ClipEdit } from "./InspectorParts";
+import { InspectorSlider, type ClipEdit } from "./InspectorParts";
 
 /** Keyframes are set on the clip, so a playhead before or after it keys the nearest end. */
 function timeOnClip(clip: Clip, time: number): number {
@@ -57,7 +57,7 @@ export function KeyedSlider({ clip, property, time, label, onEdit, ...slider }: 
   const onKey = keyframeAt(clip, property, at) !== undefined;
   const action = onKey ? `Remove the keyframe for ${label}` : `Add a keyframe for ${label}`;
   return (
-    <Slider
+    <InspectorSlider
       label={label}
       value={clipValueAt(clip, property, at)}
       onChange={(value, final) => onEdit(setValueAt(clip, property, at, value), final)}

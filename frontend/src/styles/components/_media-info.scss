@@ -130,12 +130,8 @@
     max-width: 100%;
   }
 
-  &__more-tip {
-    display: inline-flex;
-    flex: none;
-  }
-
   &__more {
+    flex: none;
     cursor: default;
   }
 

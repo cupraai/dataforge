@@ -32,15 +32,15 @@ export function Field({ label, labelEnd, hint, error, className, children }: Fie
   const noteId = `${id}-note`;
   const note = error ?? hint;
   const labelElement = (
-    <label htmlFor={id} className="dialog__label">
+    <label htmlFor={id} className="field__label">
       {label}
     </label>
   );
 
   return (
-    <div className={classNames("dialog__field", className)}>
+    <div className={classNames("field", className)}>
       {labelEnd ? (
-        <div className="dialog__label-row">
+        <div className="field__label-row">
           {labelElement}
           {labelEnd}
         </div>
@@ -55,7 +55,7 @@ export function Field({ label, labelEnd, hint, error, className, children }: Fie
       {note && (
         <p
           id={noteId}
-          className={classNames("dialog__hint", Boolean(error) && "dialog__hint--error")}
+          className={classNames("field__hint", Boolean(error) && "field__hint--error")}
           role={error ? "alert" : undefined}
         >
           {note}
@@ -79,8 +79,8 @@ export function FieldGroup({
   children: ReactNode;
 }) {
   return (
-    <fieldset role={role} className={classNames("dialog__field dialog__fieldset", className)}>
-      <legend className="dialog__label">{label}</legend>
+    <fieldset role={role} className={classNames("field field--group", className)}>
+      <legend className="field__label">{label}</legend>
       {children}
     </fieldset>
   );
@@ -97,7 +97,7 @@ export function TextInput({ size = "md", type = "text", className, ...props }: T
     <input
       {...props}
       type={type}
-      className={classNames("dialog__input", size !== "md" && `dialog__input--${size}`, className)}
+      className={classNames("text-input", size !== "md" && `text-input--${size}`, className)}
     />
   );
 }
@@ -113,8 +113,8 @@ export function TextArea({ grow = false, className, ...props }: TextAreaProps) {
     <textarea
       {...props}
       className={classNames(
-        "dialog__input dialog__input--multiline",
-        grow && "dialog__input--grow",
+        "text-input text-input--multiline",
+        grow && "text-input--grow",
         className,
       )}
     />

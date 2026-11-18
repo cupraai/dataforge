@@ -11,7 +11,13 @@ import {
 import { percent, seconds } from "@/features/videoEditor/lib/sliderUnits";
 import { restingAdjust, type Clip, type Project } from "@/features/videoEditor/lib/timeline";
 import { GradePresets } from "./GradePresets";
-import { HeaderAction, InspectorHeader, Panel, ResetButton, Slider } from "./InspectorParts";
+import {
+  HeaderAction,
+  InspectorHeader,
+  Panel,
+  ResetButton,
+  InspectorSlider,
+} from "./InspectorParts";
 import { TimecodeField } from "./TimecodeField";
 
 import { effectsEqual } from "@/shared/lib/audioEffects";
@@ -98,7 +104,7 @@ export function MultiClipInspector({
             />
           </div>
         )}
-        <Slider
+        <InspectorSlider
           label="Fade in"
           mixed={fadeIn.mixed}
           value={fadeIn.value}
@@ -109,7 +115,7 @@ export function MultiClipInspector({
           unit={seconds}
           onChange={(value, final) => onBatchEdit(() => ({ fade_in: value }), final)}
         />
-        <Slider
+        <InspectorSlider
           label="Fade out"
           mixed={fadeOut.mixed}
           value={fadeOut.value}
@@ -124,7 +130,7 @@ export function MultiClipInspector({
 
       {audio.length > 0 && (
         <Panel title="Audio" icon={iconVolume2}>
-          <Slider
+          <InspectorSlider
             label="Gain"
             mixed={shared(audio, (clip) => clip.gain).mixed}
             value={audio[0].gain}
@@ -183,7 +189,7 @@ export function MultiClipInspector({
                   )
                 }
               />
-              <Slider
+              <InspectorSlider
                 label="Scale"
                 mixed={shared(placed, (clip) => clip.transform.scale).mixed}
                 value={placed[0].transform.scale}
@@ -204,7 +210,7 @@ export function MultiClipInspector({
               />
             </>
           )}
-          <Slider
+          <InspectorSlider
             label="Opacity"
             mixed={shared(visual, (clip) => clip.transform.opacity).mixed}
             value={visual[0].transform.opacity}

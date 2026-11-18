@@ -14,22 +14,25 @@ interface SearchInputProps extends Omit<
   label: string;
   /** Names the clear button, which shows once there is something to clear. */
   clearLabel?: string;
+  /** sm for toolbars and dialogs; xs for the editor's inspector. */
+  size?: "sm" | "xs";
   /** On the wrapper, which is what a parent's layout sees. */
   className?: string;
   ref?: Ref<HTMLInputElement>;
 }
 
-/** A search box in the sm control height, with a clear button while it holds text. */
+/** A search box with a clear button while it holds text. */
 export function SearchInput({
   value,
   onChange,
   label,
   clearLabel = "Clear the search",
+  size = "sm",
   className,
   ...props
 }: SearchInputProps) {
   return (
-    <label className={classNames("search-input", className)}>
+    <label className={classNames("search-input", size === "xs" && "search-input--xs", className)}>
       <Icon icon={iconSearch} className="search-input__icon" />
       <input
         {...props}

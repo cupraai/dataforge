@@ -119,7 +119,7 @@ export const GalleryCard = memo(function GalleryCard({
 
   return (
     <div className="card-cell">
-      <Tooltip content={item.name} className="card-cell__tip">
+      <Tooltip content={item.name}>
         <button
           data-inspected={inspected || undefined}
           type="button"
@@ -238,7 +238,6 @@ export const GalleryCard = memo(function GalleryCard({
                       .map((tag) => tag.label)
                       .join(", ")}
                     placement="top"
-                    className="card__tags-more-tip"
                   >
                     <Badge tone="placeholder" uppercase={false} className="card__tags-more">
                       +{hiddenTags} more

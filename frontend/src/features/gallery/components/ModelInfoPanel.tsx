@@ -13,6 +13,7 @@ import { iconCheck, iconCopy } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 import type { GalleryItem } from "@/shared/types";
 
 type ModelItem = Pick<GalleryItem, "path" | "name" | "modified_at" | "size" | "model_kind">;
@@ -26,26 +27,24 @@ function TriggerWord({ word }: { word: string }) {
 
   return (
     <li>
-      <button
-        type="button"
-        className={classNames(
-          "model-overview__trigger",
-          copied && "model-overview__trigger--copied",
-          failed && "model-overview__trigger--error",
-        )}
-        onClick={() => void copyText(word)}
-        aria-label={
-          copied
-            ? `Copied ${word}`
-            : failed
-              ? `Could not copy ${word}`
-              : `Copy the trigger word ${word}`
-        }
-        title={failed ? "Could not copy" : "Copy"}
-      >
-        <span className="model-overview__trigger-text">{word}</span>
-        <Icon icon={copied ? iconCheck : iconCopy} className="model-overview__trigger-icon" />
-      </button>
+      <Tooltip content={failed ? "Could not copy" : "Copy"}>
+        <Button
+          size="xs"
+          className="model-overview__trigger"
+          iconEnd={copied ? iconCheck : iconCopy}
+          feedback={copyState}
+          onClick={() => void copyText(word)}
+          aria-label={
+            copied
+              ? `Copied ${word}`
+              : failed
+                ? `Could not copy ${word}`
+                : `Copy the trigger word ${word}`
+          }
+        >
+          <span className="model-overview__trigger-text">{word}</span>
+        </Button>
+      </Tooltip>
     </li>
   );
 }

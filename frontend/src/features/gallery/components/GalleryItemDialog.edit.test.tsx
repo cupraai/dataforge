@@ -309,19 +309,19 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
-      const square = within(dialog).getByRole("button", { name: "1:1" });
-      const free = within(dialog).getByRole("button", { name: "Free" });
+      const square = within(dialog).getByRole("radio", { name: "1:1" });
+      const free = within(dialog).getByRole("radio", { name: "Free" });
 
       await user.click(square);
-      expect(square).toHaveAttribute("aria-pressed", "true");
-      expect(free).toHaveAttribute("aria-pressed", "false");
+      expect(square).toBeChecked();
+      expect(free).not.toBeChecked();
 
       await user.click(free);
 
       // What a lock does to the handles is VideoCropOverlay's own test; the overlay
       // cannot render here, since jsdom lays nothing out for it to measure.
-      expect(free).toHaveAttribute("aria-pressed", "true");
-      expect(square).toHaveAttribute("aria-pressed", "false");
+      expect(free).toBeChecked();
+      expect(square).not.toBeChecked();
     });
 
     it("keeps the transport working after navigating with the mode sticky", async () => {
@@ -436,10 +436,7 @@ describe("GalleryItemDialog", () => {
       await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
 
       await waitFor(() => {
-        expect(within(dialog).getByRole("button", { name: "1:1" })).toHaveAttribute(
-          "aria-pressed",
-          "true",
-        );
+        expect(within(dialog).getByRole("radio", { name: "1:1" })).toBeChecked();
       });
     });
 
@@ -460,21 +457,15 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Crop/ }));
-      await user.click(within(dialog).getByRole("button", { name: "1:1" }));
-      expect(within(dialog).getByRole("button", { name: "1:1" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
+      await user.click(within(dialog).getByRole("radio", { name: "1:1" }));
+      expect(within(dialog).getByRole("radio", { name: "1:1" })).toBeChecked();
 
       rerender(<GalleryItemDialog {...props} index={1} />);
       fireEvent.loadedMetadata(dialog.querySelector("video")!);
 
       // Crop tool still selected: reading "1:1" over an uncropped frame was the bug.
       await waitFor(() => {
-        expect(within(dialog).getByRole("button", { name: "Free" })).toHaveAttribute(
-          "aria-pressed",
-          "true",
-        );
+        expect(within(dialog).getByRole("radio", { name: "Free" })).toBeChecked();
       });
       expect(within(dialog).getByRole("tab", { name: /^Crop/ })).toHaveAccessibleName("Crop");
     });
@@ -502,14 +493,11 @@ describe("GalleryItemDialog", () => {
 
       await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
       await waitFor(() => {
-        expect(within(dialog).getByRole("button", { name: "2x" })).toHaveAttribute(
-          "aria-pressed",
-          "true",
-        );
+        expect(within(dialog).getByRole("radio", { name: "2x" })).toBeChecked();
       });
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeDisabled();
 
-      await user.click(within(dialog).getByRole("button", { name: "1x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "1x" }));
 
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeEnabled();
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
@@ -631,7 +619,7 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
-      await user.click(within(dialog).getByRole("button", { name: "0.5x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "0.5x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
       await waitFor(() => expect(applyMock).toHaveBeenCalled());
@@ -700,7 +688,7 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
-      await user.click(within(dialog).getByRole("button", { name: "0.5x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "0.5x" }));
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeEnabled();
 
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
@@ -709,7 +697,7 @@ describe("GalleryItemDialog", () => {
         expect(within(dialog).getByRole("button", { name: "Apply" })).toBeDisabled();
       });
       // ...and wakes up again for a different edit.
-      await user.click(within(dialog).getByRole("button", { name: "2x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "2x" }));
       expect(within(dialog).getByRole("button", { name: "Apply" })).toBeEnabled();
     });
 
@@ -750,7 +738,7 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
-      await user.click(within(dialog).getByRole("button", { name: "2x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "2x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
       await waitFor(() => {
@@ -769,7 +757,7 @@ describe("GalleryItemDialog", () => {
       const dialog = await openEditMode(user);
 
       await user.click(within(dialog).getByRole("tab", { name: /^Speed/ }));
-      await user.click(within(dialog).getByRole("button", { name: "2x" }));
+      await user.click(within(dialog).getByRole("radio", { name: "2x" }));
       await user.click(within(dialog).getByRole("button", { name: "Apply" }));
 
       expect(await screen.findByText(/Could not edit clip.mp4/)).toBeInTheDocument();

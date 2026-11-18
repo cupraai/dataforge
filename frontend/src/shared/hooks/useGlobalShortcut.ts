@@ -30,7 +30,7 @@ export function useGlobalShortcut(
       if (!enabled || event.defaultPrevented) return;
       if (!matchesShortcut(event, shortcut)) return;
       if (!whenLocked && getScrollLockDepth() > 0) return;
-      if (!inEditable && isEditableTarget(event.target)) return;
+      if (!inEditable && isEditableTarget(event)) return;
 
       if (handlerRef.current(event) === false) return;
       event.preventDefault();

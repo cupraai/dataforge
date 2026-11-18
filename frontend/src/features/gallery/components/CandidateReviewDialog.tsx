@@ -150,7 +150,7 @@ export function CandidateReviewDialog({
     const onKeyDown = (event: KeyboardEvent) => {
       // The shell is inert while the question stands, but this listener is on the window.
       if (confirmingDiscard) return;
-      if (isEditableTarget(event.target)) return;
+      if (isEditableTarget(event)) return;
       // A focused player owns the arrows, or seeking a clip walks the queue out from under it.
       if (event.target instanceof Element && event.target.closest("video")) return;
 

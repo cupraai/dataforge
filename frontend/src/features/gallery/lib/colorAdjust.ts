@@ -379,3 +379,20 @@ export function formatAdjustValue(tool: AdjustTool, value: number): string {
   const units = Math.round(value * 100);
   return `${units > 0 ? "+" : ""}${units}`;
 }
+
+// Shadow, skin, a warm highlight and sky, kept to midtones so light text reads on every stop.
+const SWATCH_SCENE: ReadonlyArray<Readonly<Rgb>> = [
+  [0.2, 0.24, 0.3],
+  [0.55, 0.42, 0.34],
+  [0.68, 0.54, 0.42],
+  [0.5, 0.62, 0.74],
+];
+
+/** A CSS gradient of a small scene through the effect at full strength: what the look does. */
+export function effectGradient(preset: StyleEffect["preset"]): string {
+  const stops = SWATCH_SCENE.map((color) => {
+    const graded = adjustPixel(color, RESTING_ADJUST, { preset, strength: 1 });
+    return `rgb(${graded.map((value) => Math.round(value * 255)).join(" ")})`;
+  });
+  return `linear-gradient(90deg, ${stops.join(", ")})`;
+}

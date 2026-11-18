@@ -75,7 +75,6 @@ function ToolsGroup({
           <Tooltip
             key={type}
             placement="right"
-            className="workspace-tools__tip"
             content={
               <>
                 {JOB_TYPE_META[type].menuDescription}
@@ -84,6 +83,7 @@ function ToolsGroup({
             }
           >
             <MenuItem
+              className="workspace-tools__item"
               icon={jobTypeIconFor(type)}
               label={jobMenuLabelFor(type)}
               disabled={blocked}

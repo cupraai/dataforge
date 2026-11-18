@@ -967,7 +967,7 @@ function EditorSession({
       if (matchesShortcut(event, SHORTCUTS.editorRedo)) return run(state.redo);
       if (matchesShortcut(event, SHORTCUTS.editorUndo)) return run(state.undo);
     }
-    if (isEditableTarget(event.target)) return;
+    if (isEditableTarget(event)) return;
     const frame = 1 / project.frame_rate;
     const source = previewMode === "source" ? sourceTransportRef.current : null;
     const jump = (direction: -1 | 1) => {

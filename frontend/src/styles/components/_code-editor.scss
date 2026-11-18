@@ -14,29 +14,27 @@
     padding-top: 0.375rem;
     padding-bottom: 0.375rem;
 
-    // Each group joins into one strip; every button sits in its tooltip's wrapper.
+    // Each group joins into one strip. Every button sits alone in its tooltip's trigger span,
+    // so the ends are found by span.
     &-button-group {
       display: flex;
 
-      > .tooltip {
+      .icon-button {
         position: relative;
+
+        &:hover,
+        &:focus-visible {
+          z-index: 1;
+        }
       }
 
-      > .tooltip:not(:first-child) {
+      > :not(:first-child) > .icon-button {
         margin-left: -1px;
-      }
-
-      > .tooltip:hover,
-      > .tooltip:focus-within {
-        z-index: 1;
-      }
-
-      > .tooltip:not(:first-child) .icon-button {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
       }
 
-      > .tooltip:not(:last-child) .icon-button {
+      > :not(:last-child) > .icon-button {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
@@ -234,7 +232,7 @@
     }
 
     input.cm-textfield {
-      @include dialog-form-input(0);
+      @include form-input(0);
       display: inline-block;
       width: auto;
       padding: 0 1em;

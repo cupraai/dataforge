@@ -16,7 +16,7 @@ import type { AudioEffects } from "@/shared/types";
 import { EQ_PROPERTIES } from "@/features/videoEditor/lib/keyframes";
 import { decibels, highCut, lowCut, strength } from "@/features/videoEditor/lib/sliderUnits";
 import type { Clip } from "@/features/videoEditor/lib/timeline";
-import { Panel, Slider, type ClipEdit } from "./InspectorParts";
+import { Panel, InspectorSlider, type ClipEdit } from "./InspectorParts";
 import { KeyedSlider, KeyframeBar } from "./KeyframeControls";
 
 /** One clip's EQ bands can be keyframed; several clips' only set their static values. */
@@ -61,7 +61,7 @@ export function SoundPanel({
         {...range}
       />
     ) : (
-      <Slider
+      <InspectorSlider
         label={text}
         mixed={mixed}
         value={effects[key]}
@@ -86,7 +86,7 @@ export function SoundPanel({
           onSeek={keyed.onSeek}
         />
       )}
-      <Slider
+      <InspectorSlider
         label="Low cut"
         mixed={mixed}
         value={effects.low_cut}
@@ -100,7 +100,7 @@ export function SoundPanel({
       {gain("bass", "Bass")}
       {gain("mid", "Mid")}
       {gain("treble", "Treble")}
-      <Slider
+      <InspectorSlider
         label="High cut"
         mixed={mixed}
         value={highCutDial(effects)}
@@ -111,7 +111,7 @@ export function SoundPanel({
         unit={highCut}
         onChange={(value, final) => onChange({ high_cut: highCutFromDial(value) }, final)}
       />
-      <Slider
+      <InspectorSlider
         label="Noise reduction"
         mixed={mixed}
         value={effects.noise_reduction}

@@ -381,7 +381,7 @@
     gap: 0.875rem;
 
     // Dialog fields space themselves for a dialog's flow layout; the gap spaces them here.
-    .dialog__field {
+    .field {
       margin-top: 0;
     }
   }
@@ -403,7 +403,7 @@
     flex-direction: column;
     min-height: 0;
 
-    .dialog__input--multiline {
+    .text-input--multiline {
       flex: 1;
       min-height: 6rem;
       resize: none;

@@ -77,7 +77,6 @@ export function SetCaptionsDialog({
       </Field>
 
       <Checkbox
-        className="dialog__field"
         label="Overwrite existing captions"
         checked={overwrite}
         disabled={busy}

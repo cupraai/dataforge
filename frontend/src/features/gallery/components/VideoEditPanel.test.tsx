@@ -14,6 +14,9 @@ import { makeAdjustControls } from "@/test/colorAdjustControls";
 import type { CropRect } from "@/features/gallery/lib/crop";
 import type { MaskMode } from "@/features/gallery/lib/mask";
 
+/** A segmented option reads its text off the label around the radio. */
+const optionText = (radio: HTMLElement) => radio.closest("label")?.textContent?.trim();
+
 function makeEdit(overrides: Partial<VideoEdit> = {}): VideoEdit {
   const draft: VideoEditDraft = overrides.draft ?? emptyDraft(12);
 
@@ -109,7 +112,7 @@ describe("VideoEditPanel", () => {
 
       expect(tool("Trim")).toHaveAttribute("aria-selected", "true");
       expect(tool("Speed")).toHaveAttribute("aria-selected", "false");
-      expect(screen.queryByRole("button", { name: "2x" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("radio", { name: "2x" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Set in" })).toBeInTheDocument();
     });
 
@@ -118,7 +121,7 @@ describe("VideoEditPanel", () => {
 
       fireEvent.click(tool("Speed"));
 
-      expect(screen.getByRole("button", { name: "2x" })).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: "2x" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Set in" })).not.toBeInTheDocument();
     });
 
@@ -241,7 +244,7 @@ describe("VideoEditPanel", () => {
       const edit = makeEdit();
       renderPanel(edit);
 
-      fireEvent.click(screen.getByRole("button", { name: "5s" }));
+      fireEvent.click(screen.getByRole("radio", { name: "5s" }));
 
       expect(edit.setTrimLength).toHaveBeenCalledWith(5);
     });
@@ -250,10 +253,10 @@ describe("VideoEditPanel", () => {
       const draft = { ...emptyDraft(8), trimStart: 1, trimEnd: 5 };
       renderPanel(makeEdit({ draft, duration: 8 }));
 
-      expect(screen.getByRole("button", { name: "4s" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "3s" })).toHaveAttribute("aria-pressed", "false");
-      expect(screen.getByRole("button", { name: "7s" })).toBeEnabled();
-      expect(screen.getByRole("button", { name: "9s" })).toBeDisabled();
+      expect(screen.getByRole("radio", { name: "4s" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "3s" })).not.toBeChecked();
+      expect(screen.getByRole("radio", { name: "7s" })).toBeEnabled();
+      expect(screen.getByRole("radio", { name: "9s" })).toBeDisabled();
     });
 
     it("changes the speed from a preset", () => {
@@ -261,7 +264,7 @@ describe("VideoEditPanel", () => {
       renderPanel(edit);
 
       fireEvent.click(tool("Speed"));
-      fireEvent.click(screen.getByRole("button", { name: "0.5x" }));
+      fireEvent.click(screen.getByRole("radio", { name: "0.5x" }));
 
       expect(edit.setSpeed).toHaveBeenCalledWith(0.5);
     });
@@ -271,17 +274,17 @@ describe("VideoEditPanel", () => {
       renderPanel(edit);
 
       fireEvent.click(tool("Speed"));
-      const rates = within(screen.getByRole("group", { name: "Frame rate" }));
-      expect(rates.getAllByRole("button").map((b) => b.textContent?.trim())).toEqual([
+      const rates = within(screen.getByRole("radiogroup", { name: "Frame rate" }));
+      expect(rates.getAllByRole("radio").map(optionText)).toEqual([
         "Source",
         "16 fps",
         "24 fps",
         "25 fps",
         "30 fps",
       ]);
-      expect(rates.getByRole("button", { name: "Source" })).toHaveAttribute("aria-pressed", "true");
+      expect(rates.getByRole("radio", { name: "Source" })).toBeChecked();
 
-      fireEvent.click(rates.getByRole("button", { name: "16 fps" }));
+      fireEvent.click(rates.getByRole("radio", { name: "16 fps" }));
       expect(edit.setFrameRate).toHaveBeenCalledWith(16);
     });
 
@@ -299,11 +302,11 @@ describe("VideoEditPanel", () => {
       renderPanel(makeEdit({ draft }));
 
       fireEvent.click(tool("Speed"));
-      expect(screen.getByRole("button", { name: "2x" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "1x" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("radio", { name: "2x" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "1x" })).not.toBeChecked();
 
       fireEvent.click(tool("Size"));
-      expect(screen.getByRole("button", { name: "50%" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("radio", { name: "50%" })).toBeChecked();
     });
 
     it("offers a free rectangle and a shape for each orientation, and no fields", () => {
@@ -311,9 +314,9 @@ describe("VideoEditPanel", () => {
 
       fireEvent.click(tool("Crop"));
 
-      const shapes = within(screen.getByRole("group", { name: "Aspect" }))
-        .getAllByRole("button")
-        .map((b) => b.textContent?.trim());
+      const shapes = within(screen.getByRole("radiogroup", { name: "Aspect" }))
+        .getAllByRole("radio")
+        .map(optionText);
       expect(shapes).toEqual(["Free", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16"]);
       expect(screen.queryByLabelText("X")).not.toBeInTheDocument();
     });
@@ -338,9 +341,9 @@ describe("VideoEditPanel", () => {
 
       fireEvent.click(tool("Speed"));
 
-      const speeds = within(screen.getByRole("group", { name: "Playback" }))
-        .getAllByRole("button")
-        .map((b) => b.textContent?.trim());
+      const speeds = within(screen.getByRole("radiogroup", { name: "Playback" }))
+        .getAllByRole("radio")
+        .map(optionText);
       expect(speeds).toEqual([
         "0.25x",
         "0.5x",
@@ -360,12 +363,12 @@ describe("VideoEditPanel", () => {
       renderPanel(edit);
 
       fireEvent.click(tool("Volume"));
-      const volumes = within(screen.getByRole("group", { name: "Volume" }))
-        .getAllByRole("button")
-        .map((b) => b.textContent?.trim());
+      const volumes = within(screen.getByRole("radiogroup", { name: "Volume" }))
+        .getAllByRole("radio")
+        .map(optionText);
       expect(volumes).toEqual(["Mute", "25%", "50%", "100%", "150%", "200%"]);
 
-      fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Mute" }));
       expect(edit.setVolume).toHaveBeenCalledWith(0);
     });
 
@@ -373,8 +376,8 @@ describe("VideoEditPanel", () => {
       renderPanel(makeEdit({ draft: { ...emptyDraft(12), volume: 1.5 } }));
 
       fireEvent.click(tool("Volume"));
-      expect(screen.getByRole("button", { name: "150%" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "100%" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("radio", { name: "150%" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "100%" })).not.toBeChecked();
     });
 
     it("moves a tool from the dial and arms the preview's inspect mode", () => {

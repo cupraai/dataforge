@@ -6,14 +6,9 @@
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 0.75rem;
 
-  // The card's tooltip wrapper is the grid item, so the card has to fill it.
-  &__cell {
-    align-items: stretch;
-
-    > .folder-card {
-      flex: 1;
-      min-width: 0;
-    }
+  // The grid item, inside its tooltip's trigger span, which draws no box.
+  .folder-card {
+    min-width: 0;
   }
 }
 

@@ -1,7 +1,9 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
+import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
+import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 export interface SegmentOption<T extends string | number> {
@@ -12,15 +14,22 @@ export interface SegmentOption<T extends string | number> {
   count?: number | string;
   /** A tooltip saying what the option does, where the label alone is too short. */
   hint?: string;
+  /** A key that picks this option; the tooltip shows it beside the hint and it is announced.
+   * The caller binds the key itself. */
+  shortcut?: ShortcutDefinition;
+  /** A CSS colour or gradient the option shows when chosen, for a choice that is a look. */
+  swatch?: string;
   disabled?: boolean;
 }
 
-interface SegmentedControlProps<T extends string | number> {
+/** Named by `label`, or by `labelledBy` where a visible caption already names the choice. */
+type SegmentedControlName =
+  { label: string; labelledBy?: never } | { labelledBy: string; label?: never };
+
+type SegmentedControlProps<T extends string | number> = SegmentedControlName & {
   /** Null checks nothing, such as a setting a multiple selection does not share. */
   value: T | null;
   options: readonly SegmentOption<T>[];
-  /** The radio group's accessible name. */
-  label: string;
   onChange: (value: T) => void;
   /** md for dialogs and drawers; sm for dense panes such as the editors'. */
   size?: "md" | "sm";
@@ -28,13 +37,14 @@ interface SegmentedControlProps<T extends string | number> {
   stretch?: boolean;
   disabled?: boolean;
   className?: string;
-}
+};
 
 /** One choice of a few, as a track of options. Native radios give it arrow-key movement. */
 export function SegmentedControl<T extends string | number>({
   value,
   options,
   label,
+  labelledBy,
   onChange,
   size = "md",
   stretch = false,
@@ -47,6 +57,7 @@ export function SegmentedControl<T extends string | number>({
     <div
       role="radiogroup"
       aria-label={label}
+      aria-labelledby={labelledBy}
       className={classNames(
         "segmented",
         `segmented--${size}`,
@@ -56,7 +67,16 @@ export function SegmentedControl<T extends string | number>({
     >
       {options.map((option) => {
         const segment = (
-          <label key={option.value} className="segmented__option">
+          <label
+            key={option.value}
+            className={classNames(
+              "segmented__option",
+              option.swatch && "segmented__option--swatch",
+            )}
+            style={
+              option.swatch ? ({ "--segment-swatch": option.swatch } as CSSProperties) : undefined
+            }
+          >
             <input
               type="radio"
               className="segmented__input"
@@ -64,6 +84,7 @@ export function SegmentedControl<T extends string | number>({
               value={option.value}
               checked={option.value === value}
               disabled={disabled || option.disabled}
+              aria-keyshortcuts={option.shortcut ? ariaKeyShortcuts(option.shortcut) : undefined}
               onChange={() => onChange(option.value)}
             />
             {option.icon && <Icon icon={option.icon} className="segmented__icon" />}
@@ -71,8 +92,13 @@ export function SegmentedControl<T extends string | number>({
             {option.count !== undefined && <span className="segmented__count">{option.count}</span>}
           </label>
         );
-        return option.hint ? (
-          <Tooltip key={option.value} content={option.hint} placement="top">
+        const tip = option.shortcut ? (
+          <ShortcutHint shortcut={option.shortcut}>{option.hint}</ShortcutHint>
+        ) : (
+          option.hint
+        );
+        return tip ? (
+          <Tooltip key={option.value} content={tip} placement="top">
             {segment}
           </Tooltip>
         ) : (

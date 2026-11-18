@@ -1,3 +1,4 @@
+import { Badge } from "@/shared/ui/Badge";
 import { DisclosureButton } from "@/shared/ui/Disclosure";
 import { Button } from "@/shared/ui/Button";
 import { useId, useState } from "react";
@@ -115,9 +116,9 @@ export function JobFileResults({ job, onOpenItem, onRetryFailed }: JobFileResult
         tabIndex={-1}
       >
         {failedCount > 0 && (
-          <span className="job-file-results__chip job-file-results__chip--failed">
+          <Badge tone="danger" className="job-file-results__chip">
             {failedCount} failed
-          </span>
+          </Badge>
         )}
       </DisclosureButton>
 

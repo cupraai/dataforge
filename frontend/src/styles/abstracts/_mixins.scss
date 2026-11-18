@@ -375,11 +375,11 @@
   }
 }
 
-@mixin dialog-form-field {
+@mixin form-field {
   margin-top: 1.125rem;
 }
 
-@mixin dialog-form-label {
+@mixin form-label {
   display: block;
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -389,7 +389,7 @@
   text-transform: uppercase;
 }
 
-@mixin dialog-form-input($min-height: 2.75rem, $resize: null) {
+@mixin form-input($min-height: 2.75rem, $resize: null) {
   display: block;
   width: 100%;
   min-height: $min-height;

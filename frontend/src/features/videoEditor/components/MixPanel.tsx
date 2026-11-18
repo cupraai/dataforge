@@ -5,7 +5,7 @@ import { iconMic, iconSliders } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { percent } from "@/features/videoEditor/lib/sliderUnits";
 import type { Project, Track } from "@/features/videoEditor/lib/timeline";
-import { Panel, Slider } from "./InspectorParts";
+import { Panel, InspectorSlider } from "./InspectorParts";
 
 /** ``final`` is false while a slider is still being dragged, as for a clip edit. */
 export type TrackEdit = (trackId: string, patch: Partial<Track>, final: boolean) => void;
@@ -28,7 +28,7 @@ export function MixPanel({
   return (
     <Panel title="Mix" icon={iconSliders} changed={changed}>
       {audio.map((track) => (
-        <Slider
+        <InspectorSlider
           key={track.id}
           label={track.name}
           value={track.gain}
@@ -63,7 +63,7 @@ export function MixPanel({
           }
         />
       ))}
-      <Slider
+      <InspectorSlider
         label="Master"
         value={project.mix.master_gain}
         resting={1}
@@ -73,7 +73,7 @@ export function MixPanel({
         unit={percent}
         onChange={(master_gain, final) => onMixEdit({ master_gain }, final)}
       />
-      <Slider
+      <InspectorSlider
         label="Duck to"
         value={project.mix.duck_gain}
         resting={0.25}

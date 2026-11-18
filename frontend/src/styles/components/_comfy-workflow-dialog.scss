@@ -55,8 +55,8 @@ $map-chip-font-size: 0.59375rem;
   }
 
   // Both column labels match the copy button's height, so the two scrollers start level.
-  &__outputs-field > .dialog__label,
-  &__details-field > .dialog__label {
+  &__outputs-field > .field__label,
+  &__details-field > .field__label {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -486,16 +486,10 @@ $map-chip-font-size: 0.59375rem;
   }
 
   // The tooltip's wrapper is the positioned slot; the box fills it.
-  &__map-slot {
+  // Placed on the map by its inline left, top, width and height.
+  &__map-node {
     position: absolute;
     display: flex;
-  }
-
-  &__map-node {
-    display: flex;
-    flex: 1;
-    // The tooltip wrapper (the slot) centres its child; the box fills it instead.
-    align-self: stretch;
     align-items: center;
     gap: 0.25rem;
     min-width: 0;

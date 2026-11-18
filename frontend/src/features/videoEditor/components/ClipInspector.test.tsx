@@ -221,11 +221,32 @@ describe("ClipInspector", () => {
     expect(onRemoveDissolve).toHaveBeenCalled();
   });
 
+  it("shows a fitted speed as it is, and keeps a typed one to what the preview plays", async () => {
+    const user = userEvent.setup();
+    const { onSpeed } = renderInspector({ selection: [{ ...video, speed: 1.3666 }] });
+    const speed = screen.getByRole("textbox", { name: "Speed" });
+    expect(speed).toHaveValue("1.37×");
+
+    await user.clear(speed);
+    await user.type(speed, "1.15x{Enter}");
+    expect(onSpeed).toHaveBeenLastCalledWith(1.15);
+
+    await user.clear(speed);
+    await user.type(speed, "9{Enter}");
+    expect(onSpeed).toHaveBeenLastCalledWith(4);
+
+    await user.clear(speed);
+    await user.type(speed, "0.1{Enter}");
+    expect(onSpeed).toHaveBeenLastCalledWith(0.25);
+  });
+
   it("sets a video's speed, fit and transform and unlinks its sound", async () => {
     const user = userEvent.setup();
     const { onSpeed, onEdit, onUnlink } = renderInspector({ selection: [video] });
 
-    await user.click(screen.getByRole("radio", { name: "2×" }));
+    const speed = screen.getByRole("textbox", { name: "Speed" });
+    await user.clear(speed);
+    await user.type(speed, "2{Enter}");
     await user.click(screen.getByRole("radio", { name: "Fill" }));
     fireEvent.change(screen.getByRole("slider", { name: "Rotation" }), {
       target: { value: "45" },

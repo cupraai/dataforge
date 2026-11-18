@@ -16,7 +16,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { readStoredJson, writeStoredJson } from "@/shared/lib/storage";
 import { Icon } from "@/shared/ui/Icon";
 import { rangeFill } from "@/shared/lib/rangeFill";
-import { Slider as RangeInput } from "@/shared/ui/Slider";
+import { Slider } from "@/shared/ui/Slider";
 import type { SliderUnit } from "@/features/videoEditor/lib/sliderUnits";
 import type { Clip } from "@/features/videoEditor/lib/timeline";
 
@@ -229,7 +229,7 @@ export function SliderPair({ label, children }: { label?: string; children: Reac
   );
 }
 
-interface SliderProps {
+interface InspectorSliderProps {
   label: string;
   /** Shown instead of ``label`` where a pair names the group, e.g. "X" under "Position". */
   short?: string;
@@ -253,7 +253,7 @@ interface SliderProps {
  * value rounded to ``step``, so settling an untouched one would round the clip's value, e.g. on
  * the key-up of the Ctrl+Z that undid it, and clear redo.
  */
-export function Slider({
+export function InspectorSlider({
   label,
   short,
   value,
@@ -265,7 +265,7 @@ export function Slider({
   resting,
   mixed = false,
   trailing,
-}: SliderProps) {
+}: InspectorSliderProps) {
   const id = useId();
   const movedRef = useRef(false);
   const settle = (event: { currentTarget: HTMLInputElement }) => {
@@ -291,8 +291,8 @@ export function Slider({
         <label htmlFor={id} title={short ? label : undefined} onDoubleClick={reset}>
           {short ?? label}
         </label>
-        <SliderValue
-          label={label}
+        <ValueField
+          label={`${label} value`}
           value={clamped}
           min={min}
           max={max}
@@ -315,7 +315,7 @@ export function Slider({
         )}
         style={rangeFill(clamped, min, max, origin)}
       >
-        <RangeInput
+        <Slider
           id={id}
           origin={origin}
           min={min}
@@ -344,26 +344,30 @@ function snap(value: number, min: number, max: number, step: number): number {
 }
 
 /**
- * The slider's value as text to type over: Enter or leaving the field applies it, Escape puts
- * it back, and the arrow keys step (ten steps with Shift). Each applied value is one undo step.
+ * A value as text to type over: Enter or leaving the field applies it, clamped to `min`–`max`
+ * on the `step` grid; Escape puts it back, and the arrow keys step (ten steps with Shift). Each
+ * applied value is one undo step. A slider's head shows one; it also stands alone.
  */
-function SliderValue({
+export function ValueField({
   label,
   value,
   min,
   max,
   step,
   unit,
-  mixed,
+  mixed = false,
+  className = "video-editor__slider-value",
   onCommit,
 }: {
+  /** The field's accessible name. */
   label: string;
   value: number;
   min: number;
   max: number;
   step: number;
   unit: SliderUnit;
-  mixed: boolean;
+  mixed?: boolean;
+  className?: string;
   onCommit: (value: number) => void;
 }) {
   const shown = mixed ? "" : unit.format(value);
@@ -389,10 +393,10 @@ function SliderValue({
   };
   return (
     <input
-      className="video-editor__slider-value"
+      className={className}
       value={text}
       placeholder={mixed ? "Mixed" : undefined}
-      aria-label={`${label} value`}
+      aria-label={label}
       aria-invalid={invalid || undefined}
       spellCheck={false}
       autoComplete="off"

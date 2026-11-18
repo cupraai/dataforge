@@ -16,6 +16,7 @@
 // Shared controls first, so feature partials can adjust their layout.
 @use "components/button";
 @use "components/checkbox";
+@use "components/field";
 @use "components/tabs";
 @use "components/segmented";
 @use "components/menu";

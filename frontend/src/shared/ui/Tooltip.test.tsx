@@ -29,17 +29,21 @@ describe("Tooltip", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Missing caption");
   });
 
-  it("puts extra classes on the hover wrapper", () => {
+  it("points at the trigger, past a tooltip wrapped directly around it", () => {
+    // The wrappers draw no box, so only the trigger has a rectangle to anchor to.
+    vi.spyOn(HTMLButtonElement.prototype, "getBoundingClientRect").mockReturnValue(
+      DOMRect.fromRect({ x: 100, y: 50, width: 40, height: 20 }),
+    );
     render(
-      <Tooltip content=".png" className="stats-dialog__mix-cell">
-        <span>slice</span>
+      <Tooltip content="Copied!" open>
+        <Tooltip content="Copy">
+          <button type="button">Copy</button>
+        </Tooltip>
       </Tooltip>,
     );
 
-    expect(screen.getByText("slice").parentElement).toHaveClass(
-      "tooltip",
-      "stats-dialog__mix-cell",
-    );
+    // Below the trigger's bottom edge (50 + 20) by the 8px offset.
+    expect(screen.getByRole("tooltip").style.top).toBe("78px");
   });
 
   it("renders the bubble outside the trigger, so no ancestor can clip it", () => {
@@ -315,7 +319,6 @@ describe("Tooltip", () => {
     );
 
     const wrapper = screen.getByRole("button", { name: "Restore" }).parentElement;
-    expect(wrapper).toHaveClass("tooltip--disabled-wrap");
 
     fireEvent.mouseEnter(wrapper!);
 
@@ -360,7 +363,7 @@ describe("Tooltip placement", () => {
       this: Element,
     ) {
       if (this.classList.contains("tooltip__bubble")) return fakeRect(bubble);
-      if (this.classList.contains("tooltip")) return fakeRect(anchor);
+      if (this instanceof HTMLButtonElement) return fakeRect(anchor);
       return fakeRect({});
     });
 

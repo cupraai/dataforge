@@ -40,6 +40,7 @@ export function useTabList<T extends string>(
   };
 
   return {
+    ids,
     tabListProps: { role: "tablist", "aria-orientation": orientation, onKeyDown } as const,
     tabProps: (id: T) =>
       ({

@@ -173,7 +173,7 @@ function MarkColumn({
 }) {
   return (
     <section className="watermark-dialog__column" aria-label={`${title} watermark`}>
-      <div className="dialog__field">
+      <div className="field">
         <Checkbox
           className="watermark-dialog__toggle"
           label={title}
@@ -183,11 +183,11 @@ function MarkColumn({
         />
         {control}
         {error ? (
-          <p id={errorId} className="dialog__hint watermark-dialog__error" role="alert">
+          <p id={errorId} className="field__hint watermark-dialog__error" role="alert">
             {error}
           </p>
         ) : (
-          <p className="dialog__hint watermark-dialog__hint">{hint}</p>
+          <p className="field__hint watermark-dialog__hint">{hint}</p>
         )}
       </div>
       {children}
@@ -411,7 +411,6 @@ export function WatermarkDialog({
       </div>
 
       <Checkbox
-        className="dialog__field"
         label="Strip metadata (EXIF, XMP, video tags) from the copies"
         checked={draft.strip_metadata}
         disabled={working}

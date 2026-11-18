@@ -182,7 +182,7 @@ export function EditCaptionsDialog({
           onChange={setReasoningEffort}
         />
 
-        <div className="dialog__field edit-captions-dialog__toggles">
+        <div className="field edit-captions-dialog__toggles">
           <Checkbox
             label="Preserve thinking"
             checked={preserveThinking}
@@ -200,9 +200,7 @@ export function EditCaptionsDialog({
           />
         </div>
 
-        <div className="dialog__field">
-          <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
-        </div>
+        <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
 
         <Field
           label="Edit instruction"

@@ -283,7 +283,7 @@ function ExportStatus({
       {state.status === "failed" && (
         <>
           <Icon icon={iconTriangleAlert} />
-          <Tooltip content={state.error ?? undefined} className="video-editor__export-text-tip">
+          <Tooltip content={state.error ?? undefined}>
             <span className="video-editor__export-text">Export failed: {state.error}</span>
           </Tooltip>
         </>

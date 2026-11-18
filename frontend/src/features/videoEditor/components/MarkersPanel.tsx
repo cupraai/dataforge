@@ -1,9 +1,9 @@
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { useState } from "react";
-import { iconBookmark, iconBookmarkPlus, iconSearch, iconTrash2 } from "@/shared/icons";
+import { iconBookmark, iconBookmarkPlus, iconTrash2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { SHORTCUTS } from "@/shared/lib/shortcuts";
-import { Icon } from "@/shared/ui/Icon";
+import { SearchInput } from "@/shared/ui/SearchInput";
 import {
   addMarker,
   markerLabel,
@@ -65,16 +65,15 @@ export function MarkersPanel({
       ) : (
         <>
           {project.markers.length >= FILTER_FROM && (
-            <label className="video-editor__marker-filter">
-              <Icon icon={iconSearch} />
-              <input
-                type="search"
-                value={filter}
-                placeholder="Find a marker"
-                aria-label="Find a marker"
-                onChange={(event) => setFilter(event.target.value)}
-              />
-            </label>
+            <SearchInput
+              size="xs"
+              className="video-editor__marker-filter"
+              label="Find a marker"
+              clearLabel="Show every marker"
+              placeholder="Find a marker"
+              value={filter}
+              onChange={setFilter}
+            />
           )}
           <ul className="video-editor__markers">
             {shown.map((marker) => (

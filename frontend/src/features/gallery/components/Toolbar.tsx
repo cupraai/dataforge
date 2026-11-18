@@ -116,7 +116,7 @@ function ToolbarSearch({
     SHORTCUTS.search,
     (event) => {
       // A typed slash belongs to whatever field has focus; only the Ctrl+F chord reaches in.
-      if (event.key === "/" && isEditableTarget(event.target)) return false;
+      if (event.key === "/" && isEditableTarget(event)) return false;
       openSearch();
     },
     { inEditable: true },

@@ -119,7 +119,7 @@ function FolderCard({ folder, onOpen }: { folder: Subfolder; onOpen: (path: stri
   );
 
   return (
-    <Tooltip content={tooltip} className="folder-grid__cell">
+    <Tooltip content={tooltip}>
       <button
         type="button"
         className="folder-card"

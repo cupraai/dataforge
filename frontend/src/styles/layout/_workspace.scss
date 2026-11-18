@@ -31,16 +31,12 @@
   &--collapsed &__panel {
     padding-inline: 0.375rem;
   }
-  // Panel actions span the column; Settings arrives wrapped in its tooltip trigger.
-  &__panel > .tooltip,
-  &__footer > .tooltip {
-    display: flex;
-  }
-  &__panel > .tooltip > .button,
+  // Panel actions span the column.
+  &__panel .button,
   &__footer .button {
     width: 100%;
   }
-  &--collapsed &__panel > .tooltip > .button,
+  &--collapsed &__panel .button,
   &--collapsed &__footer .button {
     padding-inline: 0;
   }
@@ -173,9 +169,6 @@
       animation: folder-tagging-pulse 2.4s ease-in-out infinite;
     }
   }
-  &__folder-tip {
-    display: flex;
-  }
   // Row actions sit over the row's right edge and appear only on hover or focus.
   &__row {
     position: relative;
@@ -274,8 +267,7 @@
     @include section-label;
     padding: 0.25rem 0.5rem 0.5rem;
   }
-  // The item fills its row; the tooltip wrapper would otherwise shrink it to its label.
-  &__tip > .menu__item {
+  &__item {
     flex: 1;
     min-width: 0;
     gap: 0.625rem;
@@ -286,7 +278,7 @@
     }
   }
   // The icon sits on a neutral tile that takes the accent while the item is hovered.
-  &__tip .menu__icon {
+  &__item .menu__icon {
     box-sizing: border-box;
     width: 1.75rem;
     height: 1.75rem;
@@ -299,7 +291,7 @@
       --fade-bg var(--transition),
       color var(--transition);
   }
-  &__tip > .menu__item:is(:hover, :focus-visible):not(:disabled) .menu__icon {
+  &__item:is(:hover, :focus-visible):not(:disabled) .menu__icon {
     @include fade-bg(var(--accent-soft));
     color: var(--accent);
   }

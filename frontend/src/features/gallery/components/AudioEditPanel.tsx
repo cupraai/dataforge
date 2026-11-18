@@ -9,6 +9,7 @@ import {
   AUDIO_PITCH_MAX_SEMITONES,
 } from "@/shared/constants";
 import {
+  FADE_CURVES,
   formatDecibels,
   formatHertz,
   formatHighCut,
@@ -37,25 +38,23 @@ import { formatFrameTime } from "@/features/gallery/lib/videoFrameCapture";
 import {
   iconAudioLines,
   iconGauge,
-  iconLoader2,
   iconScissors,
   iconSliders,
   iconBroom,
   iconVolume2,
 } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
 import { RulerDial } from "@/shared/ui/RulerDial";
 import type { AudioEdit } from "@/features/gallery/hooks/useAudioEdit";
 import type { AudioEffects } from "@/shared/types";
 import {
+  ApplyProgress,
   EditActions,
   OutputChange,
   OutputPart,
-  PresetButton,
   PresetChoices,
   ToolGroup,
   ToolHint,
-  ToolPresets,
+  ToolChoices,
   ToolTabs,
   type EditTool,
 } from "./EditPanelParts";
@@ -214,20 +213,21 @@ export function AudioEditPanel({
                   Set out
                 </Button>
               </ToolGroup>
-              <ToolPresets label="Length">
-                {TRIM_LENGTH_PRESETS.map((seconds) => (
-                  <PresetButton
-                    key={seconds}
-                    active={hasTrimLength(seconds, draft, AUDIO_TRIM_STEP)}
-                    disabled={
-                      locked || !trimForLength(seconds, draft, edit.duration, AUDIO_TRIM_STEP)
-                    }
-                    onClick={() => edit.setTrimLength(seconds)}
-                  >
-                    {seconds}s
-                  </PresetButton>
-                ))}
-              </ToolPresets>
+              <ToolChoices
+                label="Length"
+                value={
+                  TRIM_LENGTH_PRESETS.find((seconds) =>
+                    hasTrimLength(seconds, draft, AUDIO_TRIM_STEP),
+                  ) ?? null
+                }
+                options={TRIM_LENGTH_PRESETS.map((seconds) => ({
+                  value: seconds,
+                  label: `${seconds}s`,
+                  disabled: !trimForLength(seconds, draft, edit.duration, AUDIO_TRIM_STEP),
+                }))}
+                disabled={locked}
+                onChange={edit.setTrimLength}
+              />
             </>
           )}
 
@@ -249,22 +249,13 @@ export function AudioEditPanel({
                 disabled={locked}
                 onSelect={edit.setFadeOut}
               />
-              <ToolPresets label="Curve">
-                <PresetButton
-                  active={draft.fadeCurve === "equal_power"}
-                  disabled={locked}
-                  onClick={() => edit.setFadeCurve("equal_power")}
-                >
-                  Equal power
-                </PresetButton>
-                <PresetButton
-                  active={draft.fadeCurve === "linear"}
-                  disabled={locked}
-                  onClick={() => edit.setFadeCurve("linear")}
-                >
-                  Linear
-                </PresetButton>
-              </ToolPresets>
+              <ToolChoices
+                label="Curve"
+                value={draft.fadeCurve}
+                options={FADE_CURVES}
+                disabled={locked}
+                onChange={edit.setFadeCurve}
+              />
             </>
           )}
 
@@ -278,18 +269,13 @@ export function AudioEditPanel({
                 disabled={locked}
                 onSelect={edit.setVolume}
               />
-              <ToolPresets label="Level">
-                {AUDIO_LEVELS.map((level) => (
-                  <PresetButton
-                    key={level.value}
-                    active={draft.level === level.value}
-                    disabled={locked}
-                    onClick={() => edit.setLevel(level.value)}
-                  >
-                    {level.label}
-                  </PresetButton>
-                ))}
-              </ToolPresets>
+              <ToolChoices
+                label="Level"
+                value={draft.level}
+                options={AUDIO_LEVELS.map((level) => ({ value: level.value, label: level.label }))}
+                disabled={locked}
+                onChange={edit.setLevel}
+              />
             </>
           )}
 
@@ -320,18 +306,13 @@ export function AudioEditPanel({
 
           {activeTool === "eq" && (
             <>
-              <ToolPresets label="Band">
-                {BANDS.map((entry) => (
-                  <PresetButton
-                    key={entry.id}
-                    active={entry.id === band.id}
-                    disabled={locked}
-                    onClick={() => setBandId(entry.id)}
-                  >
-                    {entry.label}
-                  </PresetButton>
-                ))}
-              </ToolPresets>
+              <ToolChoices
+                label="Band"
+                value={band.id}
+                options={BANDS.map((entry) => ({ value: entry.id, label: entry.label }))}
+                disabled={locked}
+                onChange={setBandId}
+              />
               <div className="edit-panel__dial">
                 <RulerDial
                   key={band.id}
@@ -406,22 +387,10 @@ export function AudioEditPanel({
         </p>
 
         {edit.applying ? (
-          <div className="edit-panel__actions">
-            <span
-              className="edit-panel__rendering"
-              role="progressbar"
-              aria-label="Rendering"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={edit.progress == null ? undefined : Math.round(edit.progress * 100)}
-            >
-              <Icon icon={iconLoader2} spin />
-              {edit.progress == null ? "Rendering" : `${Math.round(edit.progress * 100)}%`}
-            </span>
-            <Button onClick={edit.cancel} size="sm">
-              Cancel
-            </Button>
-          </div>
+          <ApplyProgress
+            label="Rendering"
+            render={{ progress: edit.progress, onCancel: edit.cancel }}
+          />
         ) : (
           <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />
         )}

@@ -172,12 +172,7 @@ export function WorkspaceSidebar({
   ) => {
     const tagging = taggingFolder !== null && folderPathsEqual(path, taggingFolder);
     return (
-      <Tooltip
-        content={path}
-        placement="right"
-        className="workspace-sidebar__folder-tip"
-        bubbleClassName="workspace-sidebar-path-tip"
-      >
+      <Tooltip content={path} placement="right" bubbleClassName="workspace-sidebar-path-tip">
         <button
           {...props}
           {...openInNewTab(path)}

@@ -671,7 +671,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           />
           <SettingsGroup title="Folders" icon={iconFolder}>
             <Checkbox
-              className="dialog__field"
               label="Hide hidden folders"
               hint="Folders named with a leading dot, or marked hidden in Windows."
               checked={hideHidden}

@@ -64,7 +64,6 @@ export function SettleAllCandidatesDialog({
       footer={<DialogActions confirmLabel={busy ? "Accepting..." : "Accept"} onCancel={onCancel} />}
     >
       <Checkbox
-        className="dialog__field"
         label="Keep original metadata"
         checked={keepMetadata}
         disabled={busy}

@@ -21,7 +21,7 @@ export function useCommandShortcuts(items: readonly QuickActionItem[]): void {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || getScrollLockDepth() > 0) return;
       // Only a Ctrl/Cmd chord reaches into a field; Alt+letter types dead keys on macOS.
-      if (isEditableTarget(event.target) && !(event.ctrlKey || event.metaKey)) return;
+      if (isEditableTarget(event) && !(event.ctrlKey || event.metaKey)) return;
 
       const item = itemsRef.current.find(
         (candidate) =>

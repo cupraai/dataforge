@@ -286,8 +286,11 @@ for (const kind of ["image", "video"] as const) {
     await page.getByRole("tab", { name: /^Adjust(?:, changed)?$/ }).press("ArrowRight");
     const effects = page.getByRole("tab", { name: /^Effects/ });
     await expect(effects).toBeFocused();
-    const preset = page.getByRole("button", { name: kind === "image" ? "Blue Hour" : "Glacier" });
-    await preset.click();
+    const styles = page.getByRole("radiogroup", { name: "Style" });
+    const look = kind === "image" ? "Blue Hour" : "Glacier";
+    const preset = styles.getByRole("radio", { name: look });
+    await styles.getByText(look, { exact: true }).click();
+    await expect(preset).toBeChecked();
     const slider = page.getByRole("slider", { name: "Effect strength" });
     await slider.press("ArrowLeft");
     await expect(slider).toHaveValue("99");
@@ -303,9 +306,9 @@ for (const kind of ["image", "video"] as const) {
     await page.getByRole("button", { name: `Exit ${kind} editing for ${name}` }).click();
     await edit.click();
     await effects.click();
-    await expect(preset).toHaveAttribute("aria-pressed", "true");
+    await expect(preset).toBeChecked();
     await expect(slider).toHaveValue("99");
-    await page.getByRole("button", { name: "None", exact: true }).click();
+    await styles.getByText("None", { exact: true }).click();
     await expect(effects).toHaveAccessibleName("Effects");
     if (kind === "image") {
       await page.getByRole("tab", { name: "Adjust, changed" }).click();

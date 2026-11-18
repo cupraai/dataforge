@@ -376,11 +376,10 @@ export function FolderInstructionsDialog({
       <TabList
         tabs={tabs}
         label="Folder instructions"
-        items={KINDS.map((kind) => ({
-          id: kind,
+        item={(kind) => ({
           label: DOCUMENTS[kind].label,
           mark: editedKinds.includes(kind) ? "unsaved" : undefined,
-        }))}
+        })}
         className="folder-instructions-dialog__tabs"
       />
 

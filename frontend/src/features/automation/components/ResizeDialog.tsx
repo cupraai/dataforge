@@ -144,8 +144,8 @@ export function ResizeDialog({
         />
       }
     >
-      <div className="dialog__field">
-        <div className="dialog__field-row">
+      <div className="field">
+        <div className="field-row">
           <Field label="Megapixels">
             {(control) => (
               <TextInput
@@ -207,7 +207,6 @@ export function ResizeDialog({
         onChange={setFrameRate}
       />
       <Checkbox
-        className="dialog__field"
         label="Reset size to the original"
         checked={reset}
         disabled={busy}

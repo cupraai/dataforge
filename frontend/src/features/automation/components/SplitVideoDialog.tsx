@@ -163,8 +163,8 @@ export function SplitVideoDialog({
         onChange={setSensitivity}
       />
 
-      <div className="dialog__field">
-        <div className="dialog__field-row">
+      <div className="field">
+        <div className="field-row">
           <Field label={scenes ? "Longest clip (s)" : "Clip length (s)"}>
             {(control) => (
               <TextInput
@@ -200,7 +200,7 @@ export function SplitVideoDialog({
             )}
           </Field>
         </div>
-        <p id={lengthHintId} className="dialog__hint">
+        <p id={lengthHintId} className="field__hint">
           {scenes
             ? "A longer scene is divided into equal parts. Shorter pieces are left out."
             : "The last piece of each video is usually shorter. Shorter pieces are left out."}

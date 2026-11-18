@@ -20,7 +20,6 @@ import {
   iconCrop,
   iconDroplets,
   iconGauge,
-  iconLoader2,
   iconMaximize2,
   iconScissors,
   iconSliders,
@@ -29,22 +28,22 @@ import {
 } from "@/shared/icons";
 import { VIDEO_FRAME_RATES } from "@/shared/constants";
 import type { VideoFrameRate } from "@/shared/types";
-import { Icon } from "@/shared/ui/Icon";
+import type { SegmentOption } from "@/shared/ui/SegmentedControl";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
 import { EffectOutput, EffectTools } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import {
+  ApplyProgress,
   AspectTools,
   BlurTools,
   EditActions,
   OutputChange,
   OutputPart,
-  PresetButton,
   PresetChoices,
   SizeTools,
   ToolGroup,
   ToolHint,
-  ToolPresets,
+  ToolChoices,
   ToolTabs,
   type EditTool,
 } from "./EditPanelParts";
@@ -69,6 +68,12 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "adjust", label: "Adjust", icon: iconSliders },
   { id: "effects", label: "Effects", icon: iconPalette },
   { id: "blur", label: "Blur", icon: iconDroplets },
+];
+
+// Null keeps the source's rate; the radio needs a value of its own for it.
+const FRAME_RATE_OPTIONS: ReadonlyArray<SegmentOption<VideoFrameRate | "source">> = [
+  { value: "source", label: "Source" },
+  ...VIDEO_FRAME_RATES.map((rate) => ({ value: rate, label: `${rate} fps` })),
 ];
 
 const SPEED_HINT = "Changes the length too; the audio keeps its pitch.";
@@ -171,21 +176,21 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
                   Set out
                 </Button>
               </ToolGroup>
-              <ToolPresets label="Length">
-                {TRIM_LENGTH_PRESETS.map((seconds) => (
-                  <PresetButton
-                    key={seconds}
-                    active={hasTrimLength(seconds, edit.draft, edit.frameDuration)}
-                    disabled={
-                      locked ||
-                      !trimForLength(seconds, edit.draft, edit.duration, edit.frameDuration)
-                    }
-                    onClick={() => edit.setTrimLength(seconds)}
-                  >
-                    {seconds}s
-                  </PresetButton>
-                ))}
-              </ToolPresets>
+              <ToolChoices
+                label="Length"
+                value={
+                  TRIM_LENGTH_PRESETS.find((seconds) =>
+                    hasTrimLength(seconds, edit.draft, edit.frameDuration),
+                  ) ?? null
+                }
+                options={TRIM_LENGTH_PRESETS.map((seconds) => ({
+                  value: seconds,
+                  label: `${seconds}s`,
+                  disabled: !trimForLength(seconds, edit.draft, edit.duration, edit.frameDuration),
+                }))}
+                disabled={locked}
+                onChange={edit.setTrimLength}
+              />
             </>
           )}
 
@@ -199,18 +204,13 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
                 disabled={locked}
                 onSelect={edit.setSpeed}
               />
-              <ToolPresets label="Frame rate">
-                {([null, ...VIDEO_FRAME_RATES] as const).map((rate) => (
-                  <PresetButton
-                    key={rate ?? "source"}
-                    active={edit.draft.frameRate === rate}
-                    disabled={locked}
-                    onClick={() => edit.setFrameRate(rate)}
-                  >
-                    {rate === null ? "Source" : `${rate} fps`}
-                  </PresetButton>
-                ))}
-              </ToolPresets>
+              <ToolChoices
+                label="Frame rate"
+                value={edit.draft.frameRate ?? "source"}
+                options={FRAME_RATE_OPTIONS}
+                disabled={locked}
+                onChange={(rate) => edit.setFrameRate(rate === "source" ? null : rate)}
+              />
             </>
           )}
 
@@ -307,22 +307,10 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
         </p>
 
         {edit.applying ? (
-          <div className="edit-panel__actions">
-            <span
-              className="edit-panel__rendering"
-              role="progressbar"
-              aria-label="Rendering"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={edit.progress == null ? undefined : Math.round(edit.progress * 100)}
-            >
-              <Icon icon={iconLoader2} spin />
-              {edit.progress == null ? "Rendering" : `${Math.round(edit.progress * 100)}%`}
-            </span>
-            <Button onClick={edit.cancel} size="sm">
-              Cancel
-            </Button>
-          </div>
+          <ApplyProgress
+            label="Rendering"
+            render={{ progress: edit.progress, onCancel: edit.cancel }}
+          />
         ) : (
           <EditActions edit={edit} disabled={locked} onRevertRequested={onRevertRequested} />
         )}

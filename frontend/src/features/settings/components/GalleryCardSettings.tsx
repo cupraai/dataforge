@@ -64,14 +64,12 @@ export function GalleryCardSettings({
         </div>
         <div className="settings-group__checks">
           <Checkbox
-            className="dialog__field"
             label="Show megapixels"
             checked={value.megapixels}
             disabled={disabled}
             onChange={(megapixels) => change({ megapixels })}
           />
           <Checkbox
-            className="dialog__field"
             label="Show the aspect ratio on large cards"
             checked={value.largeAspectRatio}
             disabled={disabled}
@@ -79,7 +77,6 @@ export function GalleryCardSettings({
           />
           {taggingEnabled && (
             <Checkbox
-              className="dialog__field"
               label="Show tags on large cards"
               hint="The strongest tags from background tagging. Only favorite folders are tagged."
               checked={value.largeTags}
@@ -97,7 +94,6 @@ export function GalleryCardSettings({
         <div className="settings-group__checks settings-group__checks--columns">
           {CARD_ACTION_IDS.map((action) => (
             <Checkbox
-              className="dialog__field"
               key={action}
               label={CARD_ACTIONS[action].label}
               checked={value.cardActions.includes(action)}
@@ -111,7 +107,6 @@ export function GalleryCardSettings({
       </SettingsGroup>
       <SettingsGroup title="List" icon={iconRows3}>
         <Checkbox
-          className="dialog__field"
           label="Show a caption preview"
           hint="The start of each caption follows the file name, cut to one line."
           checked={value.listCaptionPreview}

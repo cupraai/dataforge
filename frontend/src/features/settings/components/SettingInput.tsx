@@ -87,7 +87,7 @@ export function SettingInput({
   return (
     <div className="setting-field">
       <div className="setting-field__head">
-        <label className="dialog__label setting-field__label" htmlFor={inputId}>
+        <label className="field__label setting-field__label" htmlFor={inputId}>
           {field.label}
           {field.unit && (
             <>

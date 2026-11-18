@@ -6,10 +6,12 @@ import { CROP_ASPECTS } from "@/features/gallery/lib/crop";
 import { SCALE_PRESETS, formatScale } from "@/features/gallery/lib/editSpec";
 import { MASK_MODES, MASK_STRENGTHS } from "@/features/gallery/lib/mask";
 import type { MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
-import { iconPlus, iconTrash2, iconUndo2, type AppIcon } from "@/shared/icons";
+import { iconLoader2, iconPlus, iconTrash2, iconUndo2, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
+import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
+import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { formatSizeFit } from "@/shared/lib/sizeFit";
 import type { SizeFit } from "@/shared/types";
@@ -41,7 +43,10 @@ export function ToolTabs<T extends string>({
     <TabList
       tabs={tabs}
       label="Editing tool"
-      items={tools.map((tool) => ({ ...tool, mark: modified[tool.id] ? "changed" : undefined }))}
+      item={(id) => {
+        const tool = tools.find((entry) => entry.id === id)!;
+        return { label: tool.label, icon: tool.icon, mark: modified[id] ? "changed" : undefined };
+      }}
       disabled={disabled}
     />
   );
@@ -62,6 +67,27 @@ export function OutputChange({ from, to }: { from: ReactNode; to: ReactNode }) {
   );
 }
 
+/** A visible caption over what it names; `children` gets the caption's id. */
+function ToolCaption({
+  label,
+  grow,
+  children,
+}: {
+  label: string;
+  grow?: boolean;
+  children: (labelId: string) => ReactNode;
+}) {
+  const labelId = useId();
+  return (
+    <div className={classNames("edit-panel__group", grow && "edit-panel__group--grow")}>
+      <span id={labelId} className="edit-panel__group-label">
+        {label}
+      </span>
+      {children(labelId)}
+    </div>
+  );
+}
+
 /** A control cluster under a visible caption, which also names the group. `grow` takes the
  * row's spare width, for a text field. */
 export function ToolGroup({
@@ -75,22 +101,51 @@ export function ToolGroup({
   grow?: boolean;
   children: ReactNode;
 }) {
-  const labelId = useId();
   return (
-    <div className={classNames("edit-panel__group", grow && "edit-panel__group--grow")}>
-      <span id={labelId} className="edit-panel__group-label">
-        {label}
-      </span>
-      <div className={className} role="group" aria-labelledby={labelId}>
-        {children}
-      </div>
-    </div>
+    <ToolCaption label={label} grow={grow}>
+      {(labelId) => (
+        <div className={className} role="group" aria-labelledby={labelId}>
+          {children}
+        </div>
+      )}
+    </ToolCaption>
   );
 }
 
+/** One choice of a few under its caption: the editor's segmented radios. */
+export function ToolChoices<T extends string | number>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: T | null;
+  options: readonly SegmentOption<T>[];
+  disabled: boolean;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <ToolCaption label={label}>
+      {(labelId) => (
+        <SegmentedControl
+          labelledBy={labelId}
+          size="sm"
+          className="edit-panel__choices"
+          value={value}
+          options={options}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      )}
+    </ToolCaption>
+  );
+}
+
+/** Buttons on the segmented track that are not one choice: toggles that combine, or actions. */
 export function ToolPresets({ label, children }: { label: string; children: ReactNode }) {
   return (
-    // Pressed buttons on the segmented track: each preset can carry its own shortcut.
     <ToolGroup label={label} className="segmented segmented--sm">
       {children}
     </ToolGroup>
@@ -146,7 +201,7 @@ export function PresetButton({
   );
 }
 
-/** One preset per value, pressed while it is the current one. */
+/** One option per value, chosen while it is the current one; any other value chooses none. */
 export function PresetChoices({
   label,
   values,
@@ -157,24 +212,19 @@ export function PresetChoices({
 }: {
   label: string;
   values: readonly number[];
-  current: number;
-  format: (value: number) => ReactNode;
+  current: number | null;
+  format: (value: number) => string;
   disabled: boolean;
   onSelect: (value: number) => void;
 }) {
   return (
-    <ToolPresets label={label}>
-      {values.map((value) => (
-        <PresetButton
-          key={value}
-          active={current === value}
-          disabled={disabled}
-          onClick={() => onSelect(value)}
-        >
-          {format(value)}
-        </PresetButton>
-      ))}
-    </ToolPresets>
+    <ToolChoices
+      label={label}
+      value={current}
+      options={values.map((value) => ({ value, label: format(value) }))}
+      disabled={disabled}
+      onChange={onSelect}
+    />
   );
 }
 
@@ -188,18 +238,13 @@ export function AspectTools({
   onSelect: (aspectId: string) => void;
 }) {
   return (
-    <ToolPresets label="Aspect">
-      {CROP_ASPECTS.map((aspect) => (
-        <PresetButton
-          key={aspect.id}
-          active={aspectId === aspect.id}
-          disabled={disabled}
-          onClick={() => onSelect(aspect.id)}
-        >
-          {aspect.label}
-        </PresetButton>
-      ))}
-    </ToolPresets>
+    <ToolChoices
+      label="Aspect"
+      value={aspectId}
+      options={CROP_ASPECTS.map((aspect) => ({ value: aspect.id, label: aspect.label }))}
+      disabled={disabled}
+      onChange={onSelect}
+    />
   );
 }
 
@@ -238,7 +283,7 @@ export function SizeTools({
       <PresetChoices
         label="Scale"
         values={SCALE_PRESETS}
-        current={fit ? Number.NaN : scale}
+        current={fit ? null : scale}
         format={formatScale}
         disabled={disabled}
         onSelect={onScale}
@@ -299,31 +344,24 @@ export function BlurTools({
           Clear
         </Button>
       </ToolGroup>
-      <ToolPresets label="Blur style">
-        {MASK_MODES.map((mode) => (
-          <PresetButton
-            key={mode.id}
-            active={masks.maskMode === mode.id}
-            disabled={disabled}
-            onClick={() => masks.setMaskMode(mode.id)}
-          >
-            {mode.label}
-          </PresetButton>
-        ))}
-      </ToolPresets>
-      <ToolPresets label="Strength">
-        {MASK_STRENGTHS.map((strength) => (
-          <PresetButton
-            key={strength.id}
-            active={masks.maskStrength === strength.value}
-            // A blackout has nothing to measure, so its strength would go nowhere.
-            disabled={disabled || masks.maskMode === "blackout"}
-            onClick={() => masks.setMaskStrength(strength.value)}
-          >
-            {strength.label}
-          </PresetButton>
-        ))}
-      </ToolPresets>
+      <ToolChoices
+        label="Blur style"
+        value={masks.maskMode}
+        options={MASK_MODES.map((mode) => ({ value: mode.id, label: mode.label }))}
+        disabled={disabled}
+        onChange={masks.setMaskMode}
+      />
+      <ToolChoices
+        label="Strength"
+        value={masks.maskStrength}
+        options={MASK_STRENGTHS.map((strength) => ({
+          value: strength.value,
+          label: strength.label,
+        }))}
+        // A blackout has nothing to measure, so its strength would go nowhere.
+        disabled={disabled || masks.maskMode === "blackout"}
+        onChange={masks.setMaskStrength}
+      />
     </>
   );
 }
@@ -338,7 +376,47 @@ interface DraftActions {
   apply: () => void;
 }
 
-/** Revert, Reset and Apply; the panels swap this row for their own progress while rendering. */
+interface RenderProgress {
+  /** 0 to 1, or null until the render first reports. */
+  progress: number | null;
+  onCancel: () => void;
+}
+
+/** What stands in for the actions while Apply runs: a `render` with its progress and Cancel,
+ * or, without one, a quick save that only says it is under way. */
+export function ApplyProgress({ label, render }: { label: string; render?: RenderProgress }) {
+  if (!render) {
+    return (
+      <div className="edit-panel__actions">
+        <span className="edit-panel__rendering" role="status">
+          <Icon icon={iconLoader2} spin />
+          {label}
+        </span>
+      </div>
+    );
+  }
+  const percent = render.progress === null ? null : Math.round(render.progress * 100);
+  return (
+    <div className="edit-panel__actions">
+      <span
+        className="edit-panel__rendering"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent ?? undefined}
+      >
+        <Icon icon={iconLoader2} spin />
+        {percent === null ? label : `${percent}%`}
+      </span>
+      <Button onClick={render.onCancel} size="sm">
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
+/** Revert, Reset and Apply; the panels swap this row for `ApplyProgress` while Apply runs. */
 export function EditActions({
   edit,
   disabled,

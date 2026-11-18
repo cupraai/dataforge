@@ -242,7 +242,7 @@ test("the fill tool keeps the panel's height, so the picture does not move", asy
   expect(new Set(captionTops).size).toBe(1);
 
   await page.getByRole("tab", { name: /^Crop/ }).click();
-  await expect(page.getByRole("group", { name: "Aspect" })).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Aspect" })).toBeVisible();
   await expect.poll(height).toBe(fillHeight);
 });
 
@@ -280,15 +280,9 @@ test("zooms with the wheel, pans with the middle button, and paints where the po
 
   // Keys pick the tool; paint with the brush.
   await page.keyboard.press("e");
-  await expect(dialog.getByRole("button", { name: "Erase" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(dialog.getByRole("radio", { name: "Erase" })).toBeChecked();
   await page.keyboard.press("b");
-  await expect(dialog.getByRole("button", { name: "Paint" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(dialog.getByRole("radio", { name: "Paint" })).toBeChecked();
   // Away from the zoom's anchor, where only a mapping that honours the zoom finds the pixel.
   const stroke = { x: target.x + 100, y: target.y };
   const zoomedSource = {

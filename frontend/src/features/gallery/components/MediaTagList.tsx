@@ -42,11 +42,7 @@ export function MediaTagList({ tags }: MediaTagListProps) {
           </ul>
           {hidden > 0 && (
             // Above: the row is the lowest thing in the panel, so a bubble below would be cut.
-            <Tooltip
-              content={hiddenLabels.join(", ")}
-              placement="top"
-              className="media-tags__more-tip"
-            >
+            <Tooltip content={hiddenLabels.join(", ")} placement="top">
               <Badge
                 tone="placeholder"
                 size="md"

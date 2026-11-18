@@ -45,6 +45,12 @@ export const seconds: SliderUnit = {
   parse: scaled(1),
 };
 
+/** A playback rate, "1.5×"; the sign may be typed as × or x, or left off. */
+export const speed: SliderUnit = {
+  format: (value) => `${Number(value.toFixed(2))}×`,
+  parse: (text) => scaled(1)(text.replace(/[×x]\s*$/i, "")),
+};
+
 export const degrees: SliderUnit = {
   format: (value) => `${Math.round(value)}°`,
   parse: scaled(1),

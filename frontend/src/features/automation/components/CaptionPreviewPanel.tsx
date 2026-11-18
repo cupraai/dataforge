@@ -38,8 +38,8 @@ export function CaptionPreviewPanel({
   ref,
 }: CaptionPreviewPanelProps) {
   return (
-    <div className="dialog__field caption-preview-field">
-      <div className="dialog__label">Preview</div>
+    <div className="field caption-preview-field">
+      <div className="field__label">Preview</div>
       <div
         ref={ref}
         className={classNames(

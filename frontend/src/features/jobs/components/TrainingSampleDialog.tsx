@@ -37,7 +37,7 @@ export function TrainingSampleDialog({
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isEditableTarget(event.target)) return;
+      if (event.defaultPrevented || isEditableTarget(event)) return;
 
       const step = queueStepFor(event);
       if (!step || samples.length === 0) return;

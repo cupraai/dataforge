@@ -71,7 +71,7 @@ function VideoProjectCard({
   );
 
   return (
-    <Tooltip content={tooltip} className="video-project-grid__cell">
+    <Tooltip content={tooltip}>
       <button
         type="button"
         className="video-project-card"

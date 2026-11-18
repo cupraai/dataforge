@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { iconX } from "@/shared/icons";
-import { Icon } from "@/shared/ui/Icon";
+import { IconButton } from "@/shared/ui/IconButton";
 
 export interface ReferenceFrame {
   /** The monitor's picture when it was held, as a data URL. */
@@ -66,9 +66,14 @@ export function ReferenceWipe({
       />
       <span className="video-editor__reference-tag video-editor__reference-tag--held">
         Reference {reference.timecode}
-        <button type="button" aria-label="Stop comparing" title="Stop comparing" onClick={onClear}>
-          <Icon icon={iconX} />
-        </button>
+        <IconButton
+          icon={iconX}
+          label="Stop comparing"
+          size="2xs"
+          variant="ghost"
+          shape="round"
+          onClick={onClear}
+        />
       </span>
       <span className="video-editor__reference-tag video-editor__reference-tag--live">Live</span>
     </div>

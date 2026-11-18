@@ -151,7 +151,7 @@ describe("ImageEditPanel", () => {
       renderPanel(makeEdit());
 
       expect(tools().getByRole("tab", { name: "Crop" })).toHaveAttribute("aria-selected", "true");
-      expect(screen.getByRole("group", { name: "Aspect" })).toBeInTheDocument();
+      expect(screen.getByRole("radiogroup", { name: "Aspect" })).toBeInTheDocument();
     });
 
     it("shows one tool's controls at a time", async () => {
@@ -160,8 +160,8 @@ describe("ImageEditPanel", () => {
 
       await user.click(tools().getByRole("tab", { name: "Size" }));
 
-      expect(screen.getByRole("group", { name: "Scale" })).toBeInTheDocument();
-      expect(screen.queryByRole("group", { name: "Aspect" })).not.toBeInTheDocument();
+      expect(screen.getByRole("radiogroup", { name: "Scale" })).toBeInTheDocument();
+      expect(screen.queryByRole("radiogroup", { name: "Aspect" })).not.toBeInTheDocument();
     });
 
     it("explains the open tool, and says nothing where the controls speak for themselves", async () => {
@@ -254,7 +254,7 @@ describe("ImageEditPanel", () => {
       const fill = makeFillControls({ strokes: [{ mode: "paint", radius: 4, points: [] }] });
       const user = await openFill(makeEdit({ fill }));
 
-      await user.click(screen.getByRole("button", { name: "Erase" }));
+      await user.click(screen.getByRole("radio", { name: "Erase" }));
       expect(fill.setBrushMode).toHaveBeenCalledWith("erase");
       fireEvent.change(screen.getByRole("slider", { name: "Brush size" }), {
         target: { value: "0.05" },
@@ -267,7 +267,7 @@ describe("ImageEditPanel", () => {
       expect(fill.clearStrokes).toHaveBeenCalled();
       await user.type(screen.getByRole("textbox", { name: "Instruction" }), "a");
       expect(fill.setInstruction).toHaveBeenCalledWith("a");
-      await user.click(screen.getByRole("button", { name: "Fast" }));
+      await user.click(screen.getByRole("radio", { name: "Fast" }));
       expect(fill.setPreset).toHaveBeenCalledWith("fast");
       // One instruction serves both: blank removes, words say what goes there.
       expect(screen.queryByRole("button", { name: "Replace" })).not.toBeInTheDocument();
@@ -276,17 +276,23 @@ describe("ImageEditPanel", () => {
     it("switches brush and eraser with B and E, but not while typing the instruction", async () => {
       const fill = makeFillControls();
       const user = await openFill(makeEdit({ fill }));
-      expect(screen.getByRole("button", { name: "Paint" })).toHaveAttribute(
+      expect(screen.getByRole("radio", { name: "Paint" })).toHaveAttribute(
         "aria-keyshortcuts",
         "B",
       );
-      expect(screen.getByRole("button", { name: "Erase" })).toHaveAttribute(
+      expect(screen.getByRole("radio", { name: "Erase" })).toHaveAttribute(
         "aria-keyshortcuts",
         "E",
       );
 
       await user.keyboard("e");
       expect(fill.setBrushMode).toHaveBeenLastCalledWith("erase");
+      await user.keyboard("b");
+      expect(fill.setBrushMode).toHaveBeenLastCalledWith("paint");
+
+      // A clicked option keeps focus, and its radio must not swallow the other key.
+      await user.click(screen.getByRole("radio", { name: "Erase" }));
+      expect(screen.getByRole("radio", { name: "Erase" })).toHaveFocus();
       await user.keyboard("b");
       expect(fill.setBrushMode).toHaveBeenLastCalledWith("paint");
 
@@ -351,7 +357,7 @@ describe("ImageEditPanel", () => {
 
       expect(screen.queryByRole("button", { name: "Generate" })).not.toBeInTheDocument();
       expect(screen.getByRole("textbox", { name: "Instruction" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Paint" })).toBeDisabled();
+      expect(screen.getByRole("radio", { name: "Paint" })).toBeDisabled();
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(fill.cancel).toHaveBeenCalled();
     });
@@ -366,7 +372,7 @@ describe("ImageEditPanel", () => {
       const user = await openFill(makeEdit({ fill, pending: true, dirty: true }));
 
       // Painting is settled, but the request stays to reword and regenerate.
-      expect(screen.queryByRole("button", { name: "Paint" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("radio", { name: "Paint" })).not.toBeInTheDocument();
       expect(screen.getByRole("textbox", { name: "Instruction" })).toBeEnabled();
       // Before is held like Adjust's compare, not toggled.
       const before = screen.getByRole("button", { name: "Before" });
@@ -464,7 +470,7 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit();
       renderPanel(edit);
 
-      await user.click(within(screen.getByRole("group", { name: "Aspect" })).getByText("1:1"));
+      await user.click(within(screen.getByRole("radiogroup", { name: "Aspect" })).getByText("1:1"));
 
       expect(edit.selectAspect).toHaveBeenCalledWith("1:1");
     });
@@ -472,12 +478,9 @@ describe("ImageEditPanel", () => {
     it("shows which shape the rectangle already has", () => {
       renderPanel(makeEdit({ aspectId: "16:9" }));
 
-      const aspects = within(screen.getByRole("group", { name: "Aspect" }));
-      expect(aspects.getByRole("button", { name: "16:9" })).toHaveAttribute("aria-pressed", "true");
-      expect(aspects.getByRole("button", { name: "Free" })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
+      const aspects = within(screen.getByRole("radiogroup", { name: "Aspect" }));
+      expect(aspects.getByRole("radio", { name: "16:9" })).toBeChecked();
+      expect(aspects.getByRole("radio", { name: "Free" })).not.toBeChecked();
     });
   });
 
@@ -509,29 +512,33 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit();
       const user = await openBlur(edit);
 
-      const styles = within(screen.getByRole("group", { name: "Blur style" }));
-      await user.click(styles.getByRole("button", { name: "Pixelate" }));
+      const styles = within(screen.getByRole("radiogroup", { name: "Blur style" }));
+      await user.click(styles.getByRole("radio", { name: "Pixelate" }));
 
       expect(edit.setMaskMode).toHaveBeenCalledWith("pixelate");
     });
 
-    it("blacks a region out, and stops offering a strength that would do nothing", async () => {
-      const edit = makeEdit({ maskMode: "blackout" });
+    it("blacks a region out", async () => {
+      const edit = makeEdit();
       const user = await openBlur(edit);
 
-      const styles = within(screen.getByRole("group", { name: "Blur style" }));
-      await user.click(styles.getByRole("button", { name: "Blackout" }));
+      const styles = within(screen.getByRole("radiogroup", { name: "Blur style" }));
+      await user.click(styles.getByRole("radio", { name: "Blackout" }));
       expect(edit.setMaskMode).toHaveBeenCalledWith("blackout");
+    });
 
-      const strengths = within(screen.getByRole("group", { name: "Strength" }));
-      expect(strengths.getByRole("button", { name: "Medium" })).toBeDisabled();
+    it("stops offering a strength that would do nothing to a blackout", async () => {
+      await openBlur(makeEdit({ maskMode: "blackout" }));
+
+      const strengths = within(screen.getByRole("radiogroup", { name: "Strength" }));
+      expect(strengths.getByRole("radio", { name: "Medium" })).toBeDisabled();
     });
 
     it("leaves the strengths alive for a mode that measures one", async () => {
       await openBlur(makeEdit({ maskMode: "pixelate" }));
 
-      const strengths = within(screen.getByRole("group", { name: "Strength" }));
-      expect(strengths.getByRole("button", { name: "Medium" })).toBeEnabled();
+      const strengths = within(screen.getByRole("radiogroup", { name: "Strength" }));
+      expect(strengths.getByRole("radio", { name: "Medium" })).toBeEnabled();
     });
 
     it("shows which style and strength the selected region carries", async () => {
@@ -545,24 +552,18 @@ describe("ImageEditPanel", () => {
       });
       await openBlur(edit);
 
-      const styles = within(screen.getByRole("group", { name: "Blur style" }));
-      expect(styles.getByRole("button", { name: "Pixelate" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-      const strengths = within(screen.getByRole("group", { name: "Strength" }));
-      expect(strengths.getByRole("button", { name: "Strong" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
+      const styles = within(screen.getByRole("radiogroup", { name: "Blur style" }));
+      expect(styles.getByRole("radio", { name: "Pixelate" })).toBeChecked();
+      const strengths = within(screen.getByRole("radiogroup", { name: "Strength" }));
+      expect(strengths.getByRole("radio", { name: "Strong" })).toBeChecked();
     });
 
     it("sets the strength", async () => {
       const edit = makeEdit();
       const user = await openBlur(edit);
 
-      const strengths = within(screen.getByRole("group", { name: "Strength" }));
-      await user.click(strengths.getByRole("button", { name: "Max" }));
+      const strengths = within(screen.getByRole("radiogroup", { name: "Strength" }));
+      await user.click(strengths.getByRole("radio", { name: "Max" }));
 
       expect(edit.setMaskStrength).toHaveBeenCalledWith(0.12);
     });
@@ -636,7 +637,7 @@ describe("ImageEditPanel", () => {
       renderPanel(edit);
       const user = await openSize();
 
-      await user.click(within(screen.getByRole("group", { name: "Scale" })).getByText("50%"));
+      await user.click(within(screen.getByRole("radiogroup", { name: "Scale" })).getByText("50%"));
 
       expect(edit.setScale).toHaveBeenCalledWith(0.5);
     });
@@ -651,8 +652,10 @@ describe("ImageEditPanel", () => {
       });
       expect(fit).toHaveAttribute("aria-pressed", "true");
       expect(
-        within(screen.getByRole("group", { name: "Scale" })).getByRole("button", { name: "100%" }),
-      ).toHaveAttribute("aria-pressed", "false");
+        within(screen.getByRole("radiogroup", { name: "Scale" })).getByRole("radio", {
+          name: "100%",
+        }),
+      ).not.toBeChecked();
 
       await user.click(fit);
 

@@ -33,14 +33,12 @@ export function EditorPreferenceSettings({
       >
         <div className="settings-group__checks">
           <Checkbox
-            className="dialog__field"
             label="Wrap long lines"
             checked={value.lineWrap}
             disabled={disabled}
             onChange={(lineWrap) => change({ lineWrap })}
           />
           <Checkbox
-            className="dialog__field"
             label="Show line numbers"
             checked={value.lineNumbers}
             disabled={disabled}
@@ -51,7 +49,6 @@ export function EditorPreferenceSettings({
       <SettingsGroup title="Captions" icon={iconSpellCheck2}>
         <div className="settings-dialog__row">
           <Checkbox
-            className="dialog__field"
             label="Check spelling"
             hint="Uses the browser's dictionaries. Chrome and Edge may follow their own language settings instead."
             checked={value.captionSpellcheck}
@@ -67,7 +64,6 @@ export function EditorPreferenceSettings({
           />
         </div>
         <Checkbox
-          className="dialog__field"
           label="Suggest words while typing"
           hint="Suggestions come from this folder's captions. Ctrl+Space still shows them when this is off."
           checked={value.captionSuggestions}

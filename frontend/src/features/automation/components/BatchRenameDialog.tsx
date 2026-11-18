@@ -101,8 +101,8 @@ export function BatchRenameDialog({
         />
       }
     >
-      <div className="dialog__field">
-        <div className="dialog__field-row batch-rename-dialog__row">
+      <div className="field">
+        <div className="field-row batch-rename-dialog__row">
           <Field label="Name stem">
             {(control) => (
               <TextInput
@@ -139,7 +139,7 @@ export function BatchRenameDialog({
             )}
           </Field>
         </div>
-        <p id={exampleId} className="dialog__hint">
+        <p id={exampleId} className="field__hint">
           Example: <code>{previewFirst}</code>
           {itemCount > 1 && (
             <>

@@ -118,7 +118,7 @@ export function TrimVideoDialog({
         onChange={setKeep}
       />
 
-      <div className="dialog__field">
+      <div className="field">
         <Field label="Longest length (s)">
           {(control) => (
             <TextInput
@@ -139,7 +139,7 @@ export function TrimVideoDialog({
             />
           )}
         </Field>
-        <p id={hintId} className="dialog__hint">
+        <p id={hintId} className="field__hint">
           The length as played, so a sped-up video keeps more of its footage.
         </p>
         {error && (
@@ -150,7 +150,6 @@ export function TrimVideoDialog({
       </div>
 
       <Checkbox
-        className="dialog__field"
         label="Clear the trim"
         checked={reset}
         disabled={busy}

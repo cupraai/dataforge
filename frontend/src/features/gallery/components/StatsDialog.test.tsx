@@ -598,7 +598,7 @@ describe("StatsDialog", () => {
       ],
     });
     const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
-    const bar = within(chart).getByRole("img", { name: "40 files" }).parentElement!;
+    const bar = within(chart).getByRole("img", { name: "40 files" });
 
     expect(bar).toHaveStyle({ height: "0%" });
     expect(bar).toHaveTextContent(/^0$/);
@@ -622,7 +622,7 @@ describe("StatsDialog", () => {
       ],
     });
     const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
-    const bar = within(chart).getAllByRole("img", { name: "1 file" })[0].parentElement!;
+    const bar = within(chart).getAllByRole("img", { name: "1 file" })[0];
 
     expect(bar).toHaveStyle({ height: "100%" });
     expect(bar).toHaveTextContent(/^1$/);
@@ -641,7 +641,7 @@ describe("StatsDialog", () => {
     const mix = screen.getByRole("figure", { name: /file extensions/i });
     expect(mix).toHaveAccessibleName("File extensions: PNG 50%, GIF 25%, MP4 25%");
 
-    const cells = mix.querySelectorAll(".stats-dialog__mix-cell");
+    const cells = mix.querySelectorAll(".stats-dialog__mix-segment");
     expect(cells).toHaveLength(3);
     expect(cells[0]).toHaveStyle({ flexGrow: 2 });
     expect(cells[1]).toHaveStyle({ flexGrow: 1 });
@@ -653,7 +653,7 @@ describe("StatsDialog", () => {
 
     const mix = screen.getByRole("figure", { name: /file extensions/i });
     expect(mix).toHaveAccessibleName("File extensions: PNG 100%");
-    expect(mix.querySelectorAll(".stats-dialog__mix-cell")).toHaveLength(1);
+    expect(mix.querySelectorAll(".stats-dialog__mix-segment")).toHaveLength(1);
   });
 
   it("names the extension in a mix segment's tooltip", async () => {

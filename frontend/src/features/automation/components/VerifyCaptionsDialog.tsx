@@ -78,7 +78,6 @@ export function VerifyCaptionsDialog({
       />
 
       <Checkbox
-        className="dialog__field"
         label="Preserve thinking"
         checked={preserveThinking}
         disabled={mode === "instruct" || busy}

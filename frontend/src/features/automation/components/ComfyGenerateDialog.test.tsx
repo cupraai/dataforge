@@ -148,7 +148,7 @@ describe("ComfyGenerateDialog", () => {
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     const prompt = screen.getByLabelText("Prompt");
     const caption = screen.getByRole("checkbox", { name: "Save as caption" });
-    expect(prompt.closest(".dialog__field")).toContainElement(caption);
+    expect(prompt.closest(".field")).toContainElement(caption);
   });
 
   it("says where the new files go instead of counting files it never reads", async () => {

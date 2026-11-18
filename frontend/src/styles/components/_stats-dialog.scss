@@ -214,18 +214,13 @@ $hero-font-size: 3rem;
     margin: 0;
   }
 
-  &__timeline-bar.tooltip {
+  // Stands on the column's floor; its inline height is the bucket's share.
+  &__timeline-fill {
     position: absolute;
     right: 0;
     bottom: 0;
     left: 0;
     display: block;
-  }
-
-  &__timeline-fill {
-    position: relative;
-    display: block;
-    height: 100%;
     min-height: 0.1875rem;
     border: 1px solid var(--accent-border);
     border-bottom: 0;
@@ -406,38 +401,31 @@ $hero-font-size: 3rem;
       gap: 0.125rem;
     }
 
-    // Two classes so this beats `.tooltip` from `_tooltip.scss`, which loads later and would shrink the slice to an unhoverable inline box.
-    &-cell.tooltip {
+    // Each segment sits alone in its tooltip's trigger span, so the ends are found by span.
+    &-track > :first-child > .stats-dialog__mix-segment {
+      border-radius: var(--radius-pill) 2px 2px var(--radius-pill);
+    }
+
+    &-track > :last-child > .stats-dialog__mix-segment {
+      border-radius: 2px var(--radius-pill) var(--radius-pill) 2px;
+    }
+
+    &-track > :only-child > .stats-dialog__mix-segment {
+      border-radius: var(--radius-pill);
+    }
+
+    // Grows by its inline flex-grow, the extension's share of the files.
+    &-segment {
+      display: block;
       flex-basis: 0;
       flex-shrink: 1;
       min-width: 0.1875rem;
       height: 100%;
-      max-width: none;
-      display: flex;
-      align-items: stretch;
+      background: var(--chart-other);
 
       &:hover {
         z-index: 1;
       }
-
-      &:first-child .stats-dialog__mix-segment {
-        border-radius: var(--radius-pill) 2px 2px var(--radius-pill);
-      }
-
-      &:last-child .stats-dialog__mix-segment {
-        border-radius: 2px var(--radius-pill) var(--radius-pill) 2px;
-      }
-
-      &:only-child .stats-dialog__mix-segment {
-        border-radius: var(--radius-pill);
-      }
-    }
-
-    &-segment {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: var(--chart-other);
 
       &[data-extension=".png"] {
         background: var(--accent);

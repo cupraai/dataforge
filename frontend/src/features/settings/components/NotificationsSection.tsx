@@ -62,7 +62,6 @@ export function NotificationsSection({
   return (
     <SettingsGroup title="Desktop" icon={iconBell}>
       <Checkbox
-        className="dialog__field"
         label="Show desktop notifications"
         hint={desktopHint(permission, desktop)}
         checked={desktop}

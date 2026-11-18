@@ -61,7 +61,6 @@ export function AutoAdjustDialog({
       }
     >
       <Checkbox
-        className="dialog__field"
         label="Replace earlier adjustments"
         checked={replace}
         disabled={busy || reset}
@@ -69,7 +68,6 @@ export function AutoAdjustDialog({
         hint="When ticked, every adjust tool goes back to zero first, discarding changes made by hand. When unticked, those changes stay and the wand's result is added on top."
       />
       <Checkbox
-        className="dialog__field"
         label="Reset all color adjustments to zero"
         checked={reset}
         disabled={busy}

@@ -118,11 +118,11 @@ export function VersionsDialog({ project, onRestore, onClose }: VersionsDialogPr
           </span>
         </div>
         {versions.isPending ? (
-          <p className="dialog__hint">Loading versions...</p>
+          <p className="field__hint">Loading versions...</p>
         ) : versions.isError ? (
           <p className="dialog__error">{formatApiError(versions.error)}</p>
         ) : rows.length === 0 ? (
-          <p className="dialog__hint">
+          <p className="field__hint">
             No versions yet. Name one above, or keep editing for the first checkpoint.
           </p>
         ) : (

@@ -94,7 +94,6 @@ export function TaggingSection({
       }
     >
       <Checkbox
-        className="dialog__field"
         label="Tag favorite folders"
         hint="The first run downloads the model, about 500 MB. Turned off, tags are hidden everywhere and kept for later."
         checked={enabled}

@@ -69,7 +69,7 @@ function ModelCard({ model, inspected, onOpen }: ModelCardProps) {
   );
 
   return (
-    <Tooltip content={tooltip} className="model-grid__cell">
+    <Tooltip content={tooltip}>
       <button
         data-inspected={inspected || undefined}
         type="button"
