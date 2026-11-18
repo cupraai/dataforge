@@ -43,6 +43,19 @@
       opacity: 1;
       visibility: visible;
     }
+
+    // A second row docks with the title: the list's column headings stay over the rows. The
+    // first row's actions flex from zero, so wrapping never pushes them onto a line of their own.
+    &--with-below {
+      flex-wrap: wrap;
+      row-gap: 0.5rem;
+      margin-bottom: 0;
+    }
+  }
+
+  &__header-below {
+    flex: 1 0 100%;
+    min-width: 0;
   }
 
   &__title {

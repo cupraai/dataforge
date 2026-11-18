@@ -407,6 +407,38 @@ describe("GalleryCard", () => {
     expect(badge?.querySelector(".card__badge-icon")).toBeInTheDocument();
   });
 
+  it("keeps a clip's length and the GIF mark on small cards, where the icon says neither", () => {
+    const { container, rerender } = render(
+      <GalleryCard
+        item={{ ...uncaptionedItem, duration: 84 }}
+        onSelect={vi.fn<(path: string) => void>()}
+        displayMode="small"
+      />,
+    );
+
+    const video = container.querySelector(".card__badge--video");
+    expect(video).not.toHaveClass("card__badge--compact");
+    expect(video).toHaveTextContent("1:24");
+
+    rerender(
+      <GalleryCard
+        item={{ ...uncaptionedItem, duration: null }}
+        onSelect={vi.fn<(path: string) => void>()}
+        displayMode="small"
+      />,
+    );
+    expect(container.querySelector(".card__badge--video")).toHaveClass("card__badge--compact");
+
+    rerender(
+      <GalleryCard
+        item={{ ...captionedItem, name: "loop.gif", media_type: "gif" }}
+        onSelect={vi.fn<(path: string) => void>()}
+        displayMode="small"
+      />,
+    );
+    expect(container.querySelector(".card__badge--gif")).toHaveTextContent("GIF");
+  });
+
   describe("hover preview", () => {
     let play: Mock<() => Promise<void>>;
     let pause: Mock<() => void>;

@@ -2298,7 +2298,9 @@ $lane-inset: 4px;
   }
 
   &__toggle--mute[aria-pressed="true"],
-  &__toggle--mute[aria-pressed="true"]:hover:not(:disabled) {
+  &__toggle--mute[aria-pressed="true"]:hover:not(:disabled),
+  &__toggle--hide[aria-pressed="true"],
+  &__toggle--hide[aria-pressed="true"]:hover:not(:disabled) {
     color: var(--danger);
     @include fade-bg(var(--danger-soft));
   }
@@ -2307,16 +2309,6 @@ $lane-inset: 4px;
   &__toggle--solo[aria-pressed="true"]:hover:not(:disabled) {
     color: var(--warning);
     @include fade-bg(var(--warning-border));
-  }
-
-  // Sync lock is on by default, so it stays quiet when on and speaks up once turned off.
-  &__toggle--sync[aria-pressed="true"] {
-    color: var(--text-subtle);
-    @include fade-bg(transparent);
-  }
-
-  &__toggle--sync[aria-pressed="false"] {
-    color: var(--warning);
   }
 
   &__lanes {

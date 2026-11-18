@@ -5,7 +5,6 @@ import { groupIntoRows, rowCacheKey } from "@/features/gallery/lib/groupIntoRows
 import { useGalleryVisiblePrefetch } from "@/features/gallery/lib/visiblePrefetch";
 import { useGalleryBackToTop } from "@/features/gallery/hooks/useGalleryBackToTop";
 import { useGalleryColumns } from "@/features/gallery/hooks/useGalleryColumns";
-import { useGalleryListColumns } from "@/features/gallery/hooks/useGalleryListColumns";
 import { useGalleryScrollMargin } from "@/features/gallery/hooks/useGalleryScrollMargin";
 import { useInspectedCardAnchor } from "@/features/gallery/hooks/useInspectedCardAnchor";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
@@ -60,9 +59,11 @@ export function GalleryUniformGrid({
   const layout = galleryLayoutFor(displayMode);
   const { columnCount } = useGalleryColumns(listRef, displayMode);
   const rowCount = Math.ceil(items.length / columnCount);
+  // The mode too: list mode adds column headings to the section header above the list.
   const { scrollElement, scrollMargin } = useGalleryScrollMargin(listRef, [
     items.length,
     columnCount,
+    displayMode,
   ]);
 
   const rows = useMemo(() => groupIntoRows(items, columnCount), [columnCount, items]);
@@ -102,15 +103,10 @@ export function GalleryUniformGrid({
   const rowAt = useCallback((index: number) => rows[index] ?? [], [rows]);
   useGalleryVisiblePrefetch(scrollElement, rowAt, rows.length, virtualizer);
   const { visible: backToTopVisible, scrollToTop } = useGalleryBackToTop(scrollElement);
-  const listColumns = useGalleryListColumns(listRef, items, displayMode === "list");
 
   return (
     <>
-      <div
-        ref={listRef}
-        className={`gallery-virtual gallery-virtual--${displayMode}`}
-        style={listColumns}
-      >
+      <div ref={listRef} className={`gallery-virtual gallery-virtual--${displayMode}`}>
         <div
           className="gallery-virtual__inner"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

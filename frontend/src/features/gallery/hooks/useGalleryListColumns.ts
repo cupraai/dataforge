@@ -1,5 +1,11 @@
-import { useLayoutEffect, useMemo, useState, type CSSProperties, type RefObject } from "react";
-import { rowMarkers, rowMetaCells, type RowMetaColumn } from "@/features/gallery/lib/listRowCells";
+import { useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  ROW_META_COLUMN_LABELS,
+  ROW_STATUS_LABEL,
+  rowMarkers,
+  rowMetaCells,
+  type RowMetaColumn,
+} from "@/features/gallery/lib/listRowCells";
 import type { GalleryItem } from "@/shared/types";
 
 type TextColumn = RowMetaColumn;
@@ -68,6 +74,8 @@ function probeElement(className: string): HTMLSpanElement {
   return span;
 }
 
+const HEADER_CELL_CLASS = "gallery-list-header__cell";
+
 function probeTextCell(className: string, text: string): HTMLSpanElement {
   const span = probeElement(className);
   // Real cells truncate; a probe takes the width its content wants. Icons keep their class.
@@ -90,6 +98,12 @@ function measureColumns(host: HTMLElement, content: ListColumnContent): ColumnWi
       probe.appendChild(element);
       cells.push({ column, element });
     }
+    // A heading widens only a column that shows something; an empty one stays collapsed.
+    if (content.values[column].some(Boolean)) {
+      const heading = probeTextCell(HEADER_CELL_CLASS, ROW_META_COLUMN_LABELS[column]);
+      probe.appendChild(heading);
+      cells.push({ column, element: heading });
+    }
   }
 
   if (content.markerCount > 0) {
@@ -109,6 +123,9 @@ function measureColumns(host: HTMLElement, content: ListColumnContent): ColumnWi
   status.appendChild(probeElement("gallery-list-row__status-icon"));
   probe.appendChild(status);
   cells.push({ column: "status", element: status });
+  const statusHeading = probeTextCell(HEADER_CELL_CLASS, ROW_STATUS_LABEL);
+  probe.appendChild(statusHeading);
+  cells.push({ column: "status", element: statusHeading });
 
   host.appendChild(probe);
   const widths = Object.fromEntries(WIDTH_COLUMNS.map((column) => [column, 0])) as ColumnWidths;
@@ -129,8 +146,9 @@ function toStyle(widths: ColumnWidths): CSSProperties {
   );
 }
 
+/** `host` holds the measuring probe; it mounts late, so it is a value rather than a ref. */
 export function useGalleryListColumns(
-  hostRef: RefObject<HTMLElement | null>,
+  host: HTMLElement | null,
   items: GalleryItem[],
   enabled: boolean,
 ): CSSProperties | undefined {
@@ -138,14 +156,11 @@ export function useGalleryListColumns(
   const [style, setStyle] = useState<CSSProperties>();
 
   useLayoutEffect(() => {
-    const host = hostRef.current;
-    if (!content || !host) {
-      setStyle(undefined);
-      return;
-    }
-
+    if (!content || !host) return;
+    // oxlint-disable-next-line react-hooks/set-state-in-effect -- widths come from a DOM probe
     setStyle(toStyle(measureColumns(host, content)));
-  }, [content, hostRef]);
+  }, [content, host]);
 
-  return style;
+  // Off, the last measurement stays in state but is not handed out.
+  return content && host ? style : undefined;
 }

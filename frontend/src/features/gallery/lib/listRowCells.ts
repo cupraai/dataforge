@@ -36,6 +36,17 @@ export interface RowMetaCell {
 
 export type RowMetaColumn = "megapixels" | "aspect-ratio" | "duration" | "size" | "modified";
 
+/** In row order. Short, because a heading wider than its values widens the column. */
+export const ROW_META_COLUMN_LABELS: Record<RowMetaColumn, string> = {
+  megapixels: "Pixels",
+  "aspect-ratio": "Ratio",
+  duration: "Length",
+  size: "Size",
+  modified: "Modified",
+};
+
+export const ROW_STATUS_LABEL = "Caption";
+
 export function rowMarkers(item: GalleryItem): RowMarker[] {
   const markers: RowMarker[] = [];
 

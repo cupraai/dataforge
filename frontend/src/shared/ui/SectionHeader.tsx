@@ -15,6 +15,8 @@ interface SectionHeaderProps {
   loading?: boolean;
   sticky?: boolean;
   actions?: ReactNode;
+  /** A full-width row under the title, docking with it: column headings over a list. */
+  below?: ReactNode;
 }
 
 export function SectionHeader({
@@ -28,6 +30,7 @@ export function SectionHeader({
   loading = false,
   sticky = false,
   actions,
+  below,
 }: SectionHeaderProps) {
   const showTotal = total !== undefined && (alwaysShowTotal || total !== count);
   const stickySentinelRef = useRef<HTMLDivElement>(null);
@@ -44,6 +47,7 @@ export function SectionHeader({
           `${section}-section__header`,
           sticky && `${section}-section__header--sticky`,
           floating && `${section}-section__header--floating`,
+          below != null && `${section}-section__header--with-below`,
         )}
       >
         <h2 className={`${section}-section__title`}>
@@ -69,6 +73,7 @@ export function SectionHeader({
           </span>
         )}
         {actions}
+        {below != null && <div className={`${section}-section__header-below`}>{below}</div>}
       </div>
     </>
   );

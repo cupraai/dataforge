@@ -1,14 +1,16 @@
 import { Button } from "@/shared/ui/Button";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FolderErrorState } from "@/features/folder/components/FolderErrorState";
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
 import { Gallery } from "@/features/gallery/components/Gallery";
 import { GalleryDisplayMenu } from "@/features/gallery/components/GalleryDisplayMenu";
+import { GalleryListHeader } from "@/features/gallery/components/GalleryListHeader";
 import { ModelGrid } from "@/features/gallery/components/ModelGrid";
 import { GalleryFileDropOverlay } from "@/features/gallery/components/GalleryFileDropOverlay";
 import { GallerySelectionControls } from "@/features/gallery/components/GallerySelectionControls";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
+import { useGalleryListColumns } from "@/features/gallery/hooks/useGalleryListColumns";
 import type { FilterEmptyState } from "@/features/gallery/lib/filters";
 import type { FolderError } from "@/shared/api/http";
 import { iconCheck, iconFolderOpen, iconImages, iconPencilLine, iconTrash2 } from "@/shared/icons";
@@ -86,6 +88,10 @@ export function AppFolderContent({
     () => (taggingEnabled ? savedCards : { ...savedCards, largeTags: false }),
     [savedCards, taggingEnabled],
   );
+  const showListHeader = displayMode === "list" && filteredItems.length > 0;
+  // On the section, so the headings in its sticky header and the rows below share the widths.
+  const [mediaSection, setMediaSection] = useState<HTMLElement | null>(null);
+  const listColumns = useGalleryListColumns(mediaSection, filteredItems, showListHeader);
   const folderNotFound = error?.kind === "folder-not-found";
   const globalError = error?.kind === "other" ? error : null;
   const showEmptyFolder = !error && items.length === 0 && models.length === 0;
@@ -139,7 +145,12 @@ export function AppFolderContent({
                 <ModelGrid models={models} shown={filteredModels} onOpen={onOpenGalleryItem} />
               )}
               {!folderNotFound && showMediaSection && (
-                <section className="gallery-section" aria-label="Media">
+                <section
+                  ref={setMediaSection}
+                  className="gallery-section"
+                  style={listColumns}
+                  aria-label="Media"
+                >
                   <SectionHeader
                     section="gallery"
                     icon={iconImages}
@@ -158,6 +169,11 @@ export function AppFolderContent({
                           )}
                           <GalleryDisplayMenu value={displayMode} onChange={onDisplayModeChange} />
                         </div>
+                      ) : undefined
+                    }
+                    below={
+                      showListHeader ? (
+                        <GalleryListHeader selectionMode={selectionMode} />
                       ) : undefined
                     }
                   />

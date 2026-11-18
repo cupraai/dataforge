@@ -103,6 +103,8 @@ export const GalleryCard = memo(function GalleryCard({
     onSelect(item.path);
   };
 
+  // Small cards drop word labels to icons, but keep a length or a GIF mark: the icon alone
+  // cannot say either.
   const compactBadges = displayMode === "small";
   const mediaLength = formatDurationSeconds(item.duration);
   const meta =
@@ -157,7 +159,7 @@ export const GalleryCard = memo(function GalleryCard({
                 {itemIsVideo && (
                   <CardBadge
                     icon={iconVideo}
-                    compact={compactBadges}
+                    compact={compactBadges && !mediaLength}
                     label={mediaLength || "Video"}
                     variant="video"
                     numeric={!!mediaLength}
@@ -166,19 +168,14 @@ export const GalleryCard = memo(function GalleryCard({
                 {itemIsAudio && (
                   <CardBadge
                     icon={iconAudioLines}
-                    compact={compactBadges}
+                    compact={compactBadges && !mediaLength}
                     label={mediaLength || "Audio"}
                     variant="audio"
                     numeric={!!mediaLength}
                   />
                 )}
                 {itemIsGif && (
-                  <CardBadge
-                    icon={iconFileImage}
-                    compact={compactBadges}
-                    label="GIF"
-                    variant="gif"
-                  />
+                  <CardBadge icon={iconFileImage} compact={false} label="GIF" variant="gif" />
                 )}
                 {item.has_backup && (
                   <CardBadge

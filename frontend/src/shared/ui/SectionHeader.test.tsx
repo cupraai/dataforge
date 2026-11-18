@@ -51,6 +51,24 @@ describe("SectionHeader", () => {
     );
   });
 
+  it("puts a full-width row under the title, inside the header that docks", () => {
+    const { container } = render(
+      <SectionHeader
+        section="gallery"
+        icon={iconImages}
+        title="Media"
+        count={3}
+        sticky
+        below={<span>Column headings</span>}
+      />,
+    );
+
+    const header = container.querySelector(".gallery-section__header");
+    expect(header).toHaveClass("gallery-section__header--with-below");
+    expect(header?.lastElementChild).toHaveClass("gallery-section__header-below");
+    expect(header?.lastElementChild).toHaveTextContent("Column headings");
+  });
+
   it("stays in flow when not sticky", () => {
     const { container } = render(
       <SectionHeader section="folder" icon={iconImages} title="Folders" count={2} />,

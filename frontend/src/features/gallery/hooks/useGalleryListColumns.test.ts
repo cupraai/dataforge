@@ -42,8 +42,7 @@ function item(overrides: Partial<GalleryItem>): GalleryItem {
 function renderColumns(items: GalleryItem[], enabled = true) {
   const host = document.createElement("div");
   document.body.appendChild(host);
-  const ref = { current: host };
-  const { result } = renderHook(() => useGalleryListColumns(ref, items, enabled));
+  const { result } = renderHook(() => useGalleryListColumns(host, items, enabled));
   return result.current as Record<string, string> | undefined;
 }
 
@@ -104,6 +103,16 @@ describe("useGalleryListColumns", () => {
 
     // "3.00:1" outruns "1:1".
     expect(columns?.["--gallery-list-col-aspect-ratio"]).toBe("8.5px");
+  });
+
+  it("widens a column to fit its heading, but leaves an empty column collapsed", () => {
+    const columns = renderColumns([item({ width: 1024, height: 1024, duration: null })]);
+
+    // "Ratio" outruns "1:1"; "Length" heads no values here.
+    expect(columns?.["--gallery-list-col-aspect-ratio"]).toBe("7.5px");
+    expect(columns?.["--gallery-list-col-duration"]).toBe("0px");
+    // "Caption" heads an icon.
+    expect(columns?.["--gallery-list-col-status"]).toBe("9.5px");
   });
 
   it("measures nothing outside list mode", () => {
