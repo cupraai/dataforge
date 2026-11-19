@@ -8,7 +8,8 @@
   [class*="__backdrop"]:not(.dialog-backdrop--exit),
   .jobs-dialog__panel:not(.dialog-panel--exit),
   .stats-dialog__panel:not(.dialog-panel--exit),
-  .notifications__toast:not(.notifications__toast--exiting) {
+  .notifications__toast:not(.notifications__toast--exiting),
+  .collapse:not(.collapse--exit) {
     animation: none;
   }
 
@@ -63,12 +64,13 @@
     animation: none;
   }
 
-  // Exits keep a 1ms duration so `animationend` still unmounts the jobs drawer and toasts.
+  // Exits keep a 1ms duration so `animationend` still unmounts the jobs drawer, toasts and strips.
   .dialog-panel--exit,
   .dialog-backdrop--exit,
   .jobs-dialog__panel.dialog-panel--exit,
   .stats-dialog__panel.dialog-panel--exit,
-  .notifications__toast--exiting {
+  .notifications__toast--exiting,
+  .collapse--exit {
     animation-duration: 1ms;
   }
 }

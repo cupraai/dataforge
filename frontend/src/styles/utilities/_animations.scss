@@ -4,6 +4,20 @@
   }
 }
 
+@keyframes collapse-open {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
+@keyframes collapse-close {
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
 @keyframes menu-drop-in {
   from {
     opacity: 0;

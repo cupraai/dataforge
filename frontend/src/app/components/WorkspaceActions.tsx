@@ -48,6 +48,8 @@ import {
   iconX,
 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
+import { Collapse } from "@/shared/ui/Collapse";
+import type { Job } from "@/shared/types";
 import { AutomationSystemSpecs } from "@/features/automation/components/AutomationSystemSpecs";
 import { useAutomationSpecsVisible } from "@/features/automation/hooks/useAutomationSpecsVisible";
 import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
@@ -283,96 +285,125 @@ function jobTone(job: AutomationActions["job"]) {
   return null;
 }
 
+/** Running jobs always show; a finished one only when it needs attention and was not dismissed. */
+function activityVisible(job: Job | null, dismissedJobIds: readonly string[]): job is Job {
+  if (!job) return false;
+  if (isActiveJobStatus(job.status)) return true;
+  const needsAttention = jobTone(job) !== null || failedCountFromStats(job.stats) > 0;
+  return needsAttention && !dismissedJobIds.includes(job.id);
+}
+
+function JobActivity({
+  job,
+  queued,
+  onDismiss,
+}: {
+  job: Job;
+  queued: readonly Job[];
+  onDismiss: () => void;
+}) {
+  const timeLabel = useJobTimeLabel(job);
+  const active = isActiveJobStatus(job.status);
+  const tone = jobTone(job);
+  const failedCount = active ? 0 : failedCountFromStats(job.stats);
+  const failedNote =
+    failedCount > 0
+      ? `${failedCount} ${failedCount === 1 ? "file" : "files"} failed. Open automation jobs to view them and retry.`
+      : null;
+  const error = jobErrorMessage(job);
+  const message = error ?? jobWarningMessage(job) ?? failedNote;
+
+  return (
+    <>
+      <div className="workspace-activity__row">
+        <span className="workspace-activity__job">
+          <Icon icon={jobTypeIconFor(job.job_type)} />
+          <strong>{jobTypeLabelFor(job.job_type)}</strong>
+        </span>
+        {job.workflow_run && (
+          <span className="workspace-activity__count">{workflowRunLabel(job)}</span>
+        )}
+        <JobStatusBadge job={job} />
+        {job.total > 0 && (
+          <span className="workspace-activity__count">
+            {job.processed} of {job.total} {jobUnitWord(job, job.total)}
+          </span>
+        )}
+        {!active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
+        {active && job.current_name && (
+          <span className="workspace-activity__current" title={job.current_name}>
+            {job.current_name}
+          </span>
+        )}
+        {active && (
+          <ProgressBar
+            className="workspace-activity__progress"
+            value={progressPercent(job)}
+            label="Job progress"
+            tone={tone}
+          />
+        )}
+        {active && <span className="workspace-activity__percent">{progressPercent(job)}%</span>}
+        {active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
+        {queued.length > 0 && (
+          <Tooltip content={`Then: ${queued.map(jobTypeLabel).join(", ")}`}>
+            <span className="workspace-activity__queue">
+              <Icon icon={iconListOrdered} />
+              {queued.length} queued
+            </span>
+          </Tooltip>
+        )}
+        {!active && (
+          <IconButton
+            icon={iconX}
+            label="Dismiss job status"
+            size="sm"
+            tooltip={false}
+            className="workspace-activity__dismiss"
+            onClick={onDismiss}
+          />
+        )}
+      </div>
+      {message && (
+        <p
+          className={classNames(
+            "workspace-activity__message",
+            error && "workspace-activity__message--error",
+          )}
+          role={error ? "alert" : undefined}
+        >
+          <Icon icon={error ? iconCircleAlert : iconTriangleAlert} />
+          {message}
+        </p>
+      )}
+    </>
+  );
+}
+
 /** The current job beneath the toolbar; a clean finish needs no attention, so it is hidden. */
 export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
   const { showSpecs } = useAutomationSpecsVisible();
   const [dismissedJobIds, setDismissedJobIds] = useState(readDismissedJobIds);
   const job = panel.job;
-  const timeLabel = useJobTimeLabel(job);
-  const active = Boolean(job && isActiveJobStatus(job.status));
-  const queued = panel.queuedJobs;
-  const tone = jobTone(job);
-  const failedCount = job && !active ? failedCountFromStats(job.stats) : 0;
-  const needsAttention = tone !== null || failedCount > 0;
-  const visible = job && (active || (needsAttention && !dismissedJobIds.includes(job.id)));
-  const failedNote =
-    failedCount > 0
-      ? `${failedCount} ${failedCount === 1 ? "file" : "files"} failed. Open automation jobs to view them and retry.`
-      : null;
-  const message = job ? (jobErrorMessage(job) ?? jobWarningMessage(job) ?? failedNote) : null;
+  const visible = activityVisible(job, dismissedJobIds);
+  // While the strip shrinks closed it keeps the last job it showed, which may already be gone.
+  const [shownJob, setShownJob] = useState(visible ? job : null);
+  if (visible && job !== shownJob) setShownJob(job);
 
   return (
     <>
-      {visible && job && (
-        <div className="workspace-activity" role="status">
-          <div className="workspace-activity__row">
-            <span className="workspace-activity__job">
-              <Icon icon={jobTypeIconFor(job.job_type)} />
-              <strong>{jobTypeLabelFor(job.job_type)}</strong>
-            </span>
-            {job.workflow_run && (
-              <span className="workspace-activity__count">{workflowRunLabel(job)}</span>
-            )}
-            <JobStatusBadge job={job} />
-            {job.total > 0 && (
-              <span className="workspace-activity__count">
-                {job.processed} of {job.total} {jobUnitWord(job, job.total)}
-              </span>
-            )}
-            {!active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
-            {active && job.current_name && (
-              <span className="workspace-activity__current" title={job.current_name}>
-                {job.current_name}
-              </span>
-            )}
-            {active && (
-              <ProgressBar
-                className="workspace-activity__progress"
-                value={progressPercent(job)}
-                label="Job progress"
-                tone={tone}
-              />
-            )}
-            {active && <span className="workspace-activity__percent">{progressPercent(job)}%</span>}
-            {active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
-            {queued.length > 0 && (
-              <Tooltip content={`Then: ${queued.map(jobTypeLabel).join(", ")}`}>
-                <span className="workspace-activity__queue">
-                  <Icon icon={iconListOrdered} />
-                  {queued.length} queued
-                </span>
-              </Tooltip>
-            )}
-            {!active && (
-              <IconButton
-                icon={iconX}
-                label="Dismiss job status"
-                size="sm"
-                tooltip={false}
-                className="workspace-activity__dismiss"
-                onClick={() => setDismissedJobIds(dismissJob(job.id))}
-              />
-            )}
-          </div>
-          {message && (
-            <p
-              className={classNames(
-                "workspace-activity__message",
-                jobErrorMessage(job) && "workspace-activity__message--error",
-              )}
-              role={jobErrorMessage(job) ? "alert" : undefined}
-            >
-              <Icon icon={jobErrorMessage(job) ? iconCircleAlert : iconTriangleAlert} />
-              {message}
-            </p>
-          )}
-        </div>
-      )}
-      {showSpecs && (
-        <div className="workspace-system">
-          <AutomationSystemSpecs id="workspace-system-specs" open />
-        </div>
-      )}
+      <Collapse open={visible} className="workspace-activity" role="status">
+        {shownJob && (
+          <JobActivity
+            job={shownJob}
+            queued={panel.queuedJobs}
+            onDismiss={() => setDismissedJobIds(dismissJob(shownJob.id))}
+          />
+        )}
+      </Collapse>
+      <Collapse open={showSpecs} className="workspace-system">
+        <AutomationSystemSpecs id="workspace-system-specs" open />
+      </Collapse>
     </>
   );
 }

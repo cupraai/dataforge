@@ -1,0 +1,23 @@
+// The single row animates to and from 0fr; the clip may shrink below its content and hides it,
+// padding and border included, so the content's own class needs no animation.
+.collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: collapse-open var(--duration-base) var(--ease-standard);
+
+  &__clip {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  // Content that renders nothing yet takes no space. Leaving `display: none` starts the animation,
+  // so it plays once the content arrives rather than on an empty ruled strip.
+  &:has(> .collapse__clip > .collapse__content:empty) {
+    display: none;
+  }
+
+  // Holds the collapsed frame until React unmounts the strip on `animationend`.
+  &--exit {
+    animation: collapse-close var(--duration-base) var(--ease-exit) forwards;
+  }
+}

@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
@@ -54,13 +54,15 @@ function renderActions(
     onCancelJob: vi.fn<() => void>(),
     ...overrides,
   };
-  const { unmount } = renderWithQueryClient(
+  const tree = (current: AutomationActions) => (
     <ToolbarCompactContext.Provider value={compact}>
-      <WorkspaceActions panel={panel} />
-      <WorkspaceActivity panel={panel} />
-    </ToolbarCompactContext.Provider>,
+      <WorkspaceActions panel={current} />
+      <WorkspaceActivity panel={current} />
+    </ToolbarCompactContext.Provider>
   );
-  return { panel, onRequestStart, unmount };
+  const { unmount, rerender } = renderWithQueryClient(tree(panel));
+  const update = (next: Partial<AutomationActions>) => rerender(tree({ ...panel, ...next }));
+  return { panel, onRequestStart, unmount, update };
 }
 
 describe("Workspace tools", () => {
@@ -172,7 +174,26 @@ describe("Workspace tools", () => {
     });
     expect(screen.getByRole("alert")).toHaveTextContent("Disk is full.");
     await user.click(screen.getByRole("button", { name: "Dismiss job status" }));
+    // The strip shrinks closed still showing the job, then leaves.
+    const strip = screen.getByRole("status").closest(".collapse")!;
+    expect(strip).toHaveClass("collapse--exit");
+    expect(screen.getByRole("alert")).toHaveTextContent("Disk is full.");
+    fireEvent.animationEnd(strip);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("shrinks the strip closed on the last job it showed when the job goes away", () => {
+    const { update } = renderActions({
+      job: job({ status: "running", processed: 3, total: 8 }),
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("3 of 8");
+
+    update({ job: null });
+    const strip = screen.getByRole("status").closest(".collapse")!;
+    expect(strip).toHaveClass("collapse--exit");
+    expect(screen.getByRole("status")).toHaveTextContent("3 of 8");
+    fireEvent.animationEnd(strip);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -228,6 +249,12 @@ describe("Workspace tools", () => {
     ).not.toBeInTheDocument();
     await user.keyboard("{Escape}");
     await user.click(toggle);
+    // Shrinks closed first: the strip leaves when its exit animation ends.
+    const strip = screen
+      .getByRole("region", { name: "System specifications" })
+      .closest(".collapse")!;
+    expect(strip).toHaveClass("collapse--exit");
+    fireEvent.animationEnd(strip);
     expect(screen.queryByRole("region", { name: "System specifications" })).not.toBeInTheDocument();
   });
   it("routes every available tool and matching command to the same job type", async () => {
