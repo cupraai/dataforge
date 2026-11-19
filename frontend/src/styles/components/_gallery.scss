@@ -410,6 +410,13 @@
     pointer-events: none;
   }
 
+  // A clip that plays before the preview's first frame would otherwise pop in unfaded.
+  &__video-preview--ready {
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
   // A mask, not an <img>: the thumbnail's wave is white, and the theme picks the color.
   &__waveform {
     position: absolute;

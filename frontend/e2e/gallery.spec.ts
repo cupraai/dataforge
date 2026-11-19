@@ -156,6 +156,14 @@ test("video playback fades in evenly along the preview edge", async ({ page }, t
   });
   // The ready class may land a frame after playing; pause the fade to inspect frames.
   await page.addInitScript(() => {
+    // A clip that plays before the preview's first frame lands ready on its first style, which
+    // starts no transition without `@starting-style`. Force that case instead of racing for it.
+    new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes)
+          if (node instanceof HTMLVideoElement && node.matches(".card__video-preview"))
+            node.classList.add("card__video-preview--ready");
+    }).observe(document, { childList: true, subtree: true });
     document.addEventListener("transitionrun", (event) => {
       const target = event.target;
       if (
@@ -181,6 +189,9 @@ test("video playback fades in evenly along the preview edge", async ({ page }, t
       ),
     )
     .toBe(true);
+  await expect
+    .poll(() => preview.evaluate((node: HTMLVideoElement) => node.currentTime))
+    .toBeGreaterThan(0);
   const media = (await card.locator(".card__media").boundingBox())!;
   const x = media.x + media.width / 2;
   const bottom = Math.round(media.y + media.height) - 1;
