@@ -8,7 +8,7 @@ export function ScopeNote({ scope }: { scope: ReviewScope | undefined }) {
     <span className="menu__scope">
       <Icon icon={iconLayers} />
       <span className="menu__scope-label">Scope</span>
-      {reviewScopeNote(scope)}
+      <span className="menu__scope-text">{reviewScopeNote(scope)}</span>
     </span>
   );
 }

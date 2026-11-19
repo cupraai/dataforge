@@ -263,6 +263,13 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--elevation-3);
+  // No fill mode: a tab that never runs the animation must still show the panel.
+  animation: menu-drop-in var(--duration-fast) ease;
+
+  // Kept beside the animation, like the skeleton shimmer: every dropdown panel mixes it in.
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 @mixin dropdown-menu-option {

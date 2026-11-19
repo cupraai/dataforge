@@ -12,8 +12,7 @@ describe("reviewScope", () => {
     expect(reviewScopeSuffix({ kind: "matching", fileCount: 5 })).toBe(" in 5 matching files");
     expect(reviewScopeSuffix({ kind: "selected", fileCount: 1 })).toBe(" in 1 selected file");
     expect(reviewScopeSuffix({ kind: "folder", fileCount: 9 })).toBe("");
-    expect(reviewScopeNote({ kind: "matching", fileCount: 5 })).toBe(
-      "5 files matching the search and filters",
-    );
+    expect(reviewScopeNote({ kind: "matching", fileCount: 5 })).toBe("5 matching files");
+    expect(reviewScopeNote({ kind: "selected", fileCount: 1 })).toBe("1 selected file");
   });
 });

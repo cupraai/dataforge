@@ -22,11 +22,9 @@ export function reviewScopeSuffix(scope: ReviewScope | undefined): string {
   return ` in ${scope.fileCount} ${scope.kind} ${files}`;
 }
 
-/** The Review menu's note on what its counts cover. */
+/** A toolbar menu's one-line note on what its actions cover. */
 export function reviewScopeNote(scope: ReviewScope | undefined): string {
   if (!scope || scope.kind === "folder") return "Whole folder";
   const files = scope.fileCount === 1 ? "file" : "files";
-  return scope.kind === "selected"
-    ? `${scope.fileCount} selected ${files}`
-    : `${scope.fileCount} ${files} matching the search and filters`;
+  return `${scope.fileCount} ${scope.kind} ${files}`;
 }

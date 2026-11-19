@@ -406,7 +406,7 @@ describe("App: gallery item dialog", () => {
 
     await user.click(await screen.findByRole("button", { name: /^Review 1/ }));
     const menu = await screen.findByRole("menu", { name: "Review queues" });
-    expect(within(menu).getByText("1 file matching the search and filters")).toBeInTheDocument();
+    expect(within(menu).getByText("1 matching file")).toBeInTheDocument();
     await user.click(within(menu).getByRole("menuitem", { name: /Caption issues/ }));
 
     const resolver = await screen.findByRole("dialog", {

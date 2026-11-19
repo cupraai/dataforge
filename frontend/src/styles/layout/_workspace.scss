@@ -237,8 +237,6 @@
   padding: 0.5rem;
   border-radius: var(--radius-lg);
   @include app-scrollbar;
-  // No fill mode: a tab that never runs the animation must still show the menu.
-  animation: workspace-tools-in var(--duration-fast) ease;
 
   // Each divider sits in the gap before its group, so the one starting a wrapped row falls
   // outside the clip.
@@ -300,18 +298,6 @@
     display: block;
     margin-top: 0.25rem;
     color: var(--text-muted);
-  }
-}
-
-@keyframes workspace-tools-in {
-  from {
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

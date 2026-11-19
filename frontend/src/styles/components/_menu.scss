@@ -147,7 +147,14 @@
   }
 
   &__scope-label {
+    flex-shrink: 0;
     color: var(--text-subtle);
+  }
+
+  // One line in every menu footer: a narrow menu clips the count rather than growing a row.
+  &__scope-text {
+    min-width: 0;
+    @include truncate;
   }
 
   &__separator {
