@@ -317,7 +317,17 @@ describe("VideoEditPanel", () => {
       const shapes = within(screen.getByRole("radiogroup", { name: "Aspect" }))
         .getAllByRole("radio")
         .map(optionText);
-      expect(shapes).toEqual(["Free", "1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16"]);
+      expect(shapes).toEqual([
+        "Free",
+        "Original",
+        "1:1",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "16:9",
+        "9:16",
+      ]);
       expect(screen.queryByLabelText("X")).not.toBeInTheDocument();
     });
 

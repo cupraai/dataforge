@@ -28,11 +28,15 @@ export interface Size {
 export interface CropAspect {
   id: string;
   label: string;
-  ratio: number | null;
+  /** Fixed width/height, `"source"` for the media's own shape, `null` for no lock. */
+  ratio: number | "source" | null;
 }
+
+export const ORIGINAL_ASPECT_ID = "original";
 
 export const CROP_ASPECTS: readonly CropAspect[] = [
   { id: "free", label: "Free", ratio: null },
+  { id: ORIGINAL_ASPECT_ID, label: "Original", ratio: "source" },
   { id: "1:1", label: "1:1", ratio: 1 },
   { id: "4:3", label: "4:3", ratio: 4 / 3 },
   { id: "3:4", label: "3:4", ratio: 3 / 4 },
@@ -154,6 +158,14 @@ export function resizeCrop(
   return clampCrop({ x, y, width, height }, min);
 }
 
+/** The width/height lock for an aspect id, or null when it locks nothing or the size is unknown. */
+export function cropAspectRatio(aspectId: string, source: Size): number | null {
+  const ratio = CROP_ASPECTS.find((aspect) => aspect.id === aspectId)?.ratio ?? null;
+  if (ratio !== "source") return ratio;
+  const own = source.width / source.height;
+  return Number.isFinite(own) && own > 0 ? own : null;
+}
+
 /** Restores the aspect lock from a stored spec so the first drag cannot break the ratio. */
 export function aspectIdForCrop(crop: CropRect, source: Size): string {
   const width = source.width * crop.width;
@@ -161,10 +173,14 @@ export function aspectIdForCrop(crop: CropRect, source: Size): string {
   if (isIdentityCrop(crop) || !(width > 0) || !(height > 0)) return "free";
 
   const ratio = width / height;
+  const near = (candidate: number | null) =>
+    candidate !== null && Math.abs(candidate - ratio) <= ASPECT_TOLERANCE * ratio;
+  // Named presets win, so a 16:9 crop of a 16:9 source still reads as 16:9.
   const match = CROP_ASPECTS.find(
-    (aspect) => aspect.ratio !== null && Math.abs(aspect.ratio - ratio) <= ASPECT_TOLERANCE * ratio,
+    (aspect) => typeof aspect.ratio === "number" && near(aspect.ratio),
   );
-  return match?.id ?? "free";
+  if (match) return match.id;
+  return near(cropAspectRatio(ORIGINAL_ASPECT_ID, source)) ? ORIGINAL_ASPECT_ID : "free";
 }
 
 export function cropForAspect(ratio: number): CropRect {

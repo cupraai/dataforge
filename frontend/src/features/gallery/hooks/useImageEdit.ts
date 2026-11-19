@@ -8,7 +8,7 @@ import {
 import {
   aspectIdForCrop,
   cropForAspect,
-  CROP_ASPECTS,
+  cropAspectRatio,
   type CropRect,
   type Orientation,
 } from "@/features/gallery/lib/crop";
@@ -201,7 +201,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
       setAspectId(nextAspectId);
 
       // Free only releases the lock; keep the rectangle the user already shaped.
-      const ratio = CROP_ASPECTS.find((aspect) => aspect.id === nextAspectId)?.ratio ?? null;
+      const ratio = cropAspectRatio(nextAspectId, sourceRef.current);
       if (ratio === null) return;
 
       setCropActive(true);
@@ -411,7 +411,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     cropActive,
     ...maskControls,
     aspectId,
-    aspectRatio: CROP_ASPECTS.find((aspect) => aspect.id === aspectId)?.ratio ?? null,
+    aspectRatio: cropAspectRatio(aspectId, { width: sourceWidth, height: sourceHeight }),
     orientation: orientationOf(draft),
     outputWidth: output.width,
     outputHeight: output.height,

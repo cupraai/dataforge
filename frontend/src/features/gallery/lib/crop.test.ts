@@ -6,6 +6,7 @@ import {
   aspectIdForCrop,
   clampCrop,
   containedBox,
+  cropAspectRatio,
   cropForAspect,
   moveCrop,
   resizeCrop,
@@ -175,6 +176,18 @@ describe("crop geometry", () => {
       expect(aspectIdForCrop(crop, HD)).toBe(expected);
     });
 
+    it("names a crop in the source's own shape as original", () => {
+      // 4:5 is not a preset, so only Original can claim it.
+      const portrait = { width: 1080, height: 1350 };
+      expect(aspectIdForCrop({ x: 0.1, y: 0.1, width: 0.5, height: 0.5 }, portrait)).toBe(
+        "original",
+      );
+    });
+
+    it("prefers a named preset when the source shape is also on the list", () => {
+      expect(aspectIdForCrop({ x: 0.1, y: 0.1, width: 0.5, height: 0.5 }, HD)).toBe("16:9");
+    });
+
     it("reads a full frame as free rather than as its own aspect", () => {
       // 1920x1080 is 16:9; calling that a lock would constrain handles the user never asked for.
       expect(aspectIdForCrop(IDENTITY_CROP, HD)).toBe("free");
@@ -299,5 +312,20 @@ describe("readoutTransform", () => {
     expect(readoutTransform({ rotate: 0, mirrorH: false, mirrorV: true }, 100, 50)).toBe(
       "scaleX(1) scaleY(-1) rotate(0deg) translate(-50px, -25px)",
     );
+  });
+
+  describe("cropAspectRatio", () => {
+    it("locks original to the source's width over height", () => {
+      expect(cropAspectRatio("original", HD)).toBeCloseTo(16 / 9);
+    });
+
+    it("locks nothing while the source has no size yet", () => {
+      expect(cropAspectRatio("original", ZERO_SIZE)).toBeNull();
+    });
+
+    it("passes fixed presets and free through", () => {
+      expect(cropAspectRatio("3:2", HD)).toBeCloseTo(3 / 2);
+      expect(cropAspectRatio("free", HD)).toBeNull();
+    });
   });
 });
