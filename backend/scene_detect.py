@@ -1,16 +1,4 @@
-"""Find hard cuts in a stream of small frames.
-
-A frame's score is how far its colors moved from the previous frame's (mean absolute difference
-of hue, saturation and value). A cut is a score that is both large and far above its neighbors'.
-Comparing with the neighbors is what keeps a fast pan, which moves every frame a lot, from
-reading as a string of cuts; ffmpeg's own scene score has no such reference and misses a cut out
-of a pan while it fires on one.
-
-A flash (a few bright frames, or a quick cut away and back) moves the score twice. Both edges are
-dropped when the picture after it matches the one before.
-
-Dissolves are not cuts: their frames change a little at a time, so none stands out.
-"""
+"""Hard cuts: a score far above its neighbours', so a fast pan does not read as cuts."""
 
 from __future__ import annotations
 
@@ -22,29 +10,28 @@ import numpy as np
 
 from schemas import SceneSensitivity
 
-#: Frames are compared at this size: colors and layout survive, noise and grain do not.
+#: Colors and layout survive; noise and grain do not.
 ANALYSIS_WIDTH = 64
 ANALYSIS_HEIGHT = 36
 ANALYSIS_FRAME_BYTES = ANALYSIS_WIDTH * ANALYSIS_HEIGHT * 3
 
-#: Scores this many frames either side are the neighbors a cut must stand above.
+#: The neighbors a cut must stand above.
 NEIGHBOR_FRAMES = 2
 
-#: A picture that comes back within this long was a flash, not a cut.
+#: A picture back within this long was a flash.
 FLASH_SECONDS = 0.25
 FLASH_RETURN_SHARE = 0.5
 
 
 @dataclass(frozen=True)
 class CutThreshold:
-    #: How many times the neighbors' mean score a cut must reach.
+    #: Times the neighbors' mean score.
     ratio: float
-    #: The score a cut must reach whatever its neighbors do, on the 0..255 scale.
+    #: The score a cut must reach regardless of its neighbors, on 0..255.
     score: float
 
 
-#: Measured on footage with known cuts, pans, a dissolve and a flash: a hard cut scores about 50
-#: at 7 to 35 times its neighbors, a fast pan about 12 at once its neighbors.
+#: A hard cut scores ~50 at 7-35x its neighbours; a fast pan ~12 at 1x.
 CUT_THRESHOLDS: dict[SceneSensitivity, CutThreshold] = {
     "low": CutThreshold(ratio=5.0, score=30.0),
     "medium": CutThreshold(ratio=3.0, score=20.0),
@@ -53,7 +40,6 @@ CUT_THRESHOLDS: dict[SceneSensitivity, CutThreshold] = {
 
 
 def frame_features(bgr: bytes) -> np.ndarray:
-    """One ``bgr24`` analysis frame as HSV, ready for :func:`frame_distance`."""
     pixels = np.frombuffer(bgr, np.uint8).reshape(ANALYSIS_HEIGHT, ANALYSIS_WIDTH, 3)
     return cv2.cvtColor(pixels, cv2.COLOR_BGR2HSV).astype(np.float32)
 
@@ -63,13 +49,12 @@ def frame_distance(a: np.ndarray, b: np.ndarray) -> float:
 
 
 class CutDetector:
-    """Feed frames in order with :meth:`push`, then :meth:`finish` for the index of the first
-    frame of every new scene. Holds only the frames a decision still needs."""
+    """Holds only the frames a decision still needs."""
 
     def __init__(self, sensitivity: SceneSensitivity, frame_rate: float) -> None:
         self._threshold = CUT_THRESHOLDS[sensitivity]
         self._flash = max(1, round(FLASH_SECONDS * frame_rate))
-        # A decision on frame i waits for the frames after it that the checks read.
+        # Waits for the frames the checks read.
         self._lookahead = max(NEIGHBOR_FRAMES, self._flash)
         self._frames: deque[tuple[int, np.ndarray]] = deque(
             maxlen=self._flash + self._lookahead + 2
@@ -106,7 +91,7 @@ class CutDetector:
         if score < self._threshold.score:
             return False
 
-        # Frame 0 has no score of its own, so it is never a neighbor.
+        # Frame 0 is never a neighbor.
         neighbors = [
             self._scores[other]
             for other in range(index - NEIGHBOR_FRAMES, index + NEIGHBOR_FRAMES + 1)
@@ -121,14 +106,14 @@ class CutDetector:
     def _is_flash_edge(self, index: int) -> bool:
         before = self._frame(index - 1)
         after = self._frame(index)
-        # "Comes back" allows for motion meanwhile: closer than half the jump the edge made.
+        # Closer than half the jump the edge made.
         limit = max(self._threshold.score, self._scores[index] * FLASH_RETURN_SHARE)
-        # Into a flash: the picture from before comes back soon after.
+        # Into a flash: the earlier picture comes back soon after.
         for later in range(index + 1, index + self._flash + 1):
             frame = self._frame(later)
             if before is not None and frame is not None and frame_distance(before, frame) < limit:
                 return True
-        # Out of a flash: this picture was already there just before it.
+        # Out of a flash: this picture was there just before.
         for earlier in range(index - self._flash - 1, index - 1):
             frame = self._frame(earlier)
             if after is not None and frame is not None and frame_distance(frame, after) < limit:

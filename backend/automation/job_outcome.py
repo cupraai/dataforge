@@ -1,5 +1,3 @@
-"""Job severity and outcome prose, derived from the stats the workers recorded."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -10,7 +8,7 @@ from schemas import JobResponse, NotificationVariant
 
 TERMINAL_STATUSES: frozenset[str] = frozenset({"completed", "failed", "cancelled", "interrupted"})
 
-#: Types whose only completed outcome is success; nothing they count reads as a warning.
+#: Nothing these types count reads as a warning.
 _NEVER_WARN: frozenset[str] = frozenset(
     {
         "strip_metadata",
@@ -36,7 +34,7 @@ def _count(stats: dict[str, int], *keys: str) -> int:
     return sum(int(stats.get(key) or 0) for key in keys)
 
 
-#: The stat keys that demote a completed job of this type to a failure.
+#: Stat keys that demote a completed job to a failure.
 _FAILURE_KEYS: dict[str, tuple[str, ...]] = {
     "verify_captions": ("api_error", "parse_error", "read_error", "frame_error"),
     "auto_caption": ("api_error", "read_error", "frame_error"),
@@ -44,7 +42,6 @@ _FAILURE_KEYS: dict[str, tuple[str, ...]] = {
 
 
 def effective_status(job_type: str, status: str, stats: dict[str, int]) -> str:
-    """The status once stats are taken into account: errors demote a completed job to failed."""
     if status != "completed":
         return status
 
@@ -102,12 +99,12 @@ _WARNING_RULES: dict[str, tuple[WarningRule, ...]] = {
 }
 
 
-#: Per-file outcomes the jobs drawer counts as failed files, as ``failedCountFromStats`` does.
+#: As ``failedCountFromStats`` counts them.
 _FAILED_FILE_KEYS = frozenset({"busy", "too_short"})
 
 
 def finished_cleanly(job_type: str, status: str, stats: dict[str, int]) -> bool:
-    """Completed with no failed file: what lets the next job queued for the folder start."""
+    """What lets the next queued job for the folder start."""
     if effective_status(job_type, status, stats) != "completed":
         return False
     warnings = {key for key, _ in _WARNING_RULES.get(job_type, ())}
@@ -119,7 +116,7 @@ def finished_cleanly(job_type: str, status: str, stats: dict[str, int]) -> bool:
 
 
 def warning_message(job_type: str, status: str, stats: dict[str, int]) -> str | None:
-    """The job's warning prose, or ``None`` when it finished cleanly."""
+    """``None`` when the job finished cleanly."""
     if job_type in _NEVER_WARN or effective_status(job_type, status, stats) != "completed":
         return None
 
@@ -129,7 +126,7 @@ def warning_message(job_type: str, status: str, stats: dict[str, int]) -> str | 
 
 
 def completion_notification(snapshot: dict[str, object]) -> tuple[NotificationVariant, str] | None:
-    """The toast a finished job earns, or ``None`` while it is still running."""
+    """``None`` while the job is still running."""
     status = str(snapshot.get("status") or "")
     if status not in TERMINAL_STATUSES:
         return None
@@ -159,7 +156,7 @@ def completion_notification(snapshot: dict[str, object]) -> tuple[NotificationVa
 
 
 def job_response(snapshot: dict[str, object]) -> JobResponse:
-    """The only place the derived outcome fields are filled in, so they cannot drift."""
+    """The only place the derived outcome fields are filled in."""
     job_type = str(snapshot["job_type"])
     status = str(snapshot.get("status") or "")
     raw_stats = snapshot.get("stats")

@@ -41,8 +41,7 @@ const PAINT_GESTURES: readonly StageGesture[] = [
   { gesture: "Middle-drag", does: "Pan" },
 ];
 
-/** Progress first, then a failure, a result waiting for a decision, the reason Generate is
- * off, and otherwise the next step of the request. */
+/** Progress, then failure, pending result, why Generate is off, else the next step. */
 function fillStatus(fill: ImageFillControls): FillStatus {
   const progress = PROGRESS_LABELS[fill.progress];
   if (progress) return { icon: iconLoader2, tone: "busy", message: progress };

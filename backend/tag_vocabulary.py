@@ -1,14 +1,5 @@
-"""The terms the background tagger looks for by default.
-
-Users add their own in ``backend/data/tag_vocabulary.txt``, which ``tagger.load_vocabulary``
-appends to these. Concrete, visible things work best: the detector finds objects, not moods
-or styles, and filters nothing on its own. A changed list applies to files tagged from then
-on; Re-tag everything in Settings brings older tags up to it.
-
-A superset of the 80 COCO classes the model ships with, plus the scenery and people that the
-official object-only lists (LVIS, Objects365, Open Images) lack; measured on landscapes, those
-found almost nothing.
-"""
+"""The tagger's default terms; users append theirs in ``backend/data/tag_vocabulary.txt``.
+Concrete, visible things work best: the detector finds objects, not moods or styles."""
 
 DEFAULT_TAG_TERMS: tuple[str, ...] = (
     # People

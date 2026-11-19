@@ -105,7 +105,7 @@ class DeleteMediaWithSidecarsTests(unittest.TestCase):
             self.assertIn("Failed to delete sunset.png", str(ctx.exception))
 
     def test_a_sidecar_that_cannot_be_deleted_is_reported_as_retained(self) -> None:
-        """The audit's F14: the response used to say nothing while the caption stayed."""
+        """The response must say so when the caption stays behind."""
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
             caption = write_txt_caption(media, "caption")

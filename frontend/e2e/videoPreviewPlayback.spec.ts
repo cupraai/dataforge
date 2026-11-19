@@ -11,9 +11,7 @@ const python = path.join(
   ".venv",
   process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
 );
-// Tuned for a local PC with hardware decode. A seek to the in point decodes 240 frames: the
-// single-player seek loop measured ~220 ms per lap, the handoff one frame with or without
-// overlays, and preparing the standby ~220 ms, well inside one SPAN.
+// Tuned for a local PC with hardware decode; seeks and handoffs measured well inside one SPAN.
 const RATE = 60;
 const IN_POINT = 4;
 const SPAN = 1;
@@ -27,11 +25,9 @@ interface Picture {
   slot: number;
 }
 
-// Hosted runners hand off in 50-117 ms where a local GPU stays within two frames; the timing
-// cannot be asserted there.
+// Hosted runners hand off in 50-117 ms, so timing is not asserted there.
 test.skip(!!process.env.CI, "Loop timing is unreliable on hosted CI runners");
-// Headless Chromium composites on SwiftShader, which skips whole frames after about one lap in
-// five; the GPU backend measures the handoff instead of the CPU rasterizer.
+// SwiftShader skips frames, so the GPU backend measures the handoff.
 test.use({ launchOptions: { args: ["--use-angle=default"] } });
 
 for (const overlays of [false, true]) {
@@ -154,8 +150,7 @@ for (const overlays of [false, true]) {
         const style = getComputedStyle(video);
         return style.visibility !== "hidden" && style.opacity !== "0";
       };
-      // A frame presented while its player is hidden appears when the loop reveals that player,
-      // which may be after the frame's own callback: count it from the next frame after the flip.
+      // A frame shown while its player was hidden counts from the next frame after the flip.
       let showing = videos.findIndex(visible);
       videos.forEach((video, slot) => {
         new MutationObserver(() => {

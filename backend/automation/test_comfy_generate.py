@@ -17,7 +17,7 @@ from automation.comfy_generate import run_comfy_generate_job, validate_comfy_gen
 from constants import STAGING_DIR_NAME
 from testing_fixtures import COMFY_TEST_URL, write_media
 
-#: Untitled sampler seed and a titled prompt: the shape of a plain text-to-image export.
+#: The shape of a plain text-to-image export.
 GENERATE_WORKFLOW = {
     "3": {
         "class_type": "KSampler",
@@ -36,7 +36,7 @@ GENERATE_WORKFLOW = {
     "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["3", 0]}},
 }
 
-#: No sampler and no prompt node, like the shipped solid-color example.
+#: Like the shipped solid-color example.
 PLAIN_WORKFLOW = {
     "1": {"class_type": "EmptyImage", "inputs": {"width": 8, "height": 8, "color": 0}},
     "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["1", 0]}},
@@ -55,8 +55,6 @@ def png_bytes(colour: str = "blue") -> bytes:
 
 
 class Workspace:
-    """An empty dataset folder plus the presets the job can find."""
-
     def __init__(self) -> None:
         self._temp = tempfile.TemporaryDirectory()
         root = Path(self._temp.name)
@@ -94,7 +92,6 @@ def comfy_handler(
     fail_on: set[str] | None = None,
     submitted: list[dict] | None = None,
 ):
-    """A ComfyUI that writes ``files_per_run`` images from node 9 for every prompt."""
     failing = fail_on or set()
     state = {"count": 0}
 
@@ -145,8 +142,7 @@ def comfy_handler(
 
 
 def run_with(handler, folder: Path, *, preset: str = "txt2img", **kwargs: object) -> dict:
-    """Run the job against a mocked ComfyUI."""
-    # Bound before the patch: looking up `httpx.Client` inside the factory would recurse.
+    # Bound before the patch, or the factory would recurse.
     real_client = httpx.Client
 
     def make_client(
@@ -231,7 +227,7 @@ class RunJobTests(unittest.TestCase):
             self.assertEqual(workspace.names(), ["lighthouse_0001.png"])
 
     def test_numbering_continues_past_every_file_the_prefix_used(self) -> None:
-        """A leftover caption would otherwise pair with pixels it was never written for."""
+        """A leftover caption would pair with pixels it was never written for."""
         with Workspace() as workspace:
             (workspace.folder / "txt2img_0002.png").write_bytes(png_bytes("red"))
             (workspace.folder / "TXT2IMG_0005.txt").write_text("orphan", encoding="utf-8")
@@ -251,7 +247,7 @@ class RunJobTests(unittest.TestCase):
             temp = workspace.folder / "result.tmp"
             temp.write_bytes(png_bytes())
 
-            # As if another writer took the name between the check and the publish.
+            # Another writer takes the name between the check and the publish.
             with patch.object(comfy_generate, "_name_is_free", return_value=True):
                 published = comfy_generate._publish(
                     temp, workspace.folder, "txt2img", ".png", first=1
@@ -266,7 +262,7 @@ class RunJobTests(unittest.TestCase):
             result = run_with(comfy_handler(files_per_run=2), workspace.folder, count=2)
 
             self.assertEqual(len(workspace.names()), 4)
-            # Counted per run: a batch is one generation.
+            # A batch is one generation.
             self.assertEqual(result["stats"]["success"], 2)
             self.assertEqual(len(result["results"]), 4)
 
@@ -418,7 +414,6 @@ class RunJobTests(unittest.TestCase):
 
 
 def _embedded_graph() -> dict:
-    """What ComfyUI writes into a file: no DataForge titles, plus an output that loads a file."""
     graph = json.loads(json.dumps(GENERATE_WORKFLOW))
     del graph["6"]["_meta"]
     graph["4"] = {
@@ -452,7 +447,7 @@ class EmbeddedSourceTests(unittest.TestCase):
             )
 
             self.assertEqual(result["stats"]["success"], 1)
-            # Named after the file, without the separator ComfyUI ended its name with.
+            # Without the separator ComfyUI ended its name with.
             self.assertEqual(workspace.names(), ["render_.png", "render_0001.png"])
 
         self.assertEqual(submitted[0]["6"]["inputs"]["text"], "a harbour at night")

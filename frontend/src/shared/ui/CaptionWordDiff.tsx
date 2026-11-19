@@ -18,10 +18,7 @@ interface CaptionWordDiffProps {
   addedVerb?: string;
 }
 
-/**
- * A complete comparison of two captions: `before` with the words `after` drops struck
- * through and the words it adds highlighted, under a line saying what the tints mean.
- */
+/** `before` with dropped words struck and added words highlighted, under a legend. */
 export function CaptionWordDiff({ before, after, legend, addedVerb }: CaptionWordDiffProps) {
   const segments = useMemo(() => diffCaptionWords(before, after), [before, after]);
   return (

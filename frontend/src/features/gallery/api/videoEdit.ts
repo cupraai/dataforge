@@ -31,10 +31,7 @@ export async function applyVideoEdit(
   });
 }
 
-/**
- * Re-encodes a video the browser cannot play, in place: its current edit is kept, and the
- * original stays as the edit backup, so Revert original brings the file back.
- */
+/** Re-encodes an unplayable video in place, keeping its edit; Revert original restores it. */
 export async function transcodeVideo(mediaPath: string): Promise<VideoEditResponse> {
   const { spec } = await fetchVideoEditState(mediaPath);
   return applyVideoEdit(mediaPath, {

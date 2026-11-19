@@ -19,11 +19,7 @@ interface DisclosureButtonProps extends Omit<
   ref?: Ref<HTMLButtonElement>;
 }
 
-/**
- * The trigger of a show/hide region: a chevron that points right when closed and down when
- * open. The region stays with the caller, which may render it hidden or not at all. Wrap the
- * button in a heading when the label titles the region.
- */
+/** A show/hide chevron; the caller owns the region. Wrap in a heading when the label titles it. */
 export function DisclosureButton({
   open,
   controls,

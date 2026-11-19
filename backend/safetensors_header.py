@@ -1,14 +1,4 @@
-"""What a ``.safetensors`` file says about itself, read without loading its weights.
-
-The layout is an 8-byte little-endian header length, the JSON header, then raw tensor bytes. The
-header maps each tensor name to its dtype and shape, plus an optional ``__metadata__`` of string
-values that trainers fill with their own keys: kohya's ``ss_*``, the ``modelspec.*`` convention, and
-AI-Toolkit's JSON-in-a-string ``training_info`` and ``software``.
-
-ComfyUI's quantized checkpoints record each layer's format in a tiny ``<layer>.comfy_quant`` tensor
-of JSON bytes, such as ``{"format": "int8_tensorwise", "convrot": true}``. Those records are the only
-tensor data read; older ``*_fp8_scaled`` files mark themselves with an empty ``scaled_fp8`` tensor.
-"""
+"""A ``.safetensors`` header read without loading the weights."""
 
 from __future__ import annotations
 
@@ -30,14 +20,10 @@ __all__ = ["ModelInfo", "SafetensorsHeaderError", "model_info", "read_model_info
 _NAMESPACE = "safetensors-header"
 _METADATA_KEY = "__metadata__"
 
-# How an adapter is factored: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard).
+# LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard).
 type AdapterKind = Literal["lora", "lokr", "loha"]
 
-# Adapter layouts, told apart by tensor names: ``{suffix: (adapter, measure, shape axis)}``.
-# LoRA's down projection is ``(rank, in)``. LyCORIS LoKr's small Kronecker half ``lokr_w1`` (or its
-# low-rank ``lokr_w1_a``) leads with the factor, ``(factor, factor)`` when it divides the layer; the
-# large half is either a full ``lokr_w2`` or a low-rank ``lokr_w2_a`` of ``(out, rank)``. LoHa's
-# ``hada_w1_a`` is ``(out, rank)`` too.
+# Adapter layouts by tensor name: ``{suffix: (adapter, measure, shape axis)}``.
 _ADAPTER_TENSORS: dict[str, tuple[AdapterKind, Literal["rank", "factor"], int]] = {
     ".lora_down.weight": ("lora", "rank", 0),
     ".lora_A.weight": ("lora", "rank", 0),
@@ -46,11 +32,7 @@ _ADAPTER_TENSORS: dict[str, tuple[AdapterKind, Literal["rank", "factor"], int]] 
     ".lokr_w2_a": ("lokr", "rank", 1),
     ".hada_w1_a": ("loha", "rank", 1),
 }
-# What a file is for, told apart by tensor names since few files record it. Checked in this order:
-# an LLM text encoder may carry a vision tower, and a VAE's decoder may be timestep-conditioned.
-# Measured on a local ComfyUI models folder: every file in a typed subfolder lands in its type.
-# A checkpoint's diffusion weights sit under `model.diffusion_model.`; a bundled VAE or text encoder
-# under one of the other roots. A textual-inversion embedding holds only its vectors.
+# Checked in order: an LLM may carry a vision tower; a VAE decoder may take a timestep.
 _DIFFUSION_PREFIX = "model.diffusion_model."
 _BUNDLED_PREFIXES = (
     "first_stage_model.",
@@ -62,24 +44,24 @@ _BUNDLED_PREFIXES = (
 )
 _EMBEDDING = re.compile(r"emb_params|clip_[lg]|t5|string_to_(param|token)(\..*)?")
 _CONTROLNET = re.compile(r"^control_|^controlnet_|\.controlnet_|input_hint_block")
-# CLIP's text tower, T5's attention, and the token embedding or post-attention norm of an LLM.
+# CLIP, T5, and LLM token embeddings or post-attention norms.
 _TEXT_ENCODER = re.compile(
     r"^text_model\.|\.SelfAttention\.|embed_tokens|word_embeddings|post_attention_layernorm"
     r"|^text_embedding_projection\."
 )
 _VISION_ROOTS = {"vision_model", "visual", "vision_tower"}
 _VAE_WRAPPERS = re.compile(r"^(first_stage_model|vae|audio_vae)\.")
-# A denoiser is conditioned on the timestep, usually through adaptive-norm modulation.
+# Usually through adaptive-norm modulation.
 _TIMESTEP = re.compile(
     r"time|adaln|modulation|scale_shift_table|^tmlp\.|\.ada\.|^emb_in\.", re.IGNORECASE
 )
-# ESRGAN and the transformer upscalers after it open with `conv_first`; old ESRGAN with `model.0`.
+# `conv_first`, or `model.0` for old ESRGAN.
 _UPSCALER = re.compile(r"^conv_first\.|^model\.1\.sub\.")
 _PEFT_ADAPTER_NAME = ".default."
-# A weight-difference patch, which ComfyUI loads as a LoRA: `<layer>.diff` and `<layer>.diff_b`.
+# `<layer>.diff` and `<layer>.diff_b`, loaded as a LoRA.
 _DIFF_SUFFIXES = (".diff", ".diff_b")
 _QUANT_RECORD_SUFFIX = ".comfy_quant"
-# A record is a short JSON object; anything larger is not one and is never read.
+# Anything larger is never read.
 _MAX_QUANT_RECORD_BYTES = 4096
 _SCALED_FP8_MARKER = "scaled_fp8"
 _AWQ_SUFFIX = ".pre_quant_scale"
@@ -92,7 +74,7 @@ _DTYPE_LABELS = {
     "F8_E5M2": "FP8 E5M2",
     "I8": "INT8",
 }
-# Every ComfyUI quantized layer carries a weight scale, so the FP8 formats read as "scaled".
+# So the FP8 formats read as "scaled".
 _QUANT_FORMAT_LABELS = {
     "float8_e4m3fn": "FP8 scaled",
     "float8_e5m2": "FP8 E5M2 scaled",
@@ -102,7 +84,7 @@ _QUANT_FORMAT_LABELS = {
 
 
 class SafetensorsHeaderError(ValueError):
-    """The file is not a readable safetensors header."""
+    """Not a readable safetensors header."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,7 +166,7 @@ def _trigger_words(metadata: dict[str, str]) -> list[str]:
     phrase = _text(metadata.get("modelspec.trigger_phrase"))
     if phrase is not None:
         return [phrase]
-    # kohya and AI-Toolkit both write `{"<repeats>_<folder>": {"<tag>": count}}`.
+    # `{"<repeats>_<folder>": {"<tag>": count}}`.
     frequency = _json_value(metadata.get("ss_tag_frequency"))
     if not isinstance(frequency, dict):
         return []
@@ -222,7 +204,7 @@ def _quant_record_spans(header: dict) -> list[tuple[int, int, str]]:
 
 
 def _read_quant_records(handle: BinaryIO, header: dict) -> dict[str, dict]:
-    """Each quantized layer's record, keyed by layer name; unreadable records are skipped."""
+    """Unreadable records are skipped."""
     data_start = handle.tell()
     records: dict[str, dict] = {}
     for start, end, layer in _quant_record_spans(header):
@@ -250,10 +232,7 @@ def _format_label(record: dict) -> str | None:
 def _precision(
     header: dict, parameters_by_dtype: Counter[str], records: dict[str, dict]
 ) -> str | None:
-    """How the weights are stored, named the way checkpoint filenames do, such as ``INT8 ConvRot``.
-
-    A file quantized several ways is named by the format holding the most parameters, plus "mixed".
-    """
+    """Storage format named like checkpoint filenames; several formats add "mixed"."""
     formats: Counter[str] = Counter()
     for layer, record in records.items():
         label = _format_label(record)
@@ -285,7 +264,7 @@ def _parameters(tensor: object) -> int | None:
 
 
 def _adapter_layout(name: str) -> tuple[AdapterKind, Literal["rank", "factor"], int] | None:
-    # PEFT names the adapter inside the key: `lora_A.default.weight`.
+    # PEFT: `lora_A.default.weight`.
     name = name.replace(_PEFT_ADAPTER_NAME, ".")
     return next(
         (layout for suffix, layout in _ADAPTER_TENSORS.items() if name.endswith(suffix)), None
@@ -293,7 +272,7 @@ def _adapter_layout(name: str) -> tuple[AdapterKind, Literal["rank", "factor"], 
 
 
 def _model_kind(names: list[str], adapter: AdapterKind | None) -> ModelKind | None:
-    """``None`` when the tensor names match no known layout."""
+    """``None`` when no known layout matches."""
     if adapter is not None:
         return adapter
     if not names:
@@ -308,7 +287,7 @@ def _model_kind(names: list[str], adapter: AdapterKind | None) -> ModelKind | No
     if any(_CONTROLNET.search(name) for name in names):
         return "controlnet"
     denoiser = any(_TIMESTEP.search(name) for name in names)
-    # A denoiser built around an LLM still takes a timestep; a text encoder never does.
+    # An LLM-based denoiser still takes a timestep; a text encoder never does.
     if not denoiser and any(_TEXT_ENCODER.search(name) for name in names):
         return "text_encoder"
     if any(name.split(".", 1)[0] in _VISION_ROOTS for name in names):
@@ -334,7 +313,7 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
         else {}
     )
 
-    # Weighted by parameters: a quantized layer keeps a few F32 scales beside each large weight.
+    # Weighted by parameters: quantized layers keep a few F32 scales.
     parameters_by_dtype: Counter[str] = Counter()
     adapters: Counter[AdapterKind] = Counter()
     ranks: Counter[int] = Counter()
@@ -386,7 +365,7 @@ def _parse(header: dict, quant_records: dict[str, dict]) -> ModelInfo:
 
 
 def read_model_info(path: Path) -> ModelInfo:
-    """Raises :class:`SafetensorsHeaderError` for a malformed file and ``OSError`` for IO."""
+    """Raises :class:`SafetensorsHeaderError` or ``OSError``."""
     with path.open("rb") as handle:
         header = _read_header(handle)
         return _parse(header, _read_quant_records(handle, header))
@@ -400,5 +379,5 @@ def _load(path: Path) -> ModelInfo | None:
 
 
 def model_info(path: Path, mtime_ns: int, size: int) -> ModelInfo | None:
-    """``None`` when the header cannot be read; a malformed file is remembered, an IO error is not."""
+    """A malformed file is cached; an IO error is not."""
     return cached_by_stat(_NAMESPACE, path, mtime_ns, size, lambda: _load(path), lambda: None)

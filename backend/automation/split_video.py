@@ -1,12 +1,4 @@
-"""Cut videos into clips in a ``clips/`` subfolder, at scene changes or at a fixed interval.
-
-Sources and their captions are left alone. Each source's clips are named ``<stem>_001.mp4`` on;
-splitting it again replaces its earlier clips, captions included, so a clip never keeps a
-caption written for different footage.
-
-Every length is measured on the video stream's own frames, never the container: a file whose
-audio runs past its picture would otherwise get clips with no picture in them.
-"""
+"""Cut videos into ``clips/`` at scene changes or a fixed interval, measured on video frames."""
 
 from __future__ import annotations
 
@@ -41,7 +33,7 @@ SPLIT_TEMP_MARKER = ".split-tmp"
 SPLIT_STALE_MARKER = ".split-stale"
 
 _TIMEBASE = re.compile(r"^#tb 0: (\d+)/(\d+)", re.MULTILINE)
-#: ``framecrc`` packet lines: stream, dts, pts, duration, size, checksum.
+#: stream, dts, pts, duration, size, checksum.
 _PACKET = re.compile(r"^0,\s*-?\d+,\s*(-?\d+),\s*(\d+),", re.MULTILINE)
 
 
@@ -61,7 +53,7 @@ class ClipPiece:
 
 @dataclass(frozen=True)
 class VideoFrames:
-    """When each frame of the video stream starts, in display order, and when the last ends."""
+    """Frame starts in display order, plus the end of the last."""
 
     starts: list[float]
     end: float
@@ -77,30 +69,30 @@ class VideoFrames:
         return 1 / self.frame_seconds if self.frame_seconds > 0 else 0.0
 
     def snap(self, seconds: float) -> float:
-        """The frame start nearest ``seconds``, so a clip holds whole frames."""
+        """So a clip holds whole frames."""
         index = bisect.bisect_left(self.starts, seconds)
         nearby = self.starts[max(0, index - 1) : index + 1]
         return min(nearby, key=lambda start: abs(start - seconds)) if nearby else seconds
 
 
 def parse_video_frames(log: str) -> VideoFrames | None:
-    """Read ``framecrc`` output for the first video stream; ``None`` without a single frame."""
+    """``None`` without a single frame."""
     timebase = _TIMEBASE.search(log)
     if timebase is None:
         return None
     unit = int(timebase.group(1)) / int(timebase.group(2))
-    # Packets arrive in decode order; B-frames put display order elsewhere.
+    # Packets arrive in decode order.
     packets = sorted(
         (int(pts), int(duration))
         for pts, duration in _PACKET.findall(log)
-        # ffmpeg prints a packet without a timestamp as the lowest 64-bit integer.
+        # The lowest 64-bit integer means no timestamp.
         if int(pts) > -(2**62)
     )
     if not packets:
         return None
     end = max(pts + duration for pts, duration in packets) * unit
     starts = [pts * unit for pts, _ in packets]
-    # Some containers store no packet durations; then the last frame lasts like the others.
+    # Without packet durations the last frame lasts like the others.
     if end <= starts[-1] and len(starts) > 1:
         end = starts[-1] + statistics.median(b - a for a, b in pairwise(starts))
     return VideoFrames(starts=starts, end=end)
@@ -109,10 +101,9 @@ def parse_video_frames(log: str) -> VideoFrames | None:
 def plan_pieces(
     frames: VideoFrames, cuts: list[float], *, longest: float | None = None
 ) -> list[ClipPiece]:
-    """Every piece between ``cuts``, with a piece longer than ``longest`` divided into equal
-    parts. Every boundary sits on a frame start, so no piece is empty or holds part of a frame."""
+    """Long pieces are divided equally; every boundary is a frame start."""
     first = frames.starts[0]
-    # Filtered before snapping: a cut after the picture would snap onto its last frame.
+    # A cut after the picture would snap onto its last frame.
     inner = {frames.snap(cut) for cut in cuts if first < cut < frames.end}
     bounds = sorted({first, *(cut for cut in inner if first < cut < frames.end), frames.end})
 
@@ -132,7 +123,7 @@ def interval_cuts(frames: VideoFrames, interval: float) -> list[float]:
 
 
 def _frames_command(executable: str, source: Path) -> list[str]:
-    """Lists the video packets without decoding them, on stderr, which is what run_ffmpeg keeps."""
+    """On stderr, which is what run_ffmpeg keeps."""
     return [
         executable,
         *("-nostdin", "-hide_banner", "-nostats", "-loglevel", "error"),
@@ -141,7 +132,7 @@ def _frames_command(executable: str, source: Path) -> list[str]:
 
 
 def _analysis_command(executable: str, source: Path) -> list[str]:
-    """Every frame, tiny, in order; ``passthrough`` so none is dropped or repeated."""
+    """``passthrough`` so no frame is dropped or repeated."""
     return [
         executable,
         *("-nostdin", "-hide_banner", "-nostats", "-loglevel", "error"),
@@ -168,7 +159,6 @@ def detect_scene_cuts(
     sensitivity: SceneSensitivity,
     should_cancel: ShouldCancel | None = None,
 ) -> list[float]:
-    """The start of every frame that opens a new scene."""
     detector = CutDetector(sensitivity, frames.frame_rate or 24.0)
     stream_ffmpeg(
         _analysis_command(executable, source),
@@ -176,7 +166,7 @@ def detect_scene_cuts(
         lambda chunk: detector.push(frame_features(chunk)),
         should_cancel=should_cancel,
     )
-    # Decoded frames come out in display order, one per listed packet.
+    # Decoded frames come out in display order, one per packet.
     return [frames.starts[index] for index in detector.finish() if index < len(frames.starts)]
 
 
@@ -189,8 +179,7 @@ def build_clip_command(
     frame_seconds: float,
     frame_rate: int | None,
 ) -> list[str]:
-    """One clip, frame-exact: ``-ss`` half a frame before its first frame, and ``-t`` the clip
-    less half a frame, as the video editor's trims do (see ``build_video_edit_command``)."""
+    """``-ss`` half a frame early and ``-t`` half a frame short, as the editor's trims do."""
     half_frame = frame_seconds / 2
     command = [executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "error", "-y"]
     start = max(0.0, piece.start - half_frame)
@@ -199,7 +188,7 @@ def build_clip_command(
     command += ["-t", f"{piece.seconds - half_frame:.6f}"]
     command += ["-i", str(source), "-map", "0:v:0", "-map", "0:a:0?"]
 
-    # yuv420p needs even sides; the fps filter goes last, so it sees the final frames.
+    # yuv420p needs even sides; fps goes last.
     filters = ["scale=trunc(iw/2)*2:trunc(ih/2)*2", "setsar=1"]
     if frame_rate is not None:
         filters.append(f"fps={frame_rate}")
@@ -232,8 +221,7 @@ def validate_split_video_folder(folder: Path, selected_paths: list[Path] | None 
 
 
 def clip_stem(source: Path, videos: list[Path]) -> str:
-    """``walk`` for ``walk.mp4``, or ``walk_mkv`` when another video in the folder is ``walk.*``,
-    so two sources never write, or replace, each other's clips."""
+    """``walk_mkv`` when another video is ``walk.*``, so sources never clash."""
     shared = any(other != source and other.stem.lower() == source.stem.lower() for other in videos)
     return f"{source.stem}_{source.suffix.lstrip('.').lower()}" if shared else source.stem
 
@@ -263,8 +251,7 @@ def split_file(
     stem: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> int:
-    """Write ``source``'s clips into ``output_dir`` as ``<stem>_001.mp4`` on, and return how
-    many were kept. ``stem`` defaults to the source's."""
+    """Write ``<stem>_001.mp4`` on into ``output_dir``; returns how many were kept."""
     stem = stem or source.stem
     frames = read_video_frames(ffmpeg, source, should_cancel)
 
@@ -274,7 +261,7 @@ def split_file(
     else:
         pieces = plan_pieces(frames, interval_cuts(frames, settings.interval_seconds))
 
-    # Half a frame of slack: lengths are whole frames, so 2 s at 23.976 fps is 1.9987 s.
+    # Half a frame of slack: 2 s at 23.976 fps is 1.9987 s.
     slack = frames.frame_seconds / 2
     kept = [piece for piece in pieces if piece.seconds + slack >= settings.shortest_seconds]
     if not kept:
@@ -300,7 +287,7 @@ def split_file(
                 should_cancel=should_cancel,
             )
 
-        # Only once every new clip exists: a failed split leaves the earlier clips in place.
+        # A failed split leaves the earlier clips in place.
         for clip in earlier_clips(output_dir, stem):
             delete_media_with_sidecars(clip)
 
@@ -377,7 +364,7 @@ def run_split_video_job(
         process=process,
         on_progress=on_progress,
         should_cancel=should_cancel,
-        # Read, not written: another writer replacing the source mid-encode would cut a mix.
+        # A replacement mid-encode would cut a mix.
         claim_activity="export",
         # clips counts outputs, not files.
         processed_stat_keys=(

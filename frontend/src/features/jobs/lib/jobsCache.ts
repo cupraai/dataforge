@@ -6,10 +6,7 @@ import type {
   JobsResponse,
 } from "@/shared/types";
 
-/**
- * The live job list as cached. Pushes and listings both land here and are ordered by the
- * server's revisions, so neither can roll the other back whichever arrives first.
- */
+/** Pushes and listings are ordered by revision, so neither rolls the other back. */
 export interface LiveJobs {
   jobs: Job[];
   /** The newest listing merged in; a listing at or below it has nothing to add. */
@@ -46,11 +43,7 @@ export function removeJobs(
   return { ...base, jobs: base.jobs.filter((job) => !gone.has(job.id)), removed };
 }
 
-/**
- * Folds a listing into the cache. A cached job beats its listed copy when its revision is
- * higher; a cached job the listing lacks survives only if it is newer than the listing (it
- * was created after the read), otherwise it was deleted.
- */
+/** A higher cached revision wins; a cached job missing from the listing survives only if newer. */
 export function mergeJobsListing(live: LiveJobs | undefined, listing: JobsResponse): LiveJobs {
   if (live && listing.revision <= live.revision) return live;
 

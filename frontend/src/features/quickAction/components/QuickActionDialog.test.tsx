@@ -209,8 +209,7 @@ describe("QuickActionDialog", () => {
 
   it("lists a folder once when it is both a subfolder and a recent, and keeps arrowing", async () => {
     const user = userEvent.setup();
-    // The palette resolves the active row by id, so a repeated id used to pin the
-    // highlight to the first copy and make the arrow keys look stuck.
+    // A repeated id would pin the highlight to the first copy.
     const shared = "folder:C:\\Shots";
     renderBar({
       recentItems: [
@@ -234,8 +233,7 @@ describe("QuickActionDialog", () => {
     const user = userEvent.setup();
     renderBar();
 
-    // A stationary pointer replays mousemove at unchanged coordinates whenever
-    // the element under it changes, which must not steal the selection.
+    // A stationary pointer replays mousemove when the element under it changes.
     const gamma = screen.getByText("Gamma").closest('[role="option"]')!;
     fireEvent.mouseMove(gamma, { clientX: 40, clientY: 80 });
     expect(activeOptionName()).toBe("Gamma");

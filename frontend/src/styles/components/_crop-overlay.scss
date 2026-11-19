@@ -3,7 +3,7 @@
 
 $handle-size: 0.75rem;
 
-// Positioned against the painted video box, not the element: `object-fit: contain` letterboxes, and a rect over the element would sit off by the bars.
+// Positioned against the painted video box, not the element: `object-fit: contain` letterboxes.
 .crop-overlay {
   position: absolute;
   z-index: 1;
@@ -79,7 +79,7 @@ $handle-size: 0.75rem;
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
     letter-spacing: 0.01em;
-    // Stated rather than inherited: a host that collapses line-height leaves the background behind nothing but padding.
+    // Stated, not inherited: a host that collapses line-height leaves the background around padding.
     line-height: normal;
     white-space: nowrap;
     pointer-events: none;

@@ -178,11 +178,7 @@ export function searchRegexError(query: string): string | null {
 
 type TextMatcher = (text: string) => boolean;
 
-/**
- * How a regex search decides a text: from `regexMatches`, worked out ahead in a worker
- * (`useRegexSearch`), else by testing here. An invalid pattern matches nothing: a literal
- * fallback would contradict the regex toggle.
- */
+/** From `regexMatches` when the worker has them, else tested here; invalid matches nothing. */
 function regexMatcher(query: string, regexMatches?: ReadonlySet<string> | null): TextMatcher {
   if (regexMatches) return (text) => regexMatches.has(text);
   const pattern = compileSearchRegex(query);
@@ -210,10 +206,7 @@ function matchesSearchQuery(
   return tags.some((tag) => tag.label.includes(needle));
 }
 
-/**
- * matchNames off searches captions only: an OR over both fields would keep every item.
- * `regexMatches` holds the texts a regex search matched, so no pattern runs on this thread.
- */
+/** Without matchNames only captions are searched; `regexMatches` keeps patterns off this thread. */
 export function filterBySearch(
   items: GalleryItem[],
   query: string,
@@ -271,10 +264,7 @@ export function applyMediaTypeFilter(items: GalleryItem[], filter: MediaTypeFilt
   return items.filter((item) => matchesMediaTypeFilter(item, filter));
 }
 
-/**
- * The value a range filters on, measured exactly as Statistics measures it, so a clicked bucket
- * and its range select the same files. `null` when the file has none, e.g. a still's duration.
- */
+/** Measured as Statistics measures it; `null` when the file has none. */
 export function rangeValue(item: GalleryItem, axis: RangeAxis): number | null {
   if (axis === "caption_length") {
     return item.caption_status === "text" && item.description ? item.description.length : null;

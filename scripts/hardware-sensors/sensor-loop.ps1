@@ -202,8 +202,7 @@ function Get-NextDelay([int] $Failures) {
 }
 
 [void][DataForge.PawnIo]::SetDllDirectoryW($PawnIoDir)
-# Task Scheduler starts tasks below normal, so a job loading every core starved the readings
-# past the backend's 10 s staleness cutoff. The loop mostly sleeps, so jobs lose nothing.
+# Task Scheduler starts tasks below normal, which starved the readings under load.
 [Diagnostics.Process]::GetCurrentProcess().PriorityClass = [Diagnostics.ProcessPriorityClass]::AboveNormal
 if ($Vendor -eq 'AMD') {
   $PciMutex = New-SharedMutex 'Global\Access_PCI'

@@ -1,9 +1,4 @@
-"""Resolving a user's path without trading a mapped drive letter for what it points at.
-
-``Path.resolve()`` follows ``subst`` and mapped network drives: ``Z:\\Photos`` comes back as
-``\\\\server\\share\\Photos``. The app shows, keys and compares paths in the spelling the user
-browsed, so every user path is resolved here and keeps its drive letter.
-"""
+"""Resolve user paths without trading a mapped drive letter for its target."""
 
 from __future__ import annotations
 
@@ -14,10 +9,7 @@ from pathlib import Path, PureWindowsPath
 def remap_to_drive(
     resolved: PureWindowsPath, drive: str, drive_target: PureWindowsPath
 ) -> PureWindowsPath | None:
-    """``resolved`` spelled under ``drive`` (``Z:``), given what that drive's root resolves to.
-
-    None when ``resolved`` lies outside the drive's target, as after a link that leads elsewhere.
-    """
+    """``resolved`` spelled under ``drive``; None when it lies outside the drive's target."""
     try:
         relative = resolved.relative_to(drive_target)
     except ValueError:
@@ -26,7 +18,7 @@ def remap_to_drive(
 
 
 def resolve_path(path: Path) -> Path:
-    """``path.resolve()``, keeping the drive letter the path was given on."""
+    """Keeps the drive letter the path was given on."""
     resolved = path.resolve()
     if os.name != "nt":
         return resolved
@@ -35,7 +27,7 @@ def resolve_path(path: Path) -> Path:
     if len(drive) != 2 or resolved.drive.upper() == drive.upper():
         return resolved
 
-    # Only a drive that resolves elsewhere gets here, so a local drive is never asked twice.
+    # So a local drive is never asked twice.
     target = Path(f"{drive}\\").resolve()
     remapped = remap_to_drive(PureWindowsPath(resolved), drive, PureWindowsPath(target))
     return Path(remapped) if remapped is not None else resolved

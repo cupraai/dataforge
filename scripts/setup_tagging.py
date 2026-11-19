@@ -1,10 +1,4 @@
-"""Installs the optional tagging packages into the backend venv and downloads the tagging model.
-
-Run with the venv's Python; setup does this unless told to skip tagging. The PyTorch build is
-chosen for this machine: the newest CUDA build the NVIDIA driver runs, ROCm on Linux x86_64 with
-ROCm installed, PyPI's on macOS, and CPU otherwise. A torch that already fits is kept, so running
-setup again does not download it again.
-"""
+"""Install the optional tagging packages and model, choosing the PyTorch build for this machine."""
 
 from __future__ import annotations
 

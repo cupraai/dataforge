@@ -42,10 +42,7 @@ export async function fetchComfyEditorWorkflow(mediaPath: string, nodeId: string
   return response.workflow;
 }
 
-/**
- * `baseRevision` is the `caption_revision` the text was edited from (`null`: there was no
- * caption). The server refuses with `caption_conflict` when the caption changed since.
- */
+/** `baseRevision` is the revision edited from (`null`: none); else `caption_conflict`. */
 export async function saveCaption(
   mediaPath: string,
   text: string,

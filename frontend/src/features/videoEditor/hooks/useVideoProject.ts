@@ -31,10 +31,7 @@ export interface VideoProjectState {
   saveError: string | null;
   canUndo: boolean;
   canRedo: boolean;
-  /**
-   * Every edit goes through ``commit``, or ``preview`` while a gesture runs and then ``commit``:
-   * the gesture becomes one undo step from where its first preview started. See projectHistory.
-   */
+  /** Edits use ``commit``, or ``preview`` then ``commit`` as one undo step. */
   preview: (next: Project) => void;
   commit: (next: Project) => void;
   /** Changes that are not edits; see ``amendAll``. Returns the project as it now stands. */

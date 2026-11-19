@@ -58,8 +58,7 @@ async function openFill(page: Page, folder: string) {
   return page;
 }
 
-/** The brush surface's screen box once it covers the picture. It mounts as an empty box at the
- * canvas's corner and takes the painted frame only when the image has loaded and been measured. */
+/** The brush surface's box once it covers the loaded, measured picture. */
 async function surfaceBox(page: Page) {
   const surface = page.getByTestId("fill-overlay");
   await expect

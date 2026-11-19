@@ -1,8 +1,6 @@
 /**
- * Which pictures a clip on the timeline asks for. A source is cut into tiles of a power-of-two
- * number of seconds, chosen so a tile is about ``tilePx`` wide at the zoom, and only the tiles in
- * view are fetched. Their bounds are the same whatever the clip's trim or place, so scrolling,
- * trimming and moving reuse the tiles already fetched, and zooming in fetches finer ones.
+ * Tiles of power-of-two seconds about ``tilePx`` wide; only those in view are fetched.
+ * Bounds ignore trim and place, so scrolling and trimming reuse tiles.
  */
 import { clipEnd, type Clip, type TimeRange } from "./timeline";
 
@@ -32,12 +30,7 @@ export function tileSeconds(pxPerSecond: number, speed: number, level: TileLevel
   return Math.max(level.minSeconds, 2 ** exponent);
 }
 
-/**
- * The tiles of ``clip``'s take inside ``view`` (timeline seconds), placed at ``pxPerSecond``.
- * ``levelPx`` is the zoom the level of detail follows; it may lag the live zoom, so a zoom in
- * progress stretches the tiles it has rather than fetching every level it passes through. Tiles
- * end at ``sourceDuration``, when given.
- */
+/** The take's tiles inside ``view``; ``levelPx`` may lag the zoom, stretching tiles. */
 export function clipTiles(
   clip: Clip,
   view: TimeRange,

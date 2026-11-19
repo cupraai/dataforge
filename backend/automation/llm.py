@@ -1,5 +1,3 @@
-"""Local-model plumbing shared by every job that talks to the LLM."""
-
 from __future__ import annotations
 
 import logging
@@ -27,14 +25,14 @@ MAX_MODEL_ATTEMPTS = 3
 
 CANCEL_POLL_SECONDS = 0.1
 
-# Instruct-mode prefill so hybrid Qwen models skip thinking and emit the answer.
+# Prefill so hybrid Qwen models skip thinking.
 INSTRUCT_THINK_PREFILL = "<think>\n\n</think>"
 
 SUCCESS = "success"
 API_ERROR = "api_error"
 CANCELLED = "cancelled"
 
-# Includes media-flavoured openers so a text-only job still strips them.
+# Media-flavoured openers too, so a text-only job still strips them.
 _STRIPPED_PREFIXES = (
     "assistant:",
     "Here is the caption:",
@@ -48,7 +46,6 @@ _STRIPPED_PREFIXES = (
 
 
 def strip_code_fences(text: str) -> str:
-    """Drop a wrapping ``` block, whatever language tag it carries."""
     stripped = text.strip()
     if not stripped.startswith("```"):
         return stripped
@@ -62,7 +59,6 @@ def strip_code_fences(text: str) -> str:
 
 
 def clean_model_text(raw_text: str) -> str:
-    """Strip reasoning blocks, chat template markers and conversational prefixes."""
     text = raw_text.strip()
 
     if "</think>" in text:
@@ -80,14 +76,14 @@ def clean_model_text(raw_text: str) -> str:
 
 
 def _field(source: object, name: str) -> object:
-    """Read ``name`` off a response object or the dict a stub stands in for it with."""
+    """Response objects and test stubs alike."""
     if isinstance(source, dict):
         return source.get(name)
     return getattr(source, name, None)
 
 
 def describe_exception(exc: BaseException) -> str:
-    """The exception's own words plus the ``__cause__`` chain that actually explains it."""
+    """The ``__cause__`` chain explains more than ``str(exc)``."""
     parts: list[str] = []
     current: BaseException | None = exc
     while current is not None and len(parts) < 4:
@@ -105,7 +101,6 @@ def describe_exception(exc: BaseException) -> str:
 
 
 def describe_empty_completion(response: object) -> str:
-    """Why a 200 response carried no usable assistant text."""
     choices = _field(response, "choices")
     if not isinstance(choices, list) or not choices:
         return "the response carried no choices"
@@ -140,7 +135,7 @@ def run_chat_completion(
     resolved_model = model if model is not None else get_openai_model()
     outbound = messages
     if mode == "instruct":
-        # Prefill skips thinking on hybrid Qwen; helps when extra_body kwargs are ignored.
+        # Helps when extra_body kwargs are ignored.
         outbound = [*messages, {"role": "assistant", "content": INSTRUCT_THINK_PREFILL}]
 
     try:
@@ -184,7 +179,7 @@ def run_chat_completion(
 
 @dataclass(frozen=True)
 class ModelOutcome[T]:
-    """One attempt; failed outcomes may still carry ``value`` for reporting."""
+    """Failed outcomes may still carry ``value`` for reporting."""
 
     status: str
     value: T | None = None
@@ -192,7 +187,7 @@ class ModelOutcome[T]:
 
 
 def close_model_client(client: object) -> None:
-    """Best-effort teardown; safe to call twice."""
+    """Safe to call twice."""
     close = getattr(client, "close", None)
     if close is None:
         return
@@ -216,7 +211,7 @@ def _await_attempt[T](
     attempt: Callable[[], ModelOutcome[T]],
     should_cancel: Callable[[], bool],
 ) -> ModelOutcome[T] | None:
-    """Run ``attempt`` on a helper thread; ``None`` if cancellation wins the uninterruptible socket wait."""
+    """``None`` if a cancel wins the blocking socket wait."""
     outcomes: list[ModelOutcome[T]] = []
     failures: list[Exception] = []
 
@@ -248,7 +243,7 @@ def call_with_retries[T](
     should_cancel: Callable[[], bool] | None = None,
     on_abandon: Callable[[], None] | None = None,
 ) -> ModelOutcome[T]:
-    """Retry ``attempt`` until success, exhaustion, or cancel; ``on_abandon`` runs if an in-flight request is dropped."""
+    """``on_abandon`` runs if an in-flight request is dropped."""
     outcome: ModelOutcome[T] = ModelOutcome(status=API_ERROR)
 
     for number in range(1, MAX_MODEL_ATTEMPTS + 1):

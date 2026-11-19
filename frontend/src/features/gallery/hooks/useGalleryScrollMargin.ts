@@ -17,9 +17,7 @@ export function useGalleryScrollMargin(
   const [scrollMargin, setScrollMargin] = useState(0);
   const remeasureRef = useRef<(() => void) | null>(null);
 
-  // One observer for the list's life. Recreating it when `deps` change would add observations
-  // in the middle of a resize pass (a column change re-renders from inside one), which the
-  // browser reports as "ResizeObserver loop completed with undelivered notifications".
+  // One observer for life; recreating it mid-resize causes the ResizeObserver loop error.
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;

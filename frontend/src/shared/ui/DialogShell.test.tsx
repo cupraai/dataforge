@@ -5,8 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { resetScrollLockManagerForTests } from "@/shared/hooks/scrollLockManager";
 import { DialogShell } from "./DialogShell";
 
-// The app mounts under StrictMode, so these do too: its double-invoked effects
-// are what surface focus bugs that a single-pass render hides.
+// Under StrictMode like the app, whose double effects surface focus bugs.
 function renderShell(props: Partial<Parameters<typeof DialogShell>[0]> = {}) {
   const onClose = props.onClose ?? vi.fn<() => void>();
 
@@ -37,8 +36,7 @@ describe("DialogShell", () => {
   it("keeps the backdrop outside the content panel and out of the tab order", () => {
     renderShell({ backdropLabel: "Close test dialog" });
 
-    // Inside the dialog the backdrop would be announced as content: a stray
-    // close button ahead of everything the overlay actually says.
+    // Inside the dialog the backdrop would be announced as content.
     const backdrop = screen.getByLabelText("Close test dialog", { exact: true });
     expect(backdrop).toHaveAttribute("tabindex", "-1");
     expect(
@@ -130,8 +128,7 @@ describe("DialogShell", () => {
       </StrictMode>,
     );
 
-    // The hand-off must win: yanking focus back to the trigger here would drop
-    // the user out of an overlay that is still open.
+    // The hand-off must win while the overlay stays open.
     const second = screen.getByRole("dialog", { name: "Second" });
     await waitFor(() => expect(second).toHaveFocus());
     expect(trigger).not.toHaveFocus();
@@ -144,8 +141,7 @@ describe("DialogShell", () => {
     const onClose = vi.fn<() => void>();
     renderShell({ onClose, suspended: true, backdropLabel: "Close test dialog" });
 
-    // `hidden: true` is required precisely because the suspension worked: the
-    // panel is out of the accessibility tree while the child overlay is up.
+    // `hidden: true` because the panel is suspended out of the tree.
     const panel = screen.getByRole("dialog", { hidden: true });
     expect(panel).toHaveAttribute("aria-hidden", "true");
     expect(panel).not.toHaveAttribute("aria-modal");
@@ -264,8 +260,7 @@ describe("DialogShell", () => {
       </StrictMode>,
     );
 
-    // A child finishing its own animation (a spinner, an entering row) must not
-    // unmount the overlay out from under the exit.
+    // A child's own animation must not unmount the overlay.
     fireEvent.animationEnd(screen.getByRole("button", { name: "Inside" }));
     expect(onExited).not.toHaveBeenCalled();
 
@@ -293,8 +288,7 @@ describe("DialogShell", () => {
         </StrictMode>,
       );
 
-      // A hidden tab freezes the animation at 0 and never fires `animationend`.
-      // Without this backstop the overlay would sit there holding its lock.
+      // A hidden tab never fires `animationend`; this backstop releases the lock.
       expect(onExited).not.toHaveBeenCalled();
       vi.advanceTimersByTime(400);
       expect(onExited).toHaveBeenCalledTimes(1);

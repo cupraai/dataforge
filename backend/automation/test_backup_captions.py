@@ -220,7 +220,7 @@ class HasCaptionBackupTests(unittest.TestCase):
             self.assertFalse(has_caption_backup(root))
 
     def test_survives_a_listing_that_fails_only_once_iterated(self) -> None:
-        """Python 3.12's ``iterdir`` is a generator, so it raises on iteration."""
+        """Python 3.12's ``iterdir`` is a generator."""
 
         def lazily_failing_iterdir(self: Path):
             raise FileNotFoundError(2, "No such file or directory", str(self))
@@ -270,7 +270,7 @@ class RestoreCaptionsJobTests(unittest.TestCase):
             self.assertTrue(media.with_suffix(".txt").is_file())
 
     def test_a_restore_brings_back_no_findings(self) -> None:
-        """Restoring a caption must not resurrect the verdict written against it."""
+        """The verdict written against a caption must not come back with it."""
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
             write_txt_caption(media, "A plain caption.")

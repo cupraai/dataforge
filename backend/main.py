@@ -8,7 +8,7 @@ require_python()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Load .env before other modules read os.environ.
+# Before other modules read os.environ.
 from env_file import load_env_file
 
 load_env_file()
@@ -46,7 +46,7 @@ async def lifespan(_app: FastAPI):
         yield
     finally:
         stop_tagging()
-        # Bound wait: prune walks the cache in a thread and cancel does not interrupt it.
+        # Bounded: cancel does not interrupt the prune thread.
         for task in (external_jobs, folder_watch, retention, prune):
             task.cancel()
         with suppress(asyncio.TimeoutError):
@@ -67,7 +67,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Added last, so it runs first: a forged request is refused before CORS answers it.
+# Added last, so it runs first: forged requests are refused before CORS.
 app.add_middleware(
     LocalRequestGuard, allowed_origins=CORS_ORIGINS, allowed_hosts=allowed_host_names()
 )
@@ -76,5 +76,5 @@ app.add_exception_handler(ApiError, api_error_handler)
 app.add_exception_handler(ConflictError, conflict_error_handler)
 app.include_router(router)
 
-# After the router: the mount answers "/" and everything below it.
+# After the router: the mount answers "/" and below.
 mount_ui(app)

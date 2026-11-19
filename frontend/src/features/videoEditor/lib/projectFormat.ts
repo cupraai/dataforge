@@ -1,10 +1,7 @@
 import { VIDEO_PROJECT_SIZE_PRESET_SHORT_SIDES } from "@/shared/constants";
 import type { VideoProjectOrientation } from "@/shared/types";
 
-/**
- * The canvas presets the project settings offer. Aspects are long side over short side, so one
- * preset serves both orientations; its label is flipped for portrait.
- */
+/** Aspects are long over short, so one preset serves both orientations. */
 
 export interface AspectPreset {
   value: string;

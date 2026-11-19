@@ -147,10 +147,7 @@ interface VideoEditorWorkspaceProps {
   onOpenInGallery: (path: string) => void;
   /** Told the draft once saving makes or changes one, so the address reopens it. */
   onRelocate?: (request: VideoEditorRequest) => void;
-  /**
-   * Moves the app to a draft's other folder before the session loads it, so the media browser
-   * shows that folder's files and the address and history read as if opened from its gallery.
-   */
+  /** Moves the app to the draft's folder first, as if opened from its gallery. */
   onOpenProject?: (path: string) => Promise<void>;
 }
 
@@ -754,8 +751,7 @@ function EditorSession({
   const requestExit = useCallback(async () => {
     if (await confirmLeave()) onExit();
   }, [confirmLeave, onExit]);
-  // Back, Forward or any other way out saves first; a failed save asks before going. A reload
-  // or a closed tab cannot wait for a save, so the browser asks while one is owed.
+  // Every way out saves first; a reload or closed tab gets the browser's prompt instead.
   const owesSaveRef = useLatestRef(state.saveState !== "new" && state.saveState !== "saved");
   useDialogNavigationDraft({
     unsavedChanges: false,
@@ -955,8 +951,7 @@ function EditorSession({
     [engine, project.frame_rate],
   );
 
-  // Keys reach the editor only outside form controls and while none of its dialogs is open.
-  // Undo and redo also reach it from sliders and the like, which have no history of their own.
+  // Keys only outside form controls and dialogs; undo and redo also from sliders.
   const keysRef = useLatestRef((event: KeyboardEvent) => {
     if (dialogOpen || menuOpen || event.defaultPrevented) return;
     const run = (action: () => void) => {

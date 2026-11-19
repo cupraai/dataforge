@@ -42,7 +42,7 @@ class PlanTests(unittest.TestCase):
     def test_cuts_split_the_video_and_long_pieces_divide_on_frames(self) -> None:
         pieces = plan_pieces(_frames(12.0), [2.0], longest=4.0)
 
-        # 0-2 fits; 2-12 is 10 s, so it becomes three parts, each edge on a 1/24 s frame.
+        # 2-12 is 10 s, so three parts on 1/24 s frames.
         self.assertEqual(
             _rounded(pieces), [(0.0, 2.0), (2.0, 5.333), (5.333, 8.667), (8.667, 12.0)]
         )
@@ -55,7 +55,7 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(_rounded(pieces), [(0.0, 4.0), (4.0, 8.0)])
 
     def test_cuts_snap_to_frames_and_past_the_picture_are_ignored(self) -> None:
-        # 3.01 snaps to the frame at 3.0; 9.0 is after the last frame, where audio may run on.
+        # 3.01 snaps to 3.0; 9.0 is past the last frame.
         pieces = plan_pieces(_frames(6.0), [0.0, 3.01, 3.0, 9.0])
 
         self.assertEqual(_rounded(pieces), [(0.0, 3.0), (3.0, 6.0)])
@@ -73,7 +73,7 @@ class PlanTests(unittest.TestCase):
 
 class FramesTests(unittest.TestCase):
     def test_reads_display_order_and_the_last_frame_end(self) -> None:
-        # Decode order with a B-frame; a packet without a timestamp is skipped.
+        # Decode order with a B-frame; an untimed packet is skipped.
         log = (
             "#tb 0: 1/12800\n"
             "#media_type 0: video\n"
@@ -149,7 +149,7 @@ class SettingsTests(unittest.TestCase):
             SplitVideoJobSettings(longest_seconds=2, shortest_seconds=3)
         with self.assertRaises(ValidationError):
             SplitVideoJobSettings(mode="interval", interval_seconds=2, shortest_seconds=3)
-        # Only the limit of the chosen mode applies.
+        # Only the chosen mode's limit applies.
         SplitVideoJobSettings(
             mode="interval", interval_seconds=10, longest_seconds=2, shortest_seconds=3
         )
@@ -188,7 +188,7 @@ class ValidationTests(unittest.TestCase):
 
 
 def _two_scene_video(executable: str, path: Path) -> None:
-    """Two seconds of a test card, then two of a fractal: one cut at 2 s, with audio."""
+    """A test card, then a fractal: one cut at 2 s, with audio."""
     subprocess.run(
         [
             executable,
@@ -247,7 +247,7 @@ class SplitJobTests(unittest.TestCase):
         if executable is None:
             self.skipTest("ffmpeg is not available")
         self.ffmpeg = executable
-        # Earlier clips are replaced through the delete path; keep them out of the Recycle Bin.
+        # Keep replaced clips out of the Recycle Bin.
         trash = patch("file_trash.sys.platform", "linux")
         trash.start()
         self.addCleanup(trash.stop)
@@ -271,7 +271,6 @@ class SplitJobTests(unittest.TestCase):
                 frames, rate = _frames_and_rate(self.ffmpeg, root / CLIPS_DIR_NAME / clip)
                 self.assertEqual(rate, "16")
                 self.assertEqual(frames, 32)
-            # The source and its caption are left alone.
             self.assertTrue(source.is_file())
             self.assertEqual((root / "walk.txt").read_text(encoding="utf-8"), "source caption")
 
@@ -311,7 +310,7 @@ class SplitJobTests(unittest.TestCase):
             self.assertEqual(self._clips(root), ["walk_001.mp4", "walk_002.mp4"])
 
     def test_audio_running_past_the_picture_makes_no_empty_clip(self) -> None:
-        """The container lasts as long as its longest stream; clips follow the picture only."""
+        """Clips follow the picture, not the longer audio."""
         with TempMediaFolder() as root:
             subprocess.run(
                 [

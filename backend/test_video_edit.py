@@ -1,4 +1,4 @@
-"""Even-rounding cases must stay in step with ``frontend/src/features/gallery/lib/videoEdit.test.ts``."""
+"""Even-rounding cases match ``frontend/src/features/gallery/lib/videoEdit.test.ts``."""
 
 from __future__ import annotations
 
@@ -138,9 +138,7 @@ class BuildVideoEditCommandTests(unittest.TestCase):
         self.assertEqual(command[command.index("-t") + 1], "0.983")
 
     def test_the_duration_is_the_take_less_half_a_frame_not_the_seek_span(self) -> None:
-        """After an input seek ffmpeg measures `-t` from the first frame it decodes, not from
-        `-ss`. Spanning from `-ss` hands that half frame to the tail: at 23.976fps this trim
-        kept frame 111 as well, which is the scene change the editor showed as cut."""
+        """After an input seek, `-t` counts from the first decoded frame, not from `-ss`."""
         frame = 1001 / 24000
         spec = VideoEditSpec(trim_start=80 * frame, trim_end=111 * frame)
 
@@ -237,7 +235,7 @@ class BuildVideoEditCommandTests(unittest.TestCase):
         self.assertNotIn("-af", command_for(VideoEditSpec()))
 
     def test_retiming_pins_the_rate_back_to_the_source(self) -> None:
-        """`setpts` keeps every frame and compresses timestamps; without fps a 2x 24fps clip becomes 48fps."""
+        """`setpts` keeps every frame; without fps a 2x 24fps clip would become 48fps."""
         command = command_for(VideoEditSpec(speed=2.0), frame_rate=24.0)
 
         self.assertEqual(
@@ -338,7 +336,7 @@ class BuildVideoEditCommandTests(unittest.TestCase):
 
 
 class MaskFiltergraphTests(unittest.TestCase):
-    """Region geometry is in whole even pixels; ``gblur`` cannot read ``iw`` the way ``crop`` can."""
+    """Region geometry is whole even pixels; ``gblur`` cannot read ``iw`` the way ``crop`` can."""
 
     def region(self, **overrides: object) -> MaskRegion:
         values: dict[str, object] = {"x": 0.1, "y": 0.1, "width": 0.3, "height": 0.3}
@@ -1072,7 +1070,7 @@ def _video_codec(path: Path) -> str:
 
 
 class TranscodeTests(unittest.TestCase):
-    """The audit's F15: a valid MP4 the browser cannot play needs a way to a playable one."""
+    """A valid MP4 the browser cannot play can be converted to a playable one."""
 
     def test_an_unplayable_codec_becomes_h264_and_the_original_is_kept(self) -> None:
         from ffmpeg_bin import ffmpeg_path

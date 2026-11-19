@@ -52,7 +52,7 @@ class FolderFingerprintTests(unittest.TestCase):
             self.assertNotEqual(first, second)
 
     def test_fingerprint_changes_when_a_finding_is_written(self) -> None:
-        """Findings sit under the whole filename; missing them would leave open tabs on stale counts."""
+        """Findings sit under the whole filename; missing them leaves open tabs on stale counts."""
         with TempMediaFolder() as root:
             media = write_media(root, "alpha.png")
             first = compute_folder_fingerprint(root)
@@ -82,7 +82,7 @@ class FolderFingerprintTests(unittest.TestCase):
             self.assertNotEqual(first, second)
 
     def test_fingerprint_changes_when_a_clip_gets_an_mp4_candidate(self) -> None:
-        """The pairing rule must agree here or a staged clip leaves its source stale until a reload."""
+        """The pairing rule must agree, or a staged clip leaves its source stale until a reload."""
         with TempMediaFolder() as root:
             write_mp4_video(root, "clip.mov")
             (root / STAGING_DIR_NAME).mkdir()
@@ -117,7 +117,7 @@ class FolderFingerprintTests(unittest.TestCase):
             self.assertNotEqual(first, second)
 
     def test_fingerprint_changes_when_a_subfolder_gains_or_loses_a_file(self) -> None:
-        """Windows serves a subfolder's scandir times from a lazily updated index; this went unseen."""
+        """Windows serves a subfolder's scandir times from a lazily updated index."""
         with TempMediaFolder() as root:
             album = root / "Album"
             album.mkdir()

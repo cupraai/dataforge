@@ -6,10 +6,7 @@ export type DesktopPermission = NotificationPermission | "unsupported";
 export interface DesktopNotifier {
   /** Turned on in Settings and allowed by this browser. */
   enabled: boolean;
-  /**
-   * The most recently focused DataForge tab. It alone announces pushed job outcomes, so an
-   * unfocused notifier means no DataForge tab is focused, and it keeps its stream while hidden.
-   */
+  /** The most recently focused tab announces job outcomes and keeps its stream while hidden. */
   notifier: boolean;
   level: DesktopNotificationLevel;
 }

@@ -175,10 +175,8 @@
   }
 }
 
-/// The inset ring on a pseudo-element, for a control whose positioned children (media) would
-/// cover its own outline. The control must be positioned. A control that clips its overflow
-/// cannot paint over its own border from inside, so pass `$border` and the border takes the
-/// ring's colour as its outer pixels.
+/// The inset ring on a pseudo-element, over positioned media; the control must be positioned.
+/// A clipping control passes `$border` so its border takes the ring's colour.
 @mixin focus-ring-overlay($pseudo: before, $z-index: 3, $state: "&:focus-visible", $border: 0px) {
   #{$state} {
     @if $state == "&:focus-visible" {
@@ -300,9 +298,8 @@
   animation: spin 0.9s linear infinite;
 }
 
-/// Trims a text box to its capitals, so centring the box centres the letters. Digits and caps have
-/// no descenders; an untrimmed line box keeps room for them and leaves the letters high. Only a
-/// block container trims, so on a flex pill put this on the text's own element, not the pill.
+/// Trims the text box to its capitals so centring centres the letters.
+/// Only a block container trims: on a flex pill, put this on the text's element.
 @mixin trim-to-caps {
   text-box: trim-both cap alphabetic;
 }
@@ -430,7 +427,8 @@
     border-color var(--transition),
     --fade-bg var(--transition);
 
-  // Input is visually hidden, so the tile reads :disabled from it. Do not stack opacity: the radio and label already fade.
+  // The input is visually hidden, so the tile reads :disabled from it. No opacity here: the radio
+  // and label already fade.
   &:has(input:disabled) {
     cursor: not-allowed;
   }
@@ -450,7 +448,7 @@
   }
 }
 
-/// Square surface and rotated-L mark as separate mixins so CodeMirror can put them on ::before / ::after.
+/// Surface and rotated-L mark are separate mixins so CodeMirror can put them on ::before / ::after.
 @mixin custom-checkbox-box-surface {
   box-sizing: border-box;
   display: grid;

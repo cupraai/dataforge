@@ -1,4 +1,4 @@
-"""Serve media with ``FILE_SHARE_DELETE``; ``os.replace`` onto a streamed path still fails (WinError 5)."""
+"""Serve media with ``FILE_SHARE_DELETE``."""
 
 from __future__ import annotations
 
@@ -57,20 +57,20 @@ def open_shared_read(path: str | os.PathLike[str]) -> BinaryIO:
         None,
     )
     if handle == _INVALID_HANDLE_VALUE:
-        # WinError maps the code so a vanished file still raises FileNotFoundError.
+        # So a vanished file still raises FileNotFoundError.
         raise ctypes.WinError(ctypes.get_last_error())
 
     try:
         fd = msvcrt.open_osfhandle(int(handle), os.O_RDONLY)
     except OSError:
-        # open_osfhandle did not take ownership, so the handle is still ours.
+        # open_osfhandle did not take ownership.
         _kernel32.CloseHandle(handle)
         raise
 
     try:
         return os.fdopen(fd, "rb")
     except OSError:
-        # The fd owns the handle now; closing it closes both.
+        # Closing the fd closes the handle.
         os.close(fd)
         raise
 
@@ -111,10 +111,9 @@ class MediaFileResponse(FileResponse):
                 try:
                     await super().__call__(scope, receive, send)
                 finally:
-                    # Stop waiting for a disconnect that will not come.
                     task_group.cancel_scope.cancel()
         except BaseExceptionGroup as group:
-            # Unwrap so callers still see the RuntimeError Starlette raises for a vanished file.
+            # Callers still see Starlette's RuntimeError for a vanished file.
             if len(group.exceptions) == 1:
                 raise group.exceptions[0] from None
             raise
@@ -207,8 +206,7 @@ class MediaFileResponse(FileResponse):
                 while position < end:
                     chunk = await _read(file, min(self.chunk_size, end - position))
                     if not chunk:
-                        # Replaced by a shorter file since the ranges were planned: end here,
-                        # as a short single range does, instead of reading nothing forever.
+                        # Replaced by a shorter file mid-stream: end here.
                         await send({"type": "http.response.body", "body": b"", "more_body": False})
                         return
                     position += len(chunk)

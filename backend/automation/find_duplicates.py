@@ -1,5 +1,3 @@
-"""Find duplicate and near-duplicate media; findings go in ``.duplicate.json``, not the issue sidecar."""
-
 from __future__ import annotations
 
 import logging
@@ -23,15 +21,12 @@ DEFAULT_THRESHOLD = "near"
 
 HASH_SIZE = 8
 
-# dHash sees only luminance gradients, so two flat images or a recoloured copy share a hash.
-# Exact mode also compares colour, as the mean absolute 0-255 difference of small RGB copies:
-# a recompressed or resized copy stays well under the tolerance, a visible recolour does not.
+# dHash sees only luminance, so Exact also compares small RGB copies.
 COLOUR_SIGNATURE_SIZE = 16
 EXACT_COLOUR_TOLERANCE = 6.0
 
 
 def difference_hash(image: Image.Image, size: int = HASH_SIZE) -> int:
-    """A 64-bit perceptual hash of the image's luminance."""
     small = image.convert("L").resize((size + 1, size), Image.Resampling.LANCZOS)
     pixels = small.tobytes()
 
@@ -57,7 +52,7 @@ def colour_distance(left: bytes, right: bytes) -> float:
 
 
 def _representative_frame(media_path: Path) -> tuple[Image.Image | None, str | None]:
-    """A still, or a video's middle frame so opening fades do not hash unrelated clips alike."""
+    """The middle frame, so opening fades do not match unrelated clips."""
     if media_kind_for(media_path) != "video":
         images, error = load_image_rgb(media_path)
         if not images:
@@ -71,7 +66,7 @@ def _representative_frame(media_path: Path) -> tuple[Image.Image | None, str | N
 
 
 def _group_exact(hashes: dict[Path, int], colours: dict[Path, bytes]) -> list[list[Path]]:
-    """Files with one hash, split by colour so each group looks the same. Linear in the files."""
+    """Split by colour so each group looks the same."""
     buckets: dict[int, list[Path]] = defaultdict(list)
     for path, value in hashes.items():
         buckets[value].append(path)
@@ -93,10 +88,7 @@ def _group_exact(hashes: dict[Path, int], colours: dict[Path, bytes]) -> list[li
 def _group_duplicates(
     hashes: dict[Path, int], max_distance: int, should_cancel: ShouldCancel | None = None
 ) -> list[list[Path]] | None:
-    """Files grouped so every member is within ``max_distance`` of another; ``None`` if cancelled.
-
-    Every pair is compared, so this polls ``should_cancel`` once per file.
-    """
+    """Groups within ``max_distance``; ``None`` if cancelled."""
     paths = list(hashes)
     parent = {path: path for path in paths}
 
@@ -126,7 +118,7 @@ def _group_duplicates(
 
 
 def _group_max_distance(group: list[Path], hashes: dict[Path, int]) -> int:
-    """The group's worst pairwise distance, not the run's threshold."""
+    """The worst pairwise distance, not the run's threshold."""
     worst = 0
     for index, left in enumerate(group):
         for right in group[index + 1 :]:
@@ -195,11 +187,11 @@ def run_find_duplicates_job(
     if not isinstance(stats, dict):
         return result
 
-    # Skip grouping on cancel: partial hashes would flag files unique against unseen partners.
+    # Partial hashes would flag files unique against unseen partners.
     if stats.get("cancelled"):
         return result
 
-    # A cancel during grouping returns before any sidecar is written, so nothing changes.
+    # A cancel during grouping writes no sidecar.
     groups = (
         _group_exact(hashes, colours)
         if max_distance == 0
@@ -220,7 +212,7 @@ def run_find_duplicates_job(
         for path in group:
             findings[path] = finding
 
-    # Write every hashed file so a former duplicate loses its sidecar on this run.
+    # So a former duplicate loses its sidecar.
     for media_path in hashes:
         try:
             save_duplicate_finding(media_path, findings.get(media_path))

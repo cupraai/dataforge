@@ -9,10 +9,8 @@ import { EDITOR_ROUTE, isEditorKind } from "@/features/videoEditor/lib/editorLoc
 import { installHistoryPopGate } from "@/shared/lib/historyPopGate";
 
 /**
- * The app's two places: the gallery of a folder, and the video editor over the folder of what it
- * edits. Both name a path in the query string, so a reload or a shared link reopens either one.
- * The routes render nothing: the app shell is always mounted and reads the location itself, so
- * the first render needs no route load.
+ * The gallery of a folder and the video editor, both addressed in the query string.
+ * The routes render nothing: the always-mounted shell reads the location itself.
  */
 
 declare module "@tanstack/react-router" {

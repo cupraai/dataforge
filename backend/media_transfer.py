@@ -33,10 +33,7 @@ TransferMode = Literal["copy", "move"]
 
 
 def colliding_sidecars(source: Path, destination_media: Path) -> list[Path]:
-    """Existing destination files the source's related files would replace.
-
-    A byte-identical file is not a collision: it is the copy a same-stem sibling already brought.
-    """
+    """Destination files the move would replace; a byte-identical one is not a collision."""
     collisions: list[Path] = []
     for path in media_group_paths(source)[1:]:
         target = group_target(source, destination_media, path)
@@ -121,7 +118,7 @@ def backup_transfer_destination(destination: Path) -> Path | None:
 
 
 def undo_transfer(done: list[tuple[Path, Path, TransferMode]]) -> set[Path]:
-    """Each entry carries its own mode: a move copies what a same-stem sibling still shares."""
+    """A move copies what a same-stem sibling still shares."""
     unrestored: set[Path] = set()
     for origin, destination, mode in reversed(done):
         try:
@@ -149,7 +146,7 @@ def restore_transfer_backups(backups: list[tuple[Path, Path]], unrestored: set[P
 
 
 def discard_replaced_sidecars(destination_media: Path, arrived: set[Path]) -> None:
-    """Drop what the replaced file left behind, except what a same-stem sibling still shares."""
+    """Except what a same-stem sibling still shares."""
     shared = shared_stem_paths(destination_media)
     for path in media_group_paths(destination_media):
         if path in arrived or path in shared:
@@ -171,7 +168,7 @@ def transfer_media_with_sidecars(
     destination_folder = resolve_path(destination_folder)
     destination_media = destination_folder / source.name
 
-    # The destination too: an overwrite must not land under a render publishing there.
+    # An overwrite must not land under a render publishing there.
     with claim([*media_group_paths(source), destination_media], "move"):
         return _transfer_claimed(source, destination_media, mode=mode, overwrite=overwrite)
 
@@ -206,7 +203,7 @@ def _transfer_claimed(
             )
 
     candidate = candidate_path_for(source)
-    # A destination file of the candidate's exact name would claim it on arrival.
+    # A same-named destination file would claim it.
     if (
         candidate is not None
         and candidate.name != source.name
@@ -217,7 +214,7 @@ def _transfer_claimed(
             detail=f"Its staged candidate would pair with {candidate.name} in the destination",
         )
 
-    # A move leaves behind a copy of what a same-stem sibling in the source still shares.
+    # A move leaves a copy of what a sibling still shares.
     shared = shared_stem_paths(source) if mode == "move" else set()
     done: list[tuple[Path, Path, TransferMode]] = []
     backups: list[tuple[Path, Path]] = []
@@ -235,8 +232,7 @@ def _transfer_claimed(
                 backups.append((destination, backup))
             transfer_one_file(path, destination, path_mode)
             if backup is not None:
-                # The source's time could match the replaced file's, hiding the change from
-                # change detection and from every cache keyed by stat.
+                # Otherwise the source's time could hide the change from stat-keyed caches.
                 os.utime(destination)
         except OSError as exc:
             unrestored = undo_transfer(done)

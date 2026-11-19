@@ -1,4 +1,4 @@
-"""Frame-zero and frame-rate reads for a video, for scoring and for filling a workflow's rate node."""
+"""Frame-zero and frame-rate reads for a video, for scoring and a workflow's rate node."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_video_first_frame(media: Path) -> Image.Image | None:
-    """Opening frame as RGB, or None. Always ``release()``: an unopened capture still locks the file on Windows."""
+    """Opening frame as RGB, or None; always ``release()`` on Windows."""
     try:
         import cv2
 
@@ -46,7 +46,7 @@ def extract_video_first_frame(media: Path) -> Image.Image | None:
 
 
 def media_first_frame(media: Path, *, suffix: str | None = None) -> Image.Image | None:
-    """Frame zero of whatever this is: a video's first decoded frame, a GIF's opening frame, or the still itself."""
+    """A video's first frame, a GIF's opening frame, or the still itself."""
     media_type = get_media_type(Path(f"media{suffix}")) if suffix else get_media_type(media)
     if media_type == "video":
         return extract_video_first_frame(media)
@@ -65,10 +65,7 @@ def media_first_frame(media: Path, *, suffix: str | None = None) -> Image.Image 
 def validate_candidate_media(
     media: Path, *, suffix: str | None = None, complete: bool = False
 ) -> None:
-    """Raise ``ValueError`` unless ``media`` decodes. A clip is checked on its first frame only,
-    unless ``complete``: then every video and audio packet must decode, as an accept replaces
-    the source with no backup.
-    """
+    """Raise ``ValueError`` unless ``media`` decodes; ``complete`` checks every packet."""
     extension = (suffix or media.suffix).lower()
     try:
         if extension in IMAGE_EXTENSIONS or extension == GIF_EXTENSION:

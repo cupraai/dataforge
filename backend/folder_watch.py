@@ -14,40 +14,39 @@ from schemas import FolderEvent
 
 logger = logging.getLogger(__name__)
 
-#: Must outlast a hidden tab's safety poll, or a quiet tab would stop being watched.
+#: Must outlast a hidden tab's safety poll.
 WATCH_TTL_SECONDS = 120.0
 
-#: Floor bounds how fast a change is noticed; ceiling stops a slow scan from running back-to-back.
+#: Floor bounds detection latency; ceiling stops back-to-back slow scans.
 MIN_INTERVAL_SECONDS = 1.0
 MAX_INTERVAL_SECONDS = 10.0
 
-#: Pass cost relative to the scan it just did, so a big folder does not spend a core on watching.
+#: So a big folder does not spend a core on watching.
 INTERVAL_SCAN_RATIO = 4.0
 
 IDLE_INTERVAL_SECONDS = 5.0
 
-#: How often the feed looks for folders that are due; well under ``MIN_INTERVAL_SECONDS``.
+#: Well under ``MIN_INTERVAL_SECONDS``.
 TICK_SECONDS = 0.25
 
-#: Scans run side by side, so a folder on a dead drive delays only itself.
+#: A folder on a dead drive delays only itself.
 WATCH_WORKERS = 4
 
-#: A disconnected network drive blocks for the SMB timeout; retrying every second helps nobody.
-#: Only an unreadable folder backs off: a big one on a slow drive is paced by its scan time.
+#: A dead network drive blocks for the SMB timeout; only an unreadable folder backs off.
 SLOW_SCAN_SECONDS = 1.0
 BACKOFF_SECONDS = 30.0
 
-#: Pushed for a folder that cannot be read; the client's re-read then reports the error.
+#: Pushed for an unreadable folder; the client's re-read reports the error.
 UNREADABLE_FINGERPRINT = ""
 
 _watches: dict[str, dict[str, float]] = {}
 
-#: A navigation leaves the previous folder behind for a moment; holding a couple avoids a miss.
+#: A navigation briefly leaves the previous folder watched.
 MAX_FOLDERS_PER_TAB = 3
 
 
 def watch_key(path: str) -> str:
-    """Windows paths fold with ``lower``, not ``casefold``: ``Straße`` and ``Strasse`` are distinct folders."""
+    """Windows folds with ``lower``, not ``casefold``."""
     key = preference_folder_key(path)
     if os.name == "nt" or looks_like_windows_path(key):
         return key.lower()
@@ -57,7 +56,7 @@ def watch_key(path: str) -> str:
 def touch(tab_id: str, path: str) -> None:
     """Record that ``tab_id`` is looking at ``path``."""
     key = watch_key(path)
-    # A blank path would scan the process cwd and publish a path no client can match.
+    # A blank path would scan the process cwd.
     if not tab_id or not key:
         return
 
@@ -70,7 +69,7 @@ def touch(tab_id: str, path: str) -> None:
 
 
 def watchers_by_folder() -> dict[str, set[str]]:
-    """Watched folders, each with the tabs to notify. Only tabs holding a live stream count."""
+    """Only tabs holding a live stream count."""
     connected = events.connected_tab_ids()
     cutoff = time.monotonic() - WATCH_TTL_SECONDS
 
@@ -97,13 +96,12 @@ def _scan(folder: str) -> str:
 
 
 async def run_folder_watch_feed() -> None:
-    """Push every watched folder's fingerprint whenever it changes."""
     seen: dict[str, str] = {}
-    #: When each folder may be scanned again; each is paced by its own scan, not the slowest.
+    #: Each folder is paced by its own scan.
     due: dict[str, float] = {}
     scanning: dict[str, asyncio.Task[None]] = {}
 
-    # Not the default executor: ``os.scandir`` on a disconnected drive would block the API.
+    # ``os.scandir`` on a dead drive would block the default executor.
     executor = ThreadPoolExecutor(max_workers=WATCH_WORKERS, thread_name_prefix="folder-watch")
     loop = asyncio.get_running_loop()
 
@@ -125,7 +123,7 @@ async def run_folder_watch_feed() -> None:
             )
         due[folder] = time.monotonic() + pause
 
-        # Asked now, not when the scan began: a slow scan outlives navigations and tabs.
+        # A slow scan outlives navigations and tabs.
         tab_ids = watchers_by_folder().get(folder)
         if not tab_ids or seen.get(folder) == fingerprint:
             return
@@ -145,7 +143,7 @@ async def run_folder_watch_feed() -> None:
         while True:
             watchers = watchers_by_folder()
             if not watchers:
-                # Next watcher hydrates over REST and must not miss a change made while idle.
+                # The next watcher hydrates over REST.
                 seen.clear()
                 due.clear()
                 await asyncio.sleep(IDLE_INTERVAL_SECONDS)
@@ -153,7 +151,7 @@ async def run_folder_watch_feed() -> None:
 
             now = time.monotonic()
             for folder in watchers:
-                # One scan per folder at a time: a blocked one holds a worker, never a queue.
+                # A blocked scan holds a worker, never a queue.
                 if folder in scanning or due.get(folder, 0.0) > now:
                     continue
                 task = asyncio.create_task(scan(folder))

@@ -1,4 +1,4 @@
-"""Shared ffmpeg runner. Polls so a cancel is noticed during a long encode, and drains pipes so ffmpeg cannot block."""
+"""Polls so a cancel lands mid-encode; drains pipes so ffmpeg cannot block."""
 
 from __future__ import annotations
 
@@ -21,12 +21,12 @@ FFMPEG_TIMEOUT_SECONDS = 3600
 FFMPEG_TERMINATE_SECONDS = 2.0
 FFMPEG_READER_JOIN_SECONDS = 5.0
 
-#: Both spellings carry microseconds; `out_time_ms` is a misnomer in ffmpeg, not milliseconds.
+#: Both spellings carry microseconds; `out_time_ms` is a misnomer.
 _PROGRESS_TIME_KEYS = ("out_time_us", "out_time_ms")
 
 
 class FfmpegCancelled(Exception):
-    """Raised when the caller cancels while ffmpeg is still running."""
+    """Cancelled while ffmpeg was running."""
 
 
 def _terminate_ffmpeg(process: subprocess.Popen[bytes]) -> None:
@@ -38,7 +38,7 @@ def _terminate_ffmpeg(process: subprocess.Popen[bytes]) -> None:
 
 
 def parse_progress_seconds(line: str) -> float | None:
-    """Output position in seconds, or None. ffmpeg emits `N/A` until the first frame; that is not a fault."""
+    """ffmpeg emits `N/A` before the first frame."""
     key, separator, value = line.strip().partition("=")
     if not separator or key not in _PROGRESS_TIME_KEYS:
         return None
@@ -66,8 +66,7 @@ def run_ffmpeg(
     timeout: float = FFMPEG_TIMEOUT_SECONDS,
     cwd: Path | None = None,
 ) -> str:
-    """Returns ffmpeg's log. Raises on a non-zero exit, a timeout, or a cancel.
-    ``on_progress`` requires ``-progress pipe:1``."""
+    """``on_progress`` requires ``-progress pipe:1``."""
     try:
         process = subprocess.Popen(
             command,
@@ -84,7 +83,7 @@ def run_ffmpeg(
     stderr_output: list[bytes] = []
 
     with process:
-        # Drained on threads: while we poll, a chatty ffmpeg would block on a full buffer.
+        # Drained on threads, or a chatty ffmpeg blocks on a full buffer.
         readers = [
             threading.Thread(
                 target=lambda: stderr_output.append(stderr_pipe.read() if stderr_pipe else b"")
@@ -127,8 +126,7 @@ def stream_ffmpeg(
     *,
     should_cancel: ShouldCancel | None = None,
 ) -> str:
-    """Hand ffmpeg's stdout to ``on_chunk`` in pieces of exactly ``chunk_size`` bytes, such as
-    raw frames; a short tail is dropped. Returns the log; raises like :func:`run_ffmpeg`."""
+    """Hand stdout to ``on_chunk`` in exact ``chunk_size`` pieces; a short tail is dropped."""
     try:
         process = subprocess.Popen(
             command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE

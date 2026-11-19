@@ -64,11 +64,7 @@ export function isUnseenJob(job: Job, seenAtMs: number): boolean {
   return finishedMs !== null && finishedMs > seenAtMs;
 }
 
-/**
- * Never before a shown job's finish, so a server clock ahead of this one cannot re-flag it.
- * With `isShown`, stops short of the earliest unseen job a drawer filter hid: one timestamp
- * cannot mark later jobs seen while keeping an earlier one new.
- */
+/** Never before a shown job's finish; stops short of an earlier unseen job a filter hid. */
 export function nextJobsSeenAt(
   jobs: readonly Job[],
   nowMs = Date.now(),

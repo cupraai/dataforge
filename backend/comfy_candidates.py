@@ -1,4 +1,4 @@
-"""Staged ComfyUI results, and the accept/reject that settles them. Accept is refused while a ``.bak`` exists."""
+"""Staged ComfyUI results and the accept/reject that settles them."""
 
 from __future__ import annotations
 
@@ -43,16 +43,16 @@ EDITED_MESSAGE = (
 )
 
 
-#: Finer than the duplicate finder's 8 so a shifted subject lands in a different cell.
+#: Finer than the duplicate finder's 8, so a shifted subject changes cells.
 CANDIDATE_HASH_SIZE = 16
 
 
 class NoCandidateError(Exception):
-    """Raised when the staging folder holds nothing for this file."""
+    """The staging folder holds nothing for this file."""
 
 
 def difference_percent(before: Image.Image, after: Image.Image) -> float:
-    """Perceptual-hash disagreement as a percentage. Blind to sharpening; two unrelated images sit near 50%."""
+    """Blind to sharpening; unrelated images sit near 50%."""
     bits = CANDIDATE_HASH_SIZE * CANDIDATE_HASH_SIZE
     distance = hamming_distance(
         difference_hash(before, CANDIDATE_HASH_SIZE),
@@ -66,7 +66,7 @@ def staging_dir(folder: Path) -> Path:
 
 
 def candidate_write_path(media: Path, suffix: str = COMFY_CANDIDATE_SUFFIX) -> Path:
-    """Where a new candidate is staged: the stem pairs it, and it keeps the format ComfyUI produced."""
+    """The stem pairs it; it keeps ComfyUI's format."""
     name = media.name if media.suffix.lower() == suffix else f"{media.stem}{suffix}"
     return staging_dir(media.parent) / name
 
@@ -93,14 +93,14 @@ def validate_candidate_destination(media: Path, destination: Path) -> None:
 
 
 def discard_stale_candidate(media: Path, keeping: Path) -> None:
-    """Drop candidates this source could also claim; a re-run into a new container would leave two."""
+    """A re-run into a new container would leave two."""
     staging = staging_dir(media.parent)
 
     for suffix in COMFY_CANDIDATE_SUFFIXES:
         stale = staging / f"{media.stem}{suffix}"
         if stale == keeping or not stale.is_file():
             continue
-        # The sibling guard never applies to our own name: that candidate is this file's by exact match.
+        # That candidate is this file's by exact match.
         if stale.name != media.name and (media.parent / stale.name).exists():
             continue
         _discard_candidate(stale)
@@ -182,7 +182,7 @@ def describe_candidate_state(media: Path) -> ComfyCandidateStateResponse:
 
 
 def _migrate_finding_sidecars(media: Path, target: Path) -> None:
-    """Move the whole-filename findings onto the new name; the stem-based caption already matches."""
+    """The stem's caption already matches."""
     for source_finding, target_finding in (
         (issue_file_path(media), issue_file_path(target)),
         (duplicate_file_path(media), duplicate_file_path(target)),
@@ -206,7 +206,7 @@ def _discard_candidate(candidate: Path) -> None:
 
 
 def _discard_edit(media: Path) -> None:
-    """Drop the edit state so the candidate becomes the new base. Recycled, never hard-deleted."""
+    """Drop the edit state so the candidate becomes the new base; recycled, never deleted."""
     try:
         discard_edit_state(media)
     except OSError as error:
@@ -216,25 +216,17 @@ def _discard_edit(media: Path) -> None:
 def accept_candidate(
     media: Path, *, discard_edit: bool = False, keep_metadata: bool = False
 ) -> ComfyCandidateResponse:
-    """Publish the candidate in its own format, replacing the source whatever the source's extension.
-
-    With ``keep_metadata`` the source's metadata replaces what ComfyUI wrote; a failure to carry
-    it over refuses the accept rather than publishing without it.
-
-    Refused while a ``.bak`` exists unless ``discard_edit``: the editors render every change from
-    that file, so publishing over it would have the next edit silently render from pre-ComfyUI
-    pixels and throw the accepted pass away.
-    """
+    """Refused while a ``.bak`` exists unless ``discard_edit``: edits render from that file."""
     candidate = candidate_path_for(media)
     if candidate is None:
         raise NoCandidateError(NO_CANDIDATE_MESSAGE)
 
-    # The published file keeps the candidate's format (ComfyUI writes PNG), not the source's.
+    # ComfyUI writes PNG; the published file keeps that format.
     target = media.with_suffix(candidate.suffix)
 
-    # The target too: a sweep must treat its temp file as in use.
+    # A sweep must treat its temp file as in use.
     with claim([media, target], "settle"):
-        # Inside the claim: a render could otherwise create the backup right after the check.
+        # Inside the claim, so no render creates the backup after the check.
         if backup_path_for(media).is_file() and not discard_edit:
             raise ValueError(EDITED_MESSAGE)
         validate_candidate_destination(media, candidate)
@@ -247,7 +239,7 @@ def accept_candidate(
                 write_with_source_metadata(media, candidate, temp_path)
             else:
                 shutil.copy2(candidate, temp_path)
-            # Only once the replacement is ready: a failure before here keeps the edit record.
+            # A failure before here keeps the edit record.
             if discard_edit:
                 _discard_edit(media)
             publish_replacing(temp_path, target, stale_path_for(target))
@@ -266,7 +258,7 @@ def accept_candidate(
 
 
 def reject_candidate(media: Path) -> ComfyCandidateResponse:
-    """Discard the staged candidate. The source may already be gone."""
+    """The source may already be gone."""
     candidate = candidate_path_for(media)
     if candidate is None:
         raise NoCandidateError(NO_CANDIDATE_MESSAGE)

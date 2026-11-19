@@ -35,7 +35,7 @@ function renderSelect(props: Partial<Parameters<typeof DialogSelect<string>>[0]>
 
 describe("DialogSelect", () => {
   it("opens the dropdown when the click lands on the wrap's padding", () => {
-    // The wrap's padding keeps the UA arrow off the border, and used to swallow these clicks.
+    // The wrap's padding keeps the UA arrow off the border; clicks on it must still open.
     const { select, showPicker, wrap } = renderSelect();
 
     fireEvent.mouseDown(wrap);

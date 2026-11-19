@@ -18,7 +18,7 @@ from ui_settings import UI_SETTINGS_KEY, load_tagging_switch, tagging_enabled
 
 class UiPreferencesEndpointTests(unittest.TestCase):
     def tearDown(self) -> None:
-        # Reset to clean defaults for isolation from other tests
+        # Reset to clean defaults for isolation.
         with get_connection() as conn:
             conn.execute("DELETE FROM preferences WHERE key = ?", (UI_SETTINGS_KEY,))
             conn.commit()
@@ -294,7 +294,7 @@ class GalleryDisplayPreferencesEndpointTests(unittest.TestCase):
         read_b = client.get(f"/api/preferences/gallery-display?path={quote(folder_b)}")
         self.assertEqual(read_b.json()["mode"], "small")
 
-        # A folder nobody has chosen a mode for keeps the default.
+        # Unset folders keep the default.
         read_c = client.get(f"/api/preferences/gallery-display?path={quote(r'C:\Photos\C')}")
         self.assertEqual(read_c.json()["mode"], "large")
 
@@ -327,7 +327,7 @@ class GalleryDisplayPreferencesEndpointTests(unittest.TestCase):
                 (GALLERY_DISPLAY_SETTINGS_KEY,),
             ).fetchone()
 
-        # The default is what an absent key means, so it must not be written back.
+        # An absent key means the default.
         stored = json.loads(row[0])
         self.assertEqual(stored["mode_by_folder"], {})
 
@@ -378,7 +378,7 @@ class AutomationPreferencesEndpointTests(unittest.TestCase):
         )
 
     def test_there_is_no_write_endpoint(self) -> None:
-        # Settings are stored by the job-start routes, not a separate write.
+        # Stored by the job-start routes.
         response = client.put("/api/preferences/automation", json={})
 
         self.assertEqual(response.status_code, 405)

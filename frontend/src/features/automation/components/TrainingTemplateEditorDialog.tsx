@@ -36,8 +36,7 @@ export function TrainingTemplateEditorDialog({
   const [draft, setDraft] = useState(initialContent);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // The backend runs the same parse the job start does, so a draft that passes
-  // here cannot fail later for a reason the editor never showed.
+  // The backend runs the job start's own parse, so a passing draft cannot fail later.
   const { mutateAsync: checkTemplate, isPending: checking } = useMutation({
     mutationFn: (template: string) => checkTrainingTemplate(template),
   });

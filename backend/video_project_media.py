@@ -1,7 +1,4 @@
-"""Timeline pictures, drawn in tiles: a strip of frames across a stretch of a source, and the
-waveform of a stretch of its sound, one lane per channel. The timeline asks only for the tiles in
-view, at a level of detail that fits its zoom, so a close look shows the stretch it looks at.
-Cached beside the gallery thumbnails, keyed by the file's stat."""
+"""Timeline pictures in tiles: frame strips and per-channel waveforms, cached by stat."""
 
 from __future__ import annotations
 
@@ -141,9 +138,7 @@ def waveform_command(
     width: int,
     height: int = WAVEFORM_HEIGHT,
 ) -> list[str]:
-    """White on clear, like the gallery's: the timeline uses it as a mask and colors it. Mono
-    draws one lane and anything wider two, left above right. A stretch running past the end of
-    the file is padded with silence, so every tile keeps one scale of seconds to pixels."""
+    """White on clear, used as a mask; mono draws one lane, wider two; padded past the end."""
     graph = (
         "[0:a:0]aformat=channel_layouts=mono|stereo,"
         f"atrim=duration={duration:.6f},apad=whole_dur={duration:.6f},"

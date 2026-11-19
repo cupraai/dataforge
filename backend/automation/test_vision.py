@@ -58,10 +58,10 @@ from testing_fixtures import (
 
 
 class RetryReencodeWorkaroundTests(unittest.TestCase):
-    """A retry must not resend the exact bytes that just failed - see ``retry_jpeg_quality``."""
+    """A retry must not resend the bytes that just failed; see ``retry_jpeg_quality``."""
 
     def test_each_attempt_gets_its_own_quality_starting_from_the_default(self) -> None:
-        # Only retries differ; a first attempt at another quality would change every request.
+        # A first attempt at another quality would change every request.
         qualities = [retry_jpeg_quality(number) for number in range(1, MAX_MODEL_ATTEMPTS + 1)]
 
         self.assertEqual(qualities[0], JPEG_QUALITY)
@@ -69,7 +69,6 @@ class RetryReencodeWorkaroundTests(unittest.TestCase):
         self.assertTrue(all(quality > 0 for quality in qualities))
 
     def _sent_images(self, attempt: int) -> list[str]:
-        """The base64 payloads one attempt puts on the wire."""
         client = FakeChatClient("text")
         request_vision_text(
             client,
@@ -83,7 +82,7 @@ class RetryReencodeWorkaroundTests(unittest.TestCase):
         return image_urls(client.last["messages"])
 
     def test_a_retry_sends_different_bytes_than_the_attempt_that_failed(self) -> None:
-        # Byte-identical repeats are short-circuited, so a retry that resends them is not a second attempt.
+        # Byte-identical repeats are short-circuited.
         first = self._sent_images(1)
         second = self._sent_images(2)
 
@@ -92,10 +91,10 @@ class RetryReencodeWorkaroundTests(unittest.TestCase):
 
 
 class LoadImageRgbTests(unittest.TestCase):
-    """The job must not sit on an open handle: on Windows that locks the media."""
+    """An open handle locks the media on Windows."""
 
     def _handles_from(self, path) -> list[object]:
-        """Run ``load_image_rgb``, returning the file objects Pillow opened for it."""
+        """Returns the file objects Pillow opened."""
         opened: list[object] = []
         real_open = Image.open
 
@@ -120,7 +119,7 @@ class LoadImageRgbTests(unittest.TestCase):
                 self.assertTrue(handle is None or handle.closed)
 
     def test_closes_the_file_for_a_multi_frame_image(self) -> None:
-        # Pillow keeps the handle open on multi-frame files; an APNG (plain .png) catches that.
+        # An APNG keeps Pillow's handle open.
         with TempMediaFolder() as root:
             media = root / "animated.png"
             frames = [Image.new("RGB", (32, 32), color=tone) for tone in ("red", "green")]
@@ -144,7 +143,7 @@ class LoadImageRgbTests(unittest.TestCase):
 
 class MediaKindTests(unittest.TestCase):
     def test_stills_and_gifs_are_images_and_clips_are_video(self) -> None:
-        # Gallery still treats a GIF as a gif; only captioning folds it in with stills.
+        # Only captioning treats a GIF as a still.
         cases = {
             "image": ("photo.png", "photo.JPG", "photo.jpeg", "loop.gif", "LOOP.GIF"),
             "video": ("clip.mp4", "CLIP.MOV", "clip.mkv"),
@@ -164,12 +163,12 @@ class KeyframeCountTests(unittest.TestCase):
         self.assertEqual(keyframe_count_for_seconds(20), 42)
 
     def test_a_part_second_counts_as_a_whole_one(self) -> None:
-        # Rounding down would leave the last fraction of a second unsampled.
+        # Rounding down would leave the last fraction unsampled.
         self.assertEqual(keyframe_count_for_seconds(10.0), 22)
         self.assertEqual(keyframe_count_for_seconds(10.4), 24)
 
     def test_a_short_clip_keeps_the_fixed_count(self) -> None:
-        # The formula alone would hand a 1s clip four frames; the floor keeps short clips unchanged.
+        # The floor keeps short clips unchanged.
         for seconds in (0.5, 1, 3):
             self.assertEqual(keyframe_count_for_seconds(seconds), VIDEO_KEYFRAME_COUNT)
 
@@ -177,7 +176,7 @@ class KeyframeCountTests(unittest.TestCase):
         self.assertEqual(keyframe_count_for_seconds(6.0), 14)
 
     def test_a_long_clip_stops_at_the_cap(self) -> None:
-        # Uncapped frames are inlined (and retried); 2 * 20s + 2 is the cap.
+        # 2 * 20s + 2 is the cap.
         self.assertEqual(keyframe_count_for_seconds(20), SETTING_DEFAULTS.video_max_keyframes)
         self.assertEqual(keyframe_count_for_seconds(31), SETTING_DEFAULTS.video_max_keyframes)
         for seconds in (32, 60, 300):
@@ -191,7 +190,7 @@ class KeyframeCountTests(unittest.TestCase):
 
 
 class FrameBudgetEnvTests(unittest.TestCase):
-    """The sampling schedule is configurable, and every knob is read per call."""
+    """Every knob is read per call."""
 
     def test_a_higher_rate_samples_a_clip_more_densely(self) -> None:
         with patch.dict(os.environ, {"VIDEO_KEYFRAMES_PER_SECOND": "4"}):
@@ -208,12 +207,12 @@ class FrameBudgetEnvTests(unittest.TestCase):
             self.assertEqual(keyframe_count_for_seconds(1), VIDEO_KEYFRAME_COUNT)
 
     def test_a_lowered_cap_wins_over_the_floor(self) -> None:
-        # The cap keeps the request tractable, so it is the last word.
+        # The cap is the last word.
         with patch.dict(os.environ, {"VIDEO_MAX_KEYFRAMES": "8"}):
             self.assertEqual(keyframe_count_for_seconds(1), 8)
 
     def test_a_value_that_would_send_nothing_is_ignored(self) -> None:
-        # A cap of zero comes back as a caption of nothing rather than as an error.
+        # A cap of zero captions nothing rather than erroring.
         for raw in ("0", "-4", "", "   ", "many", "2.5"):
             with patch.dict(os.environ, {"VIDEO_MAX_KEYFRAMES": raw}):
                 self.assertEqual(get_max_video_keyframes(), SETTING_DEFAULTS.video_max_keyframes)
@@ -242,13 +241,13 @@ class FrameBudgetEnvTests(unittest.TestCase):
             self.assertEqual(media_kind_max_pixels("video"), 262_144)
 
     def test_the_two_budgets_are_independent(self) -> None:
-        # Setting the video knob must not drag the still one down with it.
+        # The video knob must not drag the still one down.
         with patch.dict(os.environ, {"VIDEO_FRAME_MAX_PIXELS": "262144"}):
             self.assertEqual(media_kind_max_pixels("image"), SETTING_DEFAULTS.image_max_pixels)
 
 
 class VideoFramePixelScaleTests(unittest.TestCase):
-    """Per-frame size shrinks between 7s and 20s so a long clip still fits one request."""
+    """Per-frame size shrinks between 7s and 20s."""
 
     def test_a_short_clip_keeps_the_full_budget(self) -> None:
         for seconds in (None, 0.5, 7.0, VIDEO_FRAME_SCALE_START_SECONDS):
@@ -331,7 +330,7 @@ class VideoFramePixelScaleTests(unittest.TestCase):
 
 
 class ResizeForQwenShapeTests(unittest.TestCase):
-    """The side floor may outgrow the budget, but never by stretching one side alone."""
+    """Never by stretching one side alone."""
 
     def _resized(self, width: int, height: int, max_pixels: int) -> tuple[int, int]:
         return resize_for_qwen(Image.new("RGB", (width, height)), max_pixels=max_pixels).size
@@ -365,11 +364,11 @@ class KeyframeSentenceTests(unittest.TestCase):
 
     def test_a_lone_frame_is_singular(self) -> None:
         self.assertIn("a single frame", keyframe_sentence(1).lower())
-        # A still carries no span even if one were offered.
+        # A still carries no span.
         self.assertIn("a single frame", keyframe_sentence(1, 4.0).lower())
 
     def test_an_unknown_span_reads_exactly_as_it_did_before_timestamps(self) -> None:
-        """The streamed-video and delay-less-GIF paths must not shift under them."""
+        """The streamed-video and delay-less-GIF paths must not shift."""
         self.assertEqual(
             keyframe_sentence(5),
             "You are given 5 keyframes in chronological order. "
@@ -381,12 +380,12 @@ class KeyframeSentenceTests(unittest.TestCase):
 
         self.assertIn("18 keyframes", sentence)
         self.assertIn("8.0 seconds", sentence)
-        # The markers between the frames are otherwise unexplained tokens.
+        # Otherwise unexplained tokens.
         self.assertIn("labelled with its timestamp", sentence)
 
 
 class VisionMessagesTests(unittest.TestCase):
-    """The request envelope, which is the contract with the model server."""
+    """The contract with the model server."""
 
     def test_frames_come_first_and_the_instruction_last(self) -> None:
         messages = vision_messages("Sys", ["aaa", "bbb"], "Caption it.")
@@ -404,14 +403,13 @@ class VisionMessagesTests(unittest.TestCase):
         self.assertEqual(messages[1]["content"][-1]["text"], "Caption it.")
 
     def test_no_audio_leaves_the_request_exactly_as_it_was(self) -> None:
-        """Every caller but an audio auto-caption relies on this staying unchanged."""
         baseline = vision_messages("Sys", ["aaa"], "Caption it.")
 
         self.assertEqual(vision_messages("Sys", ["aaa"], "Caption it.", audio_wav=None), baseline)
         self.assertEqual(vision_messages("Sys", ["aaa"], "Caption it.", audio_wav=b""), baseline)
 
     def test_a_timestamp_precedes_every_frame(self) -> None:
-        # Spelling and one decimal place are the Qwen3-VL contract, not a style choice.
+        # Spelling and one decimal place are the Qwen3-VL contract.
         messages = vision_messages("Sys", ["aaa", "bbb"], "Caption it.", timestamps=[0.0, 3.26])
 
         parts = messages[1]["content"]
@@ -424,14 +422,13 @@ class VisionMessagesTests(unittest.TestCase):
         self.assertEqual(parts[-1]["text"], "Caption it.")
 
     def test_no_timestamps_leaves_the_request_exactly_as_it_was(self) -> None:
-        """Stills, streamed clips and delay-less GIFs all stay on the old envelope."""
         baseline = vision_messages("Sys", ["aaa"], "Caption it.")
 
         self.assertEqual(vision_messages("Sys", ["aaa"], "Caption it.", timestamps=None), baseline)
         self.assertEqual(vision_messages("Sys", ["aaa"], "Caption it.", timestamps=[]), baseline)
 
     def test_a_timestamp_per_frame_mismatch_labels_nothing(self) -> None:
-        # Half-labelled frames would attach each timestamp to the wrong frame.
+        # Half-labelled frames would mislabel every frame.
         baseline = vision_messages("Sys", ["aaa", "bbb"], "Caption it.")
 
         self.assertEqual(
@@ -471,18 +468,18 @@ class VisionMessagesTests(unittest.TestCase):
 
 
 class LoadMediaImagesTests(unittest.TestCase):
-    """``status`` is the job counter the file lands in, so its value is the contract."""
+    """``status`` is the job counter, so its value is the contract."""
 
     def test_a_still_loads_as_one_frame(self) -> None:
         with TempMediaFolder() as root:
             frames = load_media_images(write_media(root, "photo.png"))
             assert isinstance(frames, MediaFrames)
             self.assertEqual(len(frames.images), 1)
-            # One frame has no timeline to place it on, so the request stays unlabelled.
+            # One frame has no timeline, so the request stays unlabelled.
             self.assertIsNone(frames.timestamps)
 
     def test_an_unreadable_still_reports_read_error_with_a_message(self) -> None:
-        # Jobs surface this message as the file's result, so a read_error without one says nothing.
+        # A read_error without a message says nothing.
         with TempMediaFolder() as root:
             broken = root / "broken.png"
             broken.write_bytes(b"not an image")
@@ -497,11 +494,10 @@ class LoadMediaImagesTests(unittest.TestCase):
             frames = load_media_images(write_gif(root, "loop.gif", frames=8))
             assert isinstance(frames, MediaFrames)
             self.assertEqual(len(frames.images), 1)
-            # One frame is a still, and a still has no timeline to label it against.
             self.assertIsNone(frames.timestamps)
 
     def test_a_gif_loads_without_opencv(self) -> None:
-        # cv2 reports a frame count of zero for many GIFs, so it never sees one.
+        # cv2 reports zero frames for many GIFs.
         def explode(_path: str) -> None:
             raise AssertionError("OpenCV must not be used to read a GIF")
 
@@ -516,7 +512,7 @@ class LoadMediaImagesTests(unittest.TestCase):
         self.assertEqual(len(frames.images), 1)
 
     def test_an_unreadable_gif_reports_read_error(self) -> None:
-        # GIFs take the still path, so they land with stills rather than the frame extractor.
+        # GIFs take the still path, not the frame extractor.
         with TempMediaFolder() as root:
             broken = root / "broken.gif"
             broken.write_bytes(b"not a gif")
@@ -527,7 +523,6 @@ class LoadMediaImagesTests(unittest.TestCase):
             self.assertTrue(error.message)
 
     def test_undecodable_motion_reports_frame_error_without_a_message(self) -> None:
-        # The extractor logs the reason; the user gets the count.
         with TempMediaFolder() as root:
             broken = root / "broken.mp4"
             broken.write_bytes(b"not a video")
@@ -552,11 +547,11 @@ class ExtractVideoKeyframesTests(unittest.TestCase):
         self.assertIsNone(extracted)
 
     def test_extract_video_keyframes_releases_a_capture_that_never_opened(self) -> None:
-        # An unreleased capture holds the .mp4 open on Windows and locks it.
+        # An unreleased capture locks the .mp4 on Windows.
         released: list[bool] = []
 
         class FakeCapture:
-            def isOpened(self) -> bool:  # mirrors the cv2 API
+            def isOpened(self) -> bool:
                 return False
 
             def release(self) -> None:
@@ -573,7 +568,7 @@ class ExtractVideoKeyframesTests(unittest.TestCase):
         self.assertEqual(released, [True])
 
 
-# The real cv2 values, so a capture that is handed the wrong one is still recognisable.
+# The real cv2 values.
 FAKE_CAP_PROP_POS_MSEC = 0
 FAKE_CAP_PROP_POS_FRAMES = 1
 FAKE_CAP_PROP_FPS = 5
@@ -581,7 +576,7 @@ FAKE_CAP_PROP_FRAME_COUNT = 7
 
 
 class FakeCapture:
-    """A capture whose frames are solid greys, so a frame's index is readable back."""
+    """Solid greys, so a frame's index reads back."""
 
     def __init__(
         self,
@@ -617,7 +612,7 @@ class FakeCapture:
     def read(self):
         if self.position >= self.decodable:
             return False, None
-        # cvtColor is identity, so the shade is the frame index; keep it under 256 for uint8.
+        # The shade is the frame index; keep it under 256.
         frame = numpy.full((self.height, self.width, 3), self.position, dtype=numpy.uint8)
         self.position += 1
         return True, frame
@@ -643,7 +638,6 @@ def _fake_cv2_for(capture: FakeCapture):
 
 
 def _shades(frames) -> list[int]:
-    """The source index of every extracted frame, in order."""
     return [frame.getpixel((0, 0))[0] for frame in frames.images]
 
 
@@ -655,7 +649,7 @@ def _extract_from(capture: FakeCapture, count: int | None):
 
 
 class VariableFrameRateTimestampTests(unittest.TestCase):
-    """Frame labels are presentation times; index / average fps is wrong once the rate varies."""
+    """index / average fps is wrong once the rate varies."""
 
     def test_labels_are_each_frames_own_time(self) -> None:
         with TempMediaFolder() as root:
@@ -689,16 +683,16 @@ class VariableFrameRateTimestampTests(unittest.TestCase):
             frames = extract_video_keyframes(clip, count=3)
 
         assert frames is not None and frames.timestamps is not None
-        # Frames 0, 10 and 18: the last reported frame does not decode, so the walk-back finds 18.
+        # The last reported frame does not decode, so the walk-back finds 18.
         for label, expected in zip(frames.timestamps, (0.0, 1.0, 5.0), strict=True):
             self.assertAlmostEqual(label, expected, places=2)
 
 
 class VideoKeyframeSpanTests(unittest.TestCase):
-    """The clip's opening and closing frames both have to reach the model."""
+    """Opening and closing frames both reach the model."""
 
     def _extract(self, capture: FakeCapture, count: int | None = VIDEO_KEYFRAME_COUNT):
-        """Pins the count these cases were written around; production passes ``None``."""
+        """Production passes ``None``."""
         return _extract_from(capture, count)
 
     def test_spans_the_whole_clip(self) -> None:
@@ -712,7 +706,7 @@ class VideoKeyframeSpanTests(unittest.TestCase):
         self.assertEqual(shades, sorted(shades))
 
     def test_reaches_the_last_frame_when_the_reported_count_overshoots(self) -> None:
-        # Seeking to the reported end fails; closing frames used to be dropped silently.
+        # Seeking to the reported end fails.
         frames = self._extract(FakeCapture(decodable=100, reported=112))
 
         assert frames is not None
@@ -723,11 +717,11 @@ class VideoKeyframeSpanTests(unittest.TestCase):
         frames = self._extract(capture)
 
         assert frames is not None
-        # No closing frame is reachable within the walk, so return what was captured.
+        # No closing frame within the walk.
         self.assertLessEqual(len(capture.seeks), VIDEO_KEYFRAME_COUNT + TAIL_SEEK_LIMIT)
 
     def test_reaches_the_last_frame_when_the_container_reports_no_count(self) -> None:
-        # Reported 0 cannot be seeked; used to return opening frames only.
+        # Reported 0 cannot be seeked.
         frames = self._extract(FakeCapture(decodable=250, reported=0))
 
         assert frames is not None
@@ -738,7 +732,7 @@ class VideoKeyframeSpanTests(unittest.TestCase):
         self.assertLessEqual(len(shades), VIDEO_KEYFRAME_COUNT)
 
     def test_a_short_clip_yields_each_frame_once(self) -> None:
-        # Padding five frames out to twelve would make the keyframe sentence claim twelve.
+        # Padding would make the keyframe sentence claim twelve.
         frames = self._extract(FakeCapture(decodable=5))
 
         assert frames is not None
@@ -756,8 +750,6 @@ class VideoKeyframeSpanTests(unittest.TestCase):
 
 
 class AdaptiveKeyframeCountTests(unittest.TestCase):
-    """How many frames a clip yields when nobody names a count."""
-
     def _extract(self, capture: FakeCapture, count: int | None = None):
         return _extract_from(capture, count)
 
@@ -766,21 +758,21 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
 
         assert frames is not None
         shades = _shades(frames)
-        # Eight seconds: two a second plus both endpoints.
+        # Two a second plus both endpoints.
         self.assertEqual(len(shades), 18)
         self.assertEqual(shades[0], 0)
         self.assertEqual(shades[-1], 239)
         self.assertEqual(shades, sorted(shades))
 
     def test_a_short_clip_is_not_sampled_more_thinly_than_the_floor(self) -> None:
-        # Two seconds is six frames; the floor keeps a brief clip from being sampled thinner than eight.
+        # The floor keeps a brief clip at eight.
         frames = self._extract(FakeCapture(decodable=120, fps=60))
 
         assert frames is not None
         self.assertEqual(len(frames.images), VIDEO_KEYFRAME_COUNT)
 
     def test_a_very_long_clip_stops_at_the_cap_and_still_ends_on_its_last_frame(self) -> None:
-        # Fifty seconds asks for 102 inlined frames; the closing frame has to survive the clamp.
+        # 102 frames; the closing one must survive the clamp.
         capture = FakeCapture(decodable=250, fps=5)
         frames = self._extract(capture)
 
@@ -798,7 +790,7 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
         self.assertEqual(len(frames.images), VIDEO_KEYFRAME_COUNT)
 
     def test_a_frame_rate_that_cannot_be_trusted_falls_back_to_the_fixed_count(self) -> None:
-        # 90000 is an MPEG timescale reported as fps, which would last a fraction of a second.
+        # 90000 is an MPEG timescale reported as fps.
         for fps in (0.0, -30.0, float("nan"), 90_000.0):
             with self.subTest(fps=fps):
                 frames = self._extract(FakeCapture(decodable=240, fps=fps))
@@ -816,14 +808,14 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
         )
 
     def test_a_clip_that_reports_no_frame_count_keeps_the_fixed_count(self) -> None:
-        # Streamed decode holds frames during the pass, so this path stays on the smaller budget.
+        # Streamed decode stays on the smaller budget.
         frames = self._extract(FakeCapture(decodable=250, reported=0, fps=30))
 
         assert frames is not None
         self.assertLessEqual(len(frames.images), VIDEO_KEYFRAME_COUNT)
 
     def test_frames_carry_the_second_they_were_taken_at(self) -> None:
-        # Labels come from the indices the sampler landed on, even when the tail walk moves one.
+        # Labels follow the indices the sampler landed on.
         frames = self._extract(FakeCapture(decodable=240, fps=30))
 
         assert frames is not None
@@ -835,7 +827,7 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
         self.assertEqual(timestamps, sorted(timestamps))
 
     def test_a_clip_with_no_usable_frame_rate_carries_no_timestamps(self) -> None:
-        # Do not label frames from a rate that was rejected.
+        # No labels from a rejected rate.
         for fps in (0.0, -30.0, float("nan"), 90_000.0):
             with self.subTest(fps=fps):
                 frames = self._extract(FakeCapture(decodable=240, fps=fps))
@@ -844,14 +836,14 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
                 self.assertIsNone(frames.timestamps)
 
     def test_a_streamed_clip_carries_no_timestamps(self) -> None:
-        # The halving stride breaks position-in-list vs position-in-clip, so any label is a guess.
+        # The halving stride makes any label a guess.
         frames = self._extract(FakeCapture(decodable=250, reported=0, fps=30))
 
         assert frames is not None
         self.assertIsNone(frames.timestamps)
 
     def test_frames_come_back_within_the_multi_frame_pixel_budget(self) -> None:
-        # Frames sit in memory for the whole model call, so they are capped as they are read.
+        # Frames are held for the whole model call, so they are capped as read.
         frames = self._extract(FakeCapture(decodable=3, width=1200, height=1200))
 
         assert frames is not None
@@ -859,11 +851,11 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
             self.assertLessEqual(
                 frame.width * frame.height, SETTING_DEFAULTS.video_frame_max_pixels
             )
-        # A solid frame survives the resize, so its index is still readable back.
+        # A solid frame survives the resize.
         self.assertEqual(_shades(frames), [0, 1, 2])
 
     def test_a_configured_pixel_budget_reaches_the_decoded_frames(self) -> None:
-        # Bound at import, frames come out at the old size. Raised because the floor swallows a lower one.
+        # Bound at import, frames come out at the default size.
         budget = SETTING_DEFAULTS.video_frame_min_pixels * 4
         with patch.dict(os.environ, {"VIDEO_FRAME_MAX_PIXELS": str(budget)}):
             frames = self._extract(FakeCapture(decodable=3, width=4000, height=4000))
@@ -874,7 +866,7 @@ class AdaptiveKeyframeCountTests(unittest.TestCase):
             self.assertGreater(frame.width * frame.height, SETTING_DEFAULTS.video_frame_max_pixels)
 
     def test_a_budget_under_the_resize_floor_cannot_shrink_a_frame(self) -> None:
-        # Below the floor the knob buys no frames; the short side holds and the shape is kept.
+        # Below the floor the knob buys nothing.
         with patch.dict(os.environ, {"VIDEO_FRAME_MAX_PIXELS": "125000"}):
             frames = self._extract(FakeCapture(decodable=1, width=1920, height=1080))
 

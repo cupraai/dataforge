@@ -24,8 +24,7 @@ export function JobTypeFilterMenu({ value, onChange }: JobTypeFilterMenuProps) {
   const { open, close, rootRef, triggerProps } = menu;
   const summary = summaryFor(value);
 
-  // The drawer closes on a window-level Escape too; stopping it here closes only the menu.
-  // Portalled panel events still bubble through this element in the React tree.
+  // Stopped here so Escape closes only the menu, not the drawer.
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!open || event.key !== "Escape") return;
     event.preventDefault();

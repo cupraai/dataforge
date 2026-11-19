@@ -23,10 +23,7 @@ export interface ToolbarRowWidths {
   gap: number;
 }
 
-/**
- * Judged on the full labels whatever the current mode, so hiding them cannot make the row fit
- * and then show them again.
- */
+/** Judged on full labels, so hiding them cannot flip-flop. */
 export function toolbarNeedsCompact(widths: ToolbarRowWidths, compact: boolean): boolean {
   const actions = compact ? widths.actions + widths.labels : widths.actions;
   const items = [widths.stats, actions, widths.controls].filter((width) => width > 0);

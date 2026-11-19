@@ -1,4 +1,4 @@
-"""HTTP errors the client tells apart by ``code`` instead of by reading the message."""
+"""HTTP errors the client tells apart by ``code``."""
 
 from __future__ import annotations
 
@@ -15,10 +15,7 @@ class ApiError(HTTPException):
 
 
 class ConflictError(Exception):
-    """A domain refusal the client can resolve; answered as a 409 with ``code`` by one handler.
-
-    Domain modules raise it without knowing about HTTP, and jobs catch it like any other error.
-    """
+    """A domain refusal the client can resolve; answered as a 409 with ``code``."""
 
     code: ApiErrorCode
 

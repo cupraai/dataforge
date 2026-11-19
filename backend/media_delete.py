@@ -1,9 +1,4 @@
-"""Deleting a media file together with every file tied to it by name.
-
-The media is the operation: if it cannot be deleted nothing is. A related file that cannot be
-deleted after it is reported as retained rather than failing the whole request, because the media
-is already gone; :func:`delete_leftovers` retries those once whatever held them lets go.
-"""
+"""Delete a media file and its related files; leftovers are reported, not fatal."""
 
 from __future__ import annotations
 
@@ -17,11 +12,11 @@ from media_group import media_group_paths, shared_stem_paths
 
 
 class MediaReappearedError(ValueError):
-    """Raised when a cleanup finds the media back: its related files belong to it again."""
+    """The media is back, so its related files belong to it again."""
 
 
 def _publish_leftovers(media: Path) -> list[Path]:
-    """A failed publish's stale copy; a later folder sweep would move it back onto the name."""
+    """A later sweep would move it back onto the name."""
     stale = (
         media.with_name(f"{media.name}{suffix}")
         for suffix in (EDIT_STALE_SUFFIX, COMFY_STALE_SUFFIX)
@@ -42,14 +37,14 @@ def _delete_each(paths: list[Path]) -> tuple[list[Path], list[dict[str, str]]]:
 
 
 def _owned_paths(media: Path) -> set[str]:
-    """Files tied to ``media`` by name and not shared with a same-stem sibling, normcased."""
+    """Not shared with a same-stem sibling; normcased."""
     owned = {os.path.normcase(path) for path in media_group_paths(media)[1:]}
     owned |= {os.path.normcase(path) for path in _publish_leftovers(media)}
     return owned - {os.path.normcase(path) for path in shared_stem_paths(media)}
 
 
 def delete_media_with_sidecars(file_path: Path) -> dict[str, object]:
-    # Listed before the media goes: the candidate is found by pairing against the file itself.
+    # The candidate is found by pairing against the file itself.
     group = media_group_paths(file_path)
     with claim(group, "delete"):
         media, *related = group
@@ -64,7 +59,7 @@ def delete_media_with_sidecars(file_path: Path) -> dict[str, object]:
             [path for path in related if path not in shared] + _publish_leftovers(file_path)
         )
 
-    # Full paths, media first: what an undo hands back to `restore_media_with_sidecars`.
+    # Media first, as `restore_media_with_sidecars` takes them.
     recycled = [str(path) for path in (file_path, *deleted)] if deletes_to_trash() else []
     return {
         "path": str(file_path),
@@ -75,11 +70,7 @@ def delete_media_with_sidecars(file_path: Path) -> dict[str, object]:
 
 
 def delete_leftovers(media: Path, paths: list[Path]) -> dict[str, object]:
-    """Retry deleting files a deleted ``media`` left behind.
-
-    Only files still tied to ``media`` by name and not shared with a same-stem sibling qualify, so
-    a stale request cannot delete anything another file owns.
-    """
+    """Retry deleting leftovers still tied to ``media`` and not shared with a sibling."""
     group = media_group_paths(media)
     with claim(group, "delete"):
         if media.exists():
@@ -101,13 +92,7 @@ def delete_leftovers(media: Path, paths: list[Path]) -> dict[str, object]:
 
 
 def restore_media_with_sidecars(media: Path, related: list[Path]) -> dict[str, object]:
-    """Undo a delete: ``media`` back from the Recycle Bin, then whichever of its files came too.
-
-    The media goes first because it decides what belongs to it. Ownership is only knowable once
-    a file is back (the group lists files on disk), so each related file is restored, checked,
-    and returned to the bin if it is not tied to the media by name: a request cannot pull back
-    any other file the bin happens to hold.
-    """
+    """Undo a delete; restored files not tied to ``media`` go back to the bin."""
     restored: list[str] = []
     missing: list[str] = []
     failed: list[dict[str, str]] = []

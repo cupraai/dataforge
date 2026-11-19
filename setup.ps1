@@ -3,18 +3,10 @@
   Downloads a portable Python and Node into this clone and installs every dependency.
 
 .DESCRIPTION
-  No global Python or Node/npm is required. Python comes from the nuget.org zip
-  (the documented CI/layout distribution - not the GUI installer, which needs UAC
-  or a visible wizard). Node comes from the official Windows zip. Both land in
-  .python\ and .node\, then a venv, pip, npm, and the generated frontend types.
-  On x64, a checksum-verified FFmpeg 7.1 build lands in .ffmpeg\: the copy bundled with
-  the Python dependencies is 7.1.0, which predates the 7.1 security fixes.
-
-  The optional background tagger comes last: the PyTorch build for this machine's GPU, its
-  packages, and the tagging model, a few GB the first time. A failure there only warns, since
-  everything else works without it.
-
-  Use this directly, or double-click setup.bat for the same behavior.
+  No global Python or Node is needed: both come from official zips into .python\ and
+  .node\, then the venv, npm packages and generated types. On x64 a verified FFmpeg 7.1
+  lands in .ffmpeg\. The optional tagger comes last; a failure there only warns.
+  Double-click setup.bat for the same.
 
 .PARAMETER SkipTagging
   Leave out the tagging packages and model.
@@ -32,8 +24,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-# Windows PowerShell 5.1 defaults to TLS 1.0. python.org, nuget.org and nodejs.org
-# reject that, so a machine with nothing else installed cannot even download.
+# PowerShell 5.1 defaults to TLS 1.0, which the download hosts reject.
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $ProgressPreference = 'SilentlyContinue'
 

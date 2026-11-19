@@ -88,8 +88,7 @@ function ToolCaption({
   );
 }
 
-/** A control cluster under a visible caption, which also names the group. `grow` takes the
- * row's spare width, for a text field. */
+/** A captioned control cluster; `grow` takes the row's spare width. */
 export function ToolGroup({
   label,
   className,
@@ -248,8 +247,7 @@ export function AspectTools({
   );
 }
 
-/** Scale presets plus W/H fields; `step` is 2 for video, whose encoders want even sizes.
- *  A fit from the Resize job shows as a pressed preset; any scale choice replaces it. */
+/** Scale presets and W/H; `step` 2 for video. A Resize fit shows as a pressed preset. */
 export function SizeTools({
   scale,
   fit,
@@ -382,8 +380,7 @@ interface RenderProgress {
   onCancel: () => void;
 }
 
-/** What stands in for the actions while Apply runs: a `render` with its progress and Cancel,
- * or, without one, a quick save that only says it is under way. */
+/** Stands in for the actions while Apply runs: progress and Cancel, or a quick save notice. */
 export function ApplyProgress({ label, render }: { label: string; render?: RenderProgress }) {
   if (!render) {
     return (

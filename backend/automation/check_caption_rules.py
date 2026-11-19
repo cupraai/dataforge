@@ -1,5 +1,3 @@
-"""Check every caption against the nearest .captionrules file and record the hits as issues."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,7 +41,7 @@ def run_check_caption_rules_job(
     media_files = filter_media_list(list_check_caption_rules_media(folder), selected_paths)
 
     def process(media_path: Path) -> FileOutcome:
-        # Per file, not per caption: each file has its own issue sidecar.
+        # Per file: each file has its own issue sidecar.
         caption, status, revision = load_reference_caption(media_path)
 
         if status == CAPTION_READ_ERROR:
@@ -65,7 +63,7 @@ def run_check_caption_rules_job(
             fields={"description": "; ".join(findings)},
         )
 
-    # ``issues_found`` is a sub-stat of success and must not inflate ``processed``.
+    # A sub-stat of success; it must not inflate ``processed``.
     return run_media_job(
         folder,
         media_files,

@@ -64,8 +64,7 @@ class MediaTypeTests(unittest.TestCase):
         with TempMediaFolder() as root:
             self.assertEqual(get_media_type(write_media(root, "photo.png")), "image")
             self.assertEqual(get_media_type(write_mp4_video(root, "clip.mp4")), "video")
-            # Its own type rather than "video": the frontend picks the element from
-            # this, and a GIF needs an <img>.
+            # Its own type: the frontend picks the element from this, and a GIF needs an <img>.
             self.assertEqual(get_media_type(write_gif(root, "loop.gif")), "gif")
 
     def test_classifies_every_image_format(self) -> None:
@@ -486,8 +485,7 @@ class CaptionCacheTests(unittest.TestCase):
             stat = caption.stat()
 
             first = caption_from_sidecar(caption, stat.st_mtime_ns, stat.st_size)
-            # Rewriting the file without touching the cache key must not be seen:
-            # the cache is only allowed to be stale when the stat signature matches.
+            # The cache may only be stale while the stat signature matches.
             caption.write_text("Second caption.", encoding="utf-8")
             os.utime(caption, ns=(stat.st_mtime_ns, stat.st_mtime_ns))
             second = caption_from_sidecar(caption, stat.st_mtime_ns, stat.st_size)

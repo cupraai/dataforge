@@ -32,10 +32,7 @@ export const folderKeys = {
   recount: (path: string) => ["folder-recount", folderKey(path)] as const,
 };
 
-/**
- * Every re-read asks what changed since the fingerprint already held, so the cached listing
- * is its own diff baseline and only a change the server cannot describe costs a full listing.
- */
+/** Re-reads ask for changes since the held fingerprint; only an opaque change re-lists. */
 async function readFolder(
   queryClient: QueryClient,
   path: string | undefined,
@@ -68,8 +65,7 @@ async function readFolder(
     void queryClient.invalidateQueries({ queryKey: folderInstructionsKey(fresh.path) });
   }
 
-  // A full listing leaves subfolder counts out. A job writing into a subfolder moves its mtime
-  // and forces one; showing the old counts until the recount lands keeps the cards steady.
+  // Full listings omit subfolder counts; the old ones show until the recount lands.
   const { subfolders, carried } = carrySubfolderCounts(held.subfolders, fresh.subfolders);
   if (!carried) return fresh;
   queryClient.setQueryData(folderKeys.recount(fresh.path), fresh.fingerprint);
@@ -100,10 +96,7 @@ export function openFolderQuery(queryClient: QueryClient, path: string | undefin
   });
 }
 
-/**
- * Lists a folder the user is likely to open next, if it is not cached yet. Opening it still
- * re-reads it, which is what registers the watch and the last folder.
- */
+/** Prefetch a likely next folder; opening it still re-reads to register the watch. */
 export async function prefetchFolder(queryClient: QueryClient, path: string): Promise<void> {
   const options = folderQueryOptions(path);
   if (queryClient.getQueryData(options.queryKey)) return;
@@ -117,10 +110,7 @@ export async function prefetchFolder(queryClient: QueryClient, path: string): Pr
     .catch(() => undefined);
 }
 
-/**
- * Asks for the held listing's subfolder counts again. A caption rewritten in place inside a
- * subfolder moves nothing the listing sees, so only the user's cue can catch it.
- */
+/** Re-asks the held listing's subfolder counts; in-place caption edits are only caught on cue. */
 export function oweSubfolderRecount(queryClient: QueryClient, path: string): void {
   const fingerprint = queryClient.getQueryData<FolderResponse>(
     folderKeys.folder(path),
@@ -159,11 +149,7 @@ function mergeSubfolderStats(
   return changed ? { ...folder, subfolders } : folder;
 }
 
-/**
- * Counts for a listing's subfolders, written into that listing. Keyed by fingerprint: counts
- * belong to the listing they were read for, and a newer listing has to ask again. Always
- * stale, so a reload that blanks the counts under the same fingerprint asks again too.
- */
+/** Subfolder counts keyed by fingerprint, so a newer listing asks again; always stale. */
 export function subfolderStatsQueryOptions(path: string, fingerprint: string) {
   return queryOptions({
     queryKey: folderKeys.stats(path, fingerprint),

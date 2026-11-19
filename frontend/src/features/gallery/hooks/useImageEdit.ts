@@ -135,8 +135,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     };
   }, []);
 
-  // Keyed on path alone: has_backup would clear the frame size on apply (load never re-fires),
-  // and applying/cropActive must stay out or they race the previous item / drop handles on next/prev.
+  // Keyed on path alone; has_backup, applying and cropActive would race paging.
   if (useChanged(path)) {
     setSourceWidth(0);
     setSourceHeight(0);
@@ -167,8 +166,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     [clearMaskSelection, sourceRef],
   );
 
-  // Wait for a real size: seeding 0x0 makes aspectIdForCrop answer "free" over a locked rect.
-  // Keyed on path, not the item object, so a folder refresh cannot throw away a draft in progress.
+  // Wait for a real size; keyed on path so a refresh keeps the draft.
   const loadPath = editMode && sized ? path : undefined;
   if (useChanged(loadPath) && loadPath) setStateLoaded(false);
   useEffect(() => {
@@ -308,8 +306,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
       describe: (name: string) => string,
       settle: () => void,
     ) => {
-      // Ref guards: a double click lands before applying has re-rendered the button disabled,
-      // and a shortcut can fire before the saved spec has seeded the draft.
+      // Refs guard a double click and a shortcut before the spec has seeded.
       if (applyingRef.current || !readyRef.current) return;
 
       const { item: currentItem, onEdited } = optionsRef.current;

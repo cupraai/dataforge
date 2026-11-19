@@ -1,4 +1,4 @@
-"""Settings the UI can change without a restart. A saved value outranks the environment, which outranks the default."""
+"""Settings the UI changes without a restart: saved > environment > default."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ APP_SETTINGS_KEY = "app_settings"
 MAX_MODEL_ID_LENGTH = 200
 MAX_API_KEY_LENGTH = 500
 
-# The OpenAI SDK requires some key; local servers check none, so this filler means "not set".
+# Any key satisfies the SDK; local servers check none.
 NO_API_KEY = "EMPTY"
 
 
@@ -37,8 +37,6 @@ class InvalidSettingError(ValueError):
 
 
 class EffectiveSettings(BaseModel):
-    """The values in force; the defaults here are the built-in ones."""
-
     vision_base_url: str = "http://127.0.0.1:8888/v1"
     vision_api_key: str = NO_API_KEY
     vision_model: str = "qwen38"
@@ -57,26 +55,26 @@ class EffectiveSettings(BaseModel):
     instruct_repeat_penalty: float = 1.0
     image_max_pixels: int = 1_500_000
     video_keyframes_per_second: int = 2
-    # Every frame is inlined; 2 * 20s + 2 endpoints is as long as current vision models take.
+    # Every frame is inlined; 2 * 20s + 2 endpoints is what current vision models take.
     video_max_keyframes: int = 42
     video_frame_max_pixels: int = 500_000
-    # Qwen's 512 x 512 floor: below it both sides floor and a 16:9 frame comes out square.
+    # Qwen's 512 x 512 floor: below it a 16:9 frame comes out square.
     video_frame_min_pixels: int = 512 * 512
     comfy_base_url: str = "http://127.0.0.1:9000"
-    # The ComfyUI file names in the Qwen-Image 2.1 release; the int8 ones fit a 24 GB card.
+    # The Qwen-Image 2.1 release's file names; the int8 ones fit a 24 GB card.
     fill_diffusion_model: str = "qwen_image_2.1_int8_convrot.safetensors"
     fill_text_encoder: str = "qwen3vl_8b_int8_convrot.safetensors"
     fill_vae: str = "qwen_image_2.1_vae_bf16.safetensors"
     fill_turbo_lora: str = "qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors"
-    # Within the 25-40 the base model is documented for; Fast keeps the LoRA's own 8.
+    # The base model is documented for 25-40.
     fill_quality_steps: int = 30
-    # Fast keeps CFG 1, which its LoRA was distilled for.
+    # Fast keeps the CFG 1 its LoRA was distilled for.
     fill_quality_cfg: float = 3.0
     ai_toolkit_base_url: str = "http://127.0.0.1:8675"
     thumbnail_cache_max_mb: int = 2048
     job_history_days: int = 30
     notification_history_days: int = 3
-    # Measured on the sample media: wrong guesses mostly score under 0.25.
+    # Wrong guesses mostly score under 0.25.
     tag_min_confidence: float = 0.25
 
 
@@ -187,7 +185,7 @@ _RULES: dict[str, _Rule] = {
     "notification_history_days": _Rule(
         "Notification history", "DATAFORGE_NOTIFICATION_HISTORY_DAYS", _Range(0)
     ),
-    # The floor is the score the tagger stores down to; below it there is nothing left to show.
+    # The tagger stores scores down to this floor.
     "tag_min_confidence": _Rule(
         "Tag confidence", "DATAFORGE_TAG_MIN_CONFIDENCE", _Range(TAG_SCORE_FLOOR, 1)
     ),
@@ -202,7 +200,7 @@ _store: JsonPreference[AppSettingsOverrides] = JsonPreference(
     APP_SETTINGS_KEY, AppSettingsOverrides
 )
 _write_lock = threading.Lock()
-# Getters run per request and per file; a validated snapshot keeps them off the database.
+# A snapshot keeps per-request getters off the database.
 _saved: dict[str, Any] = {}
 
 

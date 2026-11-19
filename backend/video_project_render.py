@@ -1,20 +1,5 @@
-"""One ffmpeg pass that composites a project from its source files.
-
-Layers stack bottom up: the lowest video track first, and within a track later clips above
-earlier ones, which is what makes a dissolve's incoming clip fade in over the outgoing one.
-Every clip is offset onto the timeline with ``setpts`` and overlaid with ``eof_action=pass``, so
-gaps show the project's background. Audio clips are delayed to their place and summed per track, where the track's
-gain and ducking apply, then the tracks are mixed over silence of the full length with the master
-gain, then limited, and normalized first when asked, by the export's audio level setting.
-
-Keyframed properties become expressions of each frame's time (see ``video_project_animation``):
-scale is evaluated per frame and padded to a fixed box, because overlay and rotate expect frames
-of one size, and opacity is set per frame by ``sendcmd``, since ``colorchannelmixer`` takes no
-expression.
-
-Titles and stills are drawn by Pillow into the render's workspace: the preview shows the same
-title image, and a still's EXIF orientation is applied the way the gallery shows it.
-"""
+"""One ffmpeg pass compositing a project from its sources.
+Layers stack bottom up; keyframes become frame-time expressions."""
 
 from __future__ import annotations
 
@@ -95,8 +80,7 @@ def project_orientation(width: int, height: int) -> str:
 
 
 def export_size(project: VideoProject, settings: VideoProjectExportSettings) -> tuple[int, int]:
-    """Source size keeps the project's sides and only swaps or squares them for a different
-    orientation; the presets fix the short side and keep the project's aspect."""
+    """Source size only swaps or squares for orientation; presets fix the short side."""
     orientation = settings.orientation or project_orientation(project.width, project.height)
     long_side = max(project.width, project.height)
     short_side = min(project.width, project.height)
@@ -180,8 +164,7 @@ def audible_tracks(project: VideoProject) -> list[VideoProjectTrack]:
 
 
 def transition_overlaps(project: VideoProject) -> tuple[dict[str, float], dict[str, float]]:
-    """Seconds each clip fades in or out over: a dissolve's incoming picture, and both sides of
-    each sound overlap on an audio track, a dissolve's linked sound among them."""
+    """Seconds each clip fades over: dissolves, and both sides of each sound overlap."""
     clips = {clip.id: clip for clip in project.clips}
     fade_in: dict[str, float] = {}
     fade_out: dict[str, float] = {}
@@ -275,8 +258,7 @@ class RenderPlan:
 
 @dataclass(frozen=True, slots=True)
 class RenderWindow:
-    """What a render composes and which part of it it keeps: ``project`` is drawn for
-    ``head + length`` seconds and the output starts ``head`` seconds in, a whole frame count."""
+    """``project`` is drawn for ``head + length`` seconds; output starts ``head`` in."""
 
     project: VideoProject
     head: float
@@ -288,9 +270,7 @@ class RenderWindow:
 
 
 def render_window(project: VideoProject, span: VideoProjectExportSpan | None) -> RenderWindow:
-    """The whole project, or the clips around ``span`` moved back by whole frames, so the frame
-    grid, fades, keyframes and offsets inside the span stay exactly as the full export has them.
-    Clips just outside it are kept as well, for ducking that ramps in before speech."""
+    """The whole project, or the clips around ``span`` shifted by whole frames."""
     duration = _checked_duration(project)
     if span is None:
         return RenderWindow(project, 0.0, duration)
@@ -420,8 +400,7 @@ def _visual_chain(
     if fade_out > IDENTITY_EPSILON:
         start = max(0.0, clip.duration - fade_out)
         tail.append(f"fade=t=out:st={_seconds(start)}:d={_seconds(fade_out)}:alpha=1")
-    # The layer runs on the project's frame grid here, so the offset is a whole number of
-    # ticks; rounded, because setpts truncates and 26/24 s written to six places is 25.99999.
+    # A whole number of ticks on the frame grid, rounded because setpts truncates.
     tail.append(f"setpts=PTS+round({_seconds(clip.start)}/TB)")
 
     links.append(f"[{input_label}]{','.join(head + tail)}[layer{index}]")
@@ -455,8 +434,7 @@ def is_silent(clip: VideoProjectClip) -> bool:
 
 
 def _eq_filters(clip: VideoProjectClip, index: int, workspace: Path) -> list[str]:
-    """The clip's EQ. The biquads take no expression, so an animated band's gain is sent per
-    frame by ``asendcmd``, which sits right before them."""
+    """Biquads take no expression, so animated gains go through ``asendcmd``."""
     keys = clip.keyframes
     effects = clip.audio_effects.model_copy(
         update={
@@ -604,8 +582,7 @@ def _mix_links(
     workspace: Path,
     sound_source: SoundSource,
 ) -> tuple[list[str], str]:
-    """Every audible clip summed per track, the tracks summed over silence of the full length.
-    Sums are plain, so a gain of 1 everywhere leaves each clip as it is."""
+    """Clips summed per track, tracks summed over silence; plain sums keep unity gain."""
     sources = {source.id: source for source in project.sources}
     overlaps = transition_overlaps(project)
     links = [
@@ -685,9 +662,7 @@ def build_render(
     span: VideoProjectExportSpan | None = None,
     sound_source: SoundSource = plain_sound,
 ) -> RenderPlan:
-    """Write the graph and every layer file into ``workspace``, where ffmpeg must run.
-    ``normalize`` needs ``measured_lufs``, the mix's loudness from ``build_mix_measure`` over the
-    same ``span``."""
+    """Write the graph and layers into ``workspace``; ``normalize`` needs ``measured_lufs``."""
     window = render_window(project, span)
     part, duration = window.project, window.length
     inputs = RenderInputs(arguments=[])
@@ -820,10 +795,7 @@ def build_frame(
     workspace: Path,
     probe_color: ColorProbe,
 ) -> list[str]:
-    """One PNG of the export's picture at ``time``, at the project's size.
-
-    Only clips around that frame are rendered, moved back by whole frames, so the frame grid
-    and each clip's own fades and offsets stay exactly as the export has them."""
+    """One PNG of the export at ``time``, rendering only nearby clips shifted by whole frames."""
     duration = _checked_duration(project)
     rate = project.frame_rate
     index = min(frame_index(time, rate), max(0, math.ceil(duration * rate - 1e-6) - 1))

@@ -22,10 +22,7 @@ export function splitLora(lora: string): { folder: string; name: string; strengt
   return { ...splitPath(match ? match[1] : lora), strength: match ? match[2] : null };
 }
 
-/**
- * What the workflow map's passes are numbered and show in their tooltips. Numbered as the
- * branch's sections are; a single pass has no section, is pass 1, and owns every setting.
- */
+/** Pass numbers as the sections use them; a single pass is pass 1 and owns every setting. */
 export function branchPassInfo(branch: ComfyOutputBranch): {
   passNumbers: Map<string, number>;
   passSettings: Map<string, ComfyParameter[]>;

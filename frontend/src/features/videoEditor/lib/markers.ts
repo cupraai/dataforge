@@ -1,7 +1,4 @@
-/**
- * Named points on the timeline, for beats, lyric lines or shot notes. They are the project's own
- * and stay at their time whatever the clips do; edits that snap also snap to them.
- */
+/** Named timeline points that stay put whatever the clips do; snapping edits snap to them. */
 import type { VideoProjectMarker } from "@/shared/types";
 import { EPSILON, newId, type EditResult, type Project } from "./timeline";
 

@@ -1,6 +1,5 @@
-// jsdom has no AnimationEvent, and react-dom picks its animation event names when it loads:
-// without one it listens for `webkitAnimationEnd`, which `fireEvent.animationEnd` never sends.
-// Import this before anything that loads react-dom.
+// jsdom lacks AnimationEvent, so react-dom would listen for `webkitAnimationEnd`.
+// Import before anything that loads react-dom.
 class AnimationEventPolyfill extends Event {
   readonly animationName: string;
   readonly elapsedTime: number;

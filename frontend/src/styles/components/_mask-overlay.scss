@@ -69,7 +69,7 @@ $remove-size: 1.125rem;
     font-size: var(--text-3xs);
     font-weight: var(--font-semibold);
     letter-spacing: 0.02em;
-    // Stated rather than inherited: a host that collapses line-height leaves the background behind nothing but padding.
+    // Stated, not inherited: a host that collapses line-height leaves the background around padding.
     line-height: normal;
     white-space: nowrap;
     pointer-events: none;

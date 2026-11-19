@@ -125,8 +125,7 @@ function ffmpegVersion(): string {
 
 function stillVideo(name: string): string {
   const ffmpeg = ffmpegPath();
-  // Still content, so whichever frame each side lands on shows the same picture. Limited range,
-  // like nearly every camera file: headless Chromium reads a full-range stream as limited.
+  // Still content, so either frame shows the same picture; limited range, as cameras write.
   execFileSync(ffmpeg, [
     "-v",
     "error",

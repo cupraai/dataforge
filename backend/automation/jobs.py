@@ -1,10 +1,4 @@
-"""Background jobs with SQLite-backed progress tracking.
-
-Each folder runs one job at a time; a job started while another is active for the folder waits in
-that folder's queue and starts when the one before it completes. A job that fails, is cancelled,
-is interrupted or leaves failed files cancels everything queued behind it, since later steps
-usually build on its output. Different folders run side by side.
-"""
+"""Background jobs: one per folder at a time, the rest queued; a bad finish cancels the queue."""
 
 from __future__ import annotations
 
@@ -103,11 +97,11 @@ from schemas import AutomationMode, JobEvent, JobHistoryStatus, JobsRemovedEvent
 
 ACTIVE_STATUSES = frozenset({"queued", "running"})
 
-# Derived from the aliases rather than restated, so a new status cannot be valid in one place only.
+# Derived, so a new status cannot be valid in one place only.
 JOB_STATUSES: tuple[JobStatus, ...] = get_args(JobStatus.__value__)
 JOB_TYPES: tuple[JobType, ...] = get_args(JobType.__value__)
 
-# Mid-run frames are stored and pushed at most this often; a status change always goes out.
+# Mid-run frames go out at most this often; a status change always goes out.
 JOB_EVENT_MIN_INTERVAL_SECONDS = 0.25
 
 
@@ -136,7 +130,7 @@ def _stored_workflow_run(data: dict[str, object]) -> dict[str, object] | None:
 
 def _stored_literal[T: str](data: dict[str, object], key: str, allowed: tuple[T, ...]) -> T:
     value = data.get(key)
-    # Returns the member itself: a comparison narrows nothing, so `value` stays a plain str.
+    # A comparison narrows nothing, so `value` stays a plain str.
     for option in allowed:
         if value == option:
             return option
@@ -159,23 +153,23 @@ class Job:
     created_at: str = field(default_factory=_utc_now)
     started_at: str | None = None
     finished_at: str | None = None
-    #: Legacy field name for the model mode recorded by caption-writing jobs.
+    #: The model mode of any caption-writing job, despite the name.
     auto_caption_mode: str | None = None
     external_ref: str | None = None
-    #: The ComfyUI preset or training model the run used; null for types without one.
+    #: The ComfyUI preset or training model the run used.
     workflow: str | None = None
-    #: A training run started from an edited template rather than the shipped one.
+    #: Started from an edited template.
     workflow_edited: bool = False
-    #: Stamped on every change, so a client can tell which of two copies is newer.
+    #: Stamped on every change, so a client can tell which copy is newer.
     revision: int = 0
-    #: Its caption writes can still be taken back; computed by the store, never a column.
+    #: Its caption writes can still be undone; computed, never a column.
     undoable: bool = False
-    #: ``WorkflowRunTag`` fields when the job is a step of a workflow run.
+    #: ``WorkflowRunTag`` fields when the job is a workflow step.
     workflow_run: dict[str, object] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> Job:
-        """Rebuild a job from its stored row; a column of the wrong shape falls back to its default."""
+        """A column of the wrong shape takes its default."""
         stats = data.get("stats") or {}
         results = data.get("results") or []
         return cls(
@@ -203,7 +197,6 @@ class Job:
         )
 
     def to_summary_dict(self) -> dict[str, object]:
-        """Everything about the job except its per-file results."""
         return {
             "id": self.id,
             "folder": self.folder,
@@ -229,12 +222,11 @@ class Job:
         }
 
     def to_dict(self) -> dict[str, object]:
-        """The persistence shape: the summary plus the per-file results."""
         return {**self.to_summary_dict(), "results": self.results}
 
 
 def _folder_only(validate: Callable[[Path], None]) -> Callable[..., None]:
-    """Adapt a plain folder validator to the ``(folder, **params)`` spec signature."""
+    """Adapt a folder validator to the ``(folder, **params)`` spec signature."""
 
     def validate_folder(folder: Path, **_params: object) -> None:
         validate(folder)
@@ -352,7 +344,6 @@ def _comfy_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
 
 
 def _comfy_generate_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
-    """A file's own workflow is named by the file it came from."""
     source = _comfy_source(params)
     if source is not None:
         return path_leaf_name(str(source.get("path", ""))) or None, False
@@ -374,8 +365,6 @@ def _validate_auto_caption(folder: Path, **params: object) -> None:
 
 @dataclass(frozen=True)
 class JobSpec:
-    """Everything that differs between job types; ``resume`` is only for work that outlives this process."""
-
     thread_prefix: str
     run: Callable[..., dict[str, object]]
     validate: Callable[..., None]
@@ -383,14 +372,13 @@ class JobSpec:
     resume: Callable[[Job], dict[str, object] | None] | None = None
     external_ref: Callable[[dict[str, object]], str | None] | None = None
     default_caption_mode: AutomationMode | None = None
-    #: What the run was built from, and whether it was edited for this run only.
     workflow: Callable[[dict[str, object]], tuple[str | None, bool]] | None = None
 
     def failure(self, stats: dict[str, int]) -> str | None:
         return self.failure_message(stats) if self.failure_message else None
 
     def resolve_status(self, job: Job, cancelled: bool) -> tuple[JobStatus, str | None]:
-        """``stopped`` is a training run the user stopped from AI-Toolkit itself."""
+        """A training run the user stopped from AI-Toolkit itself."""
         if cancelled or job.stats.get("stopped"):
             return "cancelled", None
         message = self.failure(job.stats)
@@ -524,8 +512,6 @@ JOB_SPECS: dict[JobType, JobSpec] = {
 
 @dataclass(frozen=True)
 class _QueuedRun:
-    """A job waiting for the folder's active job; everything its worker needs to start later."""
-
     spec: JobSpec
     job_id: str
     folder: Path
@@ -549,7 +535,7 @@ def _queue_stop_reason(previous: Job | None) -> str:
 class JobManager:
     def __init__(self) -> None:
         self._jobs: dict[str, Job] = {}
-        #: Per folder (``Job.folder``), the jobs waiting behind its active one, in start order.
+        #: Per folder, the jobs waiting behind its active one, in start order.
         self._queues: dict[str, list[_QueuedRun]] = {}
         self._lock = threading.Lock()
         self._cancel_flags: dict[str, threading.Event] = {}
@@ -562,7 +548,7 @@ class JobManager:
 
         for job_id in jobs_store.recover_stale_jobs():
             stored = jobs_store.get_job(job_id)
-            # Only the jobs this restart cut off; a job already finished is not announced again.
+            # A job already finished is not announced again.
             if stored is not None and job_id not in resumed_ids:
                 self._notify_outcome(stored)
 
@@ -577,7 +563,7 @@ class JobManager:
         return self._job_from_store(job_id)
 
     def get_job_results(self, job_id: str) -> list[dict[str, object]] | None:
-        """Per-file results for one job, or ``None`` when no such job exists."""
+        """``None`` when no such job exists."""
         with self._lock:
             job = self._jobs.get(job_id)
             if job is not None:
@@ -591,8 +577,8 @@ class JobManager:
         return list(results) if isinstance(results, list) else []
 
     def snapshot_revision(self) -> int:
-        """Read before ``list_jobs``: every save stamped below it is already in the store."""
-        # Saves stamp and write under this lock, so none can be half-done while we hold it.
+        """Read before ``list_jobs``: every save stamped below it is already stored."""
+        # Saves stamp and write under this lock, so none is half-done while it is held.
         with self._lock:
             return next_revision()
 
@@ -628,8 +614,7 @@ class JobManager:
         job_type: JobType | None = None,
     ) -> Job | None:
         with self._lock:
-            # A queued job is newer than the one running ahead of it, but the running one is
-            # what the folder is doing; running jobs always live in memory.
+            # The running job is what the folder is doing, and running jobs live in memory.
             running = self._memory_job_for_folder_unlocked(
                 folder, job_type=job_type, statuses=frozenset({"running"})
             )
@@ -678,8 +663,7 @@ class JobManager:
         return Job.from_dict(stored)
 
     def queue_job(self, job_type: JobType, folder: Path, **params: object) -> Job:
-        """Start a job of ``job_type``, or queue it behind the folder's active job; ``params`` are
-        forwarded to its runner. Validated now, and again when a queued job starts."""
+        """``params`` go to the runner; validated now and again when a queued job starts."""
         spec = JOB_SPECS[job_type]
         folder = resolve_path(folder.expanduser())
         spec.validate(folder, **params)
@@ -695,9 +679,7 @@ class JobManager:
         steps: Sequence[tuple[JobType, dict[str, object]]],
         name: str,
     ) -> list[Job]:
-        """Queue ``steps`` back to back as one workflow run, tagged with ``name``. Only the first
-        step is validated now: the steps before a later one may create what it needs, so each is
-        validated when it starts instead."""
+        """Only the first step is validated now; earlier steps may create what a later one needs."""
         if not steps:
             raise ValueError("A workflow needs at least one step")
         folder = resolve_path(folder.expanduser())
@@ -711,7 +693,6 @@ class JobManager:
         return jobs
 
     def queued_jobs(self, folder: str) -> list[Job]:
-        """The jobs waiting behind ``folder``'s active job, in the order they will start."""
         with self._lock:
             runs = self._queues.get(str(normalize_user_path(folder)), [])
             return [self._jobs[run.job_id] for run in runs if run.job_id in self._jobs]
@@ -726,7 +707,7 @@ class JobManager:
             if cancel_event is None or job.status not in ACTIVE_STATUSES:
                 return job
             cancel_event.set()
-            # A queued job has no worker to notice the flag; the rest of the queue still runs.
+            # A queued job has no worker to notice the flag.
             if self._dequeue_unlocked(job_id):
                 job.status = "cancelled"
                 job.finished_at = _utc_now()
@@ -734,11 +715,7 @@ class JobManager:
         return job
 
     def undo_job(self, job_id: str) -> dict[str, object] | None:
-        """Take back a finished caption job's writes; ``None`` when there is no such job.
-
-        Raises :class:`JobUndoError` while the job runs or while nothing is left to undo, which
-        includes while another undo of it is restoring. Failed restores stay for a retry.
-        """
+        """Raises :class:`JobUndoError` while the job runs or nothing is left to undo."""
         with self._lock:
             job = self._jobs.get(job_id) or self._job_from_store(job_id)
             if job is None:
@@ -751,7 +728,7 @@ class JobManager:
             job.undoable = False
             self._jobs[job_id] = job
             self._save_snapshot(job_id, job.to_dict())
-        # Outside the lock: each restore waits on its caption's claim.
+        # Each restore waits on its caption's claim.
         outcome, retry = undo_caption_writes(records)
         if retry:
             with self._lock:
@@ -803,7 +780,7 @@ class JobManager:
                     if cancel_event is not None:
                         cancel_event.set()
 
-            # Only a live worker can write a row back, and every live worker is in memory.
+            # Every live worker is in memory.
             for job_id in self._jobs:
                 self._deleted_ids.add(job_id)
             memory_ids = list(self._jobs)
@@ -813,7 +790,7 @@ class JobManager:
             self._cancel_flags.clear()
             self._published.clear()
 
-            # Hold the lock so a worker cannot re-insert a ``running`` row after we clear.
+            # So a worker cannot re-insert a ``running`` row after we clear.
             stored_ids = jobs_store.delete_all_jobs()
             removed = list(dict.fromkeys([*stored_ids, *memory_ids]))
             if removed:
@@ -821,7 +798,6 @@ class JobManager:
             return len(stored_ids)
 
     def _resumable_jobs(self) -> list[tuple[Job, dict[str, object]]]:
-        """Jobs left active by a previous process whose spec knows how to pick them back up."""
         stored_jobs: list[dict[str, object]] = []
         with suppress(Exception):
             stored_jobs = jobs_store.list_active_jobs()
@@ -838,7 +814,6 @@ class JobManager:
         return resumable
 
     def _resume_job(self, job: Job, params: dict[str, object]) -> None:
-        """Re-attach to a job whose real work outlived the last process, keeping its row."""
         cancel_event = threading.Event()
 
         job.status = "queued"
@@ -869,8 +844,7 @@ class JobManager:
         job_type: JobType,
         params: dict[str, object],
     ) -> tuple[Job, _QueuedRun | None]:
-        """Store the job as queued and return the run to start now, or ``None`` when it waits in
-        the folder's queue."""
+        """``None`` when it waits in the folder's queue."""
         jobs, start_now = self._register_jobs(folder, [(job_type, params)])
         return jobs[0], start_now
 
@@ -880,13 +854,9 @@ class JobManager:
         steps: Sequence[tuple[JobType, dict[str, object]]],
         workflow_run: dict[str, object] | None = None,
     ) -> tuple[list[Job], _QueuedRun | None]:
-        """Store ``steps`` as queued jobs in order and return the run to start now, or ``None``
-        when the first waits in the folder's queue. Earlier finished runs stay in the store as
-        history; only their in-memory copies are dropped."""
+        """Queue ``steps`` in order; ``None`` when the first waits in the folder's queue."""
         with self._lock:
-            # Decided and queued under one lock hold, so the active job cannot finish in between
-            # and leave these waiting in a queue nobody advances, and no other start can land
-            # between two steps.
+            # One lock hold, so the active job cannot finish between the decision and the queueing.
             busy = self._memory_job_for_folder_unlocked(str(folder), statuses=ACTIVE_STATUSES)
 
             jobs: list[Job] = []
@@ -904,8 +874,7 @@ class JobManager:
             waiting = runs if busy is not None else runs[1:]
             if waiting:
                 self._queues.setdefault(str(folder), []).extend(waiting)
-            # Saved before any worker exists: a later save of a queued frame would overwrite the
-            # running one the worker stores when it begins.
+            # Saved before any worker exists, which would otherwise overwrite its running frame.
             for job in jobs:
                 self._save_snapshot(job.id, job.to_dict())
 
@@ -964,7 +933,7 @@ class JobManager:
             return
 
         try:
-            # The folder may have changed while the job waited, often through the job before it.
+            # The folder may have changed while the job waited.
             if revalidate:
                 run.spec.validate(run.folder, **run.params)
             result = run.spec.run(
@@ -980,9 +949,7 @@ class JobManager:
         self._complete_job(job_id, result, cancel_event.is_set(), run.spec)
 
     def _advance_queue(self, folder: str, finished_id: str) -> _QueuedRun | None:
-        """The folder's next run once ``finished_id`` is done, or ``None``. Anything short of a
-        clean finish cancels the whole queue: a failed, cancelled, interrupted or deleted job, or
-        one that completed with failed files."""
+        """The folder's next run, or ``None``; anything but a clean finish cancels the queue."""
         with self._lock:
             queue = self._queues.get(folder)
             if not queue:
@@ -1007,7 +974,7 @@ class JobManager:
                 skipped.status = "cancelled"
                 skipped.error = reason
                 skipped.finished_at = _utc_now()
-                # One notification for the whole queue, below, instead of one per job.
+                # One notification for the whole queue.
                 self._save_snapshot(run.job_id, skipped.to_dict(), notify=False)
 
         workflow = finished.workflow_run if finished is not None else None
@@ -1109,7 +1076,6 @@ class JobManager:
         job_type: JobType | None = None,
         statuses: frozenset[str] | None = None,
     ) -> Job | None:
-        """The newest in-memory job for ``folder``, limited to ``statuses`` when given."""
         normalized = str(normalize_user_path(folder))
         for job in reversed(list(self._jobs.values())):
             if job.folder != normalized:
@@ -1134,11 +1100,7 @@ class JobManager:
     def _save_snapshot(
         self, job_id: str, snapshot: dict[str, object], *, notify: bool = True
     ) -> None:
-        """Stamp, write and push a snapshot. Caller must hold ``self._lock``.
-
-        Mid-run progress is thinned for the store and the stream alike; a thinned frame still
-        lives in memory, which ``list_jobs`` reads first.
-        """
+        """Stamp, write and push a snapshot; mid-run frames are thinned. Caller holds the lock."""
         job = self._jobs.get(job_id)
         if job_id in self._deleted_ids or job is None:
             return
@@ -1152,7 +1114,7 @@ class JobManager:
         self._publish_snapshot(job_id, snapshot, notify=notify)
 
     def _is_thinned(self, job_id: str, snapshot: dict[str, object]) -> bool:
-        """A status change always goes out; a same-status frame only after the minimum interval."""
+        """A same-status frame goes out only after the minimum interval."""
         published = self._published.get(job_id)
         return (
             published is not None
@@ -1174,7 +1136,7 @@ class JobManager:
             self._notify_outcome(snapshot)
 
     def _publish_removed(self, job_ids: list[str]) -> None:
-        """Caller must hold ``self._lock``, so the revision orders against concurrent saves."""
+        """Caller holds ``self._lock``, so the revision orders against concurrent saves."""
         events.publish(JobsRemovedEvent(ids=job_ids, revision=next_revision()).model_dump())
 
     def _notify_queue_cancelled(
@@ -1200,7 +1162,7 @@ class JobManager:
             return
 
         variant, message = outcome
-        # A job that already finished must not fail because its notification could not be stored.
+        # A finished job must not fail because its notification could not be stored.
         with suppress(Exception):
             notifications.record_notification(
                 message, variant, source="job", job_id=str(snapshot.get("id") or "")

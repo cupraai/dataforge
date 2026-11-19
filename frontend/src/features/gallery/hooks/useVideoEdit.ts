@@ -189,8 +189,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     };
   }, []);
 
-  // Keyed to the video remount so a longer original cannot keep a stale duration.
-  // Leave has_backup/applying/cropActive out: they race apply or drop handles on next/prev.
+  // Keyed to the video remount; has_backup, applying and cropActive would race.
   const editModeChanged = useChanged(editMode);
   const pathChanged = useChanged(path);
   if (editModeChanged || pathChanged) {
@@ -263,8 +262,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     [clearMaskSelection, frameSecondsRef, seekTo, sourceRef],
   );
 
-  // Wait for a real duration: seeding against NaN collapsed the timeline to 0:00-0:00.
-  // Keyed on path, not the item object, so a folder refresh cannot throw away a draft in progress.
+  // Wait for a real duration; keyed on path so a refresh keeps the draft.
   if (!editMode && loadedPath !== null) setLoadedPath(null);
   useEffect(() => {
     if (!editMode) {
@@ -311,8 +309,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     previewMuted.set(!previewMuted.get());
   }, []);
 
-  // Both setters park the playhead inside the frame the handle keeps, so what the panel
-  // shows is what the render starts and ends on.
+  // Park the playhead inside the kept frame, as the render does.
   const setTrimStart = useCallback(
     (seconds: number) => {
       const frame = frameSecondsRef.current;
@@ -463,8 +460,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
       describe: (path: string) => string,
       settle: () => void,
     ) => {
-      // Ref guards: a double click lands before applying has re-rendered the button disabled,
-      // and a shortcut can fire before the saved spec has seeded the draft.
+      // Refs guard a double click and a shortcut before the spec has seeded.
       if (applyingRef.current || !readyRef.current) return;
 
       const { item: currentItem, onEdited } = optionsRef.current;

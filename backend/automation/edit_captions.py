@@ -1,7 +1,4 @@
-"""Rewrite existing captions with the local model, from a user instruction.
-
-With vision on, each caption's image or video keyframes go along so the edit can check and add
-what the media shows."""
+"""Rewrite captions with the local model from a user instruction, optionally with the media."""
 
 from __future__ import annotations
 
@@ -52,7 +49,7 @@ from schemas import AutomationMode, CaptionEditPreviewSample, EditCaptionsPrevie
 REJECTED = "rejected"
 UNCHANGED = "unchanged"
 
-# Every terminal per-file status; omitting one stops the progress bar short of ``total``.
+# Omit one and the progress bar stops short of ``total``.
 PROCESSED_STAT_KEYS = (
     "success",
     UNCHANGED,
@@ -67,16 +64,15 @@ PROCESSED_STAT_KEYS = (
 
 MIN_EDIT_LENGTH_RATIO = 0.25
 MAX_EDIT_LENGTH_RATIO = 4.0
-# With the media in hand an edit may rightly grow a short caption past the ratio.
+# With the media in hand an edit may grow a short caption past the ratio.
 MAX_VISION_EDIT_CHARS = 1500
 
-# Floor for a collapsed caption ("shorten to one sentence"); not ``DRAFT_CAPTION_THRESHOLD``.
+# Floor for "shorten to one sentence"; not ``DRAFT_CAPTION_THRESHOLD``.
 MIN_EDITED_CAPTION_CHARS = 40
 
 _QUOTE_PAIRS = (('"', '"'), ("'", "'"), ("“", "”"))
 
 
-#: What the model is sent alongside the caption, and how the rules refer to it.
 _VISION_MEDIA_WORDING: dict[MediaKind, tuple[str, str]] = {
     "image": ("the image it describes", "the image"),
     "video": ("keyframes from the video it describes", "the keyframes"),
@@ -84,9 +80,7 @@ _VISION_MEDIA_WORDING: dict[MediaKind, tuple[str, str]] = {
 
 
 def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None = None) -> str:
-    """Assemble the system prompt once per job so the prefix cache stays warm.
-
-    ``media_kind`` is set only when the media is sent with the caption."""
+    """Built once per job so the prefix cache stays warm."""
     if media_kind is None:
         given = "The caption text is all you are given."
         keep_rule = (
@@ -112,7 +106,7 @@ def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None =
         "# Objective\nRewrite the caption you are given so that it satisfies the requested "
         f"edit, and return the rewritten caption. {given}",
         f"# Edit to apply\n{instruction.strip()}",
-        # Keep this list to judging; output mechanics here once regressed verify-captions.
+        # Judging only; output mechanics here break verify-captions.
         "\n".join(
             (
                 "# Rules",
@@ -136,7 +130,6 @@ def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None =
 
 
 def build_edit_system_prompts(instruction: str, *, vision: bool) -> dict[MediaKind, str]:
-    """One prompt per media kind; without vision both kinds share the text-only prompt."""
     if not vision:
         prompt = build_edit_system_prompt(instruction)
         return {"image": prompt, "video": prompt}
@@ -152,7 +145,7 @@ def build_edit_user_text(
     frame_count: int = 1,
     seconds: float | None = None,
 ) -> str:
-    """``media_kind`` is set only when the media is sent with the caption."""
+    """Set only when the media is sent with the caption."""
     if media_kind == "video":
         media_line = f"{keyframe_sentence(frame_count, seconds)}\n"
     elif media_kind == "image":
@@ -168,7 +161,7 @@ def build_edit_user_text(
 
 
 def strip_wrapping_quotes(text: str) -> str:
-    """Drop one wrapping quote pair, keeping a caption that is itself a quotation."""
+    """Keeps a caption that is itself a quotation."""
     stripped = text.strip()
     if len(stripped) < 2:
         return stripped
@@ -183,12 +176,11 @@ def strip_wrapping_quotes(text: str) -> str:
 
 
 def clean_edited_caption(raw_text: str) -> str:
-    """Reduce a model reply to the caption it was supposed to be on its own."""
     return strip_wrapping_quotes(strip_code_fences(clean_model_text(raw_text))).strip()
 
 
 def edit_rejection_reason(original: str, edited: str, *, vision: bool = False) -> str | None:
-    """Why this reply is not an edited caption, or ``None`` when it is."""
+    """``None`` when the reply is a valid edited caption."""
     edited = edited.strip()
     if not edited:
         return "The model returned no text."
@@ -235,7 +227,7 @@ def edit_caption(
     media_kind: MediaKind = "image",
     attempt: int = 1,
 ) -> str | None:
-    """Text-only unless ``frames`` is given; ``attempt`` only reaches JPEG quality."""
+    """Text-only unless ``frames`` is given."""
     if frames is not None:
         seconds = frames.timestamps[-1] if frames.timestamps else None
         return request_vision_text(
@@ -340,7 +332,7 @@ def preview_caption_edits(
     vision: bool = False,
     selected_paths: list[Path] | None = None,
 ) -> EditCaptionsPreviewResponse:
-    """Try the job's edit on up to three readable captions without writing sidecars."""
+    """Up to three readable captions, without writing sidecars."""
     validate_edit_captions_folder(folder, instruction=instruction)
     media_files = filter_media_list(list_edit_captions_media(folder), selected_paths)
     system_prompts = build_edit_system_prompts(instruction, vision=vision)
@@ -348,7 +340,7 @@ def preview_caption_edits(
     samples: list[CaptionEditPreviewSample] = []
 
     with model_client() as client:
-        # One sample per caption, as the job edits them: a shared caption is edited once.
+        # A shared caption is edited once.
         for target in caption_targets(media_files):
             media_path = target.primary
             original = load_reference_caption(media_path).text
@@ -428,7 +420,7 @@ def run_edit_captions_job(
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
-            # The caption the edit is built from; the write is refused if it changes meanwhile.
+            # The write is refused if the caption changes meanwhile.
             reference = load_reference_caption(media_path)
             draft = reference.text
             if draft is None:
@@ -464,7 +456,7 @@ def run_edit_captions_job(
                 try:
                     back_up_caption(target.caption, backup_dir)
                 except OSError as exc:
-                    # Do not write the edit if backup failed; that would break the restore promise.
+                    # A failed backup would break the restore promise.
                     return FileOutcome.counted(
                         "write_error", f"Could not back up the caption: {exc}"
                     )

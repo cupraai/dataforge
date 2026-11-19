@@ -265,8 +265,7 @@ export function GalleryItemDialog({
   const [viewerError, setViewerError] = useState<string | null>(null);
   // Owned here so next/prev keeps capture across videos and GIFs; per-hook flags dropped it.
   const [frameMode, setFrameMode] = useState(openIntent?.mode === "frame");
-  // Mutually exclusive with frameMode: one `<video>` cannot serve a scrubber and a timeline.
-  // One flag for both editors; which one it turns on follows from the item.
+  // Exclusive with frameMode: one `<video>` cannot serve a scrubber and a timeline.
   const [editMode, setEditMode] = useState(openIntent?.mode === "edit");
   const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
   const [comfyWorkflowOpen, setComfyWorkflowOpen] = useState(false);
@@ -441,9 +440,7 @@ export function GalleryItemDialog({
   const childOverlayOpen = otherOverlayOpen || discard.confirming || renameDiscard.confirming;
   const canTransfer = Boolean(currentFolder) && Boolean(onMoved) && Boolean(onCopied);
 
-  // Transfer state stays out: a move advances the item while finally is pending, re-enabling early.
-  // Save-and-next from the caption editor keeps writing: the next item's editor takes focus.
-  // Keyed to the item it was meant for, so paging any other way never pulls focus.
+  // Transfer state stays out: a move advances early. Keyed to its item, so paging keeps focus.
   const [focusCaptionOf, setFocusCaptionOf] = useState<string | null>(null);
 
   if (useChanged(item?.path)) {
@@ -679,8 +676,7 @@ export function GalleryItemDialog({
   }, [editExpanded, onEditExpandedChange]);
 
   useEffect(() => {
-    // Wraps, and skips the open item, so a review pass walks the whole list of what is left.
-    // The index it leaves for, or -1 when no other item matches.
+    // Wraps and skips the open item; -1 when no other item matches.
     const jumpTo = (kind: ReviewJump, direction: 1 | -1) => {
       const target = nextIndexWhere(items, index, REVIEW_JUMPS[kind].matches, direction);
       if (target < 0 || !onGoTo) {
@@ -692,8 +688,7 @@ export function GalleryItemDialog({
     };
     const fromCaptionEditor = (event: KeyboardEvent) =>
       event.target instanceof Element && event.target.closest(".code-editor--caption") !== null;
-    // The review-pass keys: jumps, move and select. Plain letters, so never while typing or
-    // while an edit or frame capture owns the keyboard.
+    // Review keys: plain letters, never while typing or while an editor owns the keyboard.
     const handleReviewKey = (event: KeyboardEvent) => {
       if (editing || frameCapture.frameMode || !item) return false;
       const jump = matchesShortcut(event, SHORTCUTS.nextUncaptioned)
@@ -727,8 +722,7 @@ export function GalleryItemDialog({
         if (onGoTo && target !== index) void leave(() => onGoTo(target));
       }
     };
-    // Escape leaves the backup comparison before it closes anything; edit and frame modes
-    // take Escape first, so one press never leaves both.
+    // Escape leaves the backup comparison first; edit and frame modes take it before that.
     const leavesComparison = (event: KeyboardEvent) => {
       if (!showingBackupDiff || editing || frameCapture.frameMode) return false;
       if (!matchesShortcut(event, SHORTCUTS.close)) return false;
@@ -740,8 +734,7 @@ export function GalleryItemDialog({
       if (childOverlayOpen || busy) return;
       const outside =
         inline && (!(event.target instanceof Node) || !dialogRef.current?.contains(event.target));
-      // Beside the gallery, only closing and paging reach past the panel, and never into
-      // another widget. Focus stays on the opening card, so Escape must work from there.
+      // Docked, only closing and paging pass the panel; focus stays on the card.
       if (outside) {
         const target = event.target instanceof Element ? event.target : null;
         if (
@@ -1168,8 +1161,7 @@ export function GalleryItemDialog({
                   // Native timeline would seek behind the capture slider or trim handles.
                   controls={!frameCapture.frameMode && !editMode}
                   autoPlay
-                  // Editing loops the trim band itself, and needs `ended` to reach the band's end.
-                  // Capture: Chrome wraps a looping video to 0 when seeking into its last frame.
+                  // Editing loops the trim band; capture, since Chrome wraps a looping video seeking its last frame.
                   loop={!editMode && !frameCapture.frameMode}
                   muted
                   playsInline

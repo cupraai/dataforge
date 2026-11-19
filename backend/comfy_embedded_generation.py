@@ -1,9 +1,4 @@
-"""Run the workflow a file was made with as a generation, without saving it as a preset.
-
-A file's API-format ``prompt`` holds every output of the graph it came from. Generate with
-ComfyUI runs one of them: the graph is cut down to what that output needs, and titled so the
-preset parser finds its output and prompt.
-"""
+"""Run a file's own workflow as a generation, cut to one output."""
 
 from __future__ import annotations
 
@@ -54,12 +49,7 @@ def _set_title(node: dict[str, Any], title: str) -> None:
 def generation_graph(
     graph: dict[str, Any], output_node: str, positive_prompt_nodes: Iterable[str]
 ) -> dict[str, Any] | None:
-    """The nodes ``output_node`` depends on, titled for the preset parser, or None if the graph
-    links to a node it does not hold (ComfyUI would refuse it).
-
-    The first positive prompt node with text of its own becomes the prompt node, unless the
-    graph already titles one, as a file DataForge generated does.
-    """
+    """``output_node``'s ancestors, titled for the preset parser; None for a dangling link."""
     if not isinstance(graph.get(output_node), dict):
         return None
 
@@ -98,7 +88,6 @@ def generation_graph(
 def generation_workflow(
     graph: dict[str, Any], output_node: str, positive_prompt_nodes: Iterable[str], *, source: str
 ) -> ComfyWorkflow:
-    """The output's graph as a runnable generation, or the reason it is not one."""
     trimmed = generation_graph(graph, output_node, positive_prompt_nodes)
     if trimmed is None:
         raise ComfyWorkflowError(
@@ -113,7 +102,7 @@ def generation_workflow(
 def embedded_generation(
     graph: dict[str, Any], output_node: str, positive_prompt_nodes: Iterable[str], *, source: str
 ) -> ComfyWorkflow | None:
-    """Like :func:`generation_workflow`, with None for an output that cannot generate."""
+    """None for an output that cannot generate."""
     try:
         return generation_workflow(graph, output_node, positive_prompt_nodes, source=source)
     except ComfyWorkflowError:

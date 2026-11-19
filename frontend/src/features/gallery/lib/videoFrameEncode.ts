@@ -4,10 +4,7 @@ const SEEK_TIMEOUT_MS = 2500;
 const PRESENT_TIMEOUT_MS = 150;
 const SETTLED_EPSILON = 0.001;
 
-/**
- * seeked fires before the compositor has the frame, and requestVideoFrameCallback is
- * unreliable on a paused element, so the timeout is required or a save hangs.
- */
+/** The timeout is required: seeked precedes the frame, and rVFC is unreliable when paused. */
 function awaitPresentedFrame(video: HTMLVideoElement): Promise<number> {
   if (typeof video.requestVideoFrameCallback !== "function") {
     return Promise.resolve(video.currentTime);

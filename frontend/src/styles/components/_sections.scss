@@ -31,7 +31,7 @@
         z-index: -1;
         border-bottom: 1px solid var(--border);
         opacity: 0;
-        // Paired with opacity so the blur costs nothing while hidden: a transparent backdrop-filter still repaints every frame.
+        // Paired with opacity: a transparent backdrop-filter still repaints every frame.
         visibility: hidden;
         transition:
           opacity var(--duration-base) var(--ease-standard),

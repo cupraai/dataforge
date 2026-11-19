@@ -3,15 +3,8 @@ import type { Project } from "./timeline";
 export const HISTORY_LIMIT = 200;
 
 /**
- * The editor's undo history. Steps are whole-project snapshots, so any edit, including ones
- * added later, is undoable without its own inverse. The rules live here rather than in callers:
- *
- * - A commit that leaves the project as it was records nothing, so no control can add an empty
- *   step (which would also clear redo).
- * - Previews belong to a gesture; its first preview remembers where it started, and the next
- *   commit, undo, redo or flush settles the whole gesture as one step, so none is lost.
- * - Snapshots are never changed in place; in development they are frozen to catch any edit that
- *   tries, since one would rewrite history silently.
+ * Undo by whole-project snapshots, so every edit is undoable without its own inverse.
+ * No-op commits record nothing; a gesture settles as one step; dev freezes snapshots.
  */
 export interface ProjectHistory {
   past: readonly Project[];
@@ -77,10 +70,7 @@ export function redoEdit(history: ProjectHistory): ProjectHistory {
   };
 }
 
-/**
- * A change that is a fact, not an edit, such as a relinked source or remembered export
- * settings: applied to every snapshot, so undo neither records nor reverts it.
- */
+/** A fact, not an edit, applied to every snapshot so undo ignores it. */
 export function amendAll(
   history: ProjectHistory,
   update: (project: Project) => Project,

@@ -68,8 +68,7 @@ describe("FrameCaptureBar in time mode", () => {
   it("reports the scrubbed time as a number", () => {
     const props = renderTimeBar();
 
-    // `userEvent` cannot drag a range input, so the value is set directly. Do not
-    // "fix" this into a pointer interaction — it silently stops asserting anything.
+    // `userEvent` cannot drag a range input; a pointer version would assert nothing.
     fireEvent.change(slider(), { target: { value: "4.5" } });
 
     expect(props.onValueChange).toHaveBeenCalledWith(4.5);

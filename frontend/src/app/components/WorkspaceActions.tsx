@@ -101,10 +101,7 @@ function ToolsGroup({
 
 const COLUMN_STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
 
-/**
- * Left and Right move to the same row of the neighbouring group, wrapping around; a disabled
- * tool there hands focus to its nearest enabled neighbour. Up and Down stay with the menu.
- */
+/** Left/Right move between groups, wrapping, skipping disabled tools; Up/Down stay in the menu. */
 function moveAcrossGroups(event: KeyboardEvent<HTMLDivElement>) {
   const step = COLUMN_STEPS[event.key];
   if (!step) return;
@@ -286,10 +283,7 @@ function jobTone(job: AutomationActions["job"]) {
   return null;
 }
 
-/**
- * The current job's progress and outcome beneath the toolbar. A job that finished cleanly needs
- * no attention, so only running, failed, cancelled, or warning jobs show here.
- */
+/** The current job beneath the toolbar; a clean finish needs no attention, so it is hidden. */
 export function WorkspaceActivity({ panel }: { panel: AutomationActions }) {
   const { showSpecs } = useAutomationSpecsVisible();
   const [dismissedJobIds, setDismissedJobIds] = useState(readDismissedJobIds);

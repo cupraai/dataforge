@@ -1,5 +1,3 @@
-"""Vision-model auto-captioning."""
-
 from __future__ import annotations
 
 import textwrap
@@ -50,11 +48,11 @@ from sysprompt import load_sysprompt
 
 
 def get_draft_caption_threshold() -> int:
-    """Longer reference captions are left alone; generated captions this short or shorter are retried."""
+    """Generated captions this short or shorter are retried."""
     return effective_settings().draft_caption_threshold
 
 
-# Missing audio on an audio run: counted, not failed; the file is still captioned as silent.
+# Counted, not failed; the file is still captioned as silent.
 AUDIO_ERROR = "audio_error"
 
 PROCESSED_STAT_KEYS = (
@@ -74,7 +72,7 @@ MOTION_OBJECTIVE_SENTENCE = (
     "compare them and state the motion that occurred, naming the action and its direction."
 )
 
-# One sentence only; a longer audio aside pulls the caption off what is on screen.
+# A longer audio aside pulls the caption off what is on screen.
 AUDIO_OBJECTIVE_SENTENCE = (
     "The clip's audio track is attached alongside the keyframes - analyze it as well and fold "
     "what is heard (speech, music, ambient sound, or silence) into the same caption."
@@ -98,8 +96,7 @@ def _load_specific_sysprompt(folder: Path) -> str:
 
 
 def _draft_guidance(subject: str) -> str:
-    """Only for a caption written from a draft; without one it would ask the model for a
-    description it never gets."""
+    """Only for a caption written from a draft."""
     return (
         f" Use the user provided description as **very close guidance** for analyzing the "
         f"{subject} and creating the caption; **never** change its meaning."
@@ -113,11 +110,6 @@ def build_system_prompt(
     caption_audio: bool = False,
     from_draft: bool = True,
 ) -> str:
-    """The system prompt for one media kind; audio wording stays even when the track is missing.
-
-    ``from_draft`` False is the prompt for a file with no caption yet, captioned from the media
-    alone.
-    """
     specific_sys_prompt = _load_specific_sysprompt(folder)
     # Inline so a single-line .sysprompt still dedents.
     audio_objective = f" {AUDIO_OBJECTIVE_SENTENCE}" if caption_audio else ""
@@ -156,8 +148,6 @@ def build_system_prompt(
 
 @dataclass(frozen=True)
 class CaptionPrompts:
-    """System prompts per media kind, for expanding a draft and for captioning from scratch."""
-
     from_draft: dict[MediaKind, str]
     from_scratch: dict[MediaKind, str]
 
@@ -189,10 +179,7 @@ def _build_user_text(
     has_audio: bool = False,
     seconds: float | None = None,
 ) -> str:
-    """Per-request instruction; ``has_audio`` follows the attachment, not the job setting.
-
-    An empty ``ref_caption`` captions from the media alone: no guidance, no description block.
-    """
+    """``has_audio`` follows the attachment; an empty ``ref_caption`` uses the media alone."""
     if not ref_caption.strip():
         audio_note = f" {AUDIO_USER_SENTENCE}" if has_audio and media_kind == "video" else ""
         frames = (
@@ -250,7 +237,6 @@ def complete_caption(
     audio_wav: bytes | None = None,
     attempt: int = 1,
 ) -> str | None:
-    """Caption already-loaded ``images``; ``attempt`` is for the JPEG re-encode workaround."""
     media_kind = media_kind_for(media_path)
     seconds = timestamps[-1] if timestamps else None
     return request_vision_text(
@@ -304,7 +290,7 @@ def process_media(
     should_cancel: ShouldCancel | None = None,
     reference: ReferenceCaption | None = None,
 ) -> tuple[str | None, str, str | None, bool]:
-    """Caption one file; the trailing flag is True only for motion media missing audio on an audio run."""
+    """The flag is True only for motion media missing audio on an audio run."""
     ref_caption, status = _draft_caption(reference or load_reference_caption(media_path))
     if status != "ok" or ref_caption is None:
         return None, status, None, False
@@ -314,7 +300,7 @@ def process_media(
     if isinstance(frames, MediaLoadError):
         return None, frames.status, frames.message, False
 
-    # Extracted once so retries re-send the same bytes instead of decoding the clip three times.
+    # Decoded once so retries re-send the same bytes.
     audio_wav = extract_audio_wav(media_path) if caption_audio and media_kind == "video" else None
     audio_missing = caption_audio and media_kind == "video" and audio_wav is None
 
@@ -370,7 +356,7 @@ def validate_auto_caption_folder(folder: Path, *, caption_audio: bool = False) -
 def preview_auto_caption(
     folder: Path, *, selected_paths: list[Path] | None = None
 ) -> dict[str, int]:
-    """What a run would do with each caption in scope, so the dialog can say so before it starts."""
+    """What a run would do with each caption in scope, for the dialog."""
     media_files = filter_media_list(list_auto_caption_media(folder), selected_paths)
     counts = {"total": 0, "drafts": 0, "from_scratch": 0, "unreadable": 0, "long_enough": 0}
     for target in caption_targets(media_files):
@@ -455,7 +441,7 @@ def run_auto_caption_job(
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
-            # The caption the reply is built from; the write is refused if it changes meanwhile.
+            # The write is refused if the caption changes meanwhile.
             reference = load_reference_caption(media_path)
             clean_text, status, message, audio_missing = process_media(
                 client,

@@ -17,8 +17,7 @@ export function gridMultiple(fit: SizeFit, even = false): number {
   return even ? (fit.multiple * 2) / greatestCommonDivisor(fit.multiple, 2) : fit.multiple;
 }
 
-/** The budget at the frame's aspect, each side on the grid and never past the source.
- *  `null` when a side is shorter than one grid cell: reaching it would mean upscaling. */
+/** The budget at the frame's aspect on the grid; `null` below one cell. */
 export function fittedSize(size: FitSize, fit: SizeFit, even = false): FitSize | null {
   const { width, height } = size;
   if (width <= 0 || height <= 0) return null;

@@ -69,8 +69,7 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
   const requestLocked = disabled || fill.generating;
   const canUndoStroke = !paintLocked && fill.strokes.length > 0;
 
-  // Mounted only while the Fill tool is open, so the keys mean nothing elsewhere. The editor
-  // sits in a modal, hence whenLocked; typing in the instruction still types.
+  // Only while Fill is open; whenLocked since the editor is modal.
   const paintKeys = { enabled: !paintLocked, whenLocked: true };
   useGlobalShortcut(SHORTCUTS.fillBrush, () => fill.setBrushMode("paint"), paintKeys);
   useGlobalShortcut(SHORTCUTS.fillEraser, () => fill.setBrushMode("erase"), paintKeys);

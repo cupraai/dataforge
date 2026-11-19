@@ -21,8 +21,7 @@ export interface ModelKindStyle {
   icon: AppIcon;
 }
 
-// The map has no box for ControlNets, upscalers or embeddings. Each takes the hue of what it
-// works on: a ControlNet and an upscaler the image, an embedding the prompt.
+// ControlNets and upscalers take the image's hue, embeddings the prompt's.
 const KIND_STYLES: Record<ModelKind, ModelKindStyle> = {
   checkpoint: { label: "Checkpoint", tone: "model", icon: iconBrain },
   diffusion: { label: "Diffusion model", tone: "model", icon: iconBrain },

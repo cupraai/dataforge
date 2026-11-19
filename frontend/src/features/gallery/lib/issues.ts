@@ -15,10 +15,7 @@ export function countResolvableIssues(items: GalleryItem[]): number {
 // The prompt asks for straight quotes; a model can still answer with typographic ones.
 const FIRST_QUOTED_SPAN = /["“”„‟]([^"“”„‟]+)["“”„‟]/;
 
-/**
- * The caption wording each fix flags. Only the first quoted span counts: `Replace "x"
- * with "y"` quotes the replacement second, which the caption may already contain.
- */
+/** Only the first quoted span: `Replace "x" with "y"` quotes the replacement second. */
 export function flaggedCaptionPhrases(fixes: readonly string[]): string[] {
   const phrases: string[] = [];
   const seen = new Set<string>();

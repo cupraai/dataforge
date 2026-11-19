@@ -1,7 +1,4 @@
-/**
- * What the Review queues walk, by the same rule as bulk jobs: the visible selection, else what
- * search and filters show, else the whole folder. Duplicate groups still open complete.
- */
+/** Visible selection, else what search and filters show, else the folder. */
 export interface ReviewScope {
   kind: "selected" | "matching" | "folder";
   fileCount: number;

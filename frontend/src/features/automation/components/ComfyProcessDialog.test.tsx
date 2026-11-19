@@ -234,8 +234,7 @@ describe("ComfyProcessDialog", () => {
   });
 
   it("falls back to the first preset when the remembered one is gone", async () => {
-    // Presets are files the user adds and removes, so a stored name can outlive its
-    // file; a list with nothing checked would confirm a name that is not there.
+    // A stored preset name can outlive its file.
     renderDialog(settings({ preset: "deleted-preset" }));
 
     expect(await screen.findByRole("radio", { name: "fix-faces" })).toBeChecked();
@@ -263,8 +262,7 @@ describe("ComfyProcessDialog", () => {
   });
 
   it("names the origin it probed so a wrong port is visible", async () => {
-    // "Not answering" alone reads as "ComfyUI is stopped", which sends the user to the
-    // wrong fix when the real cause is COMFY_BASE_URL pointing at a port nothing is on.
+    // A wrong COMFY_BASE_URL must not read as "ComfyUI is stopped".
     fetchPresets.mockResolvedValue(presets(["upscale-2x"], false, "http://127.0.0.1:9123"));
 
     renderDialog();
@@ -273,8 +271,7 @@ describe("ComfyProcessDialog", () => {
   });
 
   it("spins while the presets are still loading", async () => {
-    // The fetch probes ComfyUI, so an unreachable host holds this open for the whole
-    // request timeout; a static line there is indistinguishable from a hung dialog.
+    // The probe can take the whole request timeout, so it must look busy.
     let resolvePresets: (value: ComfyPresetsResponse) => void = () => {};
     fetchPresets.mockReturnValue(
       new Promise<ComfyPresetsResponse>((resolve) => {
@@ -284,8 +281,7 @@ describe("ComfyProcessDialog", () => {
 
     renderDialog();
 
-    // The dialog is portalled, so the spinner is looked for inside the status row itself
-    // rather than in the render container.
+    // The dialog is portalled, so the spinner is found inside the status row.
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Loading workflow presets");
     expect(status.querySelector(".app-icon--spin")).toBeTruthy();
@@ -402,8 +398,7 @@ describe("ComfyProcessDialog", () => {
     );
   });
 
-  // An all-whitespace box is the same request as an empty one - run the graph as saved -
-  // and the backend tells the two apart, so the trim has to happen before it is sent.
+  // Whitespace means run the graph as saved, so it is trimmed before sending.
   it("treats a whitespace-only prompt as none at all", async () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();
@@ -423,8 +418,7 @@ describe("ComfyProcessDialog", () => {
     expect(screen.getByText(/DataForge Seed/)).toBeInTheDocument();
   });
 
-  // The field is `type="number"`, so the browser already turns letters away. What it
-  // still lets through is a sign and a decimal point, and a seed is neither.
+  // `type="number"` still lets a sign and a decimal point through.
   it("refuses a seed that is not a whole number", async () => {
     const user = userEvent.setup();
     const { onConfirm } = renderDialog();

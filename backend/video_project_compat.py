@@ -1,9 +1,4 @@
-"""A browser-playable copy of a source video the editor's preview cannot decode.
-
-The copy is H.264/AAC in MP4, written beside the original under a new name; the original is never
-touched, and the project is relinked to the copy by the editor. Frame timing passes through, so
-every clip keeps showing the same frames.
-"""
+"""A browser-playable H.264/AAC copy beside the original; frame timing passes through."""
 
 from __future__ import annotations
 

@@ -110,7 +110,7 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
 
     def test_a_workflow_comfyui_would_not_paste_is_not_offered(self) -> None:
         prompt = json.dumps({"3": {"class_type": "PreviewImage", "inputs": {}}})
-        # No ``extra``: ComfyUI's paste handler treats this text as nothing to load.
+        # Without ``extra`` the paste handler loads nothing.
         unpasteable = json.dumps({"version": 0.4, "nodes": [{"id": 3}]})
         with TempMediaFolder() as root:
             cases = {
@@ -226,7 +226,7 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
                 self.assertTrue(response.json()["has_workflow"])
 
     def test_returns_400_for_a_container_without_isobmff_boxes(self) -> None:
-        # Matroska, avi, asf and flv carry metadata the box walk cannot reach.
+        # These carry metadata the box walk cannot reach.
         workflow = '{"nodes": [{"type": "KSampler"}]}'
         for name in ("comfy.mkv", "comfy.avi", "comfy.wmv", "comfy.flv"):
             with self.subTest(name=name), TempMediaFolder() as root:
@@ -237,7 +237,7 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400)
 
     def test_returns_400_for_gif(self) -> None:
-        # A GIF carries neither PNG text chunks nor ISOBMFF boxes.
+        # Neither PNG text chunks nor ISOBMFF boxes.
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif")
 
@@ -393,8 +393,6 @@ class CaptionEndpointTests(unittest.TestCase):
 
 
 class CaptionConflictTests(unittest.TestCase):
-    """The audit's F05: a save against an older read used to replace the newer caption."""
-
     def test_a_save_against_an_older_read_is_refused(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
@@ -455,8 +453,6 @@ class CaptionConflictTests(unittest.TestCase):
 
 
 class UnreadableCaptionTests(unittest.TestCase):
-    """The audit's F07: an unreadable caption read as empty, and the next save replaced it."""
-
     def test_text_that_is_not_utf8_is_unreadable_not_empty(self) -> None:
         for name, data in (
             ("utf-16", "A caption.".encode("utf-16")),

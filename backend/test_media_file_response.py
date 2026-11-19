@@ -110,7 +110,7 @@ class OpenSharedReadTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "win32", "FILE_SHARE_DELETE is a Windows concern")
     def test_allows_moving_an_open_file_away(self) -> None:
-        """Mirrors media_transfer.py:94 — the gallery streams a file as it is moved."""
+        """Mirrors ``media_transfer.move_one_file``: the gallery streams a file as it is moved."""
         with TempMediaFolder() as root:
             source = write_media(root, "sunset.png")
             destination = root / "moved.png"

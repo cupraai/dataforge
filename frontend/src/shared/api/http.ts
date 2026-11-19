@@ -110,8 +110,7 @@ export async function requestJson<T>(url: string, init?: RequestInit): Promise<T
   try {
     response = await fetch(url, init);
   } catch (error) {
-    // A cancelled request must stay recognizable as such: wrapping it would surface a
-    // superseded navigation as a backend failure.
+    // Kept recognisable, or a superseded navigation would read as a failure.
     if (isAbortError(error)) throw error;
     throw new NetworkError({ cause: error });
   }

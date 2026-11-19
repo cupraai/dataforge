@@ -33,11 +33,7 @@ function sweepFinishedRuns(tempDir: string) {
   }
 }
 
-/**
- * This run's own temp folder. The config's first load makes it and later loads, in the workers,
- * inherit it through the environment, so concurrent runs never share or delete fixtures. A
- * finished run's folder stays for inspection until the next run starts.
- */
+/** This run's own temp folder, inherited by workers, so concurrent runs never share fixtures. */
 export function runDirectory(): string {
   const existing = process.env[RUN_DIR_ENV];
   if (existing) return existing;

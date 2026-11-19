@@ -58,8 +58,7 @@ export function useGallerySession({
     clearSelectedPaths,
   } = selection;
 
-  // Prune paths gone from disk; a rename would fail the next move/copy/delete.
-  // Search/sort/filters deliberately do not prune — see useGallerySelection.
+  // Prune paths gone from disk; filters never prune, `visibleSelectedPaths` scopes to the view.
   useEffect(() => {
     if (selectedPathsList.length === 0) return;
     const present = new Set(items.map((item) => item.path));
@@ -170,8 +169,7 @@ export function useGallerySession({
     [setFolder, syncBaseline],
   );
 
-  // Same commit so the item dialog never overlaps the resolver.
-  // Guard: a non-resolvable item opens the resolver empty with no close to return from.
+  // Same commit, so the item dialog never overlaps the resolver.
   const onResolveGalleryItemIssue = useCallback(
     (item: GalleryItem) => {
       if (!isResolvableIssueItem(item)) return;

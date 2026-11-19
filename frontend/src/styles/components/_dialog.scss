@@ -242,9 +242,7 @@
     gap: 0.75rem;
   }
 
-  // Up to six lines, then it scrolls. The middle term is the room the panel (94vh) has left
-  // once the rest of the form and a one-sample preview are in, so growing never scrolls the
-  // dialog; below ~880px there is none and the field stays at its two-line minimum.
+  // Up to six lines, then it scrolls; the middle term is the room left in the 94vh panel.
   &__instruction {
     max-height: clamp(4.25rem, 94dvh - 48rem, 10rem);
   }
@@ -360,9 +358,7 @@
   }
 
   &__terms {
-    // One line until the term needs more, up to five, then it scrolls. The middle term is the
-    // room the panel (94vh) has left once the rest of the form and a one-sample preview are
-    // in, so growing never scrolls the dialog; at 720px that is no room at all.
+    // One to five lines, then it scrolls; the middle term is the room left in the 94vh panel.
     .text-input--grow {
       max-height: clamp(2.75rem, 94dvh - 39.25rem, 8.5rem);
     }
@@ -391,7 +387,7 @@
 .dialog__panel.train-lora-dialog {
   display: flex;
   flex-direction: column;
-  // 90vh: at 88vh a 720px window left the prompt list 6px short of three rows, so the default view opened with a scrollbar.
+  // 90vh: at 88vh a 720px window leaves the prompt list 6px short of three rows, so it scrolls.
   max-height: min(90vh, 50rem);
   // The prompt list is the scroller; the panel's default overflow would add a second one.
   overflow: hidden;
@@ -554,7 +550,7 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    // Only this pair carries min-height: 0; every other field keeps content height so the form does not collapse.
+    // Only this pair carries min-height: 0; every other field keeps its content height.
     min-height: 0;
   }
 

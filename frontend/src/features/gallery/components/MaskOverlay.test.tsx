@@ -386,8 +386,7 @@ describe("MaskOverlay", () => {
   });
 
   it("repaints from presented frames, so a paused video still shows its first one", () => {
-    // readyState says the data arrived, not that the picture can be drawn; a paused video that
-    // has finished loading fires nothing further, so a frame callback is the only trigger left.
+    // A loaded paused video fires nothing further, so only a frame callback is left.
     const mediaRef = mediaRefWithBox("video");
     const video = readyVideo(mediaRef, 4);
     let onFrame: (() => void) | null = null;

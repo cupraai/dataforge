@@ -43,23 +43,19 @@ from constants import (
 
 # PEP 695 ``type`` aliases so pydantic emits named schemas, which become TS unions.
 
-#: ``no_caption`` is a job stat key, not one of these. ``unreadable`` is a file whose text cannot
-#: be shown, so it is never offered as an empty caption to type over.
+#: ``no_caption`` is a job stat key, not one of these; ``unreadable`` is never offered as empty.
 type CaptionStatus = Literal["none", "empty", "text", "unreadable"]
 
-#: ``encoding``: not UTF-8 text. ``access``: the file could not be opened, perhaps while another
-#: program holds it.
+#: ``encoding``: not UTF-8. ``access``: could not be opened, perhaps held by another program.
 type CaptionReadError = Literal["encoding", "access"]
 
-#: GIF is its own type so it renders as ``<img>``.
-#: ``model`` is a weights file: listed and inspected, never captioned or shown as media.
+#: GIF renders as ``<img>``; ``model`` is a weights file, never captioned or shown as media.
 type MediaType = Literal["image", "video", "gif", "audio", "model"]
 
 #: Where a folder tree starts: ``home``, the POSIX ``root``, or a Windows drive by its type.
 type FolderRootKind = Literal["home", "root", "fixed", "removable", "network", "optical", "ram"]
 
-#: What a model file is for, read from its tensor names. An adapter is named by how it is factored:
-#: LoRA, LyCORIS LoKr (Kronecker) or LoHa (Hadamard). A checkpoint bundles a VAE or text encoder.
+#: From tensor names; adapters by factoring (LoRA, LoKr, LoHa); checkpoints bundle a VAE.
 type ModelKind = Literal[
     "checkpoint",
     "diffusion",
@@ -154,7 +150,8 @@ class Breadcrumb(BaseModel):
 
 
 class Subfolder(BaseModel):
-    """Counts are ``None`` on ``/api/folders/contents``; they arrive from ``/api/folders/subfolder-stats``."""
+    """Counts are ``None`` on ``/api/folders/contents``; they arrive from
+    ``/api/folders/subfolder-stats``."""
 
     name: str
     path: str
@@ -342,10 +339,7 @@ class FolderFingerprintResponse(BaseModel):
 
 
 class FolderChangesResponse(BaseModel):
-    """``full`` means refetch the whole folder; ``changed`` covers both new and edited items.
-
-    ``stale_subfolders`` names subfolders whose counts changed under a delta, which keeps them.
-    """
+    """``full`` means refetch; ``stale_subfolders`` names subfolders whose counts changed."""
 
     full: bool = False
     fingerprint: str
@@ -601,7 +595,7 @@ class SecretSettingState(BaseModel):
 
 
 class AppSettingsResponse(BaseModel):
-    """``fallback`` is what a reset would restore: the environment's value, else the built-in default."""
+    """``fallback`` is what a reset restores: the environment's value, else the default."""
 
     vision_base_url: TextSettingState
     vision_api_key: SecretSettingState
@@ -806,8 +800,7 @@ class GalleryDisplaySettingsUpdate(BaseModel):
 class CaptionUpdate(BaseModel):
     text: str = ""
     resolve_issue: bool = False
-    #: The ``caption_revision`` the text was edited from, ``None`` for "there was no caption".
-    #: Required, so no client can overwrite a caption it never read.
+    #: The revision the text was edited from, ``None`` for no caption; required so no blind overwrite.
     base_revision: str | None
 
 
@@ -926,7 +919,7 @@ class SetCaptionsStartRequest(JobSelectionRequest, SetCaptionsRunSettings):
 
 
 class ReplaceCaptionsJobSettings(BaseModel):
-    """``search`` and the flags are unconstrained so a refusal is the job's own 400, not a pydantic blob."""
+    """``search`` and flags are unconstrained, so a refusal is the job's own 400."""
 
     mode: CaptionReplaceMode = "replace"
     search: str = ""
@@ -1099,8 +1092,7 @@ class WatermarkImageInfo(BaseModel):
     available: bool
     width: int = 0
     height: int = 0
-    #: The stored file's mtime in µs (ns would pass 2**53 and round in JavaScript); part of the
-    #: preview URL so a replaced PNG is refetched.
+    #: The PNG's mtime in µs (ns would pass 2**53); part of the preview URL.
     revision: int = 0
 
 
@@ -1208,8 +1200,7 @@ class ComfyProcessStartRequest(JobSelectionRequest, ComfyProcessJobSettings):
 
 
 class ComfyProcessSettingsResponse(BaseModel):
-    """Prompt and seed are remembered per preset, so switching workflows keeps each one's even
-    when the other preset has no node for them. The checkbox stays per folder."""
+    """Prompt and seed are remembered per preset; the checkbox stays per folder."""
 
     #: The preset of the most recent run, in any folder.
     preset: str = ""
@@ -1286,8 +1277,7 @@ class ComfyPresetSummary(BaseModel):
 
 
 class ComfyLogsResponse(BaseModel):
-    """ComfyUI's recent console output. A stopped ComfyUI and one too old to expose its log are
-    the same answer here, because neither is an error the panel should shout about."""
+    """ComfyUI's recent console output; a stopped or too-old ComfyUI is not an error here."""
 
     lines: list[str] = Field(default_factory=list)
     available: bool = False
@@ -1650,8 +1640,7 @@ class JobsResponse(BaseModel):
     active_count: int = 0
     #: Jobs matching the filter, across all pages.
     total: int = 0
-    #: Every change stamped below this is reflected in ``jobs``; a job missing from the list
-    #: with a lower revision was deleted, one with a higher revision is newer than the list.
+    #: Every change stamped below this is in ``jobs``; missing lower revisions were deleted.
     revision: int = 0
 
 
@@ -1984,9 +1973,7 @@ MAX_MASK_STRENGTH = 0.2
 
 
 class SizeFit(BaseModel):
-    """A pixel budget at the frame's own aspect, both sides snapped to ``multiple``.
-
-    Applied at the scale step, in place of ``scale``; it never upscales."""
+    """A pixel budget at the frame's aspect, snapped to ``multiple``; never upscales."""
 
     megapixels: float = Field(gt=0, le=MAX_RESIZE_MEGAPIXELS)
     multiple: int = Field(ge=1, le=MAX_RESIZE_MULTIPLE)
@@ -2080,7 +2067,7 @@ def validated_masks(masks: list[MaskRegion]) -> list[MaskRegion]:
 
 
 class VideoEditSpec(BaseModel):
-    """Always applied to the untouched original in a single pass; every field defaults to identity."""
+    """Applied to the untouched original in one pass; every field defaults to identity."""
 
     trim_start: float = Field(0.0, ge=0.0)
     #: ``None`` runs to the end, so the client need not be right about a duration of ``Infinity``.
@@ -2097,9 +2084,7 @@ class VideoEditSpec(BaseModel):
     adjust: ColorAdjust = Field(default_factory=ColorAdjust)
     effect: StyleEffect | None = None
     auto_adjust: AutoAdjust | None = None
-    #: Re-encoded to H.264 and AAC so a browser can play it, so the spec renders even with
-    #: nothing else changed. Every render is H.264 anyway; this keeps a reset from reverting
-    #: to an original the browser cannot play.
+    #: Re-encoded to H.264 and AAC so a browser can play it, even with nothing else changed.
     transcode: bool = False
 
     @model_validator(mode="after")
@@ -2186,7 +2171,7 @@ def validated_fills(fills: list[ImageFill]) -> list[ImageFill]:
 
 
 class ImageEditSpec(BaseModel):
-    """Order is fill, mask, crop, mirror, rotate, scale, adjust — shared with the frontend overlay."""
+    """Order is fill, mask, crop, mirror, rotate, scale, adjust, as in the frontend overlay."""
 
     #: Generated before everything else, so later edits never get baked into fill pixels.
     fills: list[ImageFill] = Field(default_factory=list, max_length=MAX_IMAGE_FILLS)
@@ -2365,8 +2350,7 @@ type VideoProjectTitleAlign = Literal["left", "center", "right"]
 type VideoProjectSizePreset = Literal["source", "480p", "720p", "1080p", "1440p", "2160p"]
 type VideoProjectOrientation = Literal["landscape", "portrait", "square"]
 type VideoProjectQuality = Literal["standard", "high", "small"]
-#: ``limit`` holds true peaks under the ceiling; ``normalize`` also brings the sound to the
-#: loudness target first. ``unchanged`` leaves the level as it is, which can clip.
+#: ``limit`` caps true peaks; ``normalize`` hits the loudness target first; ``unchanged`` can clip.
 type AudioLevel = Literal["unchanged", "limit", "normalize"]
 #: ``changed`` means the file's size or modification time no longer matches the recorded one.
 type VideoProjectSourceState = Literal["ok", "missing", "changed"]
@@ -2417,9 +2401,7 @@ class AudioEffects(BaseModel):
 
 
 class AudioEditSpec(BaseModel):
-    """Always applied to the untouched original in a single pass; every field defaults to identity.
-
-    Forbids other fields, so a video or image spec is never read as changes this file never had."""
+    """Applied to the untouched original in one pass; extra fields are forbidden."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -2481,8 +2463,7 @@ class VideoProjectSource(BaseModel):
     id: ProjectId
     name: Annotated[str, StringConstraints(min_length=1, max_length=255)]
     kind: VideoProjectSourceKind
-    #: Size and mtime as recorded when the source was added or last accepted. Microseconds, not
-    #: nanoseconds: a browser holds integers exactly only up to 2**53.
+    #: Size and mtime when the source was added or accepted, in µs (2**53 safe in a browser).
     size: int = Field(ge=0)
     modified_us: int = Field(ge=0)
     duration: float | None = Field(None, gt=0)
@@ -2506,11 +2487,9 @@ class VideoProjectTrack(BaseModel):
     gain: float = Field(1.0, ge=MIN_EDIT_VOLUME, le=MAX_EDIT_VOLUME)
     #: Audio tracks only: while one of its clips sounds, the other tracks are ducked.
     speech: bool = False
-    #: Ripple edits on other tracks (ripple delete, insert, ripple trim) move this one too.
-    #: Off, they leave it alone unless one of its clips is linked to a clip they move.
+    #: Ripple edits on other tracks move this one too; off, only linked clips follow.
     sync_lock: bool = True
-    #: Timeline display only: the lane shrinks to a bar of clip names, without pictures or
-    #: waveforms. Preview and export ignore it.
+    #: Display only: the lane shrinks to clip names; preview and export ignore it.
     collapsed: bool = False
 
 
@@ -2527,8 +2506,7 @@ class VideoProjectTransform(BaseModel):
 
 
 class VideoProjectKeyframe(BaseModel):
-    """A value at a time in timeline seconds from the clip's start. The time may lie outside the
-    clip, as after a split or a trim, so the part still shown keeps its motion."""
+    """Timeline seconds from the clip's start; may lie outside the clip after a split or trim."""
 
     time: float = Field(ge=-86400.0, le=86400.0)
     value: float
@@ -2555,9 +2533,7 @@ KEYFRAME_RANGES: dict[str, tuple[float, float]] = {
 
 
 class VideoProjectKeyframes(BaseModel):
-    """A clip's animation, in time order per property. A property with keyframes follows them
-    and ignores its static value: before the first it holds the first value, after the last the
-    last one."""
+    """Per property in time order; keyframes override the static value, holding at both ends."""
 
     x: KeyframeList = Field(default_factory=list)
     y: KeyframeList = Field(default_factory=list)
@@ -2611,8 +2587,7 @@ class VideoProjectTitle(BaseModel):
 
 
 class VideoProjectClip(BaseModel):
-    """One placement on a track. ``start`` and ``duration`` are timeline seconds; ``source_in``
-    is where the take begins in the source, so it spans ``duration * speed`` source seconds."""
+    """Timeline seconds; ``source_in`` begins the take, spanning ``duration * speed``."""
 
     id: ProjectId
     track_id: ProjectId
@@ -2706,8 +2681,7 @@ class VideoProjectMix(BaseModel):
 
 
 class VideoProject(BaseModel):
-    """Everything needed to rebuild an edit. Tracks are listed top to bottom as displayed: a
-    video track composites above every video track listed after it."""
+    """Tracks top to bottom as displayed: a video track composites above those listed after it."""
 
     format_version: Literal[1] = 1
     id: ProjectId
@@ -2719,8 +2693,7 @@ class VideoProject(BaseModel):
     width: int = Field(ge=MIN_PROJECT_DIMENSION, le=MAX_PROJECT_DIMENSION)
     height: int = Field(ge=MIN_PROJECT_DIMENSION, le=MAX_PROJECT_DIMENSION)
     frame_rate: float = Field(gt=0.0, le=MAX_PROJECT_FRAME_RATE)
-    #: The canvas under every clip: it shows in gaps, around fitted pictures and in the padding
-    #: of an export fitted to another shape.
+    #: Shows in gaps, around fitted pictures and in an export's padding.
     background: HexColor = "#000000"
     #: The video the project was started from; its caption is the one an export may copy.
     initial_source_id: ProjectId | None = None
@@ -2756,9 +2729,7 @@ def _unique(ids: list[str], what: str) -> None:
 
 
 def validate_project_structure(project: VideoProject) -> None:
-    """References resolve, clips sit on tracks of their kind, and nothing on a video track
-    overlaps except the two clips of a dissolve. Sound may overlap as a crossfade; see
-    ``check_crossfades``."""
+    """Video overlaps only within a dissolve; see ``check_crossfades`` for sound."""
     _unique([source.id for source in project.sources], "sources")
     _unique([track.id for track in project.tracks], "tracks")
     _unique([clip.id for clip in project.clips], "clips")
@@ -2819,8 +2790,7 @@ def validate_project_structure(project: VideoProject) -> None:
 
 
 def check_crossfades(ordered: list[VideoProjectClip], track_name: str) -> None:
-    """Sound clips on one track, in start order, may overlap the next one and cross-fade over the
-    overlap, but never cover a clip whole or sound three at once."""
+    """Sound may cross-fade into the next clip, but never cover one or stack three."""
     for index, clip in enumerate(ordered):
         for later in ordered[index + 1 :]:
             if later.start >= clip.end - VIDEO_PROJECT_TIME_EPSILON:
@@ -2857,8 +2827,7 @@ class VideoProjectSummary(BaseModel):
     duration: float
     clip_count: int
     initial_source_name: str | None = None
-    #: The picture that stands for the project: its first video while that file is here,
-    #: otherwise the earliest video or still on the timeline that is. None when none is.
+    #: The first video while its file exists, else the earliest video or still shown; None if none.
     thumbnail_path: str | None = None
 
 

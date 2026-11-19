@@ -49,7 +49,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertEqual(changes["fingerprint"], listed["fingerprint"])
 
     def test_a_rewritten_caption_returns_only_that_item(self) -> None:
-        """The whole point: one caption changing must not cost a whole folder."""
+        """One caption changing must not cost a whole folder."""
         with TempMediaFolder() as root:
             edited = write_media(root, "edited.png")
             write_media(root, "untouched.png")
@@ -69,7 +69,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertEqual(changes["removed"], [])
 
     def test_new_tags_return_only_the_tagged_item(self) -> None:
-        """The tagger writes no file, so its revision is what must reach the gallery."""
+        """The tagger writes no file."""
         update_ui_settings(tagging_enabled=True)
         self.addCleanup(load_tagging_switch)
         self.addCleanup(forget_preferences, UI_SETTINGS_KEY)
@@ -139,7 +139,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertTrue(changes["full"])
 
     def test_a_new_candidate_returns_only_that_item(self) -> None:
-        """Staging is a child directory, so writing inside it must not full-reload."""
+        """Staging is a child directory."""
         with TempMediaFolder() as root:
             write_media(root, "upscaled.png")
             write_media(root, "untouched.png")
@@ -156,7 +156,6 @@ class FolderChangesTests(unittest.TestCase):
             self.assertEqual(changes["removed"], [])
 
     def test_a_png_candidate_for_a_jpeg_source_arrives_in_changes(self) -> None:
-        """ComfyUI stages PNG, so the candidate for photo.jpg is photo.png; the diff must still pair it."""
         with TempMediaFolder() as root:
             write_media(root, "photo.jpg")
             write_media(root, "untouched.png")
@@ -174,7 +173,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertNotEqual(changes["fingerprint"], listed["fingerprint"])
 
     def test_a_new_candidate_marks_the_staging_counts_stale(self) -> None:
-        """A delta keeps subfolder counts, so staging's must be named or its card keeps the old ones."""
+        """Staging's counts must be named or its card goes stale."""
         with TempMediaFolder() as root:
             write_media(root, "upscaled.png")
             (root / STAGING_DIR_NAME).mkdir()
@@ -193,7 +192,7 @@ class FolderChangesTests(unittest.TestCase):
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
             (root / STAGING_DIR_NAME).mkdir()
-            # Backdated: only the folder's mtime sees a file no media pairs with.
+            # Only the folder's mtime sees an unpaired file.
             os.utime(root / STAGING_DIR_NAME, (1_000_000_000, 1_000_000_000))
             listed = self._listing(root)
 
@@ -207,7 +206,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertEqual(changes["stale_subfolders"], [str(root / STAGING_DIR_NAME)])
 
     def test_a_new_subfolder_asks_for_a_full_reload(self) -> None:
-        """Subfolders are not part of a delta, so the shell changing sends the client back."""
+        """Subfolders are not part of a delta."""
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
             listed = self._listing(root)
@@ -219,7 +218,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertTrue(changes["full"])
 
     def test_new_caption_rules_ask_for_a_full_reload(self) -> None:
-        """The listing's has_caption_rules flag is only refreshed by a full reload."""
+        """Only a full reload refreshes has_caption_rules."""
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
             listed = self._listing(root)
@@ -231,7 +230,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertTrue(changes["full"])
 
     def test_editing_an_inherited_instruction_file_asks_for_a_full_reload(self) -> None:
-        """A parent's prompt and rules apply here, so their readers must hear of an edit."""
+        """A parent's prompt and rules apply here."""
         with TempMediaFolder() as root:
             child = root / "album"
             child.mkdir()
@@ -253,7 +252,7 @@ class FolderChangesTests(unittest.TestCase):
                     self.assertTrue(changes["full"])
 
     def test_a_new_caption_backup_asks_for_a_full_reload(self) -> None:
-        """The backup lives in a skipped folder, so only the listing's flag can reveal it."""
+        """The backup lives in a skipped folder."""
         with TempMediaFolder() as root:
             write_txt_caption(write_media(root, "photo.png"), "A plain caption.")
             listed = self._listing(root)
@@ -278,7 +277,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertFalse(self._listing(root)["has_caption_backup"])
 
     def test_a_parent_system_prompt_asks_the_subfolder_for_a_full_reload(self) -> None:
-        """An inherited prompt sits outside the subfolder, yet decides its sysprompt_applies."""
+        """An inherited prompt decides sysprompt_applies."""
         with TempMediaFolder() as root:
             album = root / "album"
             album.mkdir()
@@ -305,7 +304,7 @@ class FolderChangesTests(unittest.TestCase):
             self.assertEqual(second["changed"], [])
 
     def test_an_adopted_fingerprint_is_a_baseline_too(self) -> None:
-        """A client that saved a file itself adopts the fingerprint rather than relisting."""
+        """A client that saved a file adopts the fingerprint."""
         with TempMediaFolder() as root:
             edited = write_media(root, "photo.png")
             write_media(root, "other.png")

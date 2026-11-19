@@ -87,7 +87,7 @@ FOLDER_QUERY = Query(..., description="Absolute path to the folder the job runs 
 
 
 def _start_job(job_type: JobType, path: str, body: JobSelectionRequest) -> JobResponse:
-    """Queue ``job_type`` with every field of ``body``, and remember what it ran with."""
+    """And remember what it ran with."""
     folder = resolve_folder(path)
     try:
         selected_paths = resolve_selected_media(folder, body.paths)
@@ -100,7 +100,7 @@ def _start_job(job_type: JobType, path: str, body: JobSelectionRequest) -> JobRe
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # Only a job that actually queued is worth remembering.
+    # Only a job that actually queued is remembered.
     remember_job_settings(job_type, body, folder_path=str(folder))
     return job_response(job)
 
@@ -117,7 +117,7 @@ def preview_auto_caption_job(
     path: str = FOLDER_QUERY,
     body: AutoCaptionPreviewRequest = AutoCaptionPreviewRequest(),
 ) -> AutoCaptionPreviewResponse:
-    """POST like the job it previews, so a large selection fits in the body."""
+    """POST, so a large selection fits in the body."""
     folder = resolve_folder(path)
     try:
         selected_paths = resolve_selected_media(folder, body.paths)
@@ -147,7 +147,7 @@ def preview_replace_captions_job(
     path: str = FOLDER_QUERY,
     body: ReplaceCaptionsPreviewRequest = ReplaceCaptionsPreviewRequest(),
 ) -> ReplaceCaptionsPreviewResponse:
-    """Count the captions the edit would change. POST despite being read-only: regex can be long."""
+    """POST because a regex can be long."""
     folder = resolve_folder(path)
 
     try:
@@ -162,7 +162,7 @@ def preview_replace_captions_job(
             selected_paths=selected_paths,
         )
     except ValueError as exc:
-        # An unusable edit is the normal state while typing, so it is a body field, not a 400.
+        # An unusable edit is normal while typing, so it is a body field.
         return ReplaceCaptionsPreviewResponse(folder=str(folder), error=str(exc))
 
     return ReplaceCaptionsPreviewResponse.model_validate(preview)
@@ -243,7 +243,7 @@ def preview_restore_captions_job(
     path: str = FOLDER_QUERY,
     body: RestoreCaptionsPreviewRequest = RestoreCaptionsPreviewRequest(),
 ) -> RestoreCaptionsPreviewResponse:
-    """POST like the job it previews, so a large selection fits in the body."""
+    """POST, so a large selection fits in the body."""
     folder = resolve_folder(path)
     try:
         selected_paths = resolve_selected_media(folder, body.paths)
@@ -307,7 +307,7 @@ def get_watermark_image() -> Response:
         content = watermark_image_path().read_bytes()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="No PNG watermark is stored") from exc
-    # Bytes rather than a streamed file, so an upload never has to replace an open file.
+    # Bytes, so an upload never replaces an open file.
     return Response(content=content, media_type="image/png", headers={"Cache-Control": "no-store"})
 
 
@@ -341,7 +341,7 @@ def start_comfy_generate_job(
 
 @router.get("/automation/comfy-process/presets", response_model=ComfyPresetsResponse)
 def list_comfy_process_presets() -> ComfyPresetsResponse:
-    """Every workflow preset on disk, for both ComfyUI jobs, and whether ComfyUI is answering."""
+    """And whether ComfyUI is answering."""
     return ComfyPresetsResponse(
         presets=[
             ComfyPresetSummary(
@@ -364,7 +364,7 @@ def list_comfy_process_presets() -> ComfyPresetsResponse:
 
 @router.get("/automation/comfy-process/logs", response_model=ComfyLogsResponse)
 def get_comfy_process_logs() -> ComfyLogsResponse:
-    """Always a 200: a stopped ComfyUI and one too old to expose its log are both unavailable."""
+    """Always a 200: a stopped or too-old ComfyUI is just unavailable."""
     lines = read_log_lines()
     if lines is None:
         return ComfyLogsResponse(available=False)
@@ -374,7 +374,6 @@ def get_comfy_process_logs() -> ComfyLogsResponse:
 
 @router.get("/automation/comfy-process/presets/{name}", response_model=ComfyPresetTextResponse)
 def get_comfy_process_preset(name: str) -> ComfyPresetTextResponse:
-    """One preset's raw JSON, exactly as exported."""
     try:
         return ComfyPresetTextResponse(name=name, content=read_comfy_preset_text(name))
     except ComfyWorkflowError as exc:
@@ -382,7 +381,7 @@ def get_comfy_process_preset(name: str) -> ComfyPresetTextResponse:
 
 
 def _map_workflow(body: ComfyWorkflowMapRequest) -> ComfyWorkflow:
-    """The workflow to draw: a missing preset is a 404, one that will not parse raises."""
+    """A missing preset is a 404; one that will not parse raises."""
     if body.source is not None:
         try:
             return load_generation("", body.source.model_dump())
@@ -397,10 +396,7 @@ def _map_workflow(body: ComfyWorkflowMapRequest) -> ComfyWorkflow:
 
 @router.post("/automation/comfy-process/map", response_model=ComfyPresetMapResponse)
 def map_comfy_workflow(body: ComfyWorkflowMapRequest) -> ComfyPresetMapResponse:
-    """The output mapped as it would run with ``inputs``, so a switch shows the branch it picks.
-
-    A broken workflow says why instead of failing.
-    """
+    """A switch shows the branch it picks; a broken workflow says why."""
     try:
         workflow = _map_workflow(body)
     except ComfyWorkflowError as exc:
@@ -409,7 +405,7 @@ def map_comfy_workflow(body: ComfyWorkflowMapRequest) -> ComfyPresetMapResponse:
     try:
         values = resolve_custom_inputs(workflow, body.inputs)
     except ComfyWorkflowError:
-        # A value the job would refuse draws the graph as saved; queueing it names the problem.
+        # A value the job would refuse draws the graph as saved.
         values = {}
     branch = extract_graph_branch(
         with_custom_inputs(workflow, deepcopy(workflow.prompt), values),
@@ -434,7 +430,6 @@ def start_train_lora_job(
 def get_train_lora_template(
     model: TrainingModel = Query("krea2_turbo", description="Which model's template to read"),
 ) -> TrainingTemplateResponse:
-    """The stock template for a model, for the editor to open."""
     try:
         return TrainingTemplateResponse(model=model, yaml=read_training_template_text(model))
     except OstrisTrainingError as exc:
@@ -445,7 +440,7 @@ def get_train_lora_template(
 def check_train_lora_template(
     body: TrainingTemplateCheckRequest,
 ) -> TrainingTemplateCheckResponse:
-    """Whether an edited template would start. A 200 either way; unparseable is the expected answer."""
+    """Whether an edited template would start; a 200 either way."""
     try:
         parse_training_template(body.template, source="edited training template")
     except OstrisTrainingError as exc:

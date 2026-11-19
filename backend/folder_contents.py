@@ -1,4 +1,4 @@
-"""Folder listing assembly; runs on a worker thread so it does not block the event loop."""
+"""Runs on a worker thread so it does not block the event loop."""
 
 import logging
 from pathlib import Path
@@ -36,12 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 def _unreadable_folder() -> HTTPException:
-    """Not an empty listing: that would show a folder whose files are only out of reach as empty."""
+    """Not an empty listing, which would misreport unreachable files."""
     return HTTPException(status_code=503, detail="This folder can't be read right now.")
 
 
 def _remember_last_folder(folder: Path) -> None:
-    """Skip the write when the value is unchanged; change detection re-lists every few seconds."""
+    """Change detection re-lists every few seconds."""
     value = str(folder)
     if get_preference(LAST_FOLDER_KEY) == value:
         return
@@ -61,7 +61,7 @@ def build_folder_response(folder: Path, *, remember_last: bool = True) -> Folder
         raise _unreadable_folder()
     scanned = perf_counter()
 
-    # Names only: the counts come from /api/folders/subfolder-stats.
+    # Counts come from /api/folders/subfolder-stats.
     subfolders = [
         {"name": entry.name, "path": str(entry.path), "hidden": entry.hidden} for entry in scan.dirs
     ]
@@ -100,7 +100,7 @@ def build_folder_response(folder: Path, *, remember_last: bool = True) -> Folder
 
 
 def build_folder_fingerprint(folder: Path) -> str | None:
-    """Remembered like a listing's, so a client adopting it can ask for changes since it."""
+    """So a client adopting it can ask for changes since it."""
     scan = scan_folder(folder)
     if scan is None:
         return None
@@ -113,7 +113,7 @@ def build_folder_fingerprint(folder: Path) -> str | None:
 def build_folder_changes(
     folder: Path, since: str, *, remember_last: bool = False
 ) -> FolderChangesResponse:
-    """Answers ``full`` when there is nothing to diff against (unknown baseline, or a shell or flag change)."""
+    """When there is no baseline, or a shell or flag changed."""
     if remember_last:
         _remember_last_folder(folder)
     scan = scan_folder(folder)
@@ -142,7 +142,7 @@ def build_folder_changes(
 
 
 def build_folder_review_counts(folder: Path) -> FolderReviewCountsResponse:
-    """Counts by the listing's own pairing rule, so they match the folder's gallery filters."""
+    """By the listing's own pairing rule."""
     scan = scan_folder(folder)
     if scan is None:
         return FolderReviewCountsResponse(

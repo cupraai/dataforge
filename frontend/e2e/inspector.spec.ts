@@ -153,8 +153,7 @@ for (const inspectorWidth of [320, 380, 520]) {
   });
 }
 
-// A laptop browser window leaves about 600px. The media gives up height; the editor keeps its
-// floor, and a long caption scrolls inside it instead of pushing the save status out.
+// About 600px: the media gives up height; the editor keeps its floor and scrolls.
 for (const height of [600, 720]) {
   test(`the caption inspector fits a ${height}px tall window`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height });
@@ -343,8 +342,7 @@ test("the media view counts the tags that do not fit and recounts on resize", as
     const response = await route.fetch();
     await route.fulfill({ response, json: { ...(await response.json()), tagging_enabled: true } });
   });
-  // Not openWorkspace: its listing route would answer first and skip this one. Deltas after the
-  // listing carry items too, so both supply the tags.
+  // Not openWorkspace, whose listing route would answer first.
   for (const pattern of ["**/api/folders/contents?**", "**/api/folders/changes?**"]) {
     await page.route(pattern, async (route) => {
       const body = await (await route.fetch()).json();

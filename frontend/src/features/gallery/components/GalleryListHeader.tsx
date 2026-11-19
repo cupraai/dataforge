@@ -9,10 +9,7 @@ interface GalleryListHeaderProps {
   selectionMode: boolean;
 }
 
-/**
- * Headings over the list's columns, sized by the column widths an ancestor sets for the rows
- * too. Hidden from assistive tech, as the row cells are: each row is one button named by its file.
- */
+/** Column headings sized by the ancestor's widths; hidden from assistive tech like the cells. */
 export function GalleryListHeader({ selectionMode }: GalleryListHeaderProps) {
   return (
     <div

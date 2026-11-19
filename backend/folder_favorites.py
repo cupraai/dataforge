@@ -84,10 +84,7 @@ def add_folder_favorite(path: str) -> list[dict[str, str]]:
 
 
 def reorder_folder_favorites(order: list[str]) -> list[dict[str, str]]:
-    """Moves the listed favorites to the front in that order; omitted ones keep their order after.
-
-    Unknown paths are dropped, so a reorder racing a removal cannot re-add the folder.
-    """
+    """Unknown paths are dropped, so a reorder racing a removal cannot re-add it."""
     stored = get_folder_favorite_paths()
     known = set(stored)
     front = [path for path in _normalize_stored_paths(order) if path in known]
@@ -104,7 +101,7 @@ def remove_folder_favorite(path: str) -> list[dict[str, str]]:
 
 
 def rename_folder_favorite(path: str, renamed: str) -> None:
-    """Points a favorite at its folder's new path, keeping its place in the list."""
+    """Keeps its place in the list."""
     folder_str = str(normalize_user_path(path))
     paths = get_folder_favorite_paths()
     if folder_str in paths:

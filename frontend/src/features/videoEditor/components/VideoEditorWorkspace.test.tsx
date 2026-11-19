@@ -161,10 +161,7 @@ function renderEditor(onExit = vi.fn<() => void>()) {
 const clips = () =>
   screen.queryAllByRole("button", { name: /^clip\.mp4, 00:00:00:00 to 00:00:04:00/ });
 
-/**
- * Moves the playhead and waits until it reads the new time. The engine learns the project's
- * length in an effect, and a seek before that is clamped to 00:00, so it is retried until then.
- */
+/** Retries until the engine knows the length; an earlier seek clamps to 00:00. */
 async function seekTo(frame: number, timecode: string) {
   const playhead = await screen.findByRole<HTMLInputElement>("slider", { name: "Playhead" });
   await waitFor(() => {

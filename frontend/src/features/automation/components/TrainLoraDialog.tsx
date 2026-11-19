@@ -42,8 +42,7 @@ export function TrainLoraDialog({
   onCancel,
 }: TrainLoraDialogProps) {
   const [model, setModel] = useState<TrainingModel>(initialSettings.model);
-  // Never restored: the name is the run's identity on disk and its resume key, so
-  // confirming without editing it must never attach to an earlier training run.
+  // Never restored: the name is the run's resume key, so it must not attach to an old run.
   const [loraName, setLoraName] = useState("");
   const [triggerWord, setTriggerWord] = useState(initialSettings.trigger_word);
   const initialPrompts = initialSettings.prompts.length

@@ -37,7 +37,7 @@ def read_tagging_status() -> TaggingStatusResponse:
 
 @router.post("/system/tagging/retag", response_model=TaggingRetagResponse)
 def request_retag() -> TaggingRetagResponse:
-    """Queues every tagged file; a new vocabulary on its own only reaches files tagged later."""
+    """A new vocabulary alone only reaches files tagged later."""
     return TaggingRetagResponse(queued=retag_everything())
 
 
@@ -57,7 +57,7 @@ def read_tag_vocabulary() -> TagVocabularyResponse:
 
 @router.put("/system/tagging/vocabulary", response_model=TagVocabularyResponse)
 def write_tag_vocabulary(body: TagVocabularyUpdate) -> TagVocabularyResponse:
-    """Applies to files tagged from now on; Re-tag everything brings the rest up to it."""
+    """Re-tag everything brings the rest up to it."""
     try:
         tagger.write_personal_vocabulary_text(body.text)
     except ValueError as error:

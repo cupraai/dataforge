@@ -152,8 +152,7 @@ function expectMasonryGeometry(
 }
 
 describe("Gallery", () => {
-  // Large mode lays out from the container's measured width, and jsdom measures
-  // everything as zero, so every test needs a width to render anything at all.
+  // Large mode needs a measured width, and jsdom measures zero.
   let clientWidth: PropertyDescriptor | undefined;
 
   beforeEach(() => {
@@ -222,8 +221,7 @@ describe("Gallery", () => {
     const { rerender } = render(gallery(new Set()));
     cardRenderSpy.mockClear();
 
-    // Selecting one item must not re-render the other card, or large folders
-    // would repaint the whole visible grid on every click.
+    // Selecting one item must not re-render the other card.
     rerender(gallery(new Set([imageItem.path])));
 
     expect(cardRenderSpy.mock.calls.map(([item]) => item.path)).toEqual([imageItem.path]);

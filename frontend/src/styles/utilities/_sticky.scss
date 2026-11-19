@@ -1,4 +1,4 @@
-// Zero-height in-flow marker above a sticky element; comparing the two rects is what detects docking.
+// Zero-height in-flow marker above a sticky element; comparing the two rects detects docking.
 .sticky-sentinel {
   height: 0;
   margin: 0;

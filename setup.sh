@@ -8,8 +8,7 @@ set -eo pipefail
 PYTHON_VERSION="$(tr -d '\r\n' < "$DEV_ROOT/.python-version")"
 PYTHON_SERIES="${PYTHON_VERSION%.*}"
 
-# Keep in step with the engines range in frontend/package.json. Both come from what
-# the lockfile actually resolves: jsdom 29 and sass 1.103.
+# Keep in step with frontend/package.json engines (jsdom 29, sass 1.103).
 NODE_RANGE="^20.19.0 || ^22.13.0 || >=24"
 
 SKIP_TAGGING=0
@@ -52,8 +51,7 @@ find_python() {
 }
 
 node_version_ok() {
-    # The engines range, evaluated without needing semver installed - npm is not
-    # usable yet at this point in setup.
+    # Without semver, since npm is not usable yet.
     local version="$1" major rest minor
     version="${version#v}"
     major="${version%%.*}"
@@ -160,8 +158,7 @@ else
         || warn "Tagging could not be set up; everything else works. Run ./setup.sh again to retry."
 fi
 
-# Dates the install, so check_backend_dependency_drift can warn when a later git pull brings
-# in requirements the venv never saw. Same filename the PowerShell side reads.
+# Dates the install for check_backend_dependency_drift; shared with the PowerShell side.
 date +%Y-%m-%dT%H:%M:%S%z > "$DEV_DEPS_STAMP"
 say ""
 
@@ -182,9 +179,7 @@ say ""
 # 4. Generated sources
 # ---------------------------------------------------------------------------
 
-# The ordering trap this script exists to remove: these three are gitignored, two of
-# them carry real values, and they come out of the backend venv - so the frontend
-# cannot typecheck, build or test until the venv above exists and this has run.
+# Gitignored, generated from the venv: the frontend cannot build until this has run.
 say "Generating the frontend API types..."
 "$DEV_VENV_PY" "$DEV_SCRIPTS/generate_types.py" || fail "Frontend type generation failed."
 

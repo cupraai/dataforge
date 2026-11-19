@@ -1,10 +1,4 @@
-"""Caption sidecars: the one reader that tells missing, empty, text and unreadable apart, and
-the one writer, which only replaces the revision its caller read.
-
-A revision is a hash of the file's bytes, so it catches an edit from another tab, a job or another
-program alike; ``None`` stands for "no file". Same-stem media share one caption file, so bulk jobs
-group their media by :func:`caption_targets` and change each caption once.
-"""
+"""Caption sidecars: one reader, and one writer that only replaces the revision it read."""
 
 import hashlib
 import json
@@ -40,7 +34,7 @@ class CaptionRead(NamedTuple):
     status: CaptionStatus
     #: Stripped, and only for ``"text"``.
     text: str | None
-    #: ``None`` when there is no file, or when it could not be opened.
+    #: ``None`` when there is no file or it could not be opened.
     revision: str | None
     read_error: CaptionReadError | None
 
@@ -56,7 +50,7 @@ def caption_revision(raw: bytes) -> str:
 def _caption_from_bytes(raw: bytes) -> CaptionRead:
     revision = caption_revision(raw)
     try:
-        # Universal newlines, as text-mode reads give: a search spanning lines matches CRLF files.
+        # Universal newlines, so a search spanning lines matches CRLF files.
         text = raw.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n").strip()
     except UnicodeDecodeError:
         return CaptionRead("unreadable", None, revision, "encoding")
@@ -84,10 +78,7 @@ def read_caption(media_path: Path) -> CaptionRead:
 
 
 def caption_from_sidecar(sidecar_path: Path, mtime_ns: int, size: int) -> CaptionRead:
-    """:func:`read_caption_file` for a sidecar the caller has already stat'ed.
-
-    A file that cannot be opened is not remembered, so the next listing tries again.
-    """
+    """A file that cannot be opened is not cached."""
     return cached_by_stat(
         "caption",
         sidecar_path,
@@ -99,7 +90,7 @@ def caption_from_sidecar(sidecar_path: Path, mtime_ns: int, size: int) -> Captio
 
 
 def is_blank_caption_file(path: Path) -> bool:
-    """Whitespace only. An unreadable file is not blank: its text may still be worth keeping."""
+    """An unreadable file is not blank."""
     return read_caption_file(path).status == "empty"
 
 
@@ -113,7 +104,7 @@ def resolve_caption_file_name(stem: str, exists: Callable[[str], bool]) -> str |
 
 
 def load_backup_caption(media_path: Path) -> str | None:
-    """This file's caption as stored in the folder's backup, or ``None`` when it has none."""
+    """``None`` when the backup has none."""
     backup_dir = media_path.parent / CAPTION_BACKUP_DIR_NAME
     name = resolve_caption_file_name(
         media_path.stem,
@@ -130,12 +121,12 @@ def load_backup_caption(media_path: Path) -> str | None:
 
 class CaptionTarget(NamedTuple):
     caption: Path
-    #: Every given media file that reads this caption, in the order given.
+    #: Every given media file that reads this caption, in order.
     media: tuple[Path, ...]
 
     @property
     def primary(self) -> Path:
-        """The file a job reports and, where it looks at pixels, looks at."""
+        """The file a job reports and reads pixels from."""
         return self.media[0]
 
     @property
@@ -144,7 +135,7 @@ class CaptionTarget(NamedTuple):
 
 
 def caption_targets(media_files: Iterable[Path]) -> list[CaptionTarget]:
-    """One entry per caption file, so a caption same-stem media share is changed once."""
+    """One per caption file, so a shared caption changes once."""
     grouped: dict[str, tuple[Path, list[Path]]] = {}
     for media in media_files:
         caption = caption_path_for(media)
@@ -154,15 +145,15 @@ def caption_targets(media_files: Iterable[Path]) -> list[CaptionTarget]:
 
 NO_CAPTION_STATUS = "no_caption"
 CAPTION_READ_ERROR = "read_error"
-#: A write refused because the caption or its file changed after it was read.
+#: The caption or its file changed after it was read.
 CAPTION_CHANGED_STATUS = "caption_changed"
 
 
 class ReferenceCaption(NamedTuple):
-    """What a job reads before it changes a caption, and the revision to write back against."""
+    """The revision to write back against."""
 
     text: str | None
-    #: ``"ok"``, :data:`NO_CAPTION_STATUS` (missing or textless) or :data:`CAPTION_READ_ERROR`.
+    #: ``"ok"``, :data:`NO_CAPTION_STATUS` or :data:`CAPTION_READ_ERROR`.
     status: str
     revision: str | None
 
@@ -204,12 +195,7 @@ def save_caption(
     resolve_issue: bool = False,
     trailing_newline: bool = True,
 ) -> dict[str, object]:
-    """Write ``text`` over the caption only while it is still ``base_revision``.
-
-    Raises :class:`CaptionConflictError` when the caption changed since it was read, or the media
-    is gone, and ``OSError`` when the current caption cannot be opened to compare, so a file
-    another program holds is never overwritten blind.
-    """
+    """Raises :class:`CaptionConflictError` if the caption changed since ``base_revision``."""
     caption_path = caption_path_for(media_path)
     with claim([caption_path], "caption", wait_s=CAPTION_CLAIM_WAIT_SECONDS):
         if not media_path.is_file():
@@ -233,20 +219,16 @@ def save_caption(
 
 
 class CaptionUndo(NamedTuple):
-    """What undoing one job write takes: the bytes it replaced and the revision it left."""
+    """The replaced bytes and the revision the write left."""
 
     media_path: Path
-    #: ``None``: the job created the caption, so undoing it deletes the file.
+    #: ``None``: undoing deletes the file.
     previous: bytes | None
     revision: str | None
 
 
 def save_caption_undoably(media_path: Path, text: str, *, base_revision: str | None) -> CaptionUndo:
-    """:func:`save_caption`, keeping the replaced bytes so :func:`restore_caption` can undo it.
-
-    The bytes are read before the write, so they must still be ``base_revision``: otherwise the
-    snapshot would be of someone else's edit, and the write is refused like any stale one.
-    """
+    """Keeps the replaced bytes for :func:`restore_caption`; they must be ``base_revision``."""
     caption_path = caption_path_for(media_path)
     try:
         previous: bytes | None = caption_path.read_bytes()
@@ -260,10 +242,7 @@ def save_caption_undoably(media_path: Path, text: str, *, base_revision: str | N
 
 
 def restore_caption(undo: CaptionUndo) -> bool:
-    """Put back what a job replaced, only while the caption is still what the job wrote.
-
-    ``False`` when it changed since, so an edit made after the job is never undone with it.
-    """
+    """Put back what a job replaced; ``False`` when the caption changed since."""
     caption_path = caption_path_for(undo.media_path)
     with claim([caption_path], "caption", wait_s=CAPTION_CLAIM_WAIT_SECONDS):
         current = read_caption_file(caption_path)
@@ -279,7 +258,7 @@ def restore_caption(undo: CaptionUndo) -> bool:
 
 
 def issue_file_path(media_path: Path) -> Path:
-    """``clip.mp4`` -> ``clip.mp4.issue.json``. Named after the whole file so ``clip.mp4`` and ``clip.png`` cannot share one sidecar."""
+    """Named after the whole file so ``clip.mp4`` and ``clip.png`` never share one."""
     return media_path.with_name(media_path.name + ISSUE_SIDECAR_SUFFIX)
 
 
@@ -328,8 +307,7 @@ class IssueSummary(NamedTuple):
     fixes: list[str]
     rules: list[str]
     has_file: bool
-    #: The caption revision each source checked; ``None`` when it has no findings or the
-    #: sidecar has no record of it, so nothing can be said about staleness.
+    #: The caption revision each source checked; ``None`` when unknown.
     fixes_revision: str | None = None
     rules_revision: str | None = None
 
@@ -350,12 +328,12 @@ _NORMALIZERS: dict[IssueSource, Callable[[object], list[str]]] = {
 
 class _StoredIssues(NamedTuple):
     findings: dict[IssueSource, list[str]]
-    #: Only for sources with findings: a revision without findings says nothing.
+    #: Only for sources with findings.
     checked: dict[IssueSource, str]
 
 
 def _issues_from_json(raw: bytes | None) -> _StoredIssues:
-    """An unusable sidecar reads as empty; callers still count the file as present."""
+    """An unusable sidecar reads as empty."""
     try:
         data = json.loads(raw) if raw is not None else None
     except ValueError:
@@ -385,7 +363,7 @@ def _issues_from_file(issue_path: Path) -> _StoredIssues:
 
 
 def _summary(stored: _StoredIssues) -> IssueSummary:
-    # Fresh lists per call: the stat cache hands back the same stored value every time.
+    # The stat cache returns one shared value.
     return IssueSummary(
         list(stored.findings["fixes"]),
         list(stored.findings["rules"]),
@@ -396,7 +374,6 @@ def _summary(stored: _StoredIssues) -> IssueSummary:
 
 
 def issue_summary_from_sidecar(issue_path: Path, mtime_ns: int, size: int) -> IssueSummary:
-    """:func:`load_issue_summary` for a sidecar the caller has already stat'ed."""
     stored = cached_by_stat(
         "issue",
         issue_path,
@@ -419,10 +396,7 @@ def load_issue_summary(media_path: Path) -> IssueSummary:
 def save_issue_findings(
     media_path: Path, source: IssueSource, findings: list[str], *, revision: str | None
 ) -> None:
-    """Replace one source's findings and keep the other's; the sidecar goes once both are empty.
-
-    ``revision`` is the caption revision the findings describe, so a later edit shows them stale.
-    """
+    """Replace one source's findings, keeping the other's; ``revision`` marks them stale later."""
     issue_path = issue_file_path(media_path)
     stored = _issues_from_file(issue_path)
     stored.findings[source] = _NORMALIZERS[source](findings)

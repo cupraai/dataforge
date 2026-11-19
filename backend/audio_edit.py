@@ -1,8 +1,4 @@
-"""Trim, fade, level, retime, repitch and shape one audio file in place from its untouched original.
-
-Noise reduction and pitch come from the proxy the preview plays (``audio_effects.audio_proxy``),
-so the file ends up sounding the way it was heard. Everything after runs in one pass: trim,
-speed, EQ, volume, fades in output time, then the level stage. The file keeps its own format."""
+"""Edit one audio file in place from its original; NR and pitch come from the preview's proxy."""
 
 from __future__ import annotations
 
@@ -42,9 +38,9 @@ logger = logging.getLogger(__name__)
 FFMPEG_MISSING_MESSAGE = "ffmpeg is required to edit audio"
 AUDIO_EDIT_TIMEOUT_SECONDS = 1800
 
-#: What LAME can write at a constant rate; a source's average is snapped to the nearest.
+#: LAME's constant rates; a source's average snaps to the nearest.
 MP3_BITRATES = (32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320)
-#: Used when the source reports no bitrate: LAME's high-quality variable rate.
+#: LAME's high-quality variable rate, when the source reports no bitrate.
 MP3_FALLBACK_QUALITY = "2"
 
 
@@ -87,8 +83,7 @@ def _seconds(value: float) -> str:
 def build_audio_filters(
     spec: AudioEditSpec, output_seconds: float | None, *, level: list[str] | None = None
 ) -> list[str]:
-    """Trim in source time, then speed, EQ, volume and fades in output time. ``level`` is the
-    level stage, or ``None`` to stop before it, as the loudness measurement does."""
+    """Trim, then speed, EQ, volume and fades; ``level=None`` stops before the level stage."""
     filters: list[str] = []
     if spec.trim_start > 0 or spec.trim_end is not None:
         bounds = [f"start={_seconds(spec.trim_start)}"]
@@ -118,8 +113,7 @@ def _nearest_mp3_bitrate(kbps: int) -> int:
 
 
 def encoder_arguments(muxer: str, probe: AudioProbe) -> list[str]:
-    """The source's own encoding, as near as the encoder allows: a WAV keeps its sample format,
-    a FLAC its depth, an MP3 its bitrate."""
+    """The source's own encoding, as near as the encoder allows."""
     rate = ["-ar", str(probe.sample_rate)] if probe.sample_rate else []
     if muxer == "wav":
         codec = probe.codec if probe.codec and probe.codec.startswith("pcm_") else "pcm_s16le"
@@ -154,7 +148,7 @@ def build_audio_edit_command(
         command += ["-i", str(tagged)]
         tags = 1
     command += ["-map", "0:a:0", "-map_metadata", str(tags)]
-    # A WAV keeps no cover; an MP3 or FLAC keeps its picture as it is.
+    # A WAV keeps no cover.
     if muxer != "wav" and probe.has_picture:
         command += ["-map", f"{tags}:v?", "-c:v", "copy", "-disposition:v", "attached_pic"]
     if filters:
@@ -165,7 +159,6 @@ def build_audio_edit_command(
 
 
 def build_measure_command(executable: str, source: Path, filters: list[str]) -> list[str]:
-    """Logs the loudness of the sound as edited, before its level stage; see ``parse_loudness``."""
     return [
         *(executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "info"),
         *("-i", str(source), "-map", "0:a:0", "-af", ",".join([*filters, MEASURE_FILTER])),
@@ -184,8 +177,7 @@ def _render_source(executable: str, original: Path, spec: AudioEditSpec) -> Path
 def measure_loudness(
     original: Path, spec: AudioEditSpec, *, ffmpeg: str | None = None
 ) -> float | None:
-    """Integrated LUFS of ``original`` as ``spec`` shapes it, before the level stage; ``None``
-    for silence. The preview's normalize gain, and the render's."""
+    """Integrated LUFS before the level stage; ``None`` for silence."""
     executable = ffmpeg or ffmpeg_path()
     if not executable:
         raise RuntimeError(FFMPEG_MISSING_MESSAGE)
@@ -224,10 +216,7 @@ def apply_audio_edit(
     on_progress: ProgressCallback | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> AudioEditResponse:
-    """Render ``spec`` from the original. On failure the live file is left byte-identical.
-
-    Stops when ``should_cancel`` says so or when the render is cancelled through its claim.
-    """
+    """Render ``spec`` from the original; on failure the live file is untouched."""
     with claim([media], "render") as held:
         return _apply_claimed(
             media,

@@ -34,11 +34,7 @@ function createSearchWorker(): Worker {
   return new Worker(new URL("../lib/regexSearch.worker.ts", import.meta.url), { type: "module" });
 }
 
-/**
- * Which of `texts` a search pattern matches, worked out off the main thread under a time budget.
- * A pattern that runs past it gets its worker terminated and reads as `too-expensive`, so a
- * backtracking pattern cannot freeze the gallery. `pattern` must already compile; `null` is idle.
- */
+/** Regex matches computed in a terminable worker; past the budget it reads `too-expensive`. */
 export function useRegexSearch(pattern: string | null, texts: readonly string[]): RegexSearchState {
   const workerAvailable = typeof Worker !== "undefined";
   const [settled, setSettled] = useState<Settled | null>(null);

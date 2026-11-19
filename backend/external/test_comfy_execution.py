@@ -14,7 +14,7 @@ from testing_fixtures import mock_comfy_client
 
 class AwaitOutputTests(unittest.TestCase):
     def test_a_cancel_mid_image_raises_rather_than_waiting_it_out(self) -> None:
-        # run_media_job only checks between files; cancel must also interrupt an in-flight image.
+        # Cancel must also interrupt an in-flight image.
         def handler(request: httpx.Request) -> httpx.Response:
             if request.url.path == "/queue":
                 return httpx.Response(200, json={"queue_running": [], "queue_pending": []})
@@ -38,7 +38,7 @@ class AwaitOutputTests(unittest.TestCase):
         with mock_comfy_client(lambda _r: httpx.Response(200, json={"p-1": entry})) as client:
             ref = await_output(client, "p-1", output_node="3", timeout=30.0, should_cancel=None)
 
-        # Last wins: preview then save lists them in execution order.
+        # Last wins: preview then save, in execution order.
         self.assertEqual(ref["filename"], "final.png")
 
     def test_a_run_that_produced_nothing_says_so(self) -> None:
@@ -87,7 +87,7 @@ class RequestStopTests(unittest.TestCase):
         self.assertEqual(json.loads(requests[0].content), {"prompt_id": "p-1"})
 
     def test_someone_elses_prompt_is_never_interrupted(self) -> None:
-        # Interrupting here would kill another job's image, or work in the ComfyUI tab.
+        # Interrupting would kill someone else's image.
         calls: list[str] = []
         payload = {"queue_running": [[0, "someone-else", {}]], "queue_pending": []}
 

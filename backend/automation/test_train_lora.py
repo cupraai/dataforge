@@ -36,7 +36,7 @@ def _job_with_config_steps(
     step: int = 0,
     config_steps: int = 1000,
 ) -> dict:
-    """Raw Ostris payload shape: total lives in job_config, not top-level total_steps."""
+    """The total lives in job_config, not top-level total_steps."""
     return {
         "id": "job-1",
         "name": "sample_train_v1",
@@ -58,7 +58,7 @@ def _job_with_config_steps(
 
 
 class TrainLoraPatches:
-    """Patches every AI-Toolkit call the runner makes, so no network is touched."""
+    """No network is touched."""
 
     def __init__(self, *, poll_jobs: list[dict | None], existing: dict | None = None) -> None:
         self.poll_jobs = poll_jobs
@@ -153,7 +153,7 @@ class ValidateTrainLoraFolderTests(unittest.TestCase):
                 )
 
     def test_rejects_a_broken_edited_template(self) -> None:
-        """Caught at queue time, so the user sees it on the dialog they are looking at."""
+        """Caught at queue time, so the dialog shows it."""
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
 
@@ -177,7 +177,7 @@ class ValidateTrainLoraFolderTests(unittest.TestCase):
 
 
 class TrainingConfigTests(unittest.TestCase):
-    """The config handed to AI-Toolkit is built for real here - only the request is faked."""
+    """The config is built for real; only the request is faked."""
 
     def _created_config(self, **kwargs: object) -> dict:
         with TrainLoraPatches(poll_jobs=[_job("completed", step=100)]) as patches:
@@ -201,7 +201,7 @@ class TrainingConfigTests(unittest.TestCase):
 
         self.assertEqual(process["model"]["arch"], "minimax_h3")
         self.assertEqual(process["model"]["name_or_path"], "Comfy-Org/MiniMax-H3")
-        # Video settings ride along from the YAML; exact frame counts are pinned in test_ostris_training.
+        # Exact frame counts are pinned in test_ostris_training.
         self.assertTrue(process["datasets"][0]["do_i2v"])
         self.assertGreater(process["sample"]["num_frames"], 1)
 
@@ -211,12 +211,11 @@ class TrainingConfigTests(unittest.TestCase):
         process = self._created_config(template=edited)
 
         self.assertEqual(process["train"]["steps"], 250)
-        # Still the model it was edited from, and the placeholders still get filled.
         self.assertEqual(process["model"]["arch"], "krea2:turbo")
         self.assertEqual(process["datasets"][0]["folder_path"], "C:\\datasets\\landscapes")
 
     def test_an_edited_template_wins_over_the_model_slug(self) -> None:
-        """The edit is the whole config; the slug only picks what to start from."""
+        """The slug only picks what to start from."""
         edited = read_training_template_text("h3_fl2va")
 
         process = self._created_config(model="krea2_turbo", template=edited)
@@ -256,7 +255,7 @@ class RunTrainLoraJobTests(unittest.TestCase):
                 ),
             )
 
-        # The first entry is the job as it looked right after being queued.
+        # The first entry is the job as it was queued.
         self.assertEqual(progress, [(40, 100), (100, 100)])
         self.assertEqual(result["processed"], 100)
         self.assertEqual(result["total"], 100)
@@ -357,7 +356,7 @@ class RunTrainLoraJobTests(unittest.TestCase):
         self.assertEqual(result["processed"], 100)
 
     def test_a_new_run_refuses_a_name_another_live_run_already_uses(self) -> None:
-        """A name says nothing about the dataset or model, so tracking it could cancel that run."""
+        """Tracking it could cancel an unrelated run."""
         with TrainLoraPatches(
             poll_jobs=[_job("running", step=80)],
             existing=_job("running", step=80),

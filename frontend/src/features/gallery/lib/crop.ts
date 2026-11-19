@@ -213,10 +213,7 @@ export function screenDeltaToSource(
   return { dx: x, dy: y };
 }
 
-/**
- * Screen-aligns an overlay readout and pins it to one of the rect's on-screen top anchors.
- * The caller places the readout at the rect's centre and sizes it in painted pixels.
- */
+/** Screen-aligns a readout and pins it to an on-screen top anchor of the rect. */
 export function readoutTransform(
   orientation: Orientation,
   rectWidth: number,

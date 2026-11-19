@@ -67,7 +67,7 @@ def write_gallery_display_settings(
 def read_automation_settings(
     path: str = Query(..., description="Folder path; each job's settings are returned for it"),
 ) -> AutomationSettingsResponse:
-    """Read-only on purpose: settings are stored by the job-start routes themselves."""
+    """Settings are stored by the job-start routes."""
     return get_automation_settings(folder_path=path)
 
 

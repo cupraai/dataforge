@@ -1,4 +1,4 @@
-"""Cut an editor-format ComfyUI workflow down to what one output node depends on."""
+"""Cut an editor-format workflow down to what one output node depends on."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ _MAX_SUBGRAPH_DEPTH = 12
 
 
 def _link_ends(link: object) -> tuple[str, str, object, str] | None:
-    """``(link id, origin node id, origin slot, target node id)`` from either link layout."""
+    """``(link id, origin, origin slot, target)``, from either link layout."""
     if isinstance(link, list) and len(link) >= 5:
         link_id, origin, slot, target = link[:4]
     elif isinstance(link, dict):
@@ -36,7 +36,7 @@ def _route_name(node: dict[str, Any]) -> str | None:
 def _inner_getter_names(
     node_type: object, definitions: dict[str, dict[str, Any]], depth: int = 0
 ) -> set[str]:
-    """Get names a subgraph reads from outside: a Set node in the same scope wins."""
+    """A Set node in the same scope wins."""
     definition = definitions.get(node_type) if isinstance(node_type, str) else None
     if definition is None or depth >= _MAX_SUBGRAPH_DEPTH:
         return set()
@@ -65,11 +65,7 @@ def _resolve_getters(
     origins: dict[str, tuple[str, object]],
     setters: dict[str, list[str]],
 ) -> None:
-    """Rewire every top-level Get node's links to what feeds its Set node.
-
-    Both nodes are then left unlinked, so the walk never keeps them. A name with several Set
-    nodes, or none fed, stays a Get node: there is no single source to rewire to.
-    """
+    """Rewire top-level Get nodes to what feeds their Set node; ambiguous names stay."""
 
     def source(name: str, depth: int = 0) -> tuple[str, object] | None:
         found = setters.get(name, [])
@@ -117,7 +113,7 @@ def _inside(group: dict[str, Any], node: dict[str, Any]) -> bool:
 
 
 def _prune_reroutes(extra: dict[str, Any], kept_links: set[str]) -> None:
-    """Keep native reroutes a kept link runs through, with the reroutes they hang from."""
+    """With the reroutes they hang from."""
     extensions = [
         entry for entry in _dicts(extra.get("linkExtensions")) if str(entry.get("id")) in kept_links
     ]
@@ -152,13 +148,7 @@ def _prune_reroutes(extra: dict[str, Any], kept_links: set[str]) -> None:
 
 
 def workflow_for_output(raw: str, node_id: str) -> str | None:
-    """The workflow trimmed to the nodes ``node_id`` depends on, or None if it is not there.
-
-    ``node_id`` is an API-format id; a ``parent:child`` id keeps its whole subgraph instance,
-    because a definition is shared by every instance and cannot be cut for one of them. Walking
-    the editor graph keeps what the API format drops, such as reroutes and primitives. Get
-    nodes are rewired to their source; a Set node stays only for a Get inside a kept subgraph.
-    """
+    """The workflow trimmed to what ``node_id`` needs; a ``parent:child`` id keeps its instance."""
     try:
         workflow = json.loads(raw)
     except json.JSONDecodeError:
@@ -218,7 +208,7 @@ def workflow_for_output(raw: str, node_id: str) -> str | None:
     }
     kept_nodes = [node for node in nodes if str(node["id"]) in kept]
     for node in kept_nodes:
-        # A link from a node missing in the file is dangling; ComfyUI reports it on load.
+        # ComfyUI reports a dangling link on load.
         for entry in _dicts(node.get("inputs")):
             if entry.get("link") is not None and str(entry["link"]) not in kept_links:
                 entry["link"] = None

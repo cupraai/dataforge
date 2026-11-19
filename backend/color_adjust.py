@@ -1,8 +1,4 @@
-"""The Adjust tools' global tone and color, as one per-pixel function baked into a 3D LUT.
-
-The TS port in ``frontend/src/features/gallery/lib/colorAdjust.ts`` must match it; the parity
-cases ``scripts/generate_types.py`` emits from :func:`adjust_pixels` hold the two together.
-"""
+"""The Adjust tools as one per-pixel function baked into a 3D LUT; see ``colorAdjust.ts``."""
 
 from __future__ import annotations
 
@@ -20,7 +16,7 @@ IDENTITY_EPSILON = 1e-9
 #: Rec. 709 luminance of linear RGB.
 LUMA = np.array([0.2126, 0.7152, 0.0722])
 
-#: Tools a LUT carries; ``definition`` and ``noise_reduction`` look at neighbours and cannot.
+#: ``definition`` and ``noise_reduction`` read neighbours, so no LUT can carry them.
 GLOBAL_TOOLS = (
     "exposure",
     "brilliance",
@@ -62,7 +58,7 @@ def linear_to_srgb(linear: np.ndarray) -> np.ndarray:
 
 
 def white_balance_gains(warmth: float, tint: float) -> np.ndarray:
-    """Positive tint is magenta. Normalised so a grey keeps its luminance."""
+    """Positive tint is magenta; a grey keeps its luminance."""
     log_gains = COLOR_ADJUST["warmth_gain"] * warmth * np.array([1.0, 0.0, -1.0])
     log_gains += COLOR_ADJUST["tint_gain"] * tint * np.array([1.0, -1.0, 1.0])
     gains = np.exp(log_gains)
@@ -70,7 +66,7 @@ def white_balance_gains(warmth: float, tint: float) -> np.ndarray:
 
 
 def _exposed(luminance: np.ndarray, exposure: float) -> np.ndarray:
-    """A plain gain darkens; brightening rolls off so white stays white."""
+    """Brightening rolls off so white stays white."""
     gain = 2.0 ** (COLOR_ADJUST["exposure_stops"] * exposure)
     if gain >= 1.0:
         return gain * luminance / (1.0 + (gain - 1.0) * luminance)
@@ -104,7 +100,7 @@ def _black_point(p: np.ndarray, amount: float) -> np.ndarray:
 
 
 def _white_point(p: np.ndarray, amount: float) -> np.ndarray:
-    """Black point's mirror: positive stretches a dull white up to white, negative dims it."""
+    """Positive stretches a dull white up; negative dims it."""
     if amount > 0:
         level = COLOR_ADJUST["white_point_level"] * amount
         return np.minimum(1.0, p / (1.0 - level))
@@ -116,7 +112,7 @@ def _clamp_unit(value: float) -> float:
 
 
 def tone_curve(luminance: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
-    """Linear luminance in and out; every stage is monotonic and exactly identity at 0."""
+    """Linear luminance; every stage is monotonic and identity at 0."""
     p = linear_to_srgb(_exposed(luminance, adjust.exposure))
 
     b = adjust.brilliance
@@ -134,7 +130,7 @@ def tone_curve(luminance: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
 
 
 def hue_matrix(degrees: float) -> np.ndarray:
-    """The CSS ``hue-rotate()`` matrix: turns chroma and keeps its luma."""
+    """The CSS ``hue-rotate()`` matrix."""
     c = cos(radians(degrees))
     s = sin(radians(degrees))
     lr, lg, lb = 0.213, 0.715, 0.072
@@ -148,7 +144,7 @@ def hue_matrix(degrees: float) -> np.ndarray:
 
 
 def fit_gamut(linear: np.ndarray) -> np.ndarray:
-    """Pull out-of-range colors toward their own grey: luminance and hue stay, chroma gives."""
+    """Luminance and hue stay; chroma gives."""
     grey = np.clip(linear @ LUMA, 0.0, 1.0)[..., None]
     offset = linear - grey
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -158,7 +154,7 @@ def fit_gamut(linear: np.ndarray) -> np.ndarray:
     return grey + offset * scale
 
 
-#: Oklab (Ottosson): linear sRGB to cone response, and cube-rooted cones to lightness and chroma.
+#: Oklab (Ottosson).
 _OKLAB_CONES = np.array(
     [
         [0.4122214708, 0.5363325363, 0.0514459929],
@@ -178,14 +174,14 @@ _OKLAB_LAB_INVERSE = np.linalg.inv(_OKLAB_LAB)
 
 
 def scale_chroma(linear: np.ndarray, factor: np.ndarray) -> np.ndarray:
-    """In Oklab, where scaling chroma keeps hue and lightness; linear light turns orange pink."""
+    """In Oklab, where scaling chroma keeps hue and lightness."""
     lab = np.cbrt(linear @ _OKLAB_CONES.T) @ _OKLAB_LAB.T
     lab[..., 1:] *= factor[..., None]
     return (lab @ _OKLAB_LAB_INVERSE.T) ** 3 @ _OKLAB_CONES_INVERSE.T
 
 
 def adjust_pixels(rgb: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
-    """sRGB-encoded ``(..., 3)`` in 0..1 to the same, through every global tool."""
+    """sRGB-encoded ``(..., 3)`` in 0..1."""
     linear = srgb_to_linear(np.asarray(rgb, dtype=np.float64))
     linear = linear * white_balance_gains(adjust.warmth, adjust.tint)
 
@@ -214,7 +210,7 @@ def adjust_pixels(rgb: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
 def adjust_lut(
     adjust: ColorAdjust, size: int = ADJUST_RENDER_LUT_SIZE, *, effect: StyleEffect | None = None
 ) -> np.ndarray:
-    """``(size, size, size, 3)`` indexed ``[b, g, r]``: red varies fastest, as .cube and Pillow read it."""
+    """Red varies fastest, as .cube and Pillow read it."""
     axis = np.linspace(0.0, 1.0, size)
     blue, green, red = np.meshgrid(axis, axis, axis, indexing="ij")
     rgb = adjust_pixels(np.stack([red, green, blue], axis=-1), adjust)
@@ -229,7 +225,7 @@ def adjust_lut(
 
 
 def lut_filter(adjust: ColorAdjust, effect: StyleEffect | None = None) -> ImageFilter.Color3DLUT:
-    """Three channels, so an alpha band passes through untouched."""
+    """An alpha band passes through untouched."""
     return ImageFilter.Color3DLUT(ADJUST_RENDER_LUT_SIZE, adjust_lut(adjust, effect=effect))
 
 

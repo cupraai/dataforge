@@ -59,7 +59,7 @@ class VideoEditStateTests(unittest.TestCase):
             self.assertEqual(payload["spec"]["trim_end"], 4.0)
 
     def test_the_probed_frame_rate_reaches_the_editor(self) -> None:
-        """No browser API reports one, and the trim handles snap to that grid."""
+        """No browser API reports the rate."""
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
 
@@ -69,7 +69,7 @@ class VideoEditStateTests(unittest.TestCase):
             self.assertEqual(payload["frame_rate"], 25.0)
 
     def test_an_edited_video_is_probed_through_its_original(self) -> None:
-        """The editor plays the untouched original, so its rate is the one the handles use."""
+        """The handles use the original's rate."""
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
             backup = edit_sidecars.backup_path_for(media)
@@ -103,7 +103,7 @@ class VideoEditStateTests(unittest.TestCase):
             self.assertEqual(client.get(edit_url(media)).status_code, 400)
 
     def test_a_gif_is_a_400(self) -> None:
-        """GIF keeps frame capture; editing it would need a palette pass of its own."""
+        """GIF keeps frame capture."""
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif")
 
@@ -236,7 +236,7 @@ class ApplyVideoEditTests(unittest.TestCase):
             self.assertEqual(event["duration"], 2.0)
 
     def test_a_speed_only_edit_still_reports_a_length_to_render_against(self) -> None:
-        """Without the probed runtime an untrimmed retime leaves the bar indeterminate."""
+        """Without it an untrimmed retime leaves the bar indeterminate."""
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
             published: list[dict] = []

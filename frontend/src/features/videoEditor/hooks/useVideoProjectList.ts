@@ -13,11 +13,7 @@ export function useAllVideoProjects() {
   });
 }
 
-/**
- * The drafts saved in ``folder``, for the gallery's Video projects section.
- * Drafts count toward the folder fingerprint, so a new one re-reads the list: that is how a draft
- * added or deleted outside the app shows up.
- */
+/** Drafts in ``folder``; they count toward the fingerprint, so outside changes re-read the list. */
 export function useVideoProjectList(
   folder: string | undefined,
   enabled = true,

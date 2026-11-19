@@ -72,7 +72,7 @@ def _duplicate_sidecar(scan: FolderScan, media: ScannedEntry) -> ScannedEntry | 
 
 
 def _summary_signature(scan: FolderScan) -> tuple:
-    """Media files and their sidecars only; a child directory does not change this folder's counts."""
+    """A child directory leaves this folder's counts alone."""
     signatures: list[tuple[str, int, int]] = []
 
     for media in scan.media:
@@ -83,7 +83,7 @@ def _summary_signature(scan: FolderScan) -> tuple:
             if sidecar is not None:
                 signatures.append((sidecar.name, sidecar.mtime_ns, sidecar.size))
 
-        # A job that writes nothing but findings would otherwise keep serving stale counts.
+        # Otherwise a findings-only job leaves stale counts.
         for suffix in (ISSUE_SIDECAR_SUFFIX, DUPLICATE_SIDECAR_SUFFIX):
             finding = scan.sidecar(media.name, suffix)
             if finding is not None:
@@ -97,7 +97,7 @@ def _summarize_scan_uncached(scan: FolderScan) -> dict[str, int]:
     issue_count = 0
     duplicate_count = 0
 
-    # Counts describe caption coverage, so model files are not part of them.
+    # Counts describe caption coverage; models are not part of it.
     captioned_media = [media for media in scan.media if not is_model_path(media.path)]
     for media in captioned_media:
         sidecar = _caption_sidecar(scan, media)
@@ -142,7 +142,7 @@ def summarize_folder_contents(folder: Path) -> dict[str, int]:
 
 
 class _FolderTags(NamedTuple):
-    """Read once per listing, not per file."""
+    """Read once per listing."""
 
     rows: dict[str, TagRow]
     min_confidence: float
@@ -157,10 +157,7 @@ def _iso_time(timestamp: float) -> str:
 
 
 def _build_model_item(media: ScannedEntry) -> dict:
-    """No caption, finding or tag lookups: a same-stem caption belongs to the folder's media.
-
-    The kind reads the header, which is cached by stat and shared with the inspector's read.
-    """
+    """No caption, finding or tag lookups; the kind reads the cached header."""
     info = model_info(media.path, media.mtime_ns, media.size)
     return {
         "name": media.name,

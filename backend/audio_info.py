@@ -1,4 +1,4 @@
-"""Audio length from a file's headers, via mutagen; nothing is decoded."""
+"""Audio length from a file's headers; nothing is decoded."""
 
 from __future__ import annotations
 
@@ -14,10 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def audio_duration(path: Path) -> float | None:
-    """Seconds, or ``None`` when mutagen cannot identify the file or report a positive length.
-
-    Raises ``OSError`` when the file cannot be opened; mutagen would report that as unparsable.
-    """
+    """Seconds, or ``None``; raises ``OSError`` when the file cannot be opened."""
     with path.open("rb") as handle:
         try:
             audio = mutagen.File(handle)

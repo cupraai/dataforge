@@ -70,11 +70,7 @@ def preview_import(folder: Path, filenames: list[str]) -> dict[str, list[str]]:
 
 
 def _replaced_media_state(media: Path) -> list[Path]:
-    """What describes the replaced file's pixels: its edit original and spec, findings, candidate.
-
-    Left in place, the next edit would render from the old original and discard the import.
-    The caption stays, and so does whatever a same-stem sibling still shares.
-    """
+    """Left in place, the next edit would render from the old original."""
     kept = {
         media,
         *(media.with_suffix(extension) for extension in SIDECAR_EXTENSIONS),
@@ -135,7 +131,7 @@ def import_uploaded_files(
                         os.replace(temporary, destination)
                         _discard_replaced_media_state(replaced)
                 except MediaBusyError:
-                    # Replacing it mid-render would be undone when the render publishes.
+                    # Replacing it mid-render would be undone by the render.
                     skipped.append(name)
                     continue
             else:
@@ -162,7 +158,7 @@ def import_uploaded_files(
 def _existing_file_names(folder: Path) -> set[str]:
     names: set[str] = set()
     try:
-        # Materialized inside the guard: on 3.12 `iterdir` is a generator, so listing fails once iterated.
+        # On 3.12 `iterdir` is a generator, so it fails once iterated.
         entries = list(folder.iterdir())
     except OSError:
         return names

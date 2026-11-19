@@ -128,14 +128,12 @@ export function useImageFill(options: UseImageFillOptions): ImageFillControls {
   const operationRef = useLatestRef(operation);
   const candidateRef = useLatestRef(candidate);
   const startingRef = useRef(false);
-  // What this editor holds on the server, written where it is learned rather than at render, so
-  // leaving a file can still reach the run and result that state has already forgotten.
+  // Written when learned, so leaving a file can still reach the run and result.
   const ownedRef = useRef<{ operation: Operation | null; candidate: Operation | null }>({
     operation: null,
     candidate: null,
   });
-  // Invalidated by every reset and on unmount, so a start still in flight knows its answer is no
-  // longer wanted and cancels the run it began.
+  // Invalidated on reset and unmount, so an in-flight start cancels its run.
   const generation = useStaleRequest();
   const { invalidate } = generation;
 

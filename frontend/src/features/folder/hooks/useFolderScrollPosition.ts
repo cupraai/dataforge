@@ -36,8 +36,7 @@ export function useFolderScrollPosition({
       return;
     }
 
-    // A failed load leaves an empty shell, and a redirected one lands somewhere
-    // the saved offset never described; the top is the honest answer for both.
+    // A failed or redirected load starts at the top.
     const pathMatches = intent.path === undefined || folderPathsEqual(folderPath, intent.path);
     const target = intent.mode === "restore" && !hasError && pathMatches ? intent.target : 0;
 

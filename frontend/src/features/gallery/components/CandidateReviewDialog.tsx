@@ -501,8 +501,7 @@ function CompareStage({ entry }: { entry: CandidateReviewEntry }) {
   const beforeSrc = entry.source ? galleryItemMediaUrl(entry.source) : null;
   const aspect = candidateStageAspect(entry, loadedSize);
 
-  // Either player drives the other, with no suppression flag: play() and pause() on an element
-  // already in that state fire no event, and the drift guard swallows a mirrored seek's echo.
+  // Each player drives the other; same-state calls fire nothing and the drift guard eats echoes.
   const peerOf = (side: "before" | "after") =>
     players.current[side === "after" ? "before" : "after"];
 

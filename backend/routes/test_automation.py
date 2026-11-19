@@ -37,7 +37,7 @@ from testing_fixtures import (
 
 @contextmanager
 def _patched_job_runner(job_type: str, run: Callable[..., object]) -> Generator[None]:
-    """Swap a job type's runner. JOB_SPECS holds the function, so patching the module cannot."""
+    """JOB_SPECS holds the function, so patching the module cannot swap it."""
     patched = replace(JOB_SPECS[job_type], run=run)
     with patch.dict(JOB_SPECS, {job_type: patched}):
         yield
@@ -56,7 +56,7 @@ def _post(endpoint: str, folder: Path, body: dict[str, object] | None = None):
 
 
 def _write_captioned_folder(folder: Path, *, video: bool = False) -> Path:
-    """``video`` adds a placeholder clip for jobs that refuse a folder without one."""
+    """``video`` adds a placeholder clip."""
     write_sysprompt(folder, "# Describe the scene.")
     media = write_media(folder, "photo.png")
     write_txt_caption(media, "A lake.")
@@ -66,13 +66,12 @@ def _write_captioned_folder(folder: Path, *, video: bool = False) -> Path:
 
 
 def _stored_settings(folder: Path) -> dict:
-    """Every job's remembered settings for ``folder``, as the dialogs would read them."""
     response = client.get(f"/api/preferences/automation?path={quote(str(folder))}")
     assert response.status_code == 200, response.text
     return response.json()
 
 
-# One non-default start body per job type, keyed so persistence tests cover the registry.
+# Keyed so persistence tests cover the registry.
 _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
     "auto_caption": (
         "auto-caption",
@@ -136,7 +135,7 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "size": "large",
             "opacity": 75,
             "position": "top_left",
-            # Off, since queueing would refuse it without a stored PNG; the rest still round-trips.
+            # Queueing would refuse it without a stored PNG.
             "image_enabled": False,
             "image_size": "large",
             "image_opacity": 25,
@@ -144,18 +143,18 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "strip_metadata": True,
         },
     ),
-    # Queue-time validation parses the preset; the shipped example doubles as the fixture.
+    # The shipped example doubles as the fixture.
     "comfy_process": (
         "comfy-process",
         {
             "preset": "example_lanczos_2x",
             "seed": 1234,
-            # The example preset has no prompt node; a non-empty prompt would be a 400.
+            # The example has no prompt node.
             "prompt_text": "",
             "overwrite_candidates": True,
         },
     ),
-    # The shipped generation example is the fixture; it has no prompt node either.
+    # The shipped generation example has no prompt node either.
     "comfy_generate": (
         "comfy-generate",
         {
@@ -213,7 +212,6 @@ class JobStartEndpointTests(unittest.TestCase):
                 self.assertEqual({name: received[name] for name in body}, body)
 
     def test_an_empty_selection_is_refused_before_a_job_is_registered(self) -> None:
-        """The audit's F04: ``paths: []`` used to start a whole-folder write."""
         with TempMediaFolder() as root:
             media = write_media(root, "photo.png")
 
@@ -280,13 +278,11 @@ class JobStartEndpointTests(unittest.TestCase):
             refused = _post("watermark", root, {"text": "   ", "size": "large"})
 
             self.assertEqual(refused.status_code, 400)
-            # Storing before queueing would have kept the size of a run that never happened.
+            # A run that never happened must not be stored.
             self.assertEqual(_stored_settings(root)["watermark"]["size"], "medium")
 
 
 class JobRunEndpointTests(unittest.TestCase):
-    """Real runs that only the route can drive: the selection and the stored external ref."""
-
     def setUp(self) -> None:
         reset_job_manager()
 
@@ -411,7 +407,7 @@ class ReplaceCaptionsPreviewEndpointTests(unittest.TestCase):
         self.assertEqual(payload["samples"][0]["after"], "a cat")
 
     def test_preview_reports_a_bad_edit_as_a_field_not_a_400(self) -> None:
-        """The dialog previews while the user types, so a half-typed regex is normal."""
+        """A half-typed regex is normal."""
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
 
@@ -567,8 +563,6 @@ class EditCaptionsPreviewEndpointTests(unittest.TestCase):
 
 
 class TrainingTemplateEndpointTests(unittest.TestCase):
-    """The editor reads a template here and checks its edit before the job is started."""
-
     def test_returns_the_new_image_model_templates(self) -> None:
         for model, architecture in (
             ("krea2_raw", "krea2"),
@@ -590,7 +584,7 @@ class TrainingTemplateEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["model"], "h3_fl2va")
-        # Raw text, not a re-dump: the comments are half of what makes it editable.
+        # The comments are half of what makes it editable.
         self.assertIn('arch: "minimax_h3"', payload["yaml"])
 
     def test_defaults_to_the_krea2_turbo_template(self) -> None:
@@ -615,7 +609,7 @@ class TrainingTemplateEndpointTests(unittest.TestCase):
         self.assertEqual(response.json(), {"ok": True, "error": None})
 
     def test_a_broken_edit_answers_200_with_the_reason(self) -> None:
-        """Not an HTTP error: an unparseable draft is the expected answer here."""
+        """An unparseable draft is an expected answer."""
         response = client.post(
             "/api/automation/train-lora/template/check", json={"template": "a: [1, 2"}
         )
@@ -639,8 +633,6 @@ def _upload_watermark(content: bytes, name: str = "logo.png"):
 
 
 class WatermarkImageEndpointTests(unittest.TestCase):
-    """The one stored PNG the Watermark dialog previews and the job reads."""
-
     def setUp(self) -> None:
         reset_job_manager()
         watermark_image_path().unlink(missing_ok=True)
@@ -719,8 +711,6 @@ class WatermarkImageEndpointTests(unittest.TestCase):
 
 
 class ComfyPresetsEndpointTests(unittest.TestCase):
-    """What the dialog reads before it can offer a workflow."""
-
     def test_lists_the_presets_on_disk(self) -> None:
         with patch("routes.automation.probe_available", return_value=True):
             response = client.get("/api/automation/comfy-process/presets")
@@ -734,7 +724,7 @@ class ComfyPresetsEndpointTests(unittest.TestCase):
         self.assertIs(generates["example_solid_color"], True)
 
     def test_names_the_origin_it_probed(self) -> None:
-        """A bare "not answering" cannot tell a stopped ComfyUI from a wrong port."""
+        """Must tell a stopped ComfyUI from a wrong port."""
         for available, configured, expected in (
             (False, "http://127.0.0.1:9123", "http://127.0.0.1:9123"),
             (True, "http://gpu-box:8188/", "http://gpu-box:8188"),
@@ -750,7 +740,7 @@ class ComfyPresetsEndpointTests(unittest.TestCase):
                 self.assertEqual(payload["base_url"], expected)
 
 
-#: A generation whose face pass runs only when its "DataForge Detail" input is switched on.
+#: The face pass runs only when "DataForge Detail" is on.
 SWITCHED_PRESET: dict[str, dict] = {
     "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "base.safetensors"}},
     "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "a lighthouse", "clip": ["4", 1]}},
@@ -784,8 +774,6 @@ SWITCHED_PRESET: dict[str, dict] = {
 
 
 class ComfyPresetMapEndpointTests(unittest.TestCase):
-    """The dialogs draw the selected preset before anything runs."""
-
     def test_maps_a_shipped_preset_with_its_source_marked(self) -> None:
         response = client.post(
             "/api/automation/comfy-process/map", json={"preset": "example_lanczos_2x"}
@@ -835,7 +823,6 @@ class ComfyPresetMapEndpointTests(unittest.TestCase):
 
         self.assertEqual(statuses["{}"], {"3": "ran", "20": "switched_off"})
         self.assertEqual(statuses["{'Detail': True}"], {"3": "ran", "20": "ran"})
-        # A value the job would refuse is drawn as saved.
         self.assertEqual(statuses["{'Detail': 'not a boolean'}"], statuses["{}"])
 
     def test_maps_a_files_own_workflow_with_its_inputs(self) -> None:
@@ -857,8 +844,6 @@ class ComfyPresetMapEndpointTests(unittest.TestCase):
 
 
 class ComfyLogsEndpointTests(unittest.TestCase):
-    """What the panel reads while a run works, and what it reads when it cannot."""
-
     def test_serves_the_tail_of_comfy_output(self) -> None:
         with patch("routes.automation.read_log_lines", return_value=["Phase 3", "done"]):
             response = client.get("/api/automation/comfy-process/logs")
@@ -867,7 +852,7 @@ class ComfyLogsEndpointTests(unittest.TestCase):
         self.assertEqual(response.json(), {"lines": ["Phase 3", "done"], "available": True})
 
     def test_unreadable_and_empty_logs_are_both_a_200_but_say_different_things(self) -> None:
-        """A stopped or older ComfyUI must leave the panel quiet, not raise a red alert."""
+        """A stopped or older ComfyUI leaves the panel quiet."""
         for lines, available in ((None, False), ([], True)):
             with (
                 self.subTest(lines=lines),
@@ -880,8 +865,6 @@ class ComfyLogsEndpointTests(unittest.TestCase):
 
 
 class JobSettingsPersistenceTests(unittest.TestCase):
-    """Every job with a dialog remembers what it ran with, for this folder and the next."""
-
     def setUp(self) -> None:
         reset_job_manager()
         self.addCleanup(forget_preferences, AUTOMATION_SETTINGS_KEY_PREFIX)
@@ -913,7 +896,7 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                     name: value for name, value in body.items() if name in model.model_fields
                 }
                 self.assertEqual(stored, remembered)
-                # Anything left out of the settings model is a field we never store.
+                # Fields outside the settings model are never stored.
                 self.assertEqual(set(stored), set(model.model_fields))
 
     def test_a_folder_with_no_run_of_its_own_starts_from_the_last_one(self) -> None:

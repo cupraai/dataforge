@@ -96,8 +96,7 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-  # Kept out of run_checks.py's default run, which is the pre-commit hook: this boots two
-  # servers and a browser. It runs here and on demand via `npm run test:e2e` or `--e2e`.
+  # Not in run_checks.py's default (pre-commit) run: it boots two servers and a browser.
   e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 45

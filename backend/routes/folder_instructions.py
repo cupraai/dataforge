@@ -18,7 +18,7 @@ router = APIRouter()
 FOLDER_QUERY = Query(..., description="Absolute path to the folder the instructions apply to")
 
 
-#: The job that reads each file; edits wait for it so the folder matches what the run used.
+#: Edits wait for it so the folder matches what the run used.
 READING_JOBS: dict[str, JobType] = {
     SYSPROMPT_FILENAME: "auto_caption",
     CAPTION_RULES_FILENAME: "check_caption_rules",
@@ -27,7 +27,7 @@ READING_JOBS: dict[str, JobType] = {
 
 def _locking_job_id(folder: Path, filename: str) -> str | None:
     for job in job_manager.active_jobs(READING_JOBS[filename]):
-        # A queued job reads the file when it starts, so an edit before then is what it should use.
+        # A queued job reads the file when it starts.
         if job.status == "running" and instruction_file_reaches(folder, Path(job.folder), filename):
             return job.id
     return None

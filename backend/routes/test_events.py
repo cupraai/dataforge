@@ -32,7 +32,6 @@ CAPTION = (
 
 
 async def _await_terminal_job_event(subscriber, job_id: str, timeout: float = 10.0):
-    """The first pushed snapshot of ``job_id`` that has left the active statuses."""
     deadline = monotonic() + timeout
 
     while monotonic() < deadline:
@@ -48,7 +47,6 @@ async def _await_terminal_job_event(subscriber, job_id: str, timeout: float = 10
 
 
 async def _await_notification_event(subscriber, timeout: float = 10.0):
-    """The first pushed notification frame, ignoring the job snapshots around it."""
     deadline = monotonic() + timeout
 
     while monotonic() < deadline:
@@ -83,7 +81,7 @@ class JobEventTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(job)
             self.assertEqual(job["status"], "completed")
             self.assertEqual(job["processed"], 1)
-            # Results ride their own endpoint; they must never be pushed.
+            # Results ride their own endpoint.
             self.assertNotIn("results", job)
 
 
@@ -118,7 +116,7 @@ class JobNotificationEventTests(unittest.IsolatedAsyncioTestCase):
 
 
 class EventStreamTests(unittest.IsolatedAsyncioTestCase):
-    """Drives the response generator directly; a test client would hang on the infinite stream."""
+    """A test client would hang on the infinite stream."""
 
     async def asyncSetUp(self) -> None:
         events.clear_subscribers_for_tests()
@@ -131,7 +129,7 @@ class EventStreamTests(unittest.IsolatedAsyncioTestCase):
         frames = response.body_iterator
         self.addCleanup(lambda: asyncio.ensure_future(frames.aclose()))
 
-        # The comment lands before any event, so a client knows the stream is live.
+        # So a client knows the stream is live.
         self.assertEqual(await anext(frames), ": connected\n\n")
 
         events.publish({"type": "job", "job": {"id": "job-1"}})
@@ -147,7 +145,7 @@ class EventStreamTests(unittest.IsolatedAsyncioTestCase):
             self.addCleanup(lambda: asyncio.ensure_future(frames.aclose()))
 
             self.assertEqual(await anext(frames), ": connected\n\n")
-            # A data frame, not a comment: comments never reach ``onmessage``.
+            # Comments never reach ``onmessage``.
             frame = await anext(frames)
             self.assertEqual(json.loads(frame.removeprefix("data: ")), {"type": "heartbeat"})
 
@@ -160,7 +158,7 @@ class EventStreamTests(unittest.IsolatedAsyncioTestCase):
         events.publish_to_tabs(["tab-b"], {"type": "folder", "path": "C:\\Other"})
         events.publish_to_tabs(["tab-a"], {"type": "folder", "path": "C:\\Photos"})
 
-        # The first frame is the one addressed here; the other tab's event was never queued.
+        # The other tab's event was never queued.
         frame = await anext(frames)
         self.assertEqual(
             json.loads(frame.removeprefix("data: ")),

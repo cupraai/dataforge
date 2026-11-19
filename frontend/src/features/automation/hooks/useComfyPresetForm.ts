@@ -111,9 +111,8 @@ function embeddedMemory(embedded: EmbeddedGenerateWorkflow): PresetMemory {
 }
 
 /**
- * The preset choice and its prompt, seed and custom inputs, shared by both ComfyUI job dialogs.
- * Each preset keeps its own draft, so switching workflows never loses what was typed for another.
- * With `embedded`, the file's own workflow is the only choice and `preset` is its display name.
+ * Preset, prompt, seed and inputs for both ComfyUI dialogs, drafted per preset.
+ * With `embedded`, the file's own workflow is the only choice.
  */
 export function useComfyPresetForm(
   remembered: PresetMemory,

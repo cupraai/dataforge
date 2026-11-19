@@ -1,4 +1,4 @@
-"""Trim, obscure, crop, retime, rescale and adjust one video in place from its untouched original."""
+"""Trim, obscure, crop, retime, rescale and adjust one video in place from its original."""
 
 from __future__ import annotations
 
@@ -101,9 +101,7 @@ class SourceProbe:
 
 
 def probe_source(media: Path) -> SourceProbe:
-    """Rate and frame size in one capture. Decoded rather than read from the header: the backup is
-    named ``<name>.mp4.bak``, and a header reader gates on the suffix. Always ``release()``: an
-    unopened capture still locks the file on Windows."""
+    """Rate and size decoded: the backup's suffix defeats header readers."""
     try:
         import cv2
 
@@ -251,8 +249,7 @@ def mask_branch(size: tuple[int, int], region: MaskRegion) -> str:
 
 
 def build_mask_filtergraph(spec: VideoEditSpec, size: tuple[int, int]) -> tuple[list[str], str]:
-    """Regions are cut from the source before the crop, so they keep their place in the frame.
-    Returns the graph's links and the label of the masked stream they end on."""
+    """Regions are cut before the crop; returns the links and the masked stream's label."""
     regions = spec.masks
     cuts = "".join(f"[cut{index}]" for index in range(len(regions)))
     links = [f"[0:v]split={len(regions) + 1}[base]{cuts}"]
@@ -280,8 +277,7 @@ def build_audio_filters(spec: VideoEditSpec) -> str:
 
 
 def fit_filters(cropped: tuple[int, int], spec: VideoEditSpec) -> list[str]:
-    """Scale to cover the fitted size, then trim the sliver the grid leaves, centered on even
-    offsets. Explicit numbers: the target depends on the cropped size, not just a ratio of it."""
+    """Scale to cover, then trim the grid's sliver on even offsets."""
     if spec.fit is None:
         return []
     target = fitted_size(cropped, spec.fit, even=True)
@@ -293,8 +289,7 @@ def fit_filters(cropped: tuple[int, int], spec: VideoEditSpec) -> list[str]:
         left = (cover[0] - target[0]) // 4 * 2
         top = (cover[1] - target[1]) // 4 * 2
         filters.append(f"crop={target[0]}:{target[1]}:{left}:{top}")
-    # `scale` keeps the display aspect by bending the SAR, which the cover's rounding nudges
-    # off 1:1; players would then show the grid size stretched by a pixel.
+    # `scale` bends the SAR when rounding; players would stretch the grid size by a pixel.
     filters.append("setsar=1")
     return filters
 
@@ -353,8 +348,7 @@ def definition_expression(params: DefinitionParams) -> str:
 def definition_links(
     params: DefinitionParams, frame: tuple[int, int], source: str, target: str, prefix: str = ""
 ) -> list[str]:
-    """The base is blurred small and scaled back, as the image path and the preview take it.
-    ``prefix`` keeps the inner labels apart when one graph defines several clips."""
+    """Blurred small and scaled back, as the image path and preview do."""
     small_width, small_height = params.size
     width, height = frame
     return [
@@ -541,14 +535,8 @@ def build_video_edit_command(
     source_size: tuple[int, int] | None = None,
     color: StreamColor = StreamColor(),
 ) -> list[str]:
-    """One pass. ``-ss``/``-t`` are input options so they are measured before ``setpts`` compresses time.
-
-    Trim points name frame boundaries. ``-ss`` sits half a frame early, which puts it between
-    two PTS values and leaves the first kept frame unambiguous. ``-t`` is then the take itself
-    less half a frame, not the span from ``-ss``: after an input seek ffmpeg measures the
-    duration from the first frame it decodes, so a span would hand that half frame to the tail
-    and let the frame after the out point in. ``-to`` is no help - it was measured keeping one
-    frame too many at several rates."""
+    """One pass; ``-ss``/``-t`` are input options, measured before ``setpts``.
+    ``-ss`` sits half a frame early; ``-t`` is the take less half a frame."""
     command = [
         executable,
         "-nostdin",
@@ -638,10 +626,7 @@ def apply_video_edit(
     should_cancel: ShouldCancel | None = None,
     probe: SourceProbe | None = None,
 ) -> VideoEditResponse:
-    """Render ``spec`` from the original. On failure the live file is left byte-identical.
-
-    Stops when ``should_cancel`` says so or when the render is cancelled through its claim.
-    """
+    """Render ``spec`` from the original; on failure the live file is untouched."""
     with claim([media], "render") as held:
         return _apply_claimed(
             media,

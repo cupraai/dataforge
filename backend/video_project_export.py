@@ -1,12 +1,4 @@
-"""Exports run on their own thread, outside the per-folder job queue, so leaving the editor or
-starting a caption job does not stop them. Every change is broadcast to all tabs.
-
-An export never replaces anything. Its name is checked against the folder's files and every
-sidecar a media file of that name would claim, and a numbered name is taken on any collision.
-The snapshot and caption are written before the video appears, and removed again if it cannot.
-An export of a span writes neither: it is a check of a passage, and its snapshot would not be the
-edit it shows.
-"""
+"""Exports run on their own thread, outside the job queue, and never replace anything."""
 
 from __future__ import annotations
 
@@ -108,8 +100,7 @@ def default_output_stem(project: VideoProject) -> str:
 
 
 def name_is_taken(folder: Path, name: str, reserved: set[str]) -> bool:
-    """Taken by a file, by any sidecar such a file would own, or by another file of its stem,
-    which would share its caption."""
+    """Taken by a file, a sidecar such a file would own, or a file of its stem."""
     if os.path.normcase(name) in reserved:
         return True
     target = folder / name
@@ -137,8 +128,7 @@ def allocate_output_name(folder: Path, stem: str, reserved: set[str]) -> str:
 
 
 def check_sources(folder: Path, project: VideoProject) -> None:
-    """Refuses a project whose timeline uses a missing or changed file; an export that left
-    them out would look complete."""
+    """Refuses a timeline using a missing or changed file."""
     used = used_source_ids(project)
     names = {source.id: source.name for source in project.sources}
     problems = [
@@ -293,8 +283,7 @@ class ExportManager:
                 notifications.record_notification(*outcome, source="job", job_id=record.state.id)
 
     def _measure(self, record: _Export, executable: str, media: Path) -> None:
-        """What the delivered file measures, not what the settings meant it to; a file that
-        cannot be measured is still a finished export."""
+        """What the delivered file measures; an unmeasurable file is still a finished export."""
         try:
             loudness = parse_loudness(
                 run_ffmpeg(
@@ -398,8 +387,7 @@ def _finite(value: float) -> float | None:
 
 
 def publish_export(folder: Path, project: VideoProject, temp_path: Path, output: Path) -> None:
-    """Snapshot, then the caption if asked for, then the video. A failure takes back what was
-    written, so no video appears without its snapshot."""
+    """Snapshot, caption, then video; a failure takes back what was written."""
     snapshot = snapshot_path_for(output)
     caption = caption_path_for(output)
     with claim([output, caption], "export"):

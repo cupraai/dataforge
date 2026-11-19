@@ -69,14 +69,12 @@ export function FillOverlay({
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
     context.clearRect(0, 0, backingWidth, backingHeight);
-    // The stylesheet's token, drawn opaque: the element's opacity tints it, so overlapping
-    // strokes do not darken where they cross.
+    // Drawn opaque and tinted by the element's opacity, so crossings do not darken.
     colorRef.current = getComputedStyle(canvas).color;
     if (showStrokes) drawStrokes(context, strokes, scale, colorRef.current);
   }, [backingHeight, backingWidth, scale, showStrokes, strokes]);
 
-  /** Draws the live stroke's newest piece: a dot to start, then a segment from the last point.
-   * Paint is opaque and erase clears, so the pieces add up to what the full redraw draws. */
+  /** Draws the live stroke's newest piece; the pieces add up to the full redraw. */
   const drawLive = (points: FillPoint[]) => {
     const context = canvasRef.current?.getContext("2d");
     const live = liveRef.current;

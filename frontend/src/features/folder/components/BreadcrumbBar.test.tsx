@@ -103,8 +103,7 @@ describe("BreadcrumbBar", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  // The crumb menu is the one that opens from the left edge of its trigger; a
-  // silently wrong placement would only show as a panel drifting off the crumb.
+  // The crumb menu opens from its trigger's left edge.
   it("drops the subfolder menu from the left edge of its chevron", async () => {
     const user = userEvent.setup();
     installMockBackend();

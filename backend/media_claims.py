@@ -1,13 +1,4 @@
-"""One registry of in-flight file mutations, so incompatible work is refused instead of overlapping.
-
-Every writer of a media file or its sidecars claims the paths it changes for as long as it changes
-them, publication and sidecar cleanup included. Whoever starts an operation claims: routes and jobs
-around a render, the domain function itself for delete, rename, transfer, import and settle. A
-second claim on any held path raises :class:`MediaBusyError` (a 409); nothing queues except short
-caption writes, which wait up to ``wait_s``.
-
-Claims are reentrant per thread, so an operation may call another that claims the same file.
-"""
+"""In-flight file mutations; a second claim on a held path raises :class:`MediaBusyError`."""
 
 from __future__ import annotations
 
@@ -76,7 +67,7 @@ class Claim:
         return self.cancelled.is_set()
 
     def cancel_check(self, also: Callable[[], bool] | None = None) -> Callable[[], bool]:
-        """``should_cancel`` for work that also stops when ``also`` says so, such as its job."""
+        """Also stops when ``also`` says so."""
         if also is None:
             return self.should_cancel
         return lambda: self.should_cancel() or also()
@@ -94,8 +85,7 @@ def claim_key(path: Path) -> str:
 def claim(
     paths: Iterable[Path], activity: ClaimActivity, *, wait_s: float = 0.0
 ) -> Generator[Claim]:
-    """All of ``paths`` or none. Paths this thread already holds stay with the outer claim, and a
-    claim wholly inside one yields it, so a cancel reaches the work whoever started it."""
+    """All of ``paths`` or none; reentrant per thread."""
     wanted = {claim_key(path): path for path in paths}
     held = Claim(activity)
     deadline = monotonic() + wait_s
@@ -134,14 +124,14 @@ def is_claimed(path: Path) -> bool:
 
 
 def holds_claim(path: Path) -> bool:
-    """Whether the calling thread holds ``path``; publication points assert it."""
+    """Publication points assert it."""
     with _changed:
         held = _claims.get(claim_key(path))
         return held is not None and held.owner == threading.get_ident()
 
 
 def cancel(path: Path, activity: ClaimActivity) -> bool:
-    """Ask the ``activity`` holding ``path`` to stop; False if there is none."""
+    """False if nothing holds it."""
     with _changed:
         held = _claims.get(claim_key(path))
     if held is None or held.activity != activity:

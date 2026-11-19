@@ -26,8 +26,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "ostris_templates"
 
 DEFAULT_TRAINING_MODEL = "krea2_turbo"
 
-# An allowlist, not a naming convention: deriving the filename would let any requested
-# model string reach the filesystem.
+# An allowlist, so no requested string reaches the filesystem.
 TRAINING_TEMPLATES: dict[str, str] = {
     "krea2_raw": "krea2_raw.yml",
     "krea2_turbo": "krea2_turbo.yml",
@@ -45,7 +44,7 @@ MAX_TEMPLATE_TEXT_LENGTH = 256 * 1024
 MAX_LORA_NAME_LENGTH = 80
 INVALID_NAME_CHARACTERS = frozenset('<>:"/\\|?*')
 
-# Ostris writes samples as "<epoch millis>__<step zero-padded to 9>_<prompt index>.<ext>".
+# "<epoch millis>__<step zero-padded to 9>_<prompt index>.<ext>".
 _SAMPLE_FILENAME = re.compile(r"^\d+__(\d+)_(\d+)$")
 
 
@@ -63,7 +62,6 @@ class OstrisTrainingError(Exception):
 
 
 def validate_lora_name(name: str) -> None:
-    """Reject names that cannot become a folder under the training folder."""
     if not name:
         raise ValueError("Enter a name for the LoRA")
     if len(name) > MAX_LORA_NAME_LENGTH:
@@ -81,7 +79,7 @@ def _process_config(config: dict[str, Any], source: str = "training template") -
 
 
 def read_training_template_text(model: str = DEFAULT_TRAINING_MODEL) -> str:
-    """The template exactly as it sits on disk; parsing and re-dumping would drop comments."""
+    """Raw text: parsing and re-dumping would drop comments."""
     filename = TRAINING_TEMPLATES.get(model)
     if filename is None:
         raise OstrisTrainingError(f'Unknown training model "{model}".')
@@ -93,7 +91,7 @@ def read_training_template_text(model: str = DEFAULT_TRAINING_MODEL) -> str:
 
 
 def parse_training_template(raw: str, *, source: str = "training template") -> dict[str, Any]:
-    """Parse template YAML and check it has the shape ``build_training_config`` fills."""
+    """Checks the shape ``build_training_config`` fills."""
     if len(raw) > MAX_TEMPLATE_TEXT_LENGTH:
         raise OstrisTrainingError(
             f"The {source} is larger than {MAX_TEMPLATE_TEXT_LENGTH // 1024} KB."
@@ -134,7 +132,7 @@ def build_training_config(
     trigger_word: str = "",
     prompts: list[str],
 ) -> dict[str, Any]:
-    """Fill the template's placeholders, leaving every other setting untouched."""
+    """Every other setting is untouched."""
     config = deepcopy(template)
     process = _process_config(config)
 
@@ -159,7 +157,7 @@ def create_and_start_training(
     gpu_ids: str,
     config: dict[str, Any],
 ) -> str:
-    """Create the job, queue it, and make sure its GPU queue is running. Returns the job id."""
+    """Create, queue and start the GPU queue; returns the job id."""
     response = create_ostris_job(client, name=name, gpu_ids=gpu_ids, job_config=config)
     if response.status_code == 409:
         raise OstrisTrainingError(f'A training job named "{name}" already exists in AI-Toolkit.')
@@ -184,7 +182,7 @@ def list_training_samples(
     name: str,
     prompts: list[str],
 ) -> tuple[list[dict[str, Any]], int | None]:
-    """The samples from the most recent step, in prompt order, with their prompts attached."""
+    """In prompt order, with their prompts attached."""
     samples_folder = training_samples_folder(training_folder, name)
     try:
         entries = [entry for entry in samples_folder.iterdir() if entry.is_file()]
@@ -227,7 +225,7 @@ def list_training_samples(
 
 
 def fetch_training_samples(name: str) -> tuple[list[dict[str, Any]], int | None, bool]:
-    """Latest samples for a training run, degrading quietly when AI-Toolkit is offline."""
+    """Quiet when AI-Toolkit is offline."""
     try:
         with open_ostris_client(OSTRIS_REQUEST_TIMEOUT_SECONDS) as client:
             training_folder = fetch_ostris_training_folder(client)

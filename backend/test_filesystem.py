@@ -54,7 +54,7 @@ class PathHandlingTests(unittest.TestCase):
 
     def test_normalize_user_path_preserves_host_separators(self) -> None:
         with TempMediaFolder() as root:
-            # Converting / to \\ used to 404 every folder call on Linux CI.
+            # Converting / to \\ would 404 every folder call on Linux.
             as_posix = root.resolve().as_posix()
             self.assertEqual(normalize_user_path(as_posix), root.resolve())
 

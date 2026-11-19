@@ -1,4 +1,4 @@
-"""Saved workflows: named chains of jobs with their settings, shared by every folder."""
+"""Saved workflows: named job chains with settings, shared by every folder."""
 
 from __future__ import annotations
 
@@ -38,8 +38,7 @@ def find_workflow(name: str) -> Workflow | None:
 
 
 def save_workflow(workflow: Workflow, previous_name: str | None = None) -> WorkflowsResponse:
-    """Adds ``workflow``, or replaces the one saved as ``previous_name`` (its own name when
-    ``None``), matching names ignoring case. A rename onto another workflow's name is refused."""
+    """Add, or replace ``previous_name``; a rename onto another name is refused."""
     key = _name_key(workflow)
     replaced = (previous_name or workflow.name).strip().casefold()
     saved = _store.get().workflows
@@ -55,6 +54,6 @@ def save_workflow(workflow: Workflow, previous_name: str | None = None) -> Workf
 
 
 def delete_workflow(name: str) -> WorkflowsResponse:
-    """Removing a name that is not saved changes nothing."""
+    """Removing an unsaved name changes nothing."""
     key = name.strip().casefold()
     return _store.save(_sorted([kept for kept in _store.get().workflows if _name_key(kept) != key]))

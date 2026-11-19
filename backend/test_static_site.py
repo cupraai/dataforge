@@ -1,4 +1,4 @@
-"""The UI mount must stay off in development, never take priority over /api, and not fail startup if the build is missing."""
+"""The UI mount stays off in development, never shadows /api, and tolerates a missing build."""
 
 from __future__ import annotations
 

@@ -33,10 +33,7 @@ export interface JobAvailability {
   comfyGeneratePresetsAvailable: boolean;
 }
 
-/**
- * Tools menu sections, by what a job changes: caption text, nothing (findings for the Review menu),
- * pixels, or file names, metadata and backups. Jobs run by external tools come last.
- */
+/** Tools menu sections by what a job changes; external tools last. */
 const JOB_GROUP_DEFINITIONS = [
   { id: "captions", label: "Captions" },
   { id: "check", label: "Check" },

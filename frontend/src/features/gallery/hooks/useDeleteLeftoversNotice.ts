@@ -5,10 +5,7 @@ import { formatApiError } from "@/shared/api/http";
 import { useNotify } from "@/shared/notifications/notifications";
 import type { MediaDeleteResponse } from "@/shared/types";
 
-/**
- * Warns about files deletes left behind, with a Retry that deletes only those files. The server
- * checks each still belongs to the deleted media, so a late retry cannot remove anything else.
- */
+/** Warns about leftovers with a Retry; the server checks each still belongs to the media. */
 export function useDeleteLeftoversNotice() {
   const notify = useNotify();
 

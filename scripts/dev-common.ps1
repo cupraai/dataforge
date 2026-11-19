@@ -1,16 +1,6 @@
-# Shared helpers for the DataForge launchers (dev.ps1, start.ps1, stop.ps1,
-# start-backend.ps1, start-frontend.ps1). Dot-source it:
-#
-#   . (Join-Path $PSScriptRoot 'scripts\dev-common.ps1')
-#
-# Keep this file ASCII-only: Windows PowerShell 5.1 reads BOM-less scripts as
-# ANSI, so non-ASCII characters would be mangled.
-#
-# The Unix twin is scripts/dev-common.sh. Port defaults, .env precedence, the
-# build- and dependency-stamp filenames, and the rule that only leftover
-# python/node processes are ever killed are deliberately identical there.
-# Change one and change the other. Process supervision is the one part that is
-# meant to differ - see the note above Register-DevExitGuard.
+# Shared helpers for the PowerShell launchers; dot-source it.
+# Keep this file ASCII-only: Windows PowerShell 5.1 reads BOM-less scripts as ANSI.
+# Mirrors scripts/dev-common.sh except for process supervision; change both together.
 
 function Get-DevEnvMap {
     <#
@@ -18,14 +8,8 @@ function Get-DevEnvMap {
       KEY=VALUE pairs from the project .env, mirroring backend/env_file.py.
 
     .DESCRIPTION
-      Same candidate order as env_file.py - project root first, then backend\ -
-      and the first existing file wins. Nothing here touches the process
-      environment; these are fallbacks that a real environment variable
-      overrides, the way python-dotenv loads with override=$false.
-
-      The root comes from this file's own location rather than Get-DevPaths: a
-      dot-sourced script runs top to bottom, so nothing defined below is
-      callable yet.
+      Same order as env_file.py, first file wins; real environment variables override.
+      The root comes from this file's location: nothing below is defined yet.
     #>
     $root = Split-Path -Parent $PSScriptRoot
     $map = @{}
@@ -33,15 +17,13 @@ function Get-DevEnvMap {
     foreach ($candidate in @((Join-Path $root '.env'), (Join-Path $root 'backend\.env'))) {
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
 
-        # -ErrorAction beats the callers' $ErrorActionPreference = 'Stop', so an
-        # unreadable .env degrades to defaults instead of killing the launcher.
+        # An unreadable .env degrades to defaults instead of killing the launcher.
         foreach ($line in (Get-Content -LiteralPath $candidate -ErrorAction SilentlyContinue)) {
             $text = $line.Trim()
             if ($text.Length -eq 0 -or $text.StartsWith('#')) { continue }
             if ($text.StartsWith('export ')) { $text = $text.Substring(7).Trim() }
 
-            # The operator form, not .Split('=', 2): .NET Framework has no
-            # String.Split(char, int) overload.
+            # .NET Framework has no String.Split(char, int) overload.
             $parts = $text -split '=', 2
             if ($parts.Count -ne 2) { continue }
 
@@ -74,8 +56,7 @@ function Get-DevPort {
         [Parameter(Mandatory = $true)][int]$Default
     )
 
-    # $null -eq distinguishes unset from empty, so an explicitly blank OS var
-    # still wins and then falls back - same as _env_port in dev_server.py.
+    # An explicitly blank OS var still wins, as in dev_server.py.
     $raw = [System.Environment]::GetEnvironmentVariable($Name)
     if ($null -eq $raw -and $EnvMap.ContainsKey($Name)) { $raw = $EnvMap[$Name] }
     if ([string]::IsNullOrWhiteSpace($raw)) { return $Default }
@@ -88,9 +69,7 @@ function Get-DevPort {
     return $port
 }
 
-# Read once on dot-source. These land in the caller's scope, which is what the
-# launchers use. frontend/vite.config.ts and backend/server_settings.py resolve
-# the same two variables from the same .env.
+# Read once on dot-source, into the caller's scope; vite and the backend read the same .env.
 $DevEnvMap = Get-DevEnvMap
 $DevApiPort = Get-DevPort -Name 'DATAFORGE_API_PORT' -EnvMap $DevEnvMap -Default 18080
 $DevUiPort = Get-DevPort -Name 'DATAFORGE_UI_PORT' -EnvMap $DevEnvMap -Default 18081
@@ -140,8 +119,7 @@ function Get-NpmCommand {
     return 'npm.cmd'
 }
 
-# Generated from backend/schemas.py and backend/constants.py, gitignored, and two of
-# them carry real values - so the frontend neither starts nor builds without them.
+# Generated and gitignored; the frontend neither starts nor builds without them.
 $DevGeneratedSources = @('types.ts', 'constants.ts', 'wireGuards.ts')
 
 function Update-DevGeneratedSources {
@@ -151,26 +129,15 @@ function Update-DevGeneratedSources {
       backend\schemas.py. Returns $false only when the generator ran and failed.
 
     .DESCRIPTION
-      Always regenerates rather than comparing timestamps. The three files are
-      gitignored, so git leaves them untouched across a branch switch and they keep
-      the other branch's shape with a perfectly plausible mtime - there is no
-      freshness test that would catch it, which is why Test-DevPrerequisites checking
-      only that they exist was never enough. The generator costs well under a second.
-
-      A missing venv is not this function's error to report: Test-DevPrerequisites
-      names it alongside the generated files it could not create, and points at
-      setup.bat. Nor is a failed generation fatal - the previous files are still on
-      disk, and a schemas.py broken enough to stop the generator stops the backend
-      too, which the readiness wait reports far more clearly.
+      Always regenerates: gitignored files survive a branch switch with a plausible
+      mtime. A missing venv or a failed generation is reported elsewhere.
     #>
     $paths = Get-DevPaths
     if (-not (Test-Path $paths.VenvPy)) { return $true }
 
     Write-Host 'Generating the frontend API types...' -NoNewline
     try {
-        # The generator rewrites a file only when its content actually changed, so an
-        # unchanged shape leaves every mtime alone and Test-DistFresh still reports a
-        # dist built before this launch as fresh.
+        # Only changed files are rewritten, so dist freshness is unaffected.
         & $paths.VenvPy (Join-Path $paths.Scripts 'generate_types.py') | Out-Null
         $exitCode = $LASTEXITCODE
     } catch {
@@ -265,16 +232,12 @@ function Test-BackendDependencyDrift {
       installed. Advisory only - it never blocks startup.
 
     .DESCRIPTION
-      There is no frontend arm. Sync-FrontendDependencies reads the same lockfile
-      mtimes and reinstalls from them, so by the time a launcher gets here the
-      frontend has either been resynced or the launcher has already exited. Only
-      pip has no equivalent, since nothing reinstalls it automatically.
+      No frontend arm: Sync-FrontendDependencies already reinstalled from the lockfile.
     #>
     $paths = Get-DevPaths
     $stale = $false
 
-    # Written by setup.bat after a successful pip install. Absent until setup
-    # has run, in which case there is nothing to compare against.
+    # Written by setup.bat after a successful pip install.
     $stamp = Join-Path $paths.Backend '.venv\.dataforge-deps-stamp'
     if (Test-Path $stamp) {
         $stampTime = (Get-Item $stamp).LastWriteTimeUtc
@@ -291,13 +254,10 @@ function Test-BackendDependencyDrift {
     return $stale
 }
 
-# Written only after a build that actually succeeded, the way setup.bat dates its
-# pip install. Keying freshness off dist\index.html instead would trust a half
-# finished or hand-made dist.
+# Written only after a successful build; dist\index.html alone could be half-finished.
 $DevBuildStampName = '.dataforge-build-stamp'
 
-# Everything vite build reads. src\ is recursive and covers the generated
-# src\shared files, so regenerating the API contract also marks the build stale.
+# Everything vite build reads, generated src\shared files included.
 $DevBuildInputDirs = @('src', 'public')
 $DevBuildInputFiles = @('index.html', 'package.json', 'package-lock.json', 'vite.config.ts')
 $DevBuildInputPatterns = @('tsconfig*.json')
@@ -358,9 +318,7 @@ function Invoke-FrontendBuild {
       the build failed.
 
     .DESCRIPTION
-      Runs in the calling window rather than a spawned console: 'npm run build' is
-      typecheck plus vite build, so its failures are compiler errors the caller has
-      to read before deciding to abort.
+      In this window, so the caller reads the compiler errors.
     #>
     $paths = Get-DevPaths
     $previous = Get-Location
@@ -369,15 +327,12 @@ function Invoke-FrontendBuild {
     Write-Host ''
     try {
         Set-Location -LiteralPath $paths.Frontend
-        # npm.cmd finds node.exe next to itself, but lifecycle scripts spawn `node`
-        # from PATH. A machine with only the portable copy from setup.bat needs
-        # .node at the front or the build dies looking for a global install.
+        # Lifecycle scripts spawn `node` from PATH, so the portable copy goes first.
         $nodeDir = Join-Path $paths.Root '.node'
         if (Test-Path -LiteralPath (Join-Path $nodeDir 'node.exe') -PathType Leaf) {
             $env:PATH = "$nodeDir;$env:PATH"
         }
-        # Out-Host, not a bare call: anything npm writes to stdout would otherwise
-        # join this function's return value and make even a failed build truthy.
+        # Out-Host, or npm's stdout would join the return value and make a failure truthy.
         & (Get-NpmCommand) run build | Out-Host
         $exitCode = $LASTEXITCODE
     } catch {
@@ -432,9 +387,7 @@ function Stop-DevTree {
       Kills a process and everything below it.
 
     .DESCRIPTION
-      /T is the point: a dev console is cmd -> python -> uvicorn reload child, or
-      cmd -> npm -> node. Stopping the console PID alone orphans the server that
-      is actually holding the port.
+      /T kills the tree: cmd -> python -> uvicorn reload child, or cmd -> npm -> node.
     #>
     param([Parameter(Mandatory = $true)][int]$ProcessId)
 
@@ -457,18 +410,10 @@ function Register-DevExitGuard {
       Makes closing the launcher window stop the spawned server consoles.
 
     .DESCRIPTION
-      The launchers clean up in a finally block, which Windows PowerShell never runs
-      for CTRL_CLOSE_EVENT - and the servers are independent cmd windows rather than
-      children, so they outlive the launcher. Closing a launcher with the X button
-      therefore used to orphan a python and a node holding the dev ports.
-
-      This installs a Win32 console control handler that kills the recorded PIDs
-      with the same taskkill /T tree walk Stop-DevTree uses. Call it again as more
-      servers start; the new list replaces the old one.
-
-      The paths that deliberately leave servers running - -Detach, and the readiness
-      failure that keeps the error on screen - must call Unregister-DevExitGuard
-      before they exit.
+      Windows PowerShell skips finally blocks on CTRL_CLOSE_EVENT, and the servers are
+      separate windows, so a console control handler kills the recorded PIDs.
+      Paths that leave servers running (-Detach, readiness failure) must call
+      Unregister-DevExitGuard first.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -478,8 +423,7 @@ function Register-DevExitGuard {
 
     if (-not ('DevConsoleGuard' -as [type])) {
         try {
-            # Compiled on first use only, so stop.ps1 - which dot-sources this file
-            # but never spawns anything - does not pay the compile.
+            # Compiled on first use, so stop.ps1 never pays for it.
             Add-Type -TypeDefinition @'
 using System;
 using System.Diagnostics;
@@ -559,8 +503,7 @@ function Unregister-DevExitGuard {
       Stops the window-close guard from killing anything.
 
     .DESCRIPTION
-      For the exits that intentionally leave servers running. The handler itself
-      stays registered - with an empty list it has nothing to do.
+      For exits that leave servers running; the handler stays with an empty list.
     #>
     if ('DevConsoleGuard' -as [type]) { [DevConsoleGuard]::Disarm() }
 }
@@ -571,10 +514,7 @@ function Clear-DevPort {
       Frees a dev port held by a leftover python/node process.
 
     .DESCRIPTION
-      Only our own runtimes are killed. Anything else gets named and left alone -
-      force-killing an unrelated process because it happens to sit on a dev port
-      is a far worse outcome than refusing to start.
-
+      Anything else is named and left alone, never killed.
       Returns $true when the port is free afterwards.
     #>
     param(
@@ -603,8 +543,7 @@ function Clear-DevPort {
         Stop-DevTree -ProcessId $proc.Id
     }
 
-    # Windows releases the socket lazily, and Vite's strictPort makes a
-    # half-released port just as fatal as an occupied one.
+    # Lazily released sockets are as fatal as occupied ones under Vite's strictPort.
     $deadline = (Get-Date).AddSeconds(5)
     while ((Get-Date) -lt $deadline) {
         if ((Get-DevPortListener -Port $Port).Count -eq 0) { return $true }

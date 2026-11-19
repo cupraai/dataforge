@@ -38,14 +38,14 @@ from testing_fixtures import (
     write_txt_caption,
 )
 
-# Long enough that hitting it means cancellation did not drop the request.
+# Hitting this means cancellation did not drop the request.
 WEDGED_SERVER_SECONDS = 30.0
-# Cancellation polls every 100ms, so a working drop lands far inside this.
+# Cancellation polls every 100ms.
 CANCEL_DEADLINE_SECONDS = 5.0
 
 
 class HangingCompletions:
-    """Stands in for a model server that accepted the request and never answers."""
+    """Accepts the request and never answers."""
 
     def __init__(self, request_started: threading.Event, release: threading.Event) -> None:
         self._request_started = request_started
@@ -73,7 +73,6 @@ class HangingClient:
 
 class CancelWhileWaitingTests(unittest.TestCase):
     def _assert_drops_in_flight_request(self, run_job, folder_setup, client_target) -> None:
-        """Start a job against a wedged server, cancel it, and require a prompt exit."""
         with TempMediaFolder() as root:
             folder_setup(root)
 
@@ -112,7 +111,7 @@ class CancelWhileWaitingTests(unittest.TestCase):
             self.assertNotIn("error", results)
             self.assertLess(waited, CANCEL_DEADLINE_SECONDS)
             self.assertTrue(client.closed.is_set(), "the abandoned request was not torn down")
-            # Once for the hanging request, once when the run scope ended.
+            # Once for the request, once when the run scope ended.
             self.assertEqual(client.close_count, 2)
 
             stats = results["value"]["stats"]
@@ -171,7 +170,7 @@ class CancelWhileWaitingTests(unittest.TestCase):
                 cancelled.set()
                 self.assertTrue(job_finished.wait(timeout=CANCEL_DEADLINE_SECONDS))
 
-                # Let the abandoned request finish; its late caption must go nowhere.
+                # Its late caption must go nowhere.
                 release_request.set()
                 worker.join(timeout=CANCEL_DEADLINE_SECONDS)
                 time.sleep(0.2)
@@ -246,7 +245,7 @@ class CallWithRetriesTests(unittest.TestCase):
         self.assertEqual(statuses, [])
 
     def test_a_slow_model_is_not_cut_off_by_the_cancel_polling(self) -> None:
-        """Waiting in 100ms slices must not truncate a model that is simply thinking."""
+        """100ms slices must not truncate a model that is thinking."""
         slow_call = CANCEL_POLL_SECONDS * 5
 
         def attempt(_number: int) -> ModelOutcome[str]:
@@ -366,7 +365,7 @@ class CallWithRetriesTests(unittest.TestCase):
 
 
 class ModelClientScopeTests(unittest.TestCase):
-    """A client holds a connection pool, so every run has to hand it back."""
+    """A client holds a connection pool."""
 
     class _SpyClient:
         def __init__(self) -> None:
@@ -455,7 +454,6 @@ class RunChatCompletionTests(unittest.TestCase):
         )
 
     def test_only_instruct_falls_back_to_the_reasoning_text(self) -> None:
-        """Thinking-mode chain-of-thought must never be taken for the answer."""
         for mode, expected in (("instruct", "A red hatchback."), ("thinking", None)):
             with self.subTest(mode=mode):
                 client = FakeChatClient("", reasoning_content="A red hatchback.")
@@ -483,7 +481,7 @@ class CloseModelClientTests(unittest.TestCase):
 
 
 class EmptyCompletionDiagnosticsTests(unittest.TestCase):
-    """A 200 that carries no caption has to say so; it used to return None in silence."""
+    """A 200 without a caption must say why."""
 
     @staticmethod
     def _response(**overrides: object) -> dict:
@@ -530,7 +528,7 @@ class EmptyCompletionDiagnosticsTests(unittest.TestCase):
 
 
 class DescribeExceptionTests(unittest.TestCase):
-    """``str(exc)`` alone is what made a dead server look like an unexplained failure."""
+    """``str(exc)`` alone hides why the server failed."""
 
     def test_includes_the_type_and_the_cause_chain(self) -> None:
         try:

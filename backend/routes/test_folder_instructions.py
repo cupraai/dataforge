@@ -11,7 +11,7 @@ from constants import CAPTION_RULES_FILENAME, SYSPROMPT_FILENAME
 from routes._test_client import client
 from testing_fixtures import TempMediaFolder, write_sysprompt
 
-#: The PUT route, and a valid body, for each instruction file.
+#: The PUT route and a valid body per instruction file.
 FILES = {
     SYSPROMPT_FILENAME: ("sysprompt", "# Describe the scene."),
     CAPTION_RULES_FILENAME: ("caption-rules", "repeated_phrases: 4"),
@@ -37,7 +37,7 @@ def _nested(root: Path) -> Path:
 
 
 class FolderInstructionsEndpointTests(unittest.TestCase):
-    """Each file is edited in the folder's own copy only; a parent's is reported, never written."""
+    """A parent's file is reported, never written."""
 
     def test_reports_both_files_as_missing_with_the_rules_template(self) -> None:
         empty = {
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
 
 class InstructionsLockedByJobTests(unittest.TestCase):
-    """A running job reads the file it started with; a save would not reach it."""
+    """A running job reads the file it started with."""
 
     def run_job(self, folder: Path, job_type: JobType, status: str = "running") -> None:
         job = Job(id=f"{job_type}-1", folder=str(folder), status=status, job_type=job_type)
@@ -290,7 +290,7 @@ class InstructionsLockedByJobTests(unittest.TestCase):
             self.assertEqual(
                 _save(root, CAPTION_RULES_FILENAME, "repeated_phrases: 4").status_code, 409
             )
-            # A file of its own in the subfolder would replace the inherited one just as well.
+            # A file of its own would replace the inherited one too.
             self.assertEqual(
                 _save(child, CAPTION_RULES_FILENAME, "repeated_phrases: 4").status_code, 409
             )

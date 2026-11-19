@@ -40,7 +40,7 @@ def get_ostris_base_url() -> str:
 
 
 def open_ostris_client(timeout: float) -> httpx.Client:
-    """Binds the address once, so a run keeps talking to the AI-Toolkit it started on."""
+    """So a run keeps talking to the AI-Toolkit it started on."""
     return httpx.Client(base_url=get_ostris_base_url(), timeout=timeout)
 
 
@@ -80,7 +80,7 @@ def _dataset_folder(process_config: dict[str, Any]) -> str | None:
 
 
 def job_sample_prompts(raw_job: dict[str, Any]) -> list[str]:
-    """The sample prompts a job was configured with, in the order its samples are numbered."""
+    """In the order the samples are numbered."""
     sample = _first_process_config(_parse_job_config(raw_job)).get("sample")
     if not isinstance(sample, dict):
         return []
@@ -110,7 +110,7 @@ def _total_steps(raw_job: dict[str, Any], process_config: dict[str, Any]) -> int
 
 
 def ostris_job_total_steps(raw_job: dict[str, Any]) -> int | None:
-    """Total training steps from the job row, falling back to the job config."""
+    """Falls back to the job config."""
     return _total_steps(raw_job, _first_process_config(_parse_job_config(raw_job)))
 
 
@@ -118,7 +118,7 @@ _SPEED_SEC_PER_ITER = re.compile(r"([\d.]+)\s*sec/iter", re.IGNORECASE)
 
 
 def ostris_job_speed_seconds_per_step(raw_job: dict[str, Any]) -> float | None:
-    """Seconds per training step, parsed out of the job's ``speed_string``."""
+    """Parsed from ``speed_string``."""
     raw = raw_job.get("speed_string")
     if not isinstance(raw, str):
         return None
@@ -194,7 +194,7 @@ def fetch_ostris_job(client: httpx.Client, job_id: str) -> dict[str, Any] | None
 
 
 def fetch_ostris_job_by_name(client: httpx.Client, name: str) -> dict[str, Any] | None:
-    """Look up a job by its unique name, which Ostris enforces on creation."""
+    """Ostris enforces unique names."""
     raw_jobs = _get_dict(client, OSTRIS_JOBS_PATH).get("jobs")
     if not isinstance(raw_jobs, list):
         return None
@@ -211,7 +211,7 @@ def fetch_ostris_training_folder(client: httpx.Client) -> str | None:
 
 
 def fetch_ostris_gpu_ids(client: httpx.Client) -> str:
-    """The GPU the job is queued on. Ostris rewrites this to "mps" on macOS itself."""
+    """Ostris rewrites this to "mps" on macOS."""
     gpus = _get_dict(client, OSTRIS_GPU_PATH).get("gpus")
     if not isinstance(gpus, list) or not gpus:
         return DEFAULT_OSTRIS_GPU_IDS
@@ -239,12 +239,12 @@ def queue_ostris_job(client: httpx.Client, job_id: str) -> None:
 
 
 def start_ostris_queue(client: httpx.Client, gpu_ids: str) -> None:
-    """Queueing a job is not enough; its GPU queue has to be running to pick it up."""
+    """Its GPU queue has to be running to pick it up."""
     _get_ok(client, f"{OSTRIS_QUEUE_PATH}/{gpu_ids}/start")
 
 
 def mark_ostris_job_stopped(client: httpx.Client, job_id: str) -> None:
-    """Drop a job that is still queued. The checkpoint stop only accepts running jobs."""
+    """The checkpoint stop only accepts running jobs."""
     _get_ok(client, f"{_ostris_job_path(job_id)}/mark_stopped")
 
 
@@ -259,7 +259,7 @@ def wait_for_save_next_step(
     poll_interval_seconds: float = OSTRIS_SAVE_POLL_INTERVAL_SECONDS,
     max_wait_seconds: float = OSTRIS_SAVE_MAX_WAIT_SECONDS,
 ) -> dict[str, Any]:
-    """Call only once a save is requested or pending, so a finished save is not awaited again."""
+    """Only once a save is requested or pending."""
     deadline = time.monotonic() + max_wait_seconds
 
     while time.monotonic() < deadline:
@@ -317,7 +317,7 @@ def stop_ostris_job_with_checkpoint(job_id: str) -> dict[str, Any]:
 
         status = job.get("status")
         if status == "queued":
-            # Nothing has been trained yet, so there is no checkpoint to save.
+            # Nothing trained yet, so no checkpoint to save.
             mark_ostris_job_stopped(client, job_id)
             return wait_for_job_stop(client, job_id)
 
@@ -347,7 +347,7 @@ _STATUS_RANK = {"running": 0, "stopping": 1}
 
 
 def _queue_sort_key(raw_job: dict[str, Any]) -> tuple[int, int]:
-    """Match AI-Toolkit: the running job first, then queued jobs by queue_position."""
+    """The running job first, then queued jobs by queue_position."""
     return (_STATUS_RANK.get(raw_job.get("status"), 2), _queue_position(raw_job))
 
 

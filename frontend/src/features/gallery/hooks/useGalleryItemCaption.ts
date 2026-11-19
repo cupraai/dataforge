@@ -47,14 +47,11 @@ export function useGalleryItemCaption({
   const { next, isCurrent } = useStaleRequest();
   const captionRef = useRef(caption);
   const captionRevisionRef = useRef<string | null>(null);
-  // Per path: what each save names as its base. A save queued for the previous item can still
-  // run after the next one opens, so one shared value would hand it the wrong base.
+  // Per path, since a save for the previous item can run after the next opens.
   const serverRevisionsRef = useRef(new Map<string, string | null>());
   // Revisions shown since this item opened.
   const shownRevisionsRef = useRef(new Set<string>());
-  // Armed by a save: a poller reload can answer from data older than it, so a revision shown
-  // before the save is a stale echo until the server reports the save or anything newer. Not
-  // a plain seen-set: a restore back to earlier text is a genuine change and must sync.
+  // Armed by a save: an older poll can echo a revision; a restore to earlier text still syncs.
   const staleRevisionsRef = useRef<Set<string> | null>(null);
 
   captionRef.current = caption;
@@ -210,8 +207,7 @@ export function useGalleryItemCaption({
     const incomingCaption = item.description ?? "";
     const current = captionRef.current;
     if (current === incomingCaption || current.trim() === incomingCaption) {
-      // Listing echoed our own save (possibly whitespace-normalized); keep the editor buffer,
-      // but take the revision: nothing is unsaved, so the next save starts from the file as is.
+      // Our own save echoed back: keep the buffer, take the revision.
       rememberServerRevision(itemPath, item);
       setReadError(item.caption_read_error ?? null);
       return;

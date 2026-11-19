@@ -1,4 +1,4 @@
-"""Carry a source file's provenance metadata onto the ComfyUI candidate that replaces it."""
+"""Carry a source's provenance metadata onto the ComfyUI candidate that replaces it."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from ffmpeg_run import run_ffmpeg
 _PNG_IHDR = b"IHDR"
 _XMP_KEYWORD = b"XML:com.adobe.xmp"
 _COMMENT_KEYWORD = b"Comment"
-# The temp file's own suffix names no container, so the muxer is chosen explicitly.
+# The temp suffix names no container.
 _ISOBMFF_MUXERS = {".mp4": "mp4", ".mov": "mov"}
 
 
@@ -33,11 +33,7 @@ def _itxt_chunk(keyword: bytes, text: bytes) -> bytes:
 
 
 def _source_png_chunks(source: Path) -> list[bytes]:
-    """The source's metadata as PNG chunks: copied verbatim from a PNG, translated otherwise.
-
-    EXIF Orientation is reset to 1: ComfyUI loads the source upright, so the candidate's pixels
-    are already turned and the source's tag would turn them a second time.
-    """
+    """The source's metadata as PNG chunks; Orientation resets since ComfyUI loaded it upright."""
     if source.suffix.lower() == ".png":
         return [
             png_chunk(b"eXIf", upright_exif(chunk[8:-4])) if chunk_type == b"eXIf" else chunk
@@ -62,7 +58,7 @@ def _source_png_chunks(source: Path) -> list[bytes]:
 
 
 def _png_with_metadata(candidate: Path, transplanted: list[bytes]) -> bytes:
-    """Candidate pixels and rendering chunks, with ``transplanted`` right after IHDR."""
+    """``transplanted`` goes right after IHDR."""
     stripped = strip_png_chunks(candidate.read_bytes())
 
     parts = [PNG_SIGNATURE]
@@ -76,7 +72,7 @@ def _png_with_metadata(candidate: Path, transplanted: list[bytes]) -> bytes:
 def _remux_with_source_metadata(
     source: Path, candidate: Path, destination: Path, *, ffmpeg: str | None
 ) -> None:
-    """Copy every candidate stream untouched; only the global tags come from the source."""
+    """Every candidate stream untouched; only global tags come from the source."""
     executable = ffmpeg or ffmpeg_path()
     if not executable:
         raise RuntimeError("ffmpeg is required to keep a video's metadata")
@@ -101,8 +97,7 @@ def _remux_with_source_metadata(
         "-1",
         "-c",
         "copy",
-        # Without use_metadata_tags the muxer drops keys outside its fixed list, such as the
-        # `prompt` and `workflow` tags a ComfyUI-made source carries.
+        # Otherwise the muxer drops the `prompt` and `workflow` tags.
         "-movflags",
         "+faststart+use_metadata_tags",
         "-f",
@@ -115,17 +110,7 @@ def _remux_with_source_metadata(
 def write_with_source_metadata(
     source: Path, candidate: Path, destination: Path, *, ffmpeg: str | None = None
 ) -> None:
-    """Write ``candidate`` to ``destination`` with ``source``'s metadata in place of its own.
-
-    The candidate's provenance metadata is replaced, not merged; what describes its pixels (ICC
-    profile, gamma, stream rotation) stays. A PNG candidate takes an image source's metadata, an
-    MP4/MOV candidate a video source's. Any other pairing, such as a GIF candidate or a still
-    turned into a clip, has nowhere to carry the metadata, so the candidate is copied unchanged.
-    So is a PNG candidate whose source has no metadata: replacing would only erase ComfyUI's
-    workflow. A clip is always remuxed: not every tag a video source carries can be read here.
-
-    Raises ``ValueError`` when the metadata cannot be read or written.
-    """
+    """Replace ``candidate``'s provenance metadata with ``source``'s; ``ValueError`` on failure."""
     candidate_suffix = candidate.suffix.lower()
     source_suffix = source.suffix.lower()
 
@@ -144,7 +129,7 @@ def write_with_source_metadata(
             destination.write_bytes(_png_with_metadata(candidate, transplanted))
         else:
             _remux_with_source_metadata(source, candidate, destination, ffmpeg=ffmpeg)
-    # UnidentifiedImageError is an OSError, so an unreadable source lands here too.
+    # UnidentifiedImageError is an OSError.
     except (OSError, RuntimeError) as error:
         raise ValueError(
             f"Could not keep the original metadata of {source.name}: {error}. "

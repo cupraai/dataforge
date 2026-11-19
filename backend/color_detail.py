@@ -1,8 +1,4 @@
-"""Noise reduction and definition: the two Adjust tools that look at neighbouring pixels.
-
-Both run on BT.709 full-range YCbCr before the global LUT. The math is picked so ffmpeg's
-``guided``/``gblur``/``lut2`` and the WebGL preview compute the same thing as this module.
-"""
+"""Noise reduction and definition, matching ffmpeg's filters and the WebGL preview."""
 
 from __future__ import annotations
 
@@ -32,7 +28,7 @@ class NoiseParams:
 
 @dataclass(frozen=True, slots=True)
 class DefinitionParams:
-    """The blurred base is taken at ``size`` so its reach is a fixed share of the frame."""
+    """Taken at ``size`` so its reach is a fixed share of the frame."""
 
     size: tuple[int, int]
     sigma: float
@@ -45,7 +41,7 @@ def is_detail_identity(adjust: ColorAdjust) -> bool:
 
 
 def noise_params(strength: float) -> NoiseParams:
-    """``eps`` is a variance: ffmpeg's ``guided`` takes it as is, it does not square it."""
+    """ffmpeg's ``guided`` takes ``eps`` as a variance."""
     return NoiseParams(
         luma_radius=int(COLOR_DETAIL["noise_luma_radius"]),
         luma_eps=(COLOR_DETAIL["noise_luma_std"] * strength) ** 2,
@@ -89,7 +85,7 @@ def _box(plane: np.ndarray, radius: int) -> np.ndarray:
 
 
 def guided_filter(plane: np.ndarray, radius: int, eps: float) -> np.ndarray:
-    """Self-guided (He et al.): flattens variation below ``eps`` and keeps the edges above it."""
+    """Self-guided (He et al.): flattens variation below ``eps``, keeps edges above it."""
     plane = np.ascontiguousarray(plane)
     mean = _box(plane, radius)
     variance = _box(plane * plane, radius) - mean * mean
@@ -106,14 +102,14 @@ def blurred_base(luma: np.ndarray, params: DefinitionParams) -> np.ndarray:
 
 
 def defined_luma(luma: np.ndarray, base: np.ndarray, params: DefinitionParams) -> np.ndarray:
-    """Midtones gain local contrast; the knee holds big edges back so they do not halo."""
+    """The knee holds big edges back so they do not halo."""
     detail = luma - base
     limited = detail / (1.0 + np.abs(detail) / params.knee)
     return np.clip(luma + params.gain * limited * 4.0 * luma * (1.0 - luma), 0.0, 1.0)
 
 
 def apply_detail(rgb: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
-    """sRGB-encoded float ``(h, w, 3)`` in 0..1 in and out."""
+    """sRGB-encoded float ``(h, w, 3)`` in 0..1."""
     ycc = rgb_to_ycbcr(rgb.astype(np.float32))
 
     if adjust.noise_reduction >= IDENTITY_EPSILON:

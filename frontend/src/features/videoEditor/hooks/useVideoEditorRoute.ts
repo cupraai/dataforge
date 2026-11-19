@@ -15,23 +15,15 @@ export interface VideoEditorRoute {
   open: (request: VideoEditorRequest) => void;
   /** The session's file moved, e.g. a new project's first save made a draft. */
   relocate: (request: VideoEditorRequest) => void;
-  /**
-   * Moves the open session to a file in another folder, leaving history as if it had been
-   * opened from that folder's gallery. ``showFolder`` turns the editor's entry into the folder's;
-   * the session stays mounted while the address passes through it.
-   */
+  /** Moves the session to another folder's file, with history as if from that gallery. */
   switchTo: (request: VideoEditorRequest, showFolder: () => Promise<unknown>) => Promise<void>;
-  /**
-   * Leaves once the editor has saved or the user chose to drop changes, so it passes the
-   * editor's blocker. ``then`` runs back in the gallery.
-   */
+  /** Leaves once saved or discarded, passing the blocker; ``then`` runs in the gallery. */
   close: (then?: () => void) => void;
 }
 
 /**
- * The editor as a route over the gallery: opening pushes an entry, so Back returns to the gallery
- * and Forward or a reload opens the editor again. The session keeps the request it started on
- * while its own saves move the address, so a relocation never reopens it.
+ * The editor as a route over the gallery, so Back returns and Forward reopens.
+ * The session keeps its request while its own saves move the address.
  */
 export function useVideoEditorRoute(onClosed: () => void): VideoEditorRoute {
   const router = useRouter();
@@ -40,8 +32,7 @@ export function useVideoEditorRoute(onClosed: () => void): VideoEditorRoute {
   const [session, setSession] = useState(atAddress);
   const [moved, setMoved] = useState<VideoEditorRequest | null>(null);
   const [passingGallery, setPassingGallery] = useState(false);
-  // ``moved`` only names an editor address; null there is the gallery, never a relocation,
-  // except on the way through it to ``moved``.
+  // ``moved`` only names an editor address; null is the gallery.
   const arrived = moved !== null && sameRequest(atAddress, moved);
   const relocatedHere = arrived || (passingGallery && atAddress === null);
   if (passingGallery && arrived) setPassingGallery(false);
@@ -78,8 +69,7 @@ export function useVideoEditorRoute(onClosed: () => void): VideoEditorRoute {
   const movedRef = useLatestRef(moved);
   const relocate = useCallback(
     (request: VideoEditorRequest) => {
-      // The address is already headed there. During a switch, this replace could land after the
-      // switch's push and drop the entry's editorOverGallery, so Back would leave a folder entry.
+      // Already headed there; replacing during a switch could drop editorOverGallery.
       if (sameRequest(movedRef.current, request)) return;
       setMoved(request);
       void router.navigate({

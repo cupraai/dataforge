@@ -30,8 +30,7 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: tags.punctuation, color: mkpOrange },
 ]);
 
-// YAML is read far more than it is written here - a training template is mostly keys
-// and numbers - so keys stay cool and values warm, and comments recede.
+// Templates are mostly read: keys cool, values warm, comments recede.
 const yamlHighlightStyle = HighlightStyle.define([
   { tag: tags.propertyName, color: mkpCyan },
   { tag: tags.string, color: mkpGreen },

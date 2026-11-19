@@ -12,8 +12,7 @@ from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parent.parent / "backend"
 
-# CI checks on Linux, where code behind a `sys.platform != "win32"` guard is unreachable and
-# typed differently, so a Windows or macOS run checks for Linux as well.
+# CI checks on Linux, so every platform checks for Linux too.
 CI_PLATFORM = "linux"
 
 

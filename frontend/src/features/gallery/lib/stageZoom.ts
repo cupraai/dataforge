@@ -2,11 +2,8 @@ import type { Size } from "./crop";
 import { clamp } from "./editSpec";
 
 /**
- * Zoom and pan for the edit stage, applied as one transform in screen space ahead of the turn and
- * mirrors, so a stroke lands where the pointer is whatever the frame's orientation.
- *
- * Offsets are CSS pixels from the stage's centre; `frame` is the canvas's unzoomed size as it lies
- * on screen (sides swapped for a quarter turn).
+ * Zoom and pan as one screen-space transform ahead of the turn and mirrors.
+ * Offsets are CSS pixels from the centre; `frame` is the unzoomed on-screen size.
  */
 
 export interface StageView {

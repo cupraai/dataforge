@@ -1,4 +1,4 @@
-"""GIF frames are deltas, so decoding frame N is O(N) and a scrub is O(N^2); Pillow also holds the file open, which locks it on Windows."""
+"""GIF frames are deltas, so frames are cached; Pillow locks the file on Windows."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from PIL import Image, ImageSequence, UnidentifiedImageError
 
 logger = logging.getLogger(__name__)
 
-#: Matches the frontend canvas JPEG quality of 0.95 so GIF and MP4 frame saves match.
+#: Matches the frontend canvas JPEG quality.
 GIF_FRAME_JPEG_QUALITY = 95
 
-#: Cap across every GIF; one 300-frame 960x720 strip is roughly 30 MB.
+#: One 300-frame 960x720 strip is roughly 30 MB.
 GIF_FRAME_CACHE_BUDGET_BYTES = 128 * 1024 * 1024
 
 _MAX_FRAME_COUNT_CACHE = 512
@@ -24,10 +24,10 @@ _frame_count_cache_lock = threading.Lock()
 
 _frame_strips: OrderedDict[str, tuple[tuple[int, int], list[bytes]]] = OrderedDict()
 _frame_strips_bytes = 0
-#: GIFs whose strip does not fit the budget, so they are not re-decoded in full every request.
+#: So they are not fully re-decoded every request.
 _uncacheable_strips: set[tuple[str, tuple[int, int]]] = set()
 _frame_strips_lock = threading.Lock()
-#: One decode at a time per GIF so a scrub burst does not start N full decodes.
+#: So a scrub burst does not start N full decodes.
 _decode_locks: dict[str, threading.Lock] = {}
 _decode_locks_lock = threading.Lock()
 
@@ -37,13 +37,13 @@ class GifFrameError(Exception):
 
 
 class GifFrameUnavailableError(GifFrameError):
-    """The GIF is readable but has no such frame."""
+    """The GIF has no such frame."""
 
 
 def _count_frames(path: Path) -> int | None:
     try:
         with Image.open(path) as image:
-            # Pillow opens PNG/JPEG too; reject on decoded format so a mislabelled file is caught.
+            # Pillow opens PNG/JPEG too, so check the decoded format.
             if image.format != "GIF":
                 return None
 
@@ -64,7 +64,7 @@ def _cache_token(path: Path) -> tuple[int, int] | None:
 
 
 def gif_frame_count(path: Path) -> int | None:
-    """How many frames the GIF holds, or ``None`` if it cannot be read."""
+    """``None`` if it cannot be read."""
     resolved = str(path.resolve())
     token = _cache_token(path)
     if token is not None:
@@ -103,7 +103,7 @@ def clear_gif_caches_for_tests() -> None:
 
 
 def _flatten(frame: Image.Image) -> Image.Image:
-    """Opaque RGB, compositing transparency over black; JPEG has no alpha."""
+    """Transparency composited over black; JPEG has no alpha."""
     converted = frame.convert("RGBA")
     background = Image.new("RGB", converted.size, (0, 0, 0))
     background.paste(converted, mask=converted.split()[-1])
@@ -117,7 +117,7 @@ def _encode_jpeg(frame: Image.Image) -> bytes:
 
 
 def _read_gif_bytes(path: Path) -> bytes:
-    """Slurp the file so no decode holds the path; a background warm would lock it on Windows."""
+    """No decode holds the path, which would lock it on Windows."""
     try:
         return path.read_bytes()
     except OSError as exc:
@@ -138,7 +138,7 @@ def _open_gif(data: bytes) -> Image.Image:
 
 
 def _walk_to_frame(path: Path, index: int) -> bytes:
-    """One frame, replaying the animation up to it. O(index), so a last resort."""
+    """O(index), so a last resort."""
     data = _read_gif_bytes(path)
 
     try:
@@ -153,7 +153,7 @@ def _walk_to_frame(path: Path, index: int) -> bytes:
 
 
 def _decode_strip(path: Path) -> list[bytes] | None:
-    """Every frame as JPEG bytes, or ``None`` if the strip outgrows the budget."""
+    """``None`` if the strip outgrows the budget."""
     data = _read_gif_bytes(path)
     total = 0
     strip: list[bytes] = []
@@ -204,7 +204,7 @@ def _decode_lock(key: str) -> threading.Lock:
     with _decode_locks_lock:
         lock = _decode_locks.get(key)
         if lock is None:
-            # Clearing is safe: a held lock still works; a duplicate decode is wasteful, not wrong.
+            # A held lock still works; a duplicate decode is only wasteful.
             if len(_decode_locks) >= _MAX_FRAME_COUNT_CACHE:
                 _decode_locks.clear()
             lock = threading.Lock()
@@ -218,7 +218,7 @@ def _is_uncacheable(key: str, token: tuple[int, int]) -> bool:
 
 
 def warm_gif_frames(path: Path) -> bool:
-    """Decode and cache every frame. Returns whether a strip is now resident."""
+    """Returns whether a strip is now resident."""
     key = str(path.resolve())
     token = _cache_token(path)
     if token is None or _is_uncacheable(key, token):
@@ -243,7 +243,6 @@ def warm_gif_frames(path: Path) -> bool:
 
 
 def _schedule_warm(path: Path, key: str, token: tuple[int, int]) -> None:
-    """Start a full decode unless one is already running for this GIF."""
     lock = _decode_lock(key)
     if not lock.acquire(blocking=False):
         return
@@ -259,7 +258,7 @@ def _schedule_warm(path: Path, key: str, token: tuple[int, int]) -> None:
 
 
 def extract_gif_frame(path: Path, index: int) -> bytes:
-    """One frame as JPEG bytes. Raises GifFrameUnavailableError / GifFrameError."""
+    """Raises GifFrameUnavailableError / GifFrameError."""
     if index < 0:
         raise GifFrameUnavailableError("Frame index is out of range")
 
@@ -279,7 +278,7 @@ def extract_gif_frame(path: Path, index: int) -> bytes:
 
 
 def keyframe_indices(total_frames: int, count: int) -> list[int]:
-    """Up to ``count`` evenly spaced indices, always including first and last."""
+    """Up to ``count`` evenly spaced indices, first and last included."""
     if total_frames <= 0 or count <= 0:
         return []
     if total_frames <= count:
@@ -289,12 +288,12 @@ def keyframe_indices(total_frames: int, count: int) -> list[int]:
     return sorted({round(index * (total_frames - 1) / (count - 1)) for index in range(count)})
 
 
-#: Browsers clamp a 0 or 10ms delay to this; GIFs written with no delay play at roughly this rate.
+#: Browsers clamp a 0 or 10ms delay to this.
 GIF_DEFAULT_FRAME_DELAY_MS = 100.0
 
 
 def extract_gif_first_frame(path: Path) -> Image.Image | None:
-    """Opening frame as opaque RGB. Flatten rather than convert("RGB"), which would emit the transparent palette entry."""
+    """Flatten, since convert("RGB") emits the transparent palette entry."""
     try:
         data = _read_gif_bytes(path)
         with _open_gif(data) as image:

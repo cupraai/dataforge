@@ -1,5 +1,3 @@
-"""Make new media in a folder by running a ComfyUI generation preset a number of times."""
-
 from __future__ import annotations
 
 import os
@@ -49,18 +47,18 @@ from media_claims import claim
 from schemas import ComfyInputValue
 from video_frames import validate_candidate_media
 
-# Terminal per-run statuses. Omit ``cancelled`` or a cancelled run looks complete.
+# Omit ``cancelled`` and a cancelled run looks complete.
 PROCESSED_STAT_KEYS = ("success", "comfy_error", "write_error")
 
-#: Same range as the editor's fills; every sampler takes it.
+#: Same range as the editor's fills.
 SEED_LIMIT = 2**32
 
 NUMBER_WIDTH = 4
 
-#: Savers whose output is a still; anything else may write a clip and gets the video timeout.
+#: Anything else may write a clip and gets the video timeout.
 _STILL_OUTPUT_CLASSES = frozenset({"SaveImage", "PreviewImage", "SaveImageWebsocket"})
 
-#: Characters Windows refuses in a name, which a prefix shared across platforms must avoid.
+#: Characters Windows refuses in a name.
 _UNSAFE_NAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
 _TEMP_PREFIX = ".generate-"
@@ -68,7 +66,7 @@ _TEMP_SUFFIX = ".tmp"
 
 
 class _NameConflict(Exception):
-    """Every number tried was taken while the result waited to be published."""
+    """Every number tried was taken meanwhile."""
 
 
 def name_prefix_for(preset: str, name_prefix: str) -> str:
@@ -76,7 +74,6 @@ def name_prefix_for(preset: str, name_prefix: str) -> str:
 
 
 def _source_file(source: Mapping[str, object]) -> tuple[Path, str]:
-    """The media file and output node of an embedded workflow, refusing what cannot carry one."""
     path, node_id = source.get("path"), source.get("node_id")
     if not isinstance(path, str) or not path.strip() or not isinstance(node_id, str) or not node_id:
         raise ValueError("Choose the file and output whose workflow to run.")
@@ -91,7 +88,6 @@ def _source_file(source: Mapping[str, object]) -> tuple[Path, str]:
 
 
 def load_generation(preset: str, source: Mapping[str, object] | None) -> ComfyWorkflow:
-    """The preset, or the file's own workflow, checked to be a generation."""
     if source is not None:
         if preset.strip():
             raise ValueError("Run either a preset or a file's workflow, not both.")
@@ -103,7 +99,7 @@ def load_generation(preset: str, source: Mapping[str, object] | None) -> ComfyWo
 
 
 def _default_prefix(preset: str, workflow: ComfyWorkflow, source: object) -> str:
-    """The preset's name, or the source file's stem without the separator ComfyUI ends it with."""
+    """The source stem loses the separator ComfyUI ends it with."""
     if source is None:
         return preset
     return workflow.preset.rstrip("_ .") or "generated"
@@ -132,7 +128,7 @@ def validate_comfy_generate_folder(
     name_prefix: str = "",
     source: Mapping[str, object] | None = None,
 ) -> ComfyWorkflow:
-    """Refuse at queue time what would fail on the first run. Does not probe ComfyUI."""
+    """Refuse at queue time what would fail on the first run; does not probe ComfyUI."""
     if not folder.is_dir():
         raise ValueError(f"Folder not found: {folder}")
 
@@ -146,7 +142,7 @@ def validate_comfy_generate_folder(
         workflow = load_generation(preset, source)
         resolve_custom_inputs(workflow, inputs or {})
     except ComfyWorkflowError as exc:
-        # ValueError is a 400; ComfyWorkflowError would escape the route as a 500.
+        # ComfyWorkflowError would escape the route as a 500.
         raise ValueError(str(exc)) from exc
 
     if prompt_text.strip() and workflow.prompt_node is None:
@@ -161,12 +157,12 @@ def validate_comfy_generate_folder(
 
 
 def _numbered_name(prefix: str) -> re.Pattern[str]:
-    """``<prefix>_<digits>`` followed by an extension or nothing, so sidecars count too."""
+    """``<prefix>_<digits>`` plus any extension, so sidecars count too."""
     return re.compile(rf"^{re.escape(prefix)}_(\d+)(?:\.|$)", re.IGNORECASE)
 
 
 def _next_number(folder: Path, prefix: str) -> int:
-    """One past the highest number the prefix has used, so a re-run continues the series."""
+    """One past the highest number used, so a re-run continues the series."""
     pattern = _numbered_name(prefix)
     highest = 0
     with suppress(OSError):
@@ -178,7 +174,7 @@ def _next_number(folder: Path, prefix: str) -> int:
 
 
 def _name_is_free(folder: Path, prefix: str, number: int) -> bool:
-    """No file of that stem at all: a leftover caption would otherwise pair with new pixels."""
+    """A leftover caption would pair with new pixels."""
     stem = f"{prefix}_{number:0{NUMBER_WIDTH}d}".lower()
     with suppress(OSError):
         for entry in folder.iterdir():
@@ -188,7 +184,6 @@ def _name_is_free(folder: Path, prefix: str, number: int) -> bool:
 
 
 def _check_output(temp_path: Path, suffix: str) -> None:
-    """Refuse what would not open in the gallery before it gets a name there."""
     if suffix in MOTION_EXTENSIONS:
         try:
             validate_candidate_media(temp_path, suffix=suffix)
@@ -204,7 +199,7 @@ def _check_output(temp_path: Path, suffix: str) -> None:
 
 
 def _publish(temp_path: Path, folder: Path, prefix: str, suffix: str, first: int) -> Path:
-    """Give the file the first free number from ``first``, never replacing an existing file."""
+    """Never replaces an existing file."""
     number = first
     for _ in range(1000):
         if _name_is_free(folder, prefix, number):
@@ -217,8 +212,6 @@ def _publish(temp_path: Path, folder: Path, prefix: str, suffix: str, first: int
 
 
 class _Generator:
-    """One job's state: the client, the numbering and the results so far."""
-
     def __init__(
         self,
         folder: Path,
@@ -240,7 +233,7 @@ class _Generator:
         self.job_tag = uuid.uuid4().hex[:8]
         self.client_id = uuid.uuid4().hex
         self.next_number = _next_number(folder, prefix)
-        #: Why a published file got no caption, by path; the file itself still counts.
+        #: Why a published file got no caption, by path.
         self.caption_failures: dict[Path, str] = {}
         output_class = workflow.prompt[workflow.output_node]["class_type"]
         self.timeout = get_comfy_media_timeout(
@@ -250,17 +243,13 @@ class _Generator:
     def run_once(
         self, client: httpx.Client, index: int, seed: int | None, written: list[Path]
     ) -> None:
-        """One prompt, with every file its output node wrote published under a new name.
-
-        Files land in ``written`` as they are published, so a failure later in a batch still
-        reports the ones already in the folder.
-        """
+        """Files land in ``written`` as published, so a later failure still reports them."""
         prompt = build_comfy_prompt(
             self.workflow,
             media_ref=None,
             filename_prefix=f"DataForge/{self.job_tag}/{self.prefix}_{index:05d}",
             seed=seed,
-            # Empty box means run the graph as saved, not write "" into the prompt node.
+            # Empty means run the graph as saved.
             prompt_text=self.prompt_text or None,
             custom_values=self.custom_values,
         )
@@ -312,7 +301,7 @@ class _Generator:
 
 
 def _sweep_temp_files(folder: Path) -> None:
-    """Downloads a hard kill left behind. One job runs per folder, so none is in use now."""
+    """One job runs per folder, so no download is in use now."""
     with suppress(OSError):
         for leftover in folder.glob(f"{_TEMP_PREFIX}*{_TEMP_SUFFIX}"):
             with suppress(OSError):
@@ -320,13 +309,13 @@ def _sweep_temp_files(folder: Path) -> None:
 
 
 def _caption_text(workflow: ComfyWorkflow, prompt_text: str) -> str | None:
-    """What the run was prompted with: the entered text, else what the preset was saved with."""
+    """The entered text, else what the preset was saved with."""
     text = prompt_text or (workflow.saved_prompt_text or "")
     return text.strip() or None
 
 
 def _seed_for(base: int | None, index: int, has_seed_nodes: bool) -> int | None:
-    """A fresh random seed per run, or the entered one counting up, so a run is repeatable."""
+    """A fresh random seed per run, or the entered one counting up."""
     if not has_seed_nodes:
         return None
     if base is None:
@@ -349,8 +338,8 @@ def run_comfy_generate_job(
     source: Mapping[str, object] | None = None,
     selected_paths: list[Path] | None = None,
 ) -> dict[str, object]:
-    del selected_paths  # Generation reads no files, so the selection has nothing to narrow.
-    # Loaded once more here: the preset or the file may have changed while the job queued.
+    del selected_paths
+    # The preset or file may have changed while queued.
     workflow = validate_comfy_generate_folder(
         folder,
         preset=preset,
@@ -380,7 +369,7 @@ def run_comfy_generate_job(
 
     def failed(index: int, status: str, message: object) -> None:
         stats[status] = stats.get(status, 0) + 1
-        # No file exists for a failed run; the pseudo path only keeps rows distinct.
+        # The pseudo path only keeps rows distinct.
         results.append(
             {
                 "path": str(folder / f"generation-{generator.job_tag}-{index}"),

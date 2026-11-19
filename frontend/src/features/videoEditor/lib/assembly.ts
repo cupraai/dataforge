@@ -1,8 +1,4 @@
-/**
- * Edits for revising an assembled cut: replacing a take in its slot, inserting material, and
- * exact, frame-based moves and trims. Each one returns the next project or why it cannot be made,
- * like the operations in `timeline.ts`, so the workspace commits it as one undo step.
- */
+/** Revising a cut: replacing takes, inserting, frame-exact moves and trims, each one undo step. */
 import type { VideoProjectSourceInfo } from "@/shared/types";
 import { SPEED_PRESETS } from "@/features/gallery/lib/videoEdit";
 import {
@@ -38,10 +34,8 @@ export const MIN_SPEED = SPEED_PRESETS[0];
 export const MAX_SPEED = SPEED_PRESETS[SPEED_PRESETS.length - 1];
 
 /**
- * What a replacement does with a take whose length differs from the slot.
- * - ``keep-speed``: the clip keeps its speed. A longer take is cut to the slot; a shorter one
- *   shortens the clip from its end, leaving a gap, never moving a neighbour.
- * - ``fit-to-fill``: the clip keeps its slot exactly and the marked range is retimed to fill it.
+ * How a replacement handles a take whose length differs from the slot.
+ * ``keep-speed``: cut to the slot, or shorten from the end. ``fit-to-fill``: retime to fill it.
  */
 export type ReplacePolicy = "keep-speed" | "fit-to-fill";
 
@@ -55,11 +49,7 @@ export interface ReplaceRequest {
 
 export type NotedResult = EditResult & { note?: string };
 
-/**
- * Puts another file in a clip's place. Its start, track, link, transform, crop, color, gain,
- * fades and dissolves stay; only the take changes. A linked video's sound follows the new file:
- * replaced when it has sound, removed when it has none, added when only the new one has it.
- */
+/** Puts another file in a clip's place, keeping everything but the take; linked sound follows. */
 export function replaceClip(
   project: Project,
   clipId: string,
@@ -181,11 +171,7 @@ export function replaceClip(
   return result.project ? { project: result.project, note } : result;
 }
 
-/**
- * Opens room at ``time`` on every track with sync lock on and places the file there, so
- * everything after it moves later together. Clips crossing ``time`` are cut, as a split there
- * would cut them.
- */
+/** Opens room at ``time`` on sync-locked tracks and places the file; crossing clips are cut. */
 export function insertSource(
   project: Project,
   request: PlaceSourceRequest,
@@ -198,10 +184,7 @@ export function insertSource(
   return placeSource(opened.project, { ...request, start: time });
 }
 
-/**
- * Moves every clip in the ripple scope from ``time`` on later by ``length``; refused if a locked
- * track would move.
- */
+/** Moves the ripple scope from ``time`` on by ``length``; refused if a locked track would move. */
 export function openGap(project: Project, time: number, length: number): EditResult {
   const scope = rippleScope(project);
   const moving = project.clips.filter(
@@ -253,10 +236,7 @@ export function nudgeClips(
   return result.error ? { error: `They cannot move there: ${result.error}` } : result;
 }
 
-/**
- * Brings one edge of each chosen clip under the playhead to it. Without a choice, every clip under
- * the playhead on an unlocked track is trimmed, as a split without one cuts them all.
- */
+/** Trims each chosen clip's edge to the playhead; with none chosen, every unlocked one. */
 export function trimToPlayhead(
   project: Project,
   ids: Iterable<string>,
@@ -309,10 +289,7 @@ export function setClipLength(project: Project, id: string, duration: number): E
   return result;
 }
 
-/**
- * Slips the take: the clip stays where it is and as long, and shows the file from ``sourceIn``.
- * Linked clips slip with it, so picture and sound stay together.
- */
+/** Slips the take in place from ``sourceIn``; linked clips slip with it. */
 export function slipClip(project: Project, id: string, sourceIn: number): EditResult {
   const anchor = project.clips.find((item) => item.id === id);
   if (!anchor) return { error: "That clip is gone." };
@@ -342,10 +319,7 @@ export function slipClip(project: Project, id: string, sourceIn: number): EditRe
   return finish({ ...project, clips: changed });
 }
 
-/**
- * Applies ``patch`` to every chosen clip it fits; ``patch`` returns null for a clip it does not
- * apply to. Used to set one inspector value on a whole selection at once.
- */
+/** Applies ``patch`` to every chosen clip it fits; null skips a clip. */
 export function updateClips(
   project: Project,
   ids: Iterable<string>,

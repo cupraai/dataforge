@@ -63,6 +63,36 @@ class CommentWidthTests(unittest.TestCase):
         self.assertEqual(len(problems), 1)
         self.assertIn("sample.txt:3: comment is 101 characters", problems[0])
 
+    def test_a_docstring_line_over_the_limit_fails(self) -> None:
+        source = 'def f():\n    """' + "a" * 91 + '"""\n'
+        problems = self._problems(source)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("sample.txt:2: comment is 101 characters", problems[0])
+
+    def test_a_docstring_line_is_measured_with_its_indent(self) -> None:
+        self.assertEqual(self._problems('def f():\n    """' + "a" * 90 + '"""\n'), [])
+        self.assertEqual(len(self._problems('"""' + "a" * 98 + '"""\n')), 1)
+
+    def test_every_line_of_a_multiline_docstring_is_measured(self) -> None:
+        source = '"""Summary.\n\n' + "a" * 101 + '\n"""\n'
+        problems = self._problems(source)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("sample.txt:3:", problems[0])
+
+    def test_a_long_string_that_is_not_a_docstring_is_ignored(self) -> None:
+        self.assertEqual(self._problems('def f():\n    x = 1\n    "' + "a" * 99 + '"\n'), [])
+
+    def test_a_long_scss_comment_fails(self) -> None:
+        source = ".a {\n  // " + "a" * 98 + "\n  color: red;\n}"
+        self.assertEqual(len(self._problems(source, typescript=True)), 1)
+
+    def test_a_scss_url_is_not_a_comment(self) -> None:
+        source = '.a { background: url("https://example.com/' + "a" * 90 + '"); }'
+        self.assertEqual(self._problems(source, typescript=True), [])
+
+    def test_the_stylesheets_are_checked(self) -> None:
+        self.assertTrue(self.check._walk(ROOT / self.check.STYLE_ROOT, {".scss"}))
+
     def test_a_long_typescript_comment_fails(self) -> None:
         self.assertEqual(len(self._problems("// " + "a" * 98, typescript=True)), 1)
 

@@ -39,7 +39,7 @@ __all__ = [
 
 
 def resolve_optional_media_file(path: str) -> Path | None:
-    """Like `resolve_media_file`, but a missing file is an expected outcome, not an error."""
+    """A missing file is an expected outcome."""
     file_path = normalize_user_path(path)
 
     if not file_path.is_file():
@@ -119,7 +119,7 @@ def resolve_editable_image(path: str) -> Path:
 
 
 def resolve_candidate_source(path: str) -> Path:
-    """Source path a candidate is keyed by. The file may already be gone."""
+    """The file may already be gone."""
     file_path = normalize_user_path(path)
     if file_path.suffix.lower() not in CANDIDATE_SOURCE_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Not a supported media file")
@@ -127,7 +127,7 @@ def resolve_candidate_source(path: str) -> Path:
 
 
 def resolve_candidate_media(path: str) -> Path:
-    """Like `resolve_candidate_source`, for the endpoints that read the file itself."""
+    """For endpoints that read the file itself."""
     file_path = resolve_media_file(path)
     if file_path.suffix.lower() not in CANDIDATE_SOURCE_EXTENSIONS:
         raise HTTPException(
@@ -150,7 +150,7 @@ def resolve_editable_video(path: str) -> Path:
 
 
 def resolve_optional_gif_file(path: str) -> Path | None:
-    """Like `resolve_gif_file`, but a missing file is an expected outcome, not an error."""
+    """A missing file is an expected outcome."""
     file_path = resolve_optional_media_file(path)
 
     if file_path is not None and file_path.suffix.lower() != GIF_EXTENSION:

@@ -76,8 +76,7 @@ export function GallerySelectionControls({ totalCount }: GallerySelectionControl
     if (!busy) selectAllPaths();
   });
 
-  // Backspace covers Mac keyboards, where the key labelled "delete" reports Backspace.
-  // Opening the confirm refuses on its own while busy or with nothing selected.
+  // Backspace for Mac keyboards; the confirm refuses while busy or empty.
   useGlobalShortcut(SHORTCUTS.deleteSelection, () => openDeleteConfirm(), {
     enabled: selectionMode,
   });

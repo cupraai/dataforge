@@ -1,4 +1,4 @@
-"""The push channel: one stream carrying job progress and AI-Toolkit state."""
+"""One stream: job progress and AI-Toolkit state."""
 
 import json
 
@@ -26,7 +26,7 @@ async def stream_events(
             while True:
                 event = await subscriber.next_event(HEARTBEAT_SECONDS)
                 if event is None:
-                    # A data frame, not an SSE comment: comments never reach `onmessage`.
+                    # Comments never reach `onmessage`.
                     yield heartbeat
                     continue
                 yield f"data: {json.dumps(event)}\n\n"

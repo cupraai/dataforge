@@ -1,4 +1,4 @@
-"""Where ComfyUI lives and how long it is allowed to take. Values are read at call time, never at import."""
+"""Read at call time, never at import."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from env_file import env_str
 
 DEFAULT_WORKFLOWS_DIR = Path(__file__).resolve().parents[1] / "comfy_workflows"
 
-#: Tracked with the code, unlike the presets: the editor's fill depends on their exact roles.
+#: Tracked with the code: the fill depends on their exact roles.
 FILL_TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "comfy_fill_templates"
 
-# Generous: waiting too little discards a result ComfyUI has already paid for.
+# Too short a wait discards a result ComfyUI already produced.
 DEFAULT_COMFY_IMAGE_TIMEOUT_SECONDS = 900.0
 
 _MIN_IMAGE_TIMEOUT_SECONDS = 30.0
 
-# A clip through an upscaler and an interpolator is minutes per file, not seconds.
+# A clip through an upscaler and an interpolator takes minutes.
 DEFAULT_COMFY_VIDEO_TIMEOUT_SECONDS = 7200.0
 
 _MIN_VIDEO_TIMEOUT_SECONDS = 60.0
@@ -36,7 +36,7 @@ def _env_seconds(name: str, default: float, minimum: float) -> float:
 
 
 def get_comfy_base_url() -> str:
-    """Origin without a trailing slash so paths can be appended."""
+    """Origin without a trailing slash, so paths can be appended."""
     return effective_settings().comfy_base_url
 
 
@@ -62,7 +62,7 @@ def get_comfy_video_timeout() -> float:
 
 
 def get_comfy_media_timeout(media_type: str | None) -> float:
-    """How long one file may take. Keyed on the source, which is known before the graph runs."""
+    """Keyed on the source, known before the graph runs."""
     if media_type in {"video", "gif"}:
         return get_comfy_video_timeout()
     return get_comfy_image_timeout()
@@ -70,7 +70,7 @@ def get_comfy_media_timeout(media_type: str | None) -> float:
 
 @dataclass(frozen=True)
 class FillSettings:
-    """What the fill templates load and how long they sample, from Settings > Integrations."""
+    """What the fill templates load and how long they sample."""
 
     diffusion_model: str
     text_encoder: str

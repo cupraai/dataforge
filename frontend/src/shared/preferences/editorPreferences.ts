@@ -99,10 +99,7 @@ export function sameEditorOptions(a: EditorOptions, b: EditorOptions): boolean {
   return (Object.keys(a) as (keyof EditorOptions)[]).every((key) => a[key] === b[key]);
 }
 
-/**
- * The app root provides the saved options. Editors rendered without it, as in isolated tests,
- * fall back to the defaults.
- */
+/** Without the root provider, as in isolated tests, the defaults apply. */
 export const EditorOptionsContext = createContext<EditorOptions>(DEFAULT_EDITOR_OPTIONS);
 
 export function useEditorOptions(): EditorOptions {

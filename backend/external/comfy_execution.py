@@ -1,9 +1,4 @@
-"""Run one prompt on ComfyUI at a time, for every caller: the ComfyUI jobs and the editor's fills.
-
-One slot means a stop request can only ever reach a prompt DataForge itself queued. ComfyUI has no
-per-prompt interrupt, so the queue is read before interrupting, and someone else's prompt is never
-touched.
-"""
+"""One prompt at a time, so a stop only ever reaches a prompt DataForge queued."""
 
 from __future__ import annotations
 
@@ -33,7 +28,7 @@ type ShouldCancel = Callable[[], bool]
 
 
 class ComfyRunCancelled(Exception):
-    """Raised when a cancel arrives while a prompt waits for the slot or runs in ComfyUI."""
+    """A cancel arrived while the prompt waited or ran."""
 
 
 _gpu_lock = threading.Lock()
@@ -41,8 +36,7 @@ _gpu_lock = threading.Lock()
 
 @contextmanager
 def gpu_slot(should_cancel: ShouldCancel | None) -> Generator[None]:
-    """Wait for the slot in polls, not one blocking acquire: a whole video file can hold it for an
-    hour, and a thread parked in ``acquire`` never looks at ``should_cancel`` again."""
+    """Polls so a cancel is noticed while another file holds the slot."""
     while not _gpu_lock.acquire(timeout=COMFY_POLL_INTERVAL_SECONDS):
         if should_cancel and should_cancel():
             raise ComfyRunCancelled
@@ -54,7 +48,7 @@ def gpu_slot(should_cancel: ShouldCancel | None) -> Generator[None]:
 
 
 def request_stop(client: httpx.Client, prompt_id: str) -> None:
-    """Interrupt ``prompt_id`` if it is the running one, or drop it if it is still pending."""
+    """Interrupt it if running, or drop it if pending."""
     try:
         running, pending = fetch_queue(client)
     except ComfyError:
@@ -79,11 +73,7 @@ def await_output(
     should_cancel: ShouldCancel | None,
     on_running: Callable[[], None] | None = None,
 ) -> dict[str, str]:
-    """Poll until the prompt finishes and return the output node's last file.
-
-    Cancel is checked here because one file can take an hour. ``on_running`` fires once, when
-    ComfyUI starts executing the prompt rather than holding it in its queue.
-    """
+    """Poll for the output node's last file; checks cancel, since a file can take an hour."""
     return await_outputs(
         client,
         prompt_id,
@@ -103,7 +93,7 @@ def await_outputs(
     should_cancel: ShouldCancel | None,
     on_running: Callable[[], None] | None = None,
 ) -> list[dict[str, str]]:
-    """:func:`await_output`, but every file the output node wrote, as a batch writes several."""
+    """Every file the output node wrote."""
     deadline = time.monotonic() + timeout
     stop_requested = False
     reported_running = on_running is None
@@ -115,7 +105,7 @@ def await_outputs(
             if error:
                 raise ComfyPromptError(error)
 
-            # This node only: a graph that also wrote a preview would otherwise return the preview.
+            # This node only, not a preview it also wrote.
             refs = history_outputs(entry, node_id=output_node)
             if not refs:
                 raise ComfyPromptError(NO_OUTPUT_MESSAGE)

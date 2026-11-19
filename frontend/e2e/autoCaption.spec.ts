@@ -32,8 +32,7 @@ test("auto-captions a still and a clip, and shows both captions back", async ({ 
   // Two real decodes and two model round trips; the poll that reports it is on its own clock.
   await expectJobCompleted(page, "Auto-caption", WORKSPACE, 90_000);
 
-  // Read back through the listing: proves the sidecar landed and the caption memo let go of it.
-  // Retried: the listing is re-read once the job reports done, so it lands a moment later.
+  // Read back through the listing, retried, since it is re-read only after the job is done.
   await expect(page.locator(".card__description")).toHaveText([CAPTION, CAPTION]);
 
   // No trailing newline: auto-caption saves with trailing_newline=False.

@@ -47,7 +47,7 @@ def get_gallery_display_settings(*, folder_path: str) -> GalleryDisplaySettingsR
 
 
 def _valid_mode(mode: str | None) -> GalleryDisplayMode | None:
-    """Unknown modes are ignored rather than stored."""
+    """Unknown modes are ignored."""
     return cast(GalleryDisplayMode, mode) if mode in VALID_MODES else None
 
 
@@ -62,7 +62,7 @@ def update_gallery_display_settings(
     valid = _valid_mode(mode)
 
     if valid == DEFAULT_MODE:
-        # An absent key already reads as the default; storing it would grow the map for every visit.
+        # Storing the default would grow the map for every visit.
         modes.pop(folder_key, None)
     elif valid is not None:
         modes[folder_key] = valid

@@ -1,15 +1,5 @@
-"""Production server: one uvicorn process serving the API and the built UI.
-
-Run from the project root, after building the frontend:
-  cd frontend && npm run build && cd ..
-  backend/.venv/Scripts/python scripts/prod_server.py
-
-Binds DATAFORGE_UI_PORT, the port the browser already points at, and serves
-frontend/dist at / alongside /api. One origin means no proxy hop and no CORS.
-
-Single process by design: the job manager and the SSE broker both hold state in
-memory, so a second worker would run its own copy of each.
-"""
+"""Production server: one uvicorn process serving the API and built UI on one origin.
+Single process: the job manager and SSE broker hold state in memory."""
 
 from __future__ import annotations
 
@@ -58,11 +48,7 @@ def _parse_args(argv: list[str] | None, *, default_port: int) -> argparse.Namesp
 
 
 def build_uvicorn_kwargs(*, host: str, port: int, access_log: bool) -> dict[str, Any]:
-    """Keyword arguments for ``uvicorn.run`` used by this entrypoint.
-
-    Exposed for tests so the reloader staying off, and the finite graceful shutdown,
-    cannot regress without a failing assertion.
-    """
+    """``uvicorn.run`` kwargs, exposed so tests pin no reload and a finite shutdown."""
     return {
         "app": "main:app",
         "host": host,

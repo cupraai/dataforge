@@ -4,21 +4,10 @@
   bundled UI and the API from a single process.
 
 .DESCRIPTION
-  One uvicorn process binds DATAFORGE_UI_PORT (default 18081) and answers both the
-  built UI at / and the API under /api. Same origin, so there is no proxy hop and no
-  CORS - and no reloader, so a long job is never restarted out from under itself.
-
-  The build is skipped when frontend\dist is newer than every frontend source, which
-  makes the usual launch near-instant. This window stays open as a supervisor: press
-  any key in it, or just close it, to stop the server cleanly.
-
-  The frontend's generated API types are rebuilt from backend/schemas.py first. They
-  are gitignored, so a branch switch leaves the other branch's shape in place, and a
-  dist bundled from it would measure as up to date. Regenerating only rewrites what
-  changed, so an unchanged shape still skips the build.
-
-  Use this directly, or double-click start.bat for the same behavior. For hot
-  reload while developing, use dev.ps1.
+  One uvicorn process serves the built UI at / and the API under /api: no proxy, no CORS,
+  and no reloader to restart a long job. The build is skipped while frontend\dist is
+  fresh. Press any key in this window, or close it, to stop the server.
+  Double-click start.bat for the same. For hot reload, use dev.ps1.
 
 .PARAMETER Rebuild
   Build the frontend even when dist looks up to date.
@@ -54,8 +43,7 @@ $ErrorActionPreference = 'Stop'
 
 $Host.UI.RawUI.WindowTitle = 'DataForge Launcher'
 
-# A non-zero exit is what makes start.bat pause, so a double-clicked launcher
-# keeps the error on screen. Running this script from a terminal stays quiet.
+# A non-zero exit makes start.bat pause, keeping the error on screen.
 function Exit-Launcher {
     param([int]$Code = 1)
     Write-Host ''
@@ -76,9 +64,7 @@ Write-Host '  Mode     : production - bundled UI, no hot reload'
 Write-Host '================================================'
 Write-Host ''
 
-# Ahead of both the check below and the freshness test: the generated sources are
-# gitignored, so a branch switch leaves the other branch's shape in place, and a dist
-# built from it would otherwise still measure as up to date.
+# Regenerated first, so a branch switch cannot leave a falsely fresh dist.
 Update-DevGeneratedSources | Out-Null
 
 if (-not (Test-DevPrerequisites)) { Exit-Launcher }
@@ -101,8 +87,7 @@ if ($NoBuild) {
 }
 Write-Host ''
 
-# Vite in a leftover dev window holds this port too, and the server would just fail
-# to bind. Clearing it first keeps start.bat working right after dev.bat.
+# A leftover dev window's Vite holds this port too.
 if (-not (Clear-DevPort -Port $DevUiPort -Label 'app')) { Exit-Launcher }
 
 $appProc = $null
@@ -115,8 +100,7 @@ try {
         -WorkingDirectory $paths.Root `
         -Banner @("DataForge - $DevUiUrl", 'Production: bundled UI, no hot reload') `
         -Command "`"$($paths.VenvPy)`" `"$($paths.ProdServer)`""
-    # Armed before the readiness wait: a cold start is the longest stretch in which
-    # an impatient window-close would orphan the server.
+    # Armed before the readiness wait, the likeliest time for a close to orphan a server.
     Register-DevExitGuard -ProcessId @($appProc.Id)
 
     Write-Host ''
@@ -158,8 +142,7 @@ try {
         Write-Host ''
         Write-Host 'Stopping the server...'
         if ($appProc -and -not $appProc.HasExited) { Stop-DevTree -ProcessId $appProc.Id }
-        # Backstop: a console closed by hand leaves the server holding the port with
-        # no PID left to walk down from.
+        # Backstop for a console closed by hand.
         Clear-DevPort -Port $DevUiPort -Label 'app' | Out-Null
         Write-Host 'Stopped.'
     }

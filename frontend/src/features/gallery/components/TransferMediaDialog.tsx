@@ -422,8 +422,7 @@ export function TransferMediaDialog({
                 const loading = Boolean(loadingKeys[entry.key]);
                 const children = childrenByKey[entry.key];
                 const hasLoadedChildren = children !== undefined;
-                // Show a chevron only before load, while loading, or when subfolders exist.
-                // Empty leaves keep a spacer so rows stay aligned (no stuck expand arrow).
+                // A chevron until loaded or when subfolders exist; empty leaves keep a spacer.
                 const canExpand = loading || !hasLoadedChildren || (children?.length ?? 0) > 0;
                 const selected = entry.key === selectedKey;
                 const disabled = isDisabledDestination(entry.path);

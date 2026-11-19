@@ -4,10 +4,7 @@ import type { NotificationRecord, VideoProjectExportState } from "@/shared/types
 import { useNotificationActions, type ToastAction } from "@/shared/notifications/notifications";
 import { VIDEO_EXPORTS_QUERY_KEY } from "@/features/videoEditor/hooks/useVideoExports";
 
-/**
- * A finished export's notification offers to open the file it wrote. ``onOpen`` is null while
- * the editor is open, which has its own Open and must flush its draft before leaving.
- */
+/** Offers to open a finished export; ``onOpen`` is null while the editor is open. */
 export function useExportNotifications(onOpen: ((path: string) => void) | null) {
   const queryClient = useQueryClient();
 

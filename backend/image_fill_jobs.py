@@ -1,13 +1,4 @@
-"""Generate one fill in the background, through the same ComfyUI slot the prep job uses.
-
-Operations live in memory only. A generation belongs to the editor session that started it, its
-result is a draft until Apply, and a restart answers 404 for an id it no longer knows: the editor
-reports that as interrupted rather than resuming a ComfyUI prompt nothing tracks anymore.
-
-The source is read under a brief media claim and never held across the model wait, so the file
-can still be renamed, deleted or edited meanwhile. The result is bound to the original's digest
-and its parent fill, and Apply checks both again before it uses the pixels.
-"""
+"""In-memory fill generations; the source is never claimed across the model wait."""
 
 from __future__ import annotations
 
@@ -68,14 +59,14 @@ from schemas import (
 
 logger = logging.getLogger(__name__)
 
-#: Every generation waits for one GPU slot, so a deeper queue only delays the newest click.
+#: A deeper queue only delays the newest click.
 MAX_ACTIVE_FILL_OPERATIONS = 4
-#: Finished operations are remembered for a late poll, then the oldest are forgotten.
+#: Remembered for a late poll, oldest forgotten first.
 MAX_REMEMBERED_FILL_OPERATIONS = 32
 
 _TERMINAL: frozenset[FillOperationStatus] = frozenset({"succeeded", "failed", "cancelled"})
 
-#: Seeds stay within what a browser number holds exactly.
+#: Within what a browser number holds exactly.
 _SEED_LIMIT = 2**32
 
 
@@ -137,7 +128,7 @@ def get_fill_operation(operation_id: str) -> FillOperation | None:
 
 
 def cancel_fill_operation(operation_id: str) -> FillOperation | None:
-    """Ask a generation to stop; quiet when it already finished."""
+    """Quiet when it already finished."""
     with _lock:
         operation = _operations.get(operation_id)
     if operation is not None and not operation.finished:
@@ -176,7 +167,7 @@ def _forget(operation: FillOperation) -> None:
 
 
 def start_fill(media: Path, request: ImageFillRequest) -> FillOperation:
-    """Snapshot the source, plan the crop and queue the generation. Raises before queueing."""
+    """Snapshot the source, plan the crop and queue; raises before queueing."""
     template = load_fill_template(request.preset)
     operation = _reserve(media, request.preset)
     try:
@@ -296,8 +287,7 @@ def _run(job: _Job) -> None:
         logger.exception("Fill %s failed", operation.id)
         _set_status(operation, "failed", error=str(error) or type(error).__name__)
     else:
-        # A cancel that lost the race to a finished render still gets its answer: the pixels
-        # are stored and the editor decides whether to show them.
+        # A cancel that lost the race still gets the stored pixels.
         _set_status(operation, "succeeded", fill=asset.fill)
     finally:
         shutil.rmtree(work, ignore_errors=True)

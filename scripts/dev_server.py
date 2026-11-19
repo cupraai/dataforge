@@ -1,17 +1,5 @@
-"""Development server with hot-reload tuned for DataForge.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/dev_server.py
-
-Excludes test-only modules so editing tests does not restart the API and wipe
-in-memory job state. Pass --no-reload to freeze the server: every restart re-runs
-job recovery, which re-spawns worker threads for resumable jobs, so reloading
-while a long job runs is disruptive.
-
-A finite graceful-shutdown timeout is required with reload: the UI keeps an SSE
-connection open on /api/events, and uvicorn's default (wait forever for
-connections to close) hangs the reloader on every file save.
-"""
+"""Development server with hot reload; test modules are excluded.
+``--no-reload`` freezes it; a finite graceful shutdown keeps SSE from hanging the reloader."""
 
 from __future__ import annotations
 
@@ -104,11 +92,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def build_uvicorn_kwargs(*, host: str, port: int, reload: bool) -> dict[str, Any]:
-    """Keyword arguments for ``uvicorn.run`` used by this entrypoint.
-
-    Exposed for tests so the reload hang fix (finite graceful shutdown) cannot
-    regress without a failing assertion.
-    """
+    """``uvicorn.run`` kwargs, exposed so tests pin the finite graceful shutdown."""
     kwargs: dict[str, Any] = {
         "app": "main:app",
         "host": host,

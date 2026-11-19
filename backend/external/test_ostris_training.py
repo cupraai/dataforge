@@ -58,7 +58,7 @@ class LoadTrainingTemplateTests(unittest.TestCase):
         self.assertEqual(model["name_or_path"], "OpenMOSS-Team/MOSS-Image-SFT")
         self.assertEqual(model["arch"], "moss_image")
         self.assertEqual((model["qtype"], model["qtype_te"]), ("convrot8", "convrot8"))
-        # Sampling CFG skips block 22 on the negative branch, so the LoRA must stay off it.
+        # Sampling CFG skips block 22 on the negative branch.
         self.assertEqual(model["model_kwargs"]["uncond_skip_layers"], [22])
         self.assertEqual(process["network"]["network_kwargs"]["ignore_if_contains"], ["layers.22."])
         self.assertEqual(process["sample"]["guidance_scale"], 3)
@@ -127,7 +127,7 @@ class LoadTrainingTemplateTests(unittest.TestCase):
         )
 
     def test_h3_frame_counts_are_aligned_to_the_vae(self) -> None:
-        """MiniMax-H3 snaps frame counts down to 17n+5, so unaligned values waste decode."""
+        """MiniMax-H3 snaps frame counts down to 17n+5."""
         process = load_training_template("h3_fl2va")["config"]["process"][0]
 
         for frames in (process["datasets"][0]["num_frames"], process["sample"]["num_frames"]):
@@ -139,7 +139,7 @@ class LoadTrainingTemplateTests(unittest.TestCase):
 
 
 class ParseTrainingTemplateTests(unittest.TestCase):
-    """The editor shows these messages verbatim, so they name the missing piece."""
+    """The editor shows these messages verbatim."""
 
     VALID = textwrap.dedent("""
         config:
@@ -200,7 +200,7 @@ class ReadTrainingTemplateTextTests(unittest.TestCase):
     def test_returns_the_file_verbatim_so_comments_survive(self) -> None:
         raw = read_training_template_text("h3_fl2va")
 
-        # Parsing and re-dumping would lose these, and the editor shows this text.
+        # The editor shows the raw text.
         self.assertIn("---", raw)
         self.assertIn('arch: "minimax_h3"', raw)
         self.assertEqual(parse_training_template(raw)["config"]["process"][0]["device"], "cuda")

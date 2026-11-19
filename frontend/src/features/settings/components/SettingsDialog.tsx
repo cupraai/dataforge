@@ -553,8 +553,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     setError(null);
     setJustSaved(false);
     try {
-      // Each part becomes the new baseline as soon as it is saved, so a later failure leaves
-      // only what is still unsaved marked as edited.
+      // Each saved part becomes the baseline, so a later failure marks only what is unsaved.
       if (Object.keys(built.update).length > 0) {
         const saved = await save.mutateAsync(built.update);
         setLoaded({ settings: saved, draft: draftFromSettings(saved) });

@@ -106,10 +106,7 @@ function overlapPairs(project: Project): Set<string> {
   );
 }
 
-/**
- * Sound on one track may overlap the next clip and cross-fade over the overlap, but never cover
- * a clip whole or sound three at once. ``clips`` are in start order.
- */
+/** Sound may cross-fade into the next clip, never cover one or stack three; in start order. */
 function crossfadeProblem(project: Project, track: Track, clips: Clip[]): string | null {
   for (let index = 0; index < clips.length; index += 1) {
     for (let later = index + 1; later < clips.length; later += 1) {
@@ -230,10 +227,7 @@ export function moveClips(project: Project, request: MoveRequest): EditResult {
   return shifted.project ? finish(shifted.project) : shifted;
 }
 
-/**
- * A drag that would cover another clip stops flush against it instead: of the spots where the
- * moved clips touch a neighbour on their track, the valid one nearest the pointer wins.
- */
+/** A covering drag stops flush against the neighbour nearest the pointer. */
 export function moveClipsFlush(project: Project, request: MoveRequest): EditResult {
   const shifted = shiftClips(project, request);
   if (!shifted.project) return shifted;
@@ -306,11 +300,7 @@ export function isTimedClip(clip: Clip): boolean {
   return clip.kind === "video" || clip.kind === "audio";
 }
 
-/**
- * How far one edge of every clip in ``ids`` can travel, later being positive, while each keeps
- * a frame and shows only its source. The tightest clip decides, so linked clips stay in sync.
- * A start edge may also be held at 00:00 by ``floor``, as a trim that moves it is.
- */
+/** How far an edge can move while every clip keeps a frame; the tightest decides. */
 export function edgeTravel(
   project: Project,
   ids: Set<string>,
@@ -424,10 +414,7 @@ function splitOne(clip: Clip, time: number, rightId: string, rightLink: string |
   return { left, right };
 }
 
-/**
- * Cuts the chosen clips and their linked partners at ``time``. Without a choice it cuts every
- * clip under the playhead on an unlocked track.
- */
+/** Cuts chosen clips and partners at ``time``; without a choice, every unlocked clip there. */
 export function splitClips(project: Project, time: number, ids?: Iterable<string>): EditResult {
   const chosen = ids
     ? withLinked(project, ids)
@@ -532,10 +519,7 @@ export interface TimeRange {
   end: number;
 }
 
-/**
- * The clips a ripple edit may move: those on tracks with sync lock on or among ``tracks``, the
- * tracks being edited, and whatever is linked to them, so a picture never leaves its sound.
- */
+/** Clips a ripple may move: sync-locked or edited tracks, plus anything linked. */
 export function rippleScope(project: Project, tracks: Iterable<string> = []): Set<string> {
   const edited = new Set(tracks);
   const synced = new Set(
@@ -558,11 +542,7 @@ export function rippleTouchedTracks(project: Project, range: TimeRange): Track[]
   return project.tracks.filter((track) => touched.has(track.id));
 }
 
-/**
- * Removes ``range`` from every track with sync lock on and closes the gap. A clip crossing an
- * edge keeps the part outside; a clip spanning the whole range is cut in two, and the halves meet
- * at its start. Tracks with sync lock off keep their clips where they are.
- */
+/** Removes ``range`` from sync-locked tracks and closes the gap; spanning clips are cut. */
 export function rippleDelete(project: Project, range: TimeRange): EditResult {
   const start = Math.max(0, Math.min(range.start, range.end));
   const end = Math.max(range.start, range.end);
@@ -730,10 +710,7 @@ function moveIncoming(project: Project, incoming: Clip, start: number): Project 
   };
 }
 
-/**
- * Joins a video clip to the next clip on its track. The incoming clip and its linked sound move
- * back over the outgoing one, so the overlap is real footage from both selected ranges.
- */
+/** Joins a clip to the next on its track; the overlap is real footage from both. */
 export function addDissolve(
   project: Project,
   clipId: string,
@@ -872,10 +849,7 @@ export function takeOf(
   return { rangeIn, duration: rangeOut - rangeIn };
 }
 
-/**
- * Places a file from the project's folder. A video with sound brings a linked audio clip. The
- * file is referenced, never copied.
- */
+/** Places a referenced file; a video with sound brings a linked audio clip. */
 export function placeSource(
   project: Project,
   request: PlaceSourceRequest,
@@ -941,10 +915,7 @@ export function placeSource(
   return result.project ? { project: result.project, placed: clips.map((c) => c.id) } : result;
 }
 
-/**
- * A project opened empty takes its canvas, rate and name from the first video placed in it,
- * as one started on that video would have.
- */
+/** An empty project takes canvas, rate and name from its first video. */
 function adoptFirstVideo(project: Project, source: VideoProjectSource): Project {
   if (project.initial_source_id || source.kind !== "video") return project;
   if (project.clips.some((clip) => clip.source_id && clip.source_id !== source.id)) return project;
@@ -1104,10 +1075,7 @@ export function updateTrack(project: Project, trackId: string, patch: Partial<Tr
   };
 }
 
-/**
- * Every clip that starts at or after ``time``, on ``trackIds`` when given: what to select to move
- * the rest of the edit along.
- */
+/** Every clip at or after ``time``: what to select to move the rest along. */
 export function clipsFrom(project: Project, time: number, trackIds?: Set<string>): Set<string> {
   return new Set(
     project.clips
@@ -1155,10 +1123,7 @@ export function snapBlockDelta(
   return Math.abs(startShift - delta) <= Math.abs(endShift - delta) ? startShift : endShift;
 }
 
-/**
- * `MM:SS`, or with a rate `HH:MM:SS:FF`: four fields, so frames never read as seconds. Frames
- * are counted to the nearest one, as `snapToFrame` places them, so a step always reads as one.
- */
+/** `MM:SS`, or `HH:MM:SS:FF` with a rate, frames rounded as `snapToFrame` does. */
 export function formatTimecode(seconds: number, frameRate?: number): string {
   const safe = Math.max(0, seconds);
   const two = (value: number) => String(value).padStart(2, "0");

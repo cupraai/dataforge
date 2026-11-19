@@ -69,17 +69,13 @@ export function useToolbarCompactMode(toolbarRef: RefObject<HTMLElement | null>)
       const widths = measureToolbarRow(toolbar);
       return widths ? toolbarNeedsCompact(widths, compactRef.current) : compactRef.current;
     };
-    // Observers run after layout but before paint. A plain state update renders in a later
-    // task, so the wrapped row would be painted for a frame; committing now skips that frame.
+    // Commit inside the observer, or the wrapped row paints for a frame.
     const measure = () => {
       const next = decide();
       if (next !== compactRef.current) flushSync(() => setCompact(next));
     };
-    // The search field grows as it is typed into, and job state swaps action buttons. Nothing
-    // watched may change size when the mode flips: a box resized inside the observer's own
-    // callback is reported as "ResizeObserver loop completed with undelivered notifications".
-    // So the toolbar's width is read off a zero-height probe, since the toolbar's height drops
-    // with the flip, and the actions, which narrow with it, are left to the mutation observer.
+    // Watched boxes must not resize on the flip (ResizeObserver loop error).
+    // So width comes from a zero-height probe; the actions are left to the mutation observer.
     const resizes = new ResizeObserver(measure);
     const observe = () => {
       resizes.observe(toolbar.querySelector(".toolbar__measure") ?? toolbar);

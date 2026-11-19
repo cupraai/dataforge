@@ -41,8 +41,7 @@ def run_workflow(
     body: WorkflowRunRequest,
     path: str = Query(..., description="Absolute path to the folder the workflow runs on"),
 ) -> WorkflowRunResponse:
-    """Queue every step on one scope. Remembered dialog settings are left as they are: a
-    workflow's settings are its own."""
+    """Remembered dialog settings are left alone."""
     workflow = job_workflows.find_workflow(body.name)
     if workflow is None:
         raise HTTPException(status_code=404, detail=f'No workflow named "{body.name}"')

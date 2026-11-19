@@ -16,10 +16,7 @@ function token(element: Element, name: string): string {
   return getComputedStyle(element).getPropertyValue(name).trim() || "gray";
 }
 
-/**
- * A luma waveform and an RGB histogram of the monitor as drawn, with how much of the picture is
- * crushed to black or clipped to white, for matching shots and catching clipping by eye.
- */
+/** Luma waveform, RGB histogram and crushed/clipped shares of the monitor as drawn. */
 export function PreviewScopes({ source }: { source: RefObject<HTMLCanvasElement | null> }) {
   const waveformRef = useRef<HTMLCanvasElement>(null);
   const histogramRef = useRef<HTMLCanvasElement>(null);

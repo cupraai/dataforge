@@ -2,8 +2,7 @@ import type { Subfolder } from "@/shared/types";
 
 export const FOLDER_CLAMP_LIMIT = 10;
 
-// Hiding a shorter tail than this buys less room than the button below the grid costs, and it
-// keeps every "Show N more folders" label plural.
+// A shorter tail is not worth the button, and keeps "Show N more folders" plural.
 export const FOLDER_CLAMP_MIN_HIDDEN = 5;
 
 export function folderFindings({ issue_count: issues }: Subfolder): string[] {
@@ -26,10 +25,7 @@ export interface FolderClamp {
   hiddenFlagged: number;
 }
 
-/**
- * The leading slice of a long folder list. Counting cards rather than rows keeps `hidden` exact:
- * the grid auto-fills its columns, so a height clamp could not report what it cut off.
- */
+/** Counts cards, not rows, so `hidden` stays exact while columns auto-fill. */
 export function clampFolders(folders: readonly Subfolder[]): FolderClamp {
   if (folders.length < FOLDER_CLAMP_LIMIT + FOLDER_CLAMP_MIN_HIDDEN) {
     return { visible: [...folders], hidden: 0, hiddenFlagged: 0 };

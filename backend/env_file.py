@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 _BACKEND_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _BACKEND_DIR.parent
 
-# Project root first, then backend/; first existing file wins.
+# First existing file wins.
 _ENV_CANDIDATES = (
     _PROJECT_ROOT / ".env",
     _BACKEND_DIR / ".env",
 )
 
-# Set by the test runner so tests never pick up a developer machine .env.
+# Set by the test runner so tests never read a developer .env.
 _DISABLE_ENV_VAR = "DATAFORGE_DISABLE_DOTENV"
 
 _loaded_path: Path | None = None
@@ -27,7 +27,7 @@ def _dotenv_disabled() -> bool:
 
 
 def load_env_file(*, override: bool = False, force: bool = False) -> Path | None:
-    """OS env wins unless override=True. Skips when ``DATAFORGE_DISABLE_DOTENV`` is set, unless force=True."""
+    """OS env wins unless override; ``DATAFORGE_DISABLE_DOTENV`` skips unless force."""
     global _loaded_path, _load_attempted
 
     if not force and _dotenv_disabled():

@@ -3,8 +3,7 @@ import { describe, expect, it } from "vitest";
 import { iconCheck, iconImages } from "@/shared/icons";
 import { SectionHeader } from "./SectionHeader";
 
-// Layout is not observable in jsdom, so these cover the markup the sticky CSS
-// hangs off; that it actually docks is manual verification.
+// jsdom has no layout, so only the markup is covered; docking is checked by hand.
 describe("SectionHeader", () => {
   it("renders the count against the unfiltered total", () => {
     render(

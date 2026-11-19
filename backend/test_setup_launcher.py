@@ -1,4 +1,4 @@
-"""Windows bootstrap never calls a global interpreter; it downloads portable zips and forces TLS 1.2."""
+"""Windows setup uses portable zips, never a global interpreter, and forces TLS 1.2."""
 
 from __future__ import annotations
 
@@ -179,23 +179,20 @@ class FrontendLockfileTests(unittest.TestCase):
             self.assertIn(function_name, _read(path))
 
     def test_setup_scripts_fall_back_to_npm_install_without_a_lockfile(self) -> None:
-        # npm ci refuses to run at all when there is no lockfile, which would turn a
-        # missing file into an unreadable npm error partway through setup.
+        # npm ci refuses to run without a lockfile.
         for path in (SETUP_PS1, SETUP_SH):
             text = _read(path)
             self.assertIn("package-lock.json", text)
             self.assertIn("npm install", text)
 
     def test_only_the_setup_fallback_may_run_npm_install(self) -> None:
-        # Everywhere else - launch helpers and the hook installer's instructions -
-        # names npm ci, so nobody is told to install a tree the lockfile never pinned.
+        # Every launcher and the hook installer name npm ci.
         for path in (DEV_COMMON, DEV_COMMON_SH, INSTALL_HOOKS_PS1, INSTALL_HOOKS_SH):
             self.assertNotIn("npm install", _read(path))
             self.assertIn("npm ci", _read(path))
 
     def test_dependency_drift_no_longer_duplicates_the_frontend_sync(self) -> None:
-        # Both read the same two lockfile mtimes, and the sync runs first in every
-        # launcher, so a frontend arm here could only ever report what it just fixed.
+        # The sync runs first in every launcher, so a frontend arm could only report what it fixed.
         for path in (DEV_COMMON, DEV_COMMON_SH):
             self.assertNotIn(
                 "package-lock.json is newer than the installed node_modules", _read(path)

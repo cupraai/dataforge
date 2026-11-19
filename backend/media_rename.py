@@ -1,5 +1,3 @@
-"""Renaming a media file together with every file tied to it by name."""
-
 from __future__ import annotations
 
 import filecmp
@@ -21,12 +19,12 @@ from path_resolve import resolve_path
 
 logger = logging.getLogger(__name__)
 
-#: Names a file takes on its way to another, so no listing mistakes it for a media file.
+#: So no listing mistakes it for a media file.
 RENAME_TEMP_PREFIX = ".__df_rename_media_"
 
 
 def _repoint_candidate_record(source_media: Path, target_media: Path) -> None:
-    """The record names its source, and processing refuses a candidate whose name disagrees."""
+    """Processing refuses a candidate whose name disagrees."""
     candidate = candidate_path_for(target_media)
     record = read_candidate_sidecar(candidate) if candidate is not None else None
     if candidate is None or record is None or record.source_name != source_media.name:
@@ -35,12 +33,12 @@ def _repoint_candidate_record(source_media: Path, target_media: Path) -> None:
 
 
 def rename_media_group(source_media: Path, target_media: Path) -> None:
-    """A file a same-stem sibling still shares is copied; an identical one already there merges."""
+    """Shared files are copied; an identical one already there merges."""
     if source_media == target_media:
-        # Every sidecar would compare equal to itself and be merged away.
+        # Every sidecar would compare equal to itself.
         return
     shared = shared_stem_paths(source_media)
-    # (original, target, copied): a copy is undone by removing it, not by renaming it back.
+    # (original, target, copied): a copy is undone by removing it.
     renamed: list[tuple[Path, Path, bool]] = []
     try:
         for path in media_group_paths(source_media):
@@ -49,7 +47,7 @@ def rename_media_group(source_media: Path, target_media: Path) -> None:
                 shutil.copy2(path, target)
                 renamed.append((path, target, True))
             elif path != source_media and target.is_file() and filecmp.cmp(path, target, False):
-                # A sibling renamed earlier in the batch already carried this shared file here.
+                # A sibling renamed earlier already carried this file here.
                 retry_while_locked(path.unlink)
             else:
                 retry_while_locked(partial(path.rename, target))
@@ -76,10 +74,7 @@ def _check_target_conflict(target_path: Path, moving_sources: set[Path]) -> None
 
 
 def check_rename_conflicts(media: Path, target_media: Path, moving_sources: set[Path]) -> None:
-    """Raises ``ValueError`` if a file of ``media``'s group would land on one that is staying.
-
-    ``moving_sources`` holds every file about to move; a target may sit on one of those.
-    """
+    """Raises ``ValueError`` if a group file would land on one that stays."""
     _check_target_conflict(target_media, moving_sources)
 
     for related in media_group_paths(media):
@@ -90,13 +85,13 @@ def check_rename_conflicts(media: Path, target_media: Path, moving_sources: set[
     candidate = candidate_path_for(media)
     if candidate is not None:
         renamed = group_target(media, target_media, candidate)
-        # A folder file of that exact name would own the candidate, and pairing would move.
+        # A same-named folder file would own the candidate.
         if renamed.name != target_media.name:
             _check_target_conflict(target_media.parent / renamed.name, moving_sources)
 
 
 def _rename_by_case_only(source_media: Path, target_media: Path) -> None:
-    """On a case-insensitive disk both names compare equal, so a direct rename would do nothing."""
+    """Case-insensitive disks see both names as equal."""
     hop = source_media.with_name(f"{RENAME_TEMP_PREFIX}{source_media.name}")
     rename_media_group(source_media, hop)
     try:
@@ -107,19 +102,18 @@ def _rename_by_case_only(source_media: Path, target_media: Path) -> None:
 
 
 def rename_media_file(source: Path, stem: str) -> dict[str, str]:
-    """Give ``source`` the name ``stem`` plus its own extension, and its related files with it."""
     if sanitize_entry_name(stem) is None:
         raise HTTPException(status_code=400, detail="Invalid file name")
 
     target = source.with_name(stem + source.suffix)
     result = {"source": str(source), "destination": str(target)}
-    # Compared as text: a path compares equal across a change of case on Windows.
+    # Paths compare equal across a change of case on Windows.
     if target.name == source.name:
         return result
 
     group = media_group_paths(source)
     try:
-        # A render or accept still running would write back under the old name afterwards.
+        # A running render or accept would write back under the old name.
         with claim([*group, target], "rename"):
             check_rename_conflicts(source, target, {resolve_path(path) for path in group})
             if os.path.normcase(target) == os.path.normcase(source):

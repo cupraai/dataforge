@@ -4,17 +4,9 @@
   windows, waits until each is actually serving, then supervises them.
 
 .DESCRIPTION
-  Separate windows keep the logs isolated, so uvicorn hot reload never disturbs
-  the Vite output. This launcher window stays open as a supervisor: press any key
-  in it, or just close it, to stop both servers cleanly - including the uvicorn
-  reload child process that an unguarded window-close would orphan.
-
-  Use this directly, or double-click dev.bat for the same behavior. For a
-  production run - bundled UI, one process, no hot reload - use start.ps1.
-
-  The frontend's generated API types are rebuilt from backend/schemas.py on every
-  launch. They are gitignored, so a branch switch leaves the other branch's shape
-  in place and nothing else would notice.
+  Separate windows keep uvicorn's reload output apart from Vite's. Press any key in this
+  window, or close it, to stop both servers, uvicorn's reload child included.
+  Double-click dev.bat for the same. For production, use start.ps1.
 
 .PARAMETER BackendOnly
   Start only the API (port from DATAFORGE_API_PORT, default 18080).
@@ -55,8 +47,7 @@ $ErrorActionPreference = 'Stop'
 
 $Host.UI.RawUI.WindowTitle = 'DataForge Dev Launcher'
 
-# A non-zero exit is what makes dev.bat pause, so a double-clicked launcher
-# keeps the error on screen. Running this script from a terminal stays quiet.
+# A non-zero exit makes dev.bat pause, keeping the error on screen.
 function Exit-Launcher {
     param([int]$Code = 1)
     Write-Host ''
@@ -77,8 +68,7 @@ function Stop-DevServers {
         }
     }
 
-    # Backstop: a console the user closed by hand leaves its server holding the
-    # port, and there is no PID left to walk down from.
+    # Backstop for a console closed by hand.
     if ($Backend) { Clear-DevPort -Port $DevApiPort -Label 'backend' | Out-Null }
     if ($Frontend) { Clear-DevPort -Port $DevUiPort -Label 'frontend' | Out-Null }
     Write-Host 'Stopped.'
@@ -100,9 +90,7 @@ if ($startFrontend) { Write-Host ('  Frontend : {0}' -f $DevUiUrl) }
 Write-Host '================================================'
 Write-Host ''
 
-# Ahead of the check below, not instead of it: regenerating is what keeps the three
-# gitignored sources in step with backend\schemas.py across a branch switch, and the
-# check stays as the backstop for a clone that has no venv to generate them with.
+# Regenerating keeps the gitignored sources in step across branch switches.
 if ($startFrontend) { Update-DevGeneratedSources | Out-Null }
 
 if (-not (Test-DevPrerequisites -SkipBackend:(-not $startBackend) -SkipFrontend:(-not $startFrontend))) {
@@ -111,8 +99,7 @@ if (-not (Test-DevPrerequisites -SkipBackend:(-not $startBackend) -SkipFrontend:
 if ($startFrontend -and -not (Sync-FrontendDependencies)) { Exit-Launcher }
 if ($startBackend) { Test-BackendDependencyDrift | Out-Null }
 
-# Clear stale listeners before launching. Vite runs with strictPort, so a
-# leftover node.exe on the UI port kills the frontend window the moment it starts.
+# Vite's strictPort makes a leftover node.exe on the UI port fatal.
 if ($startBackend -and -not (Clear-DevPort -Port $DevApiPort -Label 'backend')) { Exit-Launcher }
 if ($startFrontend -and -not (Clear-DevPort -Port $DevUiPort -Label 'frontend')) { Exit-Launcher }
 
@@ -136,8 +123,7 @@ try {
             -WorkingDirectory $paths.Root `
             -Banner @("DataForge Backend - $DevApiUrl", $reloadLabel) `
             -Command $backendCommand
-        # Armed before the readiness wait: a cold start is the longest stretch in
-        # which an impatient window-close would orphan a server.
+        # Armed before the readiness wait, the likeliest time for a close to orphan a server.
         Register-DevExitGuard -ProcessId @($backendProc.Id)
     }
 
@@ -153,9 +139,7 @@ try {
 
     Write-Host ''
 
-    # Wait for real readiness rather than a fixed sleep: a cold Vite start is
-    # routinely slower than any timeout worth hardcoding, and opening the browser
-    # early just means a connection error you have to refresh past.
+    # Wait for real readiness, not a fixed sleep.
     if ($startBackend) {
         Write-Host '  Waiting for the API to answer /api/health...' -NoNewline
         $backendReady = Wait-HttpReady -Url $DevHealthUrl -TimeoutSec 60 -Process $backendProc

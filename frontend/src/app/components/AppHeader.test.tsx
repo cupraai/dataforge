@@ -10,8 +10,7 @@ describe("FolderActivitySweep", () => {
   });
 
   it("keeps one tagging sweep through the refreshes its own tag writes cause", () => {
-    // Each saved tag moves the folder fingerprint, so a folder being tagged refreshes every
-    // few seconds; swapping sweeps for those restarted the animation and flickered.
+    // Each saved tag refreshes the folder; swapping sweeps for those would restart the animation.
     const { rerender } = render(<FolderActivitySweep refreshing={false} tagging />);
     const sweep = screen.getByRole("status", { name: "Tagging folder" });
 

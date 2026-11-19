@@ -3,17 +3,10 @@ import { fetchComfyLogs } from "@/features/automation/api/jobs";
 import { isActiveJobStatus } from "@/features/jobs/lib/jobs";
 import type { ComfyLogsResponse, Job } from "@/shared/types";
 
-/**
- * The fastest poll in the app, and deliberately: this is the only sign of life during a render
- * that can run for minutes. The window is a few KB, so the cost is the round trip.
- */
+/** The fastest poll in the app: the only sign of life during a long render. */
 export const COMFY_LOG_POLL_MS = 1000;
 
-/**
- * ComfyUI's console while one of its runs works, or null when there is nothing to show.
- *
- * Keyed by job, so stale output never shows under a fresh run, where it would read as progress.
- */
+/** ComfyUI's console during a run, or null; keyed by job so stale output never shows. */
 export function useComfyProcessLogs(job: Job | null): ComfyLogsResponse | null {
   const jobId = job?.id ?? "";
   const enabled = job !== null && job.job_type === "comfy_process" && isActiveJobStatus(job.status);

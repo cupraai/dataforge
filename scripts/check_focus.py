@@ -1,13 +1,4 @@
-"""Check that stylesheets draw keyboard focus only through the shared focus ring.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/check_focus.py
-
-``base/_focus.scss`` gives every ``:focus-visible`` element one ring, drawn inside its edge so no
-scroll container clips it. A component that needs it elsewhere uses a ``focus-ring-*`` mixin, and
-one that needs another colour sets ``--focus-ring-color``. A rule under a focus selector that
-declares its own ``outline`` or ``box-shadow`` brings back a second look, so it fails here.
-"""
+"""Check that stylesheets draw keyboard focus only through the shared focus ring."""
 
 from __future__ import annotations
 

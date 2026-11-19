@@ -1,11 +1,4 @@
-"""Check that stylesheets take every color from a theme token.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/check_colors.py
-
-A literal color is compiled in once, so it stays the same whichever theme is active.
-Colors belong in the token files, and components read them through ``var(--...)``.
-"""
+"""Check that stylesheets take every color from a theme token."""
 
 from __future__ import annotations
 

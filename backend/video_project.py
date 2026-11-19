@@ -1,9 +1,4 @@
-"""Multi-track editor projects: drafts autosaved beside their sources, and the snapshot an export
-leaves beside its video.
-
-A project names its sources by filename in its own folder, so moving the whole folder keeps it
-working. A source whose size or modification time no longer matches is reported, never replaced.
-"""
+"""Editor projects: drafts beside their sources, and export snapshots."""
 
 from __future__ import annotations
 
@@ -298,7 +293,7 @@ def new_empty_project() -> VideoProject:
 
 
 def read_project_file(path: Path) -> VideoProject:
-    """Raises ``ValueError`` for a file that is not a readable project, ``OSError`` if unreadable."""
+    """Raises ``ValueError`` for a file that is not a valid project, ``OSError`` if unreadable."""
     raw = path.read_text(encoding="utf-8")
     try:
         return VideoProject.model_validate(json.loads(raw))
@@ -321,8 +316,7 @@ def document_for(path: Path | None, folder: Path, project: VideoProject) -> Vide
 
 
 def start_document(media: Path) -> VideoProjectDocument:
-    """An exported video reopens its recorded edit as a fresh, unsaved draft; any other video
-    starts a new project. Nothing is written until the first edit is saved."""
+    """An exported video reopens its edit as an unsaved draft; others start a new project."""
     snapshot = snapshot_path_for(media)
     if snapshot.is_file():
         recorded = read_project_file(snapshot)
@@ -359,8 +353,7 @@ def checked_draft_path(folder: Path, path: Path) -> Path:
 def save_project(
     folder: Path, path: Path | None, base_revision: int | None, project: VideoProject
 ) -> tuple[Path, VideoProject]:
-    """Write the next revision. A draft whose revision on disk is not ``base_revision`` was saved
-    from somewhere else, and is refused rather than overwritten."""
+    """Write the next revision; a draft not at ``base_revision`` on disk is refused."""
     with _save_lock:
         if path is None:
             target = allocate_draft_path(folder, _draft_stem(project))
@@ -381,8 +374,7 @@ def save_project(
 
 
 def thumbnail_path(folder: Path, project: VideoProject) -> str | None:
-    """The first video while its file is here; a deleted one falls back to the earliest picture
-    the timeline still shows, so a project outlives the take it was started from."""
+    """The first video while its file exists, else the earliest picture still shown."""
     sources = {source.id: source for source in project.sources}
     candidates = [sources.get(project.initial_source_id or "")]
     pictured = sorted(

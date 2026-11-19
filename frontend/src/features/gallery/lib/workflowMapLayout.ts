@@ -1,8 +1,6 @@
 import type { ComfyMapNode } from "@/shared/types";
 
-// Layout runs in viewBox units, one per CSS pixel at the width it is given, so no box is
-// measured: the SVG scales to its column, and the boxes over it are placed in percentages of the
-// same box. Below the minimum the whole drawing scales down instead of crowding its columns.
+// Laid out in viewBox units, one per CSS pixel; below the minimum the drawing scales down.
 const MIN_WIDTH = 480;
 const PAD = 8;
 const NODE_HEIGHT = 30;
@@ -12,10 +10,7 @@ const MAX_NODE_WIDTH = 240;
 const COLUMN_WIRE_ROOM = 32;
 /** How far a lane keeps from boxes. */
 const LANE_CLEARANCE = 6;
-/**
- * Spacings a lane may keep from its neighbours, each with the detour it is worth: a squeezed
- * lane in a nearby gutter reads better than one that crosses a column to reach an empty one.
- */
+/** Lane spacings and the detour each is worth. */
 const LANE_SPACINGS = [
   { gap: 6, penalty: 0 },
   { gap: 3, penalty: 60 },
@@ -86,13 +81,7 @@ interface Point {
   y: number;
 }
 
-/**
- * Passes read down the centre, each preceded by its new preparations in semantic columns:
- * models and LoRAs, CLIP and prompts, then VAE and media. Every box has the same width, so the
- * gutters between columns stay clear from top to bottom. A connection to the next row is one
- * curve; one that skips rows drops into a straight lane in a gutter, shared by every connection
- * from that source, and leaves it above its target.
- */
+/** Passes down the centre, preparations above; long edges route through gutter lanes. */
 export function layoutWorkflowMap(map: ComfyMapNode[], available = MIN_WIDTH): WorkflowMapLayout {
   const width = Math.max(MIN_WIDTH, Math.floor(available));
   if (map.length === 0) return { width, height: 2 * PAD, nodes: [], edges: [] };
@@ -121,9 +110,7 @@ export function layoutWorkflowMap(map: ComfyMapNode[], available = MIN_WIDTH): W
   const centre = (id: string) => placed.get(id)!.x + boxWidth / 2;
   const skips = (from: string, to: string) => row(to) > row(from) + 1;
 
-  // Each lane takes the clear spot nearest the straight run from its source to its targets,
-  // keeping clear of boxes and of the lanes beside it, and crossing as few other wires as it can.
-  // Lanes that start higher are placed first, then each is placed again among all the others.
+  // Each lane takes the clearest spot nearest its run, crossing as few wires as it can.
   const direct: Turn[] = map.flatMap((node) =>
     node.feeds
       .filter((to) => !skips(node.id, to))
@@ -196,8 +183,7 @@ export function layoutWorkflowMap(map: ComfyMapNode[], available = MIN_WIDTH): W
     .sort((a, b) => row(a.id) - row(b.id));
   for (let round = 0; round < LANE_ROUNDS; round++) sources.forEach(place);
 
-  // Edges sharing a box fan out along it, ordered by where their other end sits, so they never
-  // cross as they meet the box. A source's lane is one port, whichever targets it serves.
+  // Edges fan out along a box by where their other end sits, so they never cross there.
   const links = map.flatMap((node) => node.feeds.map((to) => ({ from: node.id, to })));
   const below = (from: string, to: string) =>
     skips(from, to) ? { key: "", x: lanes.get(from)!.x } : { key: to, x: centre(to) };
@@ -256,11 +242,7 @@ function clear(low: number, high: number, blocked: [number, number][]): [number,
   return free.filter(([start, end]) => start <= end);
 }
 
-/**
- * Each pass gets a preparation section above it. Dependencies assign a preparation to its first
- * pass; within a section, boxes rise from the pass, each placed just above what it feeds, so a
- * model sits over its LoRAs rather than over the next model. Boxes in one column stack.
- */
+/** Each pass gets a section above it; boxes rise from the pass, above what they feed. */
 function assignRows(map: ComfyMapNode[]): Map<string, number> {
   const byId = new Map(map.map((node) => [node.id, node]));
   const order = new Map(map.map((node, index) => [node.id, index]));
@@ -325,10 +307,7 @@ function assignRows(map: ComfyMapNode[]): Map<string, number> {
 /** How much of a file name's end stays visible when the middle has to give way. */
 const KEPT_TAIL = 5;
 
-/**
- * A label as a head that may shrink behind an ellipsis and a tail that always shows. File names
- * keep their end (``…_High``, ``…_v2``), which is what tells them apart; CSS does the cutting.
- */
+/** A shrinking head and a tail that always shows; file names keep their end. */
 export function splitLabel(label: string, keepEnd: boolean): { head: string; tail: string } {
   if (!keepEnd || label.length <= KEPT_TAIL * 2) return { head: label, tail: "" };
   return { head: label.slice(0, -KEPT_TAIL), tail: label.slice(-KEPT_TAIL) };

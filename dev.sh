@@ -1,19 +1,6 @@
 #!/usr/bin/env bash
-#
-# Launches the DataForge backend and frontend dev servers, waits until each is
-# actually serving, then supervises them.
-#
-# Both logs land in this terminal, tagged [api] and [ui] - the Windows twin uses two
-# separate console windows for the same reason, to keep uvicorn's reload output from
-# stepping on Vite's. Press any key here, or Ctrl+C, to stop both cleanly, including
-# the uvicorn reload child that an unguarded exit would orphan.
-#
-# The frontend's generated API types are rebuilt from backend/schemas.py on every
-# launch. They are gitignored, so a branch switch leaves the other branch's shape in
-# place and nothing else would notice.
-#
-# The Windows twin is dev.ps1. For a production run - bundled UI, one process, no hot
-# reload - use ./start.sh.
+# Launches the backend and frontend dev servers, waits for both, then supervises them.
+# Logs are tagged [api] and [ui]; any key or Ctrl+C stops both. Windows twin: dev.ps1.
 #
 # Usage: ./dev.sh [--backend-only|--frontend-only] [--no-browser] [--no-reload] [--detach]
 
@@ -82,8 +69,7 @@ cleanup() {
         say ""
         say "Stopping dev servers..."
         stop_supervised
-        # Backstop: a terminal closed by hand leaves a server holding its port with
-        # no job left to walk down from.
+        # Backstop for a terminal closed by hand.
         [ "$START_BACKEND" = "1" ] && clear_port "$DEV_API_PORT" "backend" >/dev/null 2>&1 || true
         [ "$START_FRONTEND" = "1" ] && clear_port "$DEV_UI_PORT" "frontend" >/dev/null 2>&1 || true
         say "Stopped."
@@ -100,9 +86,7 @@ say "  Starting DataForge Dev Servers"
 say "================================================"
 say ""
 
-# Ahead of the check below, not instead of it: regenerating is what keeps the three
-# gitignored sources in step with backend/schemas.py across a branch switch, and the
-# check stays as the backstop for a clone that has no venv to generate them with.
+# Regenerating keeps the gitignored sources in step across branch switches.
 if [ "$START_FRONTEND" = "1" ]; then
     update_generated_sources || true
 fi
@@ -113,8 +97,7 @@ if [ "$START_FRONTEND" = "1" ]; then
 fi
 if [ "$START_BACKEND" = "1" ]; then check_backend_dependency_drift; fi
 
-# Clear stale listeners before launching. Vite runs with strictPort, so a leftover
-# node on the UI port kills the frontend the moment it starts.
+# Vite's strictPort makes a leftover node on the UI port fatal.
 if [ "$START_BACKEND" = "1" ]; then
     clear_port "$DEV_API_PORT" "backend" || exit 1
 fi
@@ -145,9 +128,7 @@ fi
 
 say ""
 
-# Wait for real readiness rather than a fixed sleep: a cold Vite start is routinely
-# slower than any timeout worth hardcoding, and opening the browser early just means
-# a connection error you have to refresh past.
+# Wait for real readiness, not a fixed sleep.
 BACKEND_READY=1
 FRONTEND_READY=1
 

@@ -100,8 +100,7 @@ export function ReplaceCaptionsDialog({
     queryKey: ["replace-preview", folderKey(folderPath), asked],
     queryFn: ({ signal }) => previewCaptionReplacements(folderPath, asked, signal),
     enabled: previewable,
-    // The previous answer stays on screen while a new one is in flight, dimmed, so
-    // typing neither blanks the panel nor lets stale counts pass for fresh ones.
+    // The previous answer stays, dimmed, while a new one is in flight.
     placeholderData: keepPreviousData,
     retry: false,
   });
@@ -151,8 +150,7 @@ export function ReplaceCaptionsDialog({
 
   const clearError = useCallback(() => setError(null), []);
 
-  // Explains whichever control the current mode has just taken away or handed over,
-  // so a greyed-out field is never left without a reason.
+  // Explains whichever control the current mode disables or enables.
   let hint: ReactNode = null;
   if (!isReplace) {
     hint = "Prepend and append add the text to every caption; there is nothing to search for.";
@@ -208,9 +206,7 @@ export function ReplaceCaptionsDialog({
         />
 
         <div className="field field-row replace-captions-dialog__terms">
-          {/* Multi-line, so a term can span the lines of a caption; Enter adds a line. Kept
-              visible in prepend/append mode, so the dialog says the term is unused instead of
-              silently rearranging itself. */}
+          {/* Multi-line, so a term can span lines; kept visible in prepend/append mode to say it is unused. */}
           <Field label="Search for">
             {(control) => (
               <TextArea

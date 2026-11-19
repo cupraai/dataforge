@@ -41,10 +41,7 @@ export function AppHeader({
   );
 }
 
-/**
- * Tagging wins: every tag it saves refreshes the folder for a moment, and swapping sweeps for
- * those restarts the animation. The keys keep either sweep from being reused as the other.
- */
+/** Tagging wins, so its refreshes never restart the sweep; the keys keep the two apart. */
 export function FolderActivitySweep({
   refreshing,
   tagging,

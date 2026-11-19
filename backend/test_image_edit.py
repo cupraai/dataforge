@@ -27,7 +27,7 @@ HEIGHT = 20
 
 
 def corner_marked(width: int = WIDTH, height: int = HEIGHT) -> Image.Image:
-    """Four identifiable corner pixels. Not square: a rotation that kept the frame shape would still pass on a square."""
+    """Four identifiable corners; not square, so a shape-keeping rotation fails."""
     image = Image.new("RGB", (width, height), (10, 10, 10))
     image.putpixel((0, 0), RED)
     image.putpixel((width - 1, 0), GREEN)
@@ -275,7 +275,7 @@ class RenderMaskTests(unittest.TestCase):
         self.assertEqual(masked.tobytes(), plain.tobytes())
 
     def test_the_region_is_measured_against_the_source_and_not_the_crop(self) -> None:
-        """Read against the cropped frame the same fractions would leave the crop's left half sharp."""
+        """Read against the cropped frame, these fractions would leave its left half sharp."""
         spec = ImageEditSpec(
             masks=[MaskRegion(x=0.5, y=0.0, width=0.5, height=1.0, mode="pixelate", strength=0.2)],
             crop=EditCropRect(x=0.5, y=0.0, width=0.5, height=1.0),
@@ -818,7 +818,7 @@ class EditSpecCommitTests(unittest.TestCase):
 
 
 class SameStemSiblingTests(unittest.TestCase):
-    """The audit's F02: scene.jpg and scene.png shared one spec but kept separate originals."""
+    """scene.jpg and scene.png keep separate specs, as they keep separate originals."""
 
     def test_editing_one_sibling_leaves_the_other_unedited(self) -> None:
         with TempMediaFolder() as root:
@@ -847,7 +847,7 @@ class SameStemSiblingTests(unittest.TestCase):
 
 
 class ExternalReplacementTests(unittest.TestCase):
-    """The audit's F06: the next edit rendered from the old backup over a replaced file."""
+    """The next edit must not render from the old backup over an externally replaced file."""
 
     def _replace(self, media: Path, color: tuple[int, int, int]) -> None:
         Image.new("RGB", (WIDTH, HEIGHT), color).save(media)

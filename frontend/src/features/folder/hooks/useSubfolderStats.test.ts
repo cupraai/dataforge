@@ -225,8 +225,7 @@ describe("useSubfolderStats", () => {
     const { view, client, rendered } = renderWithFolder(makeFolder([makeSubfolder()]));
     await waitFor(() => expect(view.result.current?.subfolders[0].file_count).toBe(3));
 
-    // A job wrote into the subfolder: its mtime moved, so the parent is listed in full again,
-    // and a full listing comes without subfolder counts.
+    // A job wrote into the subfolder, so the parent is fully re-listed without counts.
     vi.spyOn(api, "fetchFolderChanges").mockResolvedValue({
       full: true,
       fingerprint: "fp-v2",

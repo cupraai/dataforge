@@ -1,5 +1,3 @@
-"""Vision-model verify existing captions against their media."""
-
 from __future__ import annotations
 
 import json
@@ -104,19 +102,16 @@ def _has_substantive_issues(issues: str) -> bool:
 
 
 _ENUMERATION_MARKER = re.compile(r"^\s*(?:[-*]|\d+[.)])\s+")
-# "1." is indistinguishable from a sentence end, so it splits off on its own.
+# "1." is indistinguishable from a sentence end.
 _MARKER_ONLY = re.compile(r"^\s*(?:[-*]|\d+[.)])\s*$")
-# No semicolon: Qwen uses it to continue one finding, so splitting there fragments it.
+# Qwen continues one finding after a semicolon.
 _SENTENCE_TERMINATORS = frozenset(".!?")
-# Abbreviations that introduce more of the same finding; "etc." often ends a sentence, so it splits.
+# "etc." often ends a sentence, so it splits.
 _NON_TERMINAL_ABBREVIATION = re.compile(r"(?:^|[\s(\"'])(?:e\.g|i\.e|vs|cf)$", re.IGNORECASE)
 
 
 def _ends_sentence(text: str, index: int) -> bool:
-    """Whether the terminator at ``index`` closes a sentence.
-
-    Ellipses, decimals, and abbreviations such as "e.g." stay together.
-    """
+    """Ellipses, decimals and "e.g." do not end a sentence."""
     if text[index] == "." and index > 0 and text[index - 1] == ".":
         return False
     if text[index] == "." and _NON_TERMINAL_ABBREVIATION.search(text, 0, index):
@@ -127,7 +122,7 @@ def _ends_sentence(text: str, index: int) -> bool:
 
 
 def split_fix_sentences(text: str) -> list[str]:
-    """Split prose into sentences, treating double-quoted spans as atomic."""
+    """Double-quoted spans are atomic."""
     sentences: list[str] = []
     start = 0
     in_quote = False
@@ -148,7 +143,7 @@ def split_fix_sentences(text: str) -> list[str]:
 
 
 def _parse_verification_payload(data: dict) -> VerificationResult | None:
-    """Let the verdict gate the issue prose so the model does not flag everything."""
+    """The verdict gates the issue prose so the model does not flag everything."""
     correct = _coerce_bool(data.get("correct"))
     issues = data.get("issues")
     if correct is None or not isinstance(issues, str):
@@ -179,15 +174,13 @@ def parse_verification_response(raw_text: str) -> VerificationResult | None:
 
 @dataclass(frozen=True)
 class MediaKindWording:
-    """Per-kind words the rules and output format are written around."""
-
     framing: str
     subject: str
     visible_ref: str
     contradict_ref: str
 
 
-# Shared by both kinds: pose errors the model misses regardless of frame count.
+# Pose errors the model misses regardless of frame count.
 _POSITIONING_ATTENTION = textwrap.dedent(
     """
     Pay special attention to hand and leg positioning, as these are often incorrect
@@ -338,7 +331,6 @@ def verify_caption(
     timestamps: list[float] | None = None,
     attempt: int = 1,
 ) -> str | None:
-    """Fact-check ``ref_caption`` against already-loaded ``images``; ``attempt`` is for JPEG retries."""
     media_kind = media_kind_for(media_path)
     seconds = timestamps[-1] if timestamps else None
     return request_vision_text(
@@ -368,7 +360,7 @@ def process_media(
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     should_cancel: ShouldCancel | None = None,
 ) -> tuple[VerificationResult | None, str, str | None]:
-    # Per file, not per caption: a shared caption is checked against each file it describes.
+    # Per file: a shared caption is checked against each file.
     ref_caption, status, revision = load_reference_caption(media_path)
     if status != "ok" or ref_caption is None:
         return None, status, None
@@ -505,7 +497,7 @@ def run_verify_captions_job(
                 fields={"description": "; ".join(verification.fixes)},
             )
 
-        # ``issues_found`` is a sub-stat of success and must not inflate ``processed``.
+        # A sub-stat of success; it must not inflate ``processed``.
         return run_media_job(
             folder,
             media_files,

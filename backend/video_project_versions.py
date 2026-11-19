@@ -1,9 +1,4 @@
-"""Earlier states of a project, kept in the app database so a draft's folder stays uncluttered.
-
-Versions are keyed by project id, which a draft keeps when its folder moves. Saves leave an
-automatic checkpoint at most every ``VIDEO_PROJECT_CHECKPOINT_SECONDS``, and only the newest
-``VIDEO_PROJECT_MAX_CHECKPOINTS`` of them; a named version stays until it is deleted.
-"""
+"""Earlier project states in the app database, keyed by project id; named versions persist."""
 
 from __future__ import annotations
 

@@ -122,8 +122,7 @@ class FillJobCase(ResultsFolder):
     def setUp(self) -> None:
         super().setUp()
         forget_saved_settings()
-        # For the whole test: a worker thread opens its client after start_fill returns, and an
-        # unpatched one would reach whatever ComfyUI runs on this machine.
+        # For the whole test: the worker opens its client after start_fill returns.
         self.comfy_handler: Callable[[httpx.Request], httpx.Response] = refused
         comfy = patch(
             "image_fill_jobs.open_comfy_client",

@@ -18,11 +18,7 @@ function sameWorkflow(a: ComfyWorkflowMapRequest, b: ComfyWorkflowMapRequest): b
   );
 }
 
-/**
- * The selected workflow drawn as a map, as it would run with the dialog's inputs: a switch
- * input shows the branch it picks. ``saved`` is the map already in hand for the workflow as
- * saved, drawn instead of asking while no input is changed.
- */
+/** The workflow's map as it would run with the inputs; ``saved`` shows while unchanged. */
 export function ComfyPresetMap({
   request,
   saved,

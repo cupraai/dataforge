@@ -354,8 +354,7 @@ function RestoreSkeleton() {
   );
 }
 
-// Row metrics from `_restore-captions-dialog.scss` and `_caption-diff.scss`; estimates only,
-// every row is measured.
+// Row estimates from the stylesheets; every row is measured.
 const ROW_PADDING_Y_PX = 25;
 const THUMB_PX = 96;
 const HEADER_PX = 26;
@@ -404,8 +403,7 @@ function RestoreSampleList({
       estimateRowHeight(entries[index], layout, scrollElement?.clientWidth ?? 0),
     overscan: 8,
     getItemKey: (index) => entries[index]?.sample.path ?? index,
-    // A synchronous commit inside the row observer's callback mounts rows it then fails to
-    // deliver (the ResizeObserver loop error); close estimates keep the deferred fix-up small.
+    // A synchronous commit inside the observer callback triggers the ResizeObserver loop error.
     useFlushSync: false,
   });
 

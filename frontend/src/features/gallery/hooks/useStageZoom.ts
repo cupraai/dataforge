@@ -93,8 +93,7 @@ export function useStageZoom({
     return { frame, rect, ratio };
   }, [canvasRef, stageRef, turned]);
 
-  // Native and non-passive: React's wheel listener is passive, so it could not stop the page
-  // scrolling under the zoom.
+  // Non-passive, unlike React's wheel listener, so the page cannot scroll.
   useEffect(() => {
     const stage = stageRef.current;
     if (!active || !stage) return;

@@ -53,8 +53,7 @@ class _BoardSensors:
 
 
 def _windows_memory_bytes() -> tuple[int, int]:
-    # The caller dispatches on platform, but only a guard here narrows ctypes for a checker
-    # running on another one; CI checks this file from Linux.
+    # Only a guard here narrows ctypes for a checker on another platform; CI checks from Linux.
     if sys.platform != "win32":
         raise OSError("Windows memory counters need Windows")
 

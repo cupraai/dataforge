@@ -75,8 +75,7 @@ class FolderScopedPreferenceTests(unittest.TestCase):
     def test_a_folder_with_no_save_reads_the_most_recent_one(self) -> None:
         self.store.save(r"C:\Photos", Sample(name="lake", size=4))
 
-        # The whole point of the fallback: a folder you have never run in starts from
-        # what you last used rather than from stock defaults.
+        # A folder never run in starts from the last choices, not stock defaults.
         self.assertEqual(self.store.get(r"C:\Renders"), Sample(name="lake", size=4))
 
     def test_saving_one_folder_leaves_the_others_alone(self) -> None:
@@ -94,8 +93,7 @@ class FolderScopedPreferenceTests(unittest.TestCase):
         self.assertEqual(self.store.get(r"C:\Untouched").name, "city")
 
     def test_separator_style_hits_the_same_entry(self) -> None:
-        # Callers key through ``preference_folder_key``; this pins that an already
-        # canonical key round-trips unchanged rather than being re-normalised here.
+        # A canonical key round-trips unchanged.
         self.store.save("C:/Photos/A", Sample(name="lake"))
 
         self.assertEqual(self.store.get("C:/Photos/A").name, "lake")

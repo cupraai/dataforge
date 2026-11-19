@@ -1,8 +1,4 @@
-/**
- * Trims that keep the cut's timing: a ripple trim closes or opens the time it changes by moving
- * everything after the clip, and a roll trim moves one cut between two touching clips. Each
- * returns the next project or why it cannot be made, like the operations in `timeline.ts`.
- */
+/** Ripple and roll trims that keep the cut's timing; each returns a project or why not. */
 import { shiftKeyframes } from "./keyframes";
 import {
   clampFades,
@@ -44,10 +40,7 @@ function overlappingPairs(project: Project): Set<string> {
   return pairs;
 }
 
-/**
- * Pushing clips along must never make a new overlap: on a video track it would be refused
- * anyway, but on an audio track it would quietly become a crossfade.
- */
+/** Pushing clips must never overlap: audio would quietly become a crossfade. */
 function pushedTogether(before: Project, after: Project): string | null {
   const existing = overlappingPairs(before);
   for (const pair of overlappingPairs(after)) {
@@ -76,12 +69,7 @@ function overlapsAtEdge(project: Project, ids: Set<string>, edge: TrimEdge): boo
   });
 }
 
-/**
- * Trims one edge of a clip, and what is linked to it, toward ``time`` and moves everything that
- * starts after the clip by the time it gained or lost, so no gap opens and nothing is covered.
- * A start edge changes the take while the clip stays where it starts. Clips after the clip move
- * on its own tracks and on every track with sync lock on.
- */
+/** Ripple trims an edge toward ``time``, moving later clips by the change. */
 export function rippleTrim(project: Project, id: string, edge: TrimEdge, time: number): EditResult {
   const anchor = project.clips.find((clip) => clip.id === id);
   if (!anchor) return { error: "That clip is gone." };
@@ -154,11 +142,7 @@ export function rollPartner(project: Project, clip: Clip, edge: TrimEdge): Clip 
   );
 }
 
-/**
- * Moves the cut on ``edge`` of a clip to ``time``: the clip and the one it touches there trim
- * together, so the cut slides while everything else keeps its time. An edge that touches no clip
- * trims as usual.
- */
+/** Rolls the cut on ``edge`` to ``time``; an edge touching no clip trims as usual. */
 export function rollTrim(project: Project, id: string, edge: TrimEdge, time: number): EditResult {
   const anchor = project.clips.find((clip) => clip.id === id);
   if (!anchor) return { error: "That clip is gone." };
@@ -195,11 +179,7 @@ export function rollTrim(project: Project, id: string, edge: TrimEdge, time: num
   return { project: current };
 }
 
-/**
- * Ripple trims the clip under the playhead to it: ``start`` removes the part before the playhead
- * and pulls the rest of the clip back to where it started, ``end`` removes the part after it.
- * It acts on the one selected clip there, or else on the topmost clip under the playhead.
- */
+/** Ripple trims the clip under the playhead; ``start`` cuts before it, ``end`` after. */
 export function rippleTrimToPlayhead(
   project: Project,
   ids: Iterable<string>,

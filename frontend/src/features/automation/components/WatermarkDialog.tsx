@@ -146,10 +146,7 @@ function MarkOptions({
   );
 }
 
-/**
- * One mark's column. The toggle stands in for the first field's label and the error for its
- * hint: a row of either would make the panel scroll at 720px.
- */
+/** The toggle stands in for the first label and the error for its hint, so 720px never scrolls. */
 function MarkColumn({
   title,
   enabled,

@@ -38,8 +38,7 @@ describe("subscribeToServerEvents", () => {
 
     subscribeToServerEvents({ onEvent: vi.fn<(event: ServerEvent) => void>(), onConnectedChange });
 
-    // The tab id is what lets the server address folder events to the tab actually
-    // viewing that folder, so it has to be on the stream's own URL.
+    // The server addresses folder events by the tab id in the stream URL.
     expect(source().url).toBe(`/api/events?tab=${serverEventsTabId()}`);
 
     source().onopen!();
@@ -89,8 +88,7 @@ describe("subscribeToServerEvents", () => {
     expect(source().closed).toBe(false);
     expect(warn).toHaveBeenCalledOnce();
 
-    // A stream that disagrees about the format disagrees about every frame, so the
-    // warning must not repeat once per push.
+    // Warn once, not once per push.
     source().onmessage!({ data: JSON.stringify({ type: "banana" }) });
     expect(warn).toHaveBeenCalledOnce();
 

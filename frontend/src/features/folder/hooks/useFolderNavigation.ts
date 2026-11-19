@@ -109,8 +109,7 @@ export function useFolderNavigation(
   if (data && !isPlaceholderData && data !== lastFolder) setLastFolder(data);
   const error: FolderError | null = query.isError ? resolveFolderError(queryError) : null;
 
-  // The server answers with its own spelling of the path, or names the default folder:
-  // file the listing under that path and make it the one being shown.
+  // File the listing under the server's spelling of the path, or its default folder.
   const settledPath = !isPlaceholderData ? data?.path : undefined;
   useEffect(() => {
     if (!settledPath || !data) return;

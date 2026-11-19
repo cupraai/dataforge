@@ -16,10 +16,7 @@ function formatDb(db: number): string {
   return Number.isFinite(db) ? `${db > 0 ? "+" : ""}${db.toFixed(1)}` : "-inf";
 }
 
-/**
- * The preview mix's sample peaks per channel, read every frame while playing. The bars are
- * written straight to the DOM, as the playhead is; only the held alarm goes through React.
- */
+/** Per-channel sample peaks each frame, written to the DOM; only the alarm uses React. */
 export function MixMeter({ engine }: { engine: PreviewEngine }) {
   const { playing } = useEnginePlaying(engine);
   const barRefs = [useRef<HTMLSpanElement>(null), useRef<HTMLSpanElement>(null)];

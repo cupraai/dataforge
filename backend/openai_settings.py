@@ -1,5 +1,3 @@
-"""Shared OpenAI-compatible vision LLM settings. Reasoning effort is a per-job choice, not an env var."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,10 +9,10 @@ from env_file import env_str
 DEFAULT_TIMEOUT_SECONDS = 600.0
 CONNECT_TIMEOUT_SECONDS = 10.0
 
-# 1.0 disables the repetition penalty; the key is omitted from extra_body at this value.
+# 1.0 disables the penalty and omits the key.
 NEUTRAL_REPEAT_PENALTY = 1.0
 
-# Chat template defaults to xhigh and raises on anything else; DataForge sends medium every time.
+# The chat template raises on anything but its own levels.
 DEFAULT_REASONING_EFFORT = "medium"
 DEFAULT_PRESERVE_THINKING = True
 
@@ -83,7 +81,7 @@ def build_sampling_extra_body(
     effort: str = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
 ) -> dict[str, object]:
-    """``repeat_penalty`` is omitted at 1.0. Reasoning effort is always sent: the template falls back to ``xhigh``."""
+    """Reasoning effort is always sent: the template falls back to ``xhigh``."""
     profile = get_sampling_profile(mode)
 
     extra: dict[str, object] = {
@@ -105,7 +103,7 @@ def build_sampling_extra_body(
 
 
 def create_openai_client() -> Any:
-    """Retries are disabled: ``automation.vision.call_with_retries`` already owns them."""
+    """``call_with_retries`` owns retries."""
     from openai import OpenAI, Timeout
 
     return OpenAI(
@@ -126,7 +124,7 @@ def assistant_message_text(
     *,
     allow_reasoning_fallback: bool = False,
 ) -> str:
-    """Prefer ``content``. Fallback is instruct-only so Qwen chain-of-thought is never treated as the answer."""
+    """Instruct-only fallback, so chain-of-thought is never the answer."""
     content = _message_str(message, "content")
     if content:
         return content

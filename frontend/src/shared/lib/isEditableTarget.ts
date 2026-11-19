@@ -13,8 +13,7 @@ const NON_TEXT_INPUT_TYPES = new Set([
 // The keys a focused radio or checkbox acts on itself: moving the choice, or toggling.
 const CHOICE_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
 
-/** Whether the focused control keeps this key for itself. A radio or checkbox keeps only the
- * keys it acts on, so a letter shortcut still works after clicking one. */
+/** A radio or checkbox keeps only the keys it acts on, so letter shortcuts still work. */
 export function isEditableTarget({ target, key }: Pick<KeyboardEvent, "target" | "key">): boolean {
   if (
     target instanceof HTMLInputElement &&

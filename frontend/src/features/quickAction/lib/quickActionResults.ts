@@ -12,10 +12,7 @@ export const MAX_RESULT_ROWS = 8;
 /** Slots one section claims before others get a turn; leftovers still backfill a short list. */
 export const MAX_ROWS_PER_SECTION = 3;
 
-/**
- * Substring, not fuzzy: other search is substring and short fuzzy queries are noise.
- * Exact beats prefix so "watermark" ranks the job over a "watermarked" folder.
- */
+/** Substring, like other search; exact beats prefix. */
 const RANK_LABEL_EXACT = 0;
 const RANK_LABEL_PREFIX = 1;
 const RANK_LABEL_WORD = 2;
@@ -62,8 +59,7 @@ export function rankQuickActionItems(items: QuickActionItem[], query: string): Q
     .filter((entry): entry is RankedItem => entry.rank !== null)
     .sort(compare);
 
-  // One pass hands every section its quota, a second spends what is left on the best of the rest,
-  // so no section monopolises the list and a query few sections match still fills it.
+  // Each section gets its quota, then the rest goes to the best remaining.
   const taken: RankedItem[] = [];
   const spill: RankedItem[] = [];
   const used = new Map<QuickActionSection, number>();

@@ -1,4 +1,4 @@
-"""Burn a text and/or PNG watermark into images, GIFs and videos; originals stay untouched."""
+"""Burn a text and/or PNG watermark into copies; originals stay untouched."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ WatermarkPosition = Literal["top_left", "top_right", "center", "bottom_left", "b
 
 @dataclass(frozen=True)
 class WatermarkSize:
-    """How large the mark renders; ``stroke_px`` is pixels because ffmpeg ``borderw`` rejects ``h``."""
+    """``stroke_px`` is pixels: ffmpeg ``borderw`` rejects ``h``."""
 
     font_scale: float
     stroke_px: int
@@ -55,8 +55,7 @@ WATERMARK_POSITIONS: tuple[WatermarkPosition, ...] = (
     "bottom_right",
 )
 
-#: The PNG fits a square of this fraction of the frame's shorter side, so a wide logo and a tall
-#: one end up equally prominent, in landscape and portrait alike.
+#: Of the frame's shorter side, so wide and tall logos are equally prominent.
 WATERMARK_IMAGE_SCALES: dict[str, float] = {"small": 0.10, "medium": 0.15, "large": 0.22}
 
 DEFAULT_WATERMARK_SIZE: WatermarkSizeName = "medium"
@@ -70,7 +69,7 @@ WATERMARK_MARGIN_SCALE = 0.02
 WATERMARK_MIN_FONT_PX = 12
 WATERMARK_MIN_MARGIN_PX = 8
 WATERMARK_IMAGE_MIN_PX = 16
-# White at half opacity vanishes over a bright sky, so the mark carries a dark outline.
+# White at half opacity vanishes over a bright sky.
 WATERMARK_STROKE_ALPHA_FACTOR = 0.7
 
 MAX_WATERMARK_TEXT_LENGTH = 120
@@ -102,7 +101,7 @@ FFMPEG_MISSING_MESSAGE = "ffmpeg is required to add a watermark to videos and GI
 NO_MARK_MESSAGE = "Turn on the text or the PNG watermark"
 IMAGE_MISSING_MESSAGE = "Choose a PNG watermark first"
 IMAGE_UNREADABLE_MESSAGE = "The stored PNG watermark cannot be read. Choose it again."
-#: Names the PNG's settings in validation errors, since they share the text's options.
+#: Names the PNG's settings in validation errors.
 PNG_SUBJECT = "PNG watermark"
 
 
@@ -117,8 +116,7 @@ class TextMark:
 
 @dataclass(frozen=True)
 class ImageMark:
-    """The PNG with its opacity already applied to the alpha channel, in memory for Pillow and
-    on disk at ``path`` for ffmpeg."""
+    """In memory for Pillow and on disk for ffmpeg."""
 
     image: Image.Image
     path: Path
@@ -140,7 +138,7 @@ def resolve_watermark_font() -> Path | None:
 
 
 def watermark_image_path() -> Path:
-    """One PNG for the whole app, kept beside the database so it survives restarts."""
+    """Kept beside the database so it survives restarts."""
     return get_db_path().parent / WATERMARK_IMAGE_FILE_NAME
 
 
@@ -156,7 +154,7 @@ def read_watermark_image_info() -> WatermarkImageInfo:
 
 
 def save_watermark_image(stream: BinaryIO) -> WatermarkImageInfo:
-    """Replace the stored PNG; anything but a decodable PNG within the limits is a ``ValueError``."""
+    """Raises ``ValueError`` for anything but a decodable PNG within limits."""
     data = stream.read(MAX_WATERMARK_IMAGE_BYTES + 1)
     if len(data) > MAX_WATERMARK_IMAGE_BYTES:
         limit_mb = MAX_WATERMARK_IMAGE_BYTES // (1024 * 1024)
@@ -182,7 +180,7 @@ def save_watermark_image(stream: BinaryIO) -> WatermarkImageInfo:
     temp = target.with_name(f"{target.stem}{WATERMARK_TEMP_MARKER}{target.suffix}")
     try:
         temp.write_bytes(data)
-        # A starting job may be reading the old file, which a plain replace trips on on Windows.
+        # Windows refuses a plain replace while a job reads the old file.
         publish_replacing(temp, target, _stale_path(target))
     finally:
         with suppress(OSError):
@@ -191,13 +189,7 @@ def save_watermark_image(stream: BinaryIO) -> WatermarkImageInfo:
 
 
 def normalize_watermark_text(text: str) -> str:
-    """Validate the watermark text.
-
-    Characters that are special to ffmpeg's filtergraph (``:``, ``'``, ``\\``, ``%``)
-    are deliberately allowed: they are escaped at render time, never rejected. Control
-    characters are the exception, because a line break renders as a real newline in
-    drawtext but is measured differently by Pillow, so the two paths would disagree.
-    """
+    """Control characters are refused: drawtext and Pillow measure line breaks differently."""
     trimmed = (text or "").strip()
     if not trimmed:
         raise ValueError("Watermark text cannot be empty")
@@ -242,7 +234,6 @@ def resolve_watermark_image_scale(size: str) -> float:
 def _pillow_anchor_and_xy(
     width: int, height: int, margin: int, position: WatermarkPosition
 ) -> tuple[str, tuple[int, int]]:
-    """Pillow text anchor and point for the chosen position."""
     if position == "center":
         return "mm", (width // 2, height // 2)
     left = position.endswith("left")
@@ -252,7 +243,6 @@ def _pillow_anchor_and_xy(
 
 
 def _drawtext_xy(margin: str, position: WatermarkPosition) -> tuple[str, str]:
-    """ffmpeg ``x`` and ``y`` expressions for the chosen position."""
     if position == "center":
         return "x=(w-tw)/2", "y=(h-th)/2"
     x = f"x={margin}" if position.endswith("left") else f"x=w-tw-({margin})"
@@ -263,7 +253,6 @@ def _drawtext_xy(margin: str, position: WatermarkPosition) -> tuple[str, str]:
 def _image_mark_xy(
     frame: tuple[int, int], mark: tuple[int, int], margin: int, position: WatermarkPosition
 ) -> tuple[int, int]:
-    """Top-left corner of the PNG on the frame."""
     (width, height), (mark_width, mark_height) = frame, mark
     if position == "center":
         return (width - mark_width) // 2, (height - mark_height) // 2
@@ -273,7 +262,7 @@ def _image_mark_xy(
 
 
 def _overlay_xy(margin: str, position: WatermarkPosition) -> tuple[str, str]:
-    """ffmpeg ``overlay`` expressions; ``W``/``H`` are the frame, ``w``/``h`` the PNG."""
+    """``W``/``H`` are the frame, ``w``/``h`` the PNG."""
     if position == "center":
         return "x=(W-w)/2", "y=(H-h)/2"
     x = f"x={margin}" if position.endswith("left") else f"x=W-w-({margin})"
@@ -332,7 +321,7 @@ def validate_watermark_folder(
 
 
 def load_watermark_image(alpha: float) -> Image.Image:
-    """The stored PNG as RGBA with ``alpha`` folded into its own transparency."""
+    """``alpha`` folded into its own transparency."""
     try:
         with Image.open(watermark_image_path()) as opened:
             mark = opened.convert("RGBA")
@@ -359,7 +348,7 @@ def _composite_watermark(
     margin = max(WATERMARK_MIN_MARGIN_PX, round(base.height * WATERMARK_MARGIN_SCALE))
     merged = base
 
-    # The PNG first, so the text stays legible where the two meet; ffmpeg draws in this order too.
+    # The PNG first, so the text stays legible; ffmpeg draws in this order too.
     if image is not None:
         fitted = _fit_image_mark(base.size, image)
         overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
@@ -374,7 +363,7 @@ def _composite_watermark(
         text_alpha = round(255 * text.alpha)
         stroke_alpha = round(text_alpha * WATERMARK_STROKE_ALPHA_FACTOR)
 
-        # Direct fill paints opaque white on RGB and replaces alpha on RGBA; compositing blends.
+        # Direct fill replaces alpha on RGBA; compositing blends.
         overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
         ImageDraw.Draw(overlay).text(
             xy,
@@ -401,12 +390,11 @@ def watermark_image(
 
 
 def escape_drawtext_path(path: Path) -> str:
-    """Escape a filesystem path for a filtergraph option value."""
     return str(path).replace("\\", "/").replace(":", "\\:")
 
 
 def escape_drawtext_text(text: str) -> str:
-    """Escape watermark text for a single-quoted ``drawtext`` value; backslashes first."""
+    """Escape for a single-quoted ``drawtext`` value; backslashes first."""
     escaped = text.replace("\\", "\\\\")
     escaped = escaped.replace("'", "\\'")
     escaped = escaped.replace(":", "\\:")
@@ -414,12 +402,12 @@ def escape_drawtext_text(text: str) -> str:
 
 
 def _scaled_expression(minimum: int, scale: float, length: str = "h") -> str:
-    """``length * scale``, floored at ``minimum``. Escape the comma or it ends the filter."""
+    """Escape the comma or it ends the filter."""
     return f"max({minimum}\\,{length}*{scale})"
 
 
 def build_drawtext_filter(mark: TextMark) -> str:
-    """The filter that burns the mark into every frame, hence no ``enable`` expression."""
+    """Every frame, hence no ``enable`` expression."""
     margin = _scaled_expression(WATERMARK_MIN_MARGIN_PX, WATERMARK_MARGIN_SCALE)
     stroke_alpha = mark.alpha * WATERMARK_STROKE_ALPHA_FACTOR
     x_expr, y_expr = _drawtext_xy(margin, mark.position)
@@ -427,7 +415,7 @@ def build_drawtext_filter(mark: TextMark) -> str:
         "drawtext="
         f"fontfile='{escape_drawtext_path(mark.font_path)}'"
         f":text='{escape_drawtext_text(mark.text)}'"
-        # Without this, a '%' in the text is read as a strftime directive.
+        # Otherwise '%' reads as a strftime directive.
         ":expansion=none"
         f":fontsize={_scaled_expression(WATERMARK_MIN_FONT_PX, mark.size.font_scale)}"
         f":fontcolor=white@{mark.alpha:.2f}"
@@ -438,8 +426,7 @@ def build_drawtext_filter(mark: TextMark) -> str:
 
 
 def build_image_scale_filter(mark: ImageMark) -> str:
-    """Fit the PNG to a square sized from the ``ref`` frame (``rw``/``rh``), which is already
-    rotated for display, so no probe of the source is needed."""
+    """``ref`` is already rotated for display, so no probe is needed."""
     box = _scaled_expression(WATERMARK_IMAGE_MIN_PX, mark.scale, "min(rw\\,rh)")
     return f"scale=w={box}:h={box}:force_original_aspect_ratio=decrease:flags=lanczos"
 
@@ -447,12 +434,12 @@ def build_image_scale_filter(mark: ImageMark) -> str:
 def build_overlay_filter(mark: ImageMark) -> str:
     margin = _scaled_expression(WATERMARK_MIN_MARGIN_PX, WATERMARK_MARGIN_SCALE, "H")
     x_expr, y_expr = _overlay_xy(margin, mark.position)
-    # The PNG input loops forever; `shortest` ends the output with the source.
+    # The PNG input loops forever; `shortest` ends with the source.
     return f"overlay={x_expr}:{y_expr}:format=auto:shortest=1"
 
 
 def build_mark_graph(text: TextMark | None, image: ImageMark | None) -> str:
-    """Filtergraph from the source's first video stream to ``[marked]``; the PNG is input 1."""
+    """From the first video stream to ``[marked]``; the PNG is input 1."""
     if text is None and image is None:
         raise ValueError(NO_MARK_MESSAGE)
 
@@ -472,7 +459,7 @@ def build_mark_graph(text: TextMark | None, image: ImageMark | None) -> str:
 
 
 def _image_input(image: ImageMark | None) -> list[str]:
-    # A looped still, so the scale filter has a PNG frame for every source frame.
+    # A looped still gives the scale filter a frame for every source frame.
     return [] if image is None else ["-loop", "1", "-i", str(image.path)]
 
 
@@ -500,21 +487,17 @@ def watermark_video(
         "-i",
         str(source),
         *_image_input(image),
-        # No -noautorotate: ffmpeg applies the display matrix ahead of the graph. With a second
-        # input it still leaves the matrix on the frames, and players would rotate the
-        # already-upright pixels a second time.
+        # ffmpeg applies the display matrix; with two inputs it also leaves it on the frames.
         "-filter_complex",
         f"{build_mark_graph(text, image)};[marked]sidedata=mode=delete:type=DISPLAYMATRIX[v]",
-        # The first video and every audio track: default selection keeps only one audio stream,
-        # but `-map 0` would pull in cover art (undrawable) and untyped subtitle/data streams.
+        # Not `-map 0`, which pulls in cover art and data streams.
         "-map",
         "[v]",
         "-map",
         "0:a?",
         "-c:v",
         "libx264",
-        # A batch job over copies, so it can afford slower and finer settings than the
-        # interactive video editor, which encodes while the user waits.
+        # A batch job over copies can afford slower settings than the interactive editor.
         "-preset",
         "medium",
         "-crf",
@@ -531,13 +514,13 @@ def watermark_video(
 
 
 def gif_loop_argument(source: Path) -> str:
-    """ffmpeg's ``-loop`` for the source's loop count; the GIF demuxer does not carry it over."""
+    """The GIF demuxer does not carry the loop count over."""
     try:
         with Image.open(source) as opened:
             loop = opened.info.get("loop")
     except (OSError, UnidentifiedImageError) as exc:
         raise ImageReadError(str(exc)) from exc
-    # No NETSCAPE block means play once, which the muxer spells -1; 0 is forever in both.
+    # No NETSCAPE block means play once, which the muxer spells -1.
     return "-1" if loop is None else str(loop)
 
 
@@ -550,8 +533,7 @@ def build_gif_watermark_command(
     image: ImageMark | None,
     loop: str,
 ) -> list[str]:
-    """Rebuild each frame's palette after drawing; one shared palette drops colours that only
-    appear in later frames. Without the timing flags the muxer rounds per-frame delays."""
+    """One shared palette drops colours that appear later; the flags keep per-frame delays."""
     return [
         executable,
         "-nostdin",
@@ -625,7 +607,7 @@ def _watermark_file(
     should_cancel: ShouldCancel | None,
     strip_metadata: bool,
 ) -> str:
-    """Write one watermarked copy and return whether it was an ``image`` or a ``video``."""
+    """Returns ``image`` or ``video``."""
     temp_path = output_dir / f"{media_path.stem}{WATERMARK_TEMP_MARKER}{media_path.suffix}"
     is_gif = media_path.suffix.lower() == GIF_EXTENSION
 
@@ -639,7 +621,7 @@ def _watermark_file(
                 ffmpeg=ffmpeg,
                 should_cancel=should_cancel,
             )
-            # An ffmpeg encode per frame, so it paces the job like a video.
+            # An ffmpeg encode per frame, so it paces like a video.
             kind = "video"
         elif media_path.suffix.lower() in VIDEO_EXTENSIONS:
             watermark_video(
@@ -655,10 +637,9 @@ def _watermark_file(
             watermark_image(media_path, temp_path, text=text, image=image)
             kind = "image"
 
-        # ffmpeg's GIF muxer writes no comment or XMP blocks, so a GIF copy has nothing to strip.
+        # ffmpeg's GIF muxer writes no comment or XMP blocks.
         if strip_metadata and not is_gif:
-            # On the temp, not the published copy: a failed strip must not leave a marked
-            # file behind that still carries the metadata the user asked to remove.
+            # Strip the temp, so a failure never publishes a marked file with metadata.
             strip_file_metadata(temp_path, ffmpeg=ffmpeg, should_cancel=should_cancel)
 
         final_path = output_dir / media_path.name
@@ -722,13 +703,13 @@ def run_watermark_job(
     output_dir.mkdir(exist_ok=True)
     _sweep_temp_files(output_dir)
 
-    # Outside the output folder, where no source name can collide with it.
+    # Outside the output folder, where no source name can collide.
     with tempfile.TemporaryDirectory(
         prefix="dataforge-watermark-", ignore_cleanup_errors=True
     ) as scratch:
         image_mark: ImageMark | None = None
         if image_enabled:
-            # A snapshot: replacing the stored PNG mid-job must not change the files still to come.
+            # A snapshot: replacing the PNG mid-job must not change later files.
             snapshot = Path(scratch) / WATERMARK_IMAGE_FILE_NAME
             loaded = load_watermark_image(
                 resolve_watermark_alpha(image_opacity, subject=PNG_SUBJECT)
@@ -778,6 +759,6 @@ def run_watermark_job(
             process=process,
             on_progress=on_progress,
             should_cancel=should_cancel,
-            # image_success and video_success are sub-stats of success and must not be counted.
+            # Sub-stats of success, which must not be counted twice.
             processed_stat_keys=("success", "read_error", "write_error", "ffmpeg_error"),
         )

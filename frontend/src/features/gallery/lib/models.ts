@@ -22,10 +22,7 @@ export interface ModelQuery {
   sort: SortOption;
 }
 
-/**
- * The toolbar's search and sort, as folders take them: a model has no caption or tags, so it
- * matches by name, and a caption-only search leaves the section whole. The filters do not apply.
- */
+/** Models match by name only; caption-only search leaves them; filters do not apply. */
 export function processModels(models: readonly GalleryItem[], query: ModelQuery): GalleryItem[] {
   const searched = query.searchNames
     ? filterBySearch([...models], query.searchQuery, query.searchRegex, true, query.regexMatches)

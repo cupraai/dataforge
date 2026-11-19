@@ -98,7 +98,7 @@ describe("GalleryItemDialog", () => {
     }
 
     it("names a video the browser cannot play, and converts it in place", async () => {
-      // The audit's F15: an unsupported codec looked like a video still loading.
+      // An unsupported codec must not look like a video still loading.
       const user = userEvent.setup();
       const props = renderDialog(videoItem());
       const dialog = await screen.findByRole("dialog", { name: "Viewing clip.mp4" });
@@ -318,8 +318,7 @@ describe("GalleryItemDialog", () => {
 
       await user.click(free);
 
-      // What a lock does to the handles is VideoCropOverlay's own test; the overlay
-      // cannot render here, since jsdom lays nothing out for it to measure.
+      // Lock handling is VideoCropOverlay's own test; jsdom cannot lay it out here.
       expect(free).toBeChecked();
       expect(square).not.toBeChecked();
     });
@@ -463,7 +462,7 @@ describe("GalleryItemDialog", () => {
       rerender(<GalleryItemDialog {...props} index={1} />);
       fireEvent.loadedMetadata(dialog.querySelector("video")!);
 
-      // Crop tool still selected: reading "1:1" over an uncropped frame was the bug.
+      // Crop tool still selected: an uncropped frame must not read "1:1".
       await waitFor(() => {
         expect(within(dialog).getByRole("radio", { name: "Free" })).toBeChecked();
       });
@@ -640,8 +639,7 @@ describe("GalleryItemDialog", () => {
         effect: null,
       });
       await waitFor(() => expect(props.onCopied).toHaveBeenCalled());
-      // Nothing about the surface changes: the editor was already playing the original,
-      // which the spec is expressed against, so there is nothing to swap back to.
+      // The editor already plays the original, so nothing swaps back.
       expect(within(dialog).getByRole("group", { name: "Video editing" })).toBeInTheDocument();
       expect(dialog.querySelector("video")?.getAttribute("src")).toContain("original=1");
     });

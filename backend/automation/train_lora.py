@@ -1,4 +1,4 @@
-"""LoRA training, run by the local Ostris AI-Toolkit and tracked here."""
+"""LoRA training run by the local Ostris AI-Toolkit."""
 
 from __future__ import annotations
 
@@ -100,9 +100,9 @@ def _progress_stats(job: dict[str, Any], step: int, total_steps: int) -> dict[st
 
 
 def _request_stop(client: httpx.Client, job_id: str, status: str) -> None:
-    """Stop the run the gentlest way its current state allows."""
+    """The gentlest stop the current state allows."""
     if status == "running":
-        # Own client: saving a checkpoint takes far longer than our request timeout.
+        # Saving a checkpoint outlasts the request timeout.
         stop_ostris_job_with_checkpoint(job_id)
         return
     mark_ostris_job_stopped(client, job_id)
@@ -114,7 +114,7 @@ def _job_id(job: dict[str, Any] | None) -> str | None:
 
 
 def _training_template(model: str, template: str | None) -> dict[str, Any]:
-    """The edited YAML when this run carries one, otherwise the shipped template."""
+    """The edited YAML, else the shipped template."""
     if template is None:
         return load_training_template(model)
     return parse_training_template(template, source="edited training template")
@@ -132,11 +132,7 @@ def _resolve_training_job(
     template: str | None,
     attach_only: bool,
 ) -> tuple[str, dict[str, Any]]:
-    """The AI-Toolkit job to track: the named one when re-attaching, otherwise a new one.
-
-    A new run refuses a name a live job already uses. The name alone says nothing about that
-    job's dataset or model, and cancelling this run would stop it.
-    """
+    """The named job when re-attaching; a new run refuses a name a live job uses."""
     existing = fetch_ostris_job_by_name(client, name)
     existing_id = _job_id(existing)
     if existing is not None and existing_id is not None:
@@ -168,8 +164,6 @@ def _resolve_training_job(
 
 @dataclass(frozen=True)
 class _TrainingOutcome:
-    """How the AI-Toolkit run ended, and how far it got."""
-
     status: str
     step: int
     total_steps: int
@@ -187,7 +181,7 @@ def _poll_until_terminal(
     should_cancel: ShouldCancel | None,
     poll_interval_seconds: float,
 ) -> _TrainingOutcome:
-    """Follow the run to its end, reporting progress and forwarding a cancel once."""
+    """Follow the run to its end, forwarding a cancel once."""
     stop_requested = False
     total_steps = 0
     step = 0
@@ -198,7 +192,7 @@ def _poll_until_terminal(
 
         status = str(job.get("status") or "")
         step = max(step, _int_or_none(job.get("step")) or 0)
-        # Ostris often omits top-level total_steps; config train.steps is authoritative.
+        # Ostris often omits top-level total_steps.
         total_steps = ostris_job_total_steps(job) or total_steps
         label = _progress_label(job)
 
@@ -236,7 +230,7 @@ def run_train_lora_job(
     selected_paths: list[Path] | None = None,
     poll_interval_seconds: float = OSTRIS_TRAIN_POLL_INTERVAL_SECONDS,
 ) -> dict[str, object]:
-    del selected_paths  # AI-Toolkit always trains on the whole dataset folder.
+    del selected_paths
 
     name = lora_name.strip()
     sample_prompts = _clean_prompts(prompts)

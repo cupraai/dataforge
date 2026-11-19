@@ -22,7 +22,8 @@
   border-radius: var(--radius);
   pointer-events: none;
 
-  // Overlay covers the whole drop zone; this box is only as tall as the visible scroller so the prompt stays on screen.
+  // The overlay covers the drop zone; this box is as tall as the visible scroller, so the prompt
+  // stays on screen.
   &__viewport {
     position: sticky;
     top: 0;

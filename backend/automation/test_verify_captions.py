@@ -57,7 +57,7 @@ def _rules_section(prompt: str) -> str:
 
 
 def _fixes_json(*fixes: str, correct: bool | None = None) -> str:
-    """Build a model response: fixes become the sentences of the ``issues`` prose."""
+    """Fixes become the sentences of the ``issues`` prose."""
     verdict = not fixes if correct is None else correct
     return json.dumps({"correct": verdict, "issues": " ".join(fixes) if fixes else "None"})
 
@@ -89,7 +89,7 @@ class VerifyCaptionsParsingTests(unittest.TestCase):
                 "<think>\nmaybe wrong\n</think>\n```json\n" + _fixes_json(DEFAULT_FIX) + "\n```",
                 (DEFAULT_FIX,),
             ),
-            # Curly quotes leave the splitter blind to the span, fragmenting one finding in two.
+            # Curly quotes would split one finding in two.
             "typographic quotes": (
                 json.dumps(
                     {
@@ -108,7 +108,7 @@ class VerifyCaptionsParsingTests(unittest.TestCase):
                 (DEFAULT_FIX,),
             ),
             "true verdict": (_fixes_json(), ()),
-            # Contradictions resolve toward "no issue" - the direction that avoids false flags.
+            # Contradictions resolve toward "no issue".
             "true verdict outranks issues": (_fixes_json(DEFAULT_FIX, correct=True), ()),
             "false verdict with sentinel issues": (
                 json.dumps({"correct": False, "issues": "None"}),
@@ -132,7 +132,6 @@ class VerifyCaptionsParsingTests(unittest.TestCase):
                 self.assertEqual(parsed.fixes, expected)
 
     def test_rejects_responses_it_cannot_trust(self) -> None:
-        """An unverdicted response is retried rather than trusted."""
         for raw in (
             "not json",
             json.dumps({"issues": DEFAULT_FIX}),
@@ -157,7 +156,7 @@ class ResponsePreviewTests(unittest.TestCase):
         self.assertTrue(preview.endswith("…"))
 
     def test_the_cut_matches_how_the_frontend_elides(self) -> None:
-        """This message reaches the browser, where CSS and captionDiff both elide with U+2026."""
+        """CSS and captionWordDiff both elide with U+2026."""
         self.assertNotIn("...", _response_preview("a" * 400, limit=40))
 
 
@@ -169,7 +168,6 @@ class SplitFixSentencesTests(unittest.TestCase):
         )
 
     def test_a_terminator_inside_quotes_never_splits(self) -> None:
-        """The model quotes caption phrases verbatim, punctuation included."""
         text = 'Replace "a blue car. parked outside" with "a red car".'
 
         self.assertEqual(split_fix_sentences(text), [text])
@@ -180,7 +178,7 @@ class SplitFixSentencesTests(unittest.TestCase):
         self.assertEqual(split_fix_sentences(text), [text])
 
     def test_an_ellipsis_keeps_one_finding_together(self) -> None:
-        """Qwen shortens sentences with an ellipsis, which is not a sentence end."""
+        """An ellipsis is not a sentence end."""
         text = "The caption says the arm is raised... it hangs at the side in the image."
 
         self.assertEqual(split_fix_sentences(text), [text])
@@ -213,7 +211,7 @@ class SplitFixSentencesTests(unittest.TestCase):
         )
 
     def test_a_semicolon_keeps_one_finding_together(self) -> None:
-        """Qwen joins the observation and its correction with a semicolon."""
+        """Qwen joins observation and correction with a semicolon."""
         text = "The caption says the hair is blonde; it is brown in the image"
 
         self.assertEqual(split_fix_sentences(text), [text])
@@ -262,7 +260,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
         self.assertNotIn("# Additional context", prompt)
 
     def test_build_system_prompt_asks_for_a_verdict_and_issue_prose(self) -> None:
-        """An array invites enumeration; the issues field must stay prose."""
+        """An array invites enumeration."""
         prompt = build_verification_system_prompt()
 
         self.assertIn('"correct": true or false', prompt)
@@ -273,21 +271,21 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
         self.assertNotIn("severity", prompt.lower())
 
     def test_build_system_prompt_keeps_the_issue_wording_declarative(self) -> None:
-        """Terse imperatives are cheap to enumerate: 2.3 findings per caption against 1.3."""
+        """Imperatives give 2.3 findings per caption against 1.3."""
         prompt = build_verification_system_prompt()
 
         self.assertNotIn("Replace, Remove, or Change", prompt)
         self.assertIn("stating what it should say instead", prompt)
 
     def test_build_system_prompt_leads_with_permission_to_pass(self) -> None:
-        """Leading with the negative case is what made the model flag every caption."""
+        """Leading with the negative case makes the model flag everything."""
         rules = _rules_section(build_verification_system_prompt())
 
         self.assertLess(rules.index('Set "correct" to true'), rules.index('Set "correct" to false'))
         self.assertIn("When you are unsure", rules)
 
     def test_build_system_prompt_carries_no_sample_fix_text(self) -> None:
-        """A concrete example gets copied; the schema describes the shape instead."""
+        """A concrete example gets copied."""
         prompt = build_verification_system_prompt()
 
         self.assertNotIn("hands on her hips", prompt)
@@ -300,7 +298,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
         self.assertIn("most important first", prompt)
 
     def test_build_system_prompt_confines_an_issue_to_one_sentence(self) -> None:
-        """The parser splits on terminators, so a second sentence becomes a second fix."""
+        """A second sentence becomes a second fix."""
         prompt = build_verification_system_prompt()
 
         self.assertIn("Each issue is a single sentence", prompt)
@@ -319,7 +317,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
         self.assertIn('**never** inside it as in `"wrong wording,"`', prompt)
 
     def test_build_system_prompt_keeps_the_rules_about_judging(self) -> None:
-        """Rules that teach fix-writing shift the prompt's weight from judging to producing."""
+        """Fix-writing rules shift the weight from judging to producing."""
         rules = _rules_section(build_verification_system_prompt())
 
         self.assertEqual(rules.count("\n- "), 4)
@@ -327,7 +325,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
             self.assertNotIn(mechanic, rules)
 
     def test_build_system_prompt_demands_straight_double_quotes_around_the_wording(self) -> None:
-        """The splitter and the resolver's caption highlight both key off the `"` character."""
+        """The splitter and highlight key off `"`."""
         prompt = build_verification_system_prompt()
 
         self.assertIn("straight double quotes", prompt)
@@ -335,7 +333,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
         self.assertNotIn("straight double quotes", _rules_section(prompt))
 
     def test_build_system_prompt_exempts_findings_with_nothing_to_quote(self) -> None:
-        """An invented quote matches no caption text and points the resolver at nothing."""
+        """An invented quote points the resolver at nothing."""
         prompt = build_verification_system_prompt()
 
         self.assertIn("no wrong wording to quote", prompt)
@@ -363,7 +361,7 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
 
 
 def _sent_image_pixels(client: FakeChatClient) -> int:
-    """Decode the still this request actually carried, at the size it was sent."""
+    """The still at the size it was sent."""
     url = image_urls(client.last["messages"])[0]
     image = Image.open(BytesIO(base64.b64decode(url.split(",", 1)[1])))
     return image.width * image.height
@@ -485,7 +483,6 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
         self.assertEqual(result["stats"]["issues_found"], 0)
 
     def test_run_job_leaves_unselected_files_alone(self) -> None:
-        """Only the files the job verified are rewritten; the rest keep their findings."""
         with TempMediaFolder() as root:
             selected = write_media(root, "selected.png")
             unselected = write_media(root, "unselected.png")
@@ -534,7 +531,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
             )
 
     def test_a_clean_file_does_not_clear_a_stem_sharer_findings(self) -> None:
-        """clip.jpg and clip.png once shared one stem-named sidecar, so the last one verified won."""
+        """Separate sidecars, so one verdict never replaces the other."""
         with TempMediaFolder() as root:
             flagged = write_media(root, "clip.jpg")
             clean = write_media(root, "clip.png")
@@ -597,7 +594,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
-            # Unparseable every time, so the attempts run out and all three are visible.
+            # Unparseable every time, so all three attempts show.
             client = FakeChatClient("not json at all")
             _verification, status, _message = process_media(client, media, SYSTEM_PROMPTS)
 
@@ -605,7 +602,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
         sent = [image_urls(request["messages"]) for request in client.requests]
         self.assertEqual(len(sent), MAX_MODEL_ATTEMPTS)
         self.assertEqual(len({tuple(images) for images in sent}), MAX_MODEL_ATTEMPTS)
-        # Same still throughout - it is the encoding that differs, not the media.
+        # The encoding differs, not the media.
         self.assertEqual({len(images) for images in sent}, {1})
 
     def test_processed_count_does_not_double_count_issues_found(self) -> None:
@@ -629,7 +626,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
         self.assertEqual(result["stats"]["issues_found"], 1)
 
     def test_run_job_picks_the_prompt_matching_each_media_kind(self) -> None:
-        # Nothing else catches a still checked against the keyframe prompt; GIF is the still side.
+        # GIF is the still side.
         with TempMediaFolder() as root:
             photo = write_media(root, "photo.png")
             gif = write_gif(root, "loop.gif", frames=8)
@@ -675,7 +672,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
         self.assertEqual(result["stats"]["success"], 0)
 
     def test_a_gif_goes_out_as_one_unlabelled_still_without_audio(self) -> None:
-        """Auto-caption's audio option must not leak into the job that shares its plumbing."""
+        """Auto-caption's audio option must not leak in."""
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif", frames=8)
             frames = load_media_images(media)
@@ -696,7 +693,7 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
 
                     user_content = client.last["messages"][1]["content"]
                     types = [part.get("type") for part in user_content]
-                    # One instruction and no frame labels: nothing claims a sequence.
+                    # Nothing claims a sequence.
                     self.assertEqual(sorted(types), ["image_url", "text"])
                     text = next(part["text"] for part in user_content if part["type"] == "text")
                     self.assertNotIn("keyframes", text)

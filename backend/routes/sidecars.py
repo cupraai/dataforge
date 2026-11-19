@@ -17,7 +17,7 @@ _SUFFIX_BY_KIND: dict[SidecarKind, str] = {
 
 
 def _blank_caption_names(scan: FolderScan) -> set[str]:
-    """Only captions the gallery pairs with media; ``clip.png`` and ``clip.mp4`` share one."""
+    """``clip.png`` and ``clip.mp4`` share one."""
     names: set[str] = set()
     for media in scan.media:
         name = resolve_caption_file_name(media.path.stem, lambda candidate: candidate in scan.files)
@@ -30,15 +30,15 @@ def _sweep_names(scan: FolderScan, kind: SidecarKind) -> list[str]:
     if kind == "empty_caption":
         names = _blank_caption_names(scan)
     else:
-        # Exact case, matching `FolderScan.sidecar`; do not delete more than the confirmation showed.
+        # Exact case, as `FolderScan.sidecar` and the confirmation count.
         names = {name for name in scan.files if name.endswith(_SUFFIX_BY_KIND[kind])}
-    # Lowercased, matching how `folder_scan` orders everything else.
+    # Lowercased, as `folder_scan` orders.
     return sorted(names, key=lambda name: (name.lower(), name))
 
 
 @router.post("/sidecars/delete", response_model=SidecarDeleteResponse)
 def delete_sidecars(request: SidecarDeleteRequest) -> SidecarDeleteResponse:
-    """Delete every sidecar of ``kind`` in ``folder``, leaving media untouched."""
+    """Delete every sidecar of ``kind``; media is untouched."""
     folder_path = resolve_folder(request.folder)
 
     scan = scan_folder(folder_path)

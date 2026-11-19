@@ -1,4 +1,4 @@
-"""The ``.duplicate.json`` sidecar records a group id, never member names; named after the whole filename so ``clip.mp4`` and ``clip.png`` cannot share one."""
+"""The sidecar records a group id, never member names, and is named after the whole filename."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ GROUP_ID_LENGTH = 12
 @dataclass(frozen=True)
 class DuplicateFinding:
     group: str
-    #: Worst pairwise Hamming distance, so 0 means the files are exact, whatever the threshold.
+    #: 0 means exact, whatever the threshold.
     max_distance: int
     threshold: str
 
@@ -32,7 +32,7 @@ def duplicate_file_path(media_path: Path) -> Path:
 
 
 def group_id_for(names: list[str]) -> str:
-    """Derived so a re-run over an unchanged folder rewrites the same ids."""
+    """Derived, so a re-run rewrites the same ids."""
     joined = "\n".join(sorted(names))
     return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:GROUP_ID_LENGTH]
 
@@ -54,7 +54,7 @@ def _finding_from_data(data: object) -> DuplicateFinding | None:
 
 
 def _finding_from_json(raw: bytes) -> DuplicateFinding | None:
-    # Bytes, not text: ``json.loads`` skips the BOM a sidecar hand-edited in Notepad picks up.
+    # Bytes, so ``json.loads`` skips a Notepad BOM.
     try:
         data = json.loads(raw)
     except ValueError:
@@ -76,7 +76,7 @@ def duplicate_finding_from_sidecar(
     mtime_ns: int,
     size: int,
 ) -> DuplicateFinding | None:
-    """The finding in a sidecar the caller has already stat'ed."""
+    """For a sidecar the caller has already stat'ed."""
     return cached_by_stat(
         "duplicate",
         sidecar_path,
@@ -107,7 +107,7 @@ def delete_duplicate_file(media_path: Path) -> None:
 
 
 def group_duplicate_findings(scan: FolderScan) -> dict[str, list[tuple[Path, DuplicateFinding]]]:
-    """Groups with fewer than two live members are dropped; ``scan_folder`` is uncached so two walks could disagree."""
+    """``scan_folder`` is uncached, so walks can differ."""
     groups: dict[str, list[tuple[Path, DuplicateFinding]]] = {}
 
     for media_path, finding in findings_in_scan(scan):
@@ -134,7 +134,7 @@ def stale_duplicate_members(scan: FolderScan) -> list[Path]:
 
 
 def findings_in_scan(scan: FolderScan) -> Iterator[tuple[Path, DuplicateFinding]]:
-    """Media-driven so an orphaned sidecar is ignored rather than reported as a member."""
+    """An orphaned sidecar is ignored."""
     for media in scan.media:
         sidecar = scan.sidecar(media.name, DUPLICATE_SIDECAR_SUFFIX)
         if sidecar is None:

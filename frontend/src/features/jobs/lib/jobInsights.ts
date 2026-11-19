@@ -36,10 +36,7 @@ export function jobUnitWord(job: Job, count: number): string {
   return count === 1 ? one : many;
 }
 
-/**
- * A finished run's per-file outcome, read from its counters so no result list is fetched.
- * `done` is the remainder: sub-stats such as `image_success` would otherwise count twice.
- */
+/** Per-file outcome from counters; `done` is the remainder, as sub-stats would double count. */
 export function jobOutcomeMix(job: Job): JobOutcomeMix | null {
   if (!isTerminalJobStatus(job.status) || job.job_type === "train_lora") return null;
 
@@ -56,11 +53,7 @@ export function jobOutcomeMix(job: Job): JobOutcomeMix | null {
   return { done, skipped, failed, notRun };
 }
 
-/**
- * The one fact a job type's counters say beyond the file mix, or null. A clean result is
- * claimed only for a completed scan: a run that stopped early found nothing because it looked
- * at too little.
- */
+/** The one fact beyond the file mix; a clean result only for a completed scan. */
 export function jobHeadline(job: Job): string | null {
   if (!isTerminalJobStatus(job.status)) return null;
   const completed = job.status === "completed";

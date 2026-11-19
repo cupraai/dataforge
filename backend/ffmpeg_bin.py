@@ -19,7 +19,7 @@ type FfmpegLocation = tuple[str, FfmpegSource]
 PINNED_VERSION = (7, 1)
 
 FFMPEG_EXECUTABLE = "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg"
-#: Where setup unpacks its checksum-verified build; imageio-ffmpeg's bundle is 7.1.0, unpatched.
+#: imageio-ffmpeg's bundle is 7.1.0, unpatched.
 SETUP_FFMPEG_DIR = Path(__file__).resolve().parent.parent / ".ffmpeg" / "bin"
 
 _VERSION_TIMEOUT_SECONDS = 10
@@ -27,7 +27,7 @@ _VERSION_BANNER = re.compile(r"^ffmpeg version n?(\d+)\.(\d+)(?:\.(\d+))?(?=\s|[
 
 
 def locate_ffmpeg() -> FfmpegLocation | None:
-    """The most patched 7.1 build; a tie goes to setup's copy, then PATH, then the bundle."""
+    """A tie goes to setup's copy, then PATH, then the bundle."""
     best: FfmpegLocation | None = None
     best_patch = -1
     for executable, source in _candidates():
@@ -89,7 +89,7 @@ def _pinned_version(executable: str) -> tuple[int, int, int] | None:
 
 @functools.cache
 def _ffmpeg_version(executable: str, _modified_ns: int) -> tuple[int, int, int] | None:
-    """``(major, minor, patch)``; a banner without a patch number is patch 0."""
+    """A banner without a patch number is patch 0."""
     try:
         completed = subprocess.run(
             [executable, "-version"],

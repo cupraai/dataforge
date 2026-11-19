@@ -385,8 +385,7 @@ describe("CropOverlay", () => {
       const crop: CropRect = { x: 0.25, y: 0.25, width: 0.5, height: 0.5 };
       const props = renderOverlay({ crop, orientation: turned({ rotate: 90 }) });
 
-      // Screen-right, on a frame whose top now faces right, is the source's up - so the
-      // bottom edge comes in, and the 80px is measured across the box's *height*.
+      // On a turned frame, screen-right is the source's up, so the 80px crosses the height.
       drag(screen.getByRole("button", { name: "Crop bottom-right corner" }), 80, 0);
 
       const next = vi.mocked(props.onCropChange).mock.calls[0][0];
@@ -405,8 +404,7 @@ describe("CropOverlay", () => {
     });
 
     it("maps an arrow key the same way a drag is mapped", () => {
-      // The arrows point at the screen too, so a nudge that skipped the mapping would
-      // move the rectangle at right angles to the key that was pressed.
+      // Arrow keys are screen directions too.
       const props = renderOverlay({
         crop: { x: 0.25, y: 0.25, width: 0.5, height: 0.5 },
         orientation: turned({ rotate: 90 }),

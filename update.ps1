@@ -3,18 +3,9 @@
   Updates a Git clone of DataForge to the latest version of its branch.
 
 .DESCRIPTION
-  Needs Git on PATH; a ZIP download has no history to pull, so it is updated by extracting
-  a new copy instead. The update is a fast-forward pull, so local commits or edits that
-  conflict with it stop the update without changing anything.
-
-  Setup runs again only when the update changed a runtime version or the backend
-  dependencies. The optional tagger is reinstalled only when it is already installed.
-  Frontend dependencies and the UI build need nothing here: the next start syncs and
-  rebuilds them.
-
-  The app must be stopped first, since the pull and setup replace files it is using.
-
-  Use this directly, or double-click update.bat for the same behavior.
+  Needs Git and a clone. A fast-forward pull, so conflicting local changes stop it
+  untouched. Setup reruns only when runtimes or backend dependencies changed.
+  Stop the app first. Double-click update.bat for the same.
 
 .EXAMPLE
   .\update.ps1

@@ -1,7 +1,4 @@
-/**
- * The editor's clipboard: clips copied with what they need to be placed again, in this project or
- * another one opened later in the same session, and settings pasted from one clip onto others.
- */
+/** Clips copied for pasting in this or a later project, and settings pasted onto other clips. */
 import type { VideoProjectSource, VideoProjectTransition } from "@/shared/types";
 import {
   clampFades,
@@ -76,11 +73,7 @@ function targetTrack(project: Project, content: ClipboardContent, trackId: strin
   return candidates[Math.min(original.slot, candidates.length - 1)] ?? null;
 }
 
-/**
- * Places a copy with its earliest clip at ``time``, on the matching tracks. Links and dissolves
- * hold among the copies. A file the project already names is reused; any other is added, and
- * ``added`` lists those so their state in this folder can be checked.
- */
+/** Places a copy at ``time`` on matching tracks; new files are listed in ``added``. */
 export function pasteClips(
   project: Project,
   content: ClipboardContent,

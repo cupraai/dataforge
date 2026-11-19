@@ -40,9 +40,8 @@ function useDesktopPermission(setting: boolean): DesktopPermission {
 }
 
 /**
- * Holds the notifier lock in the most recently focused tab: focus steals it, and a tab that lost
- * it waits in line, so closing the notifier hands the role to a remaining tab. Without the Web
- * Locks API every tab is a notifier.
+ * Holds the notifier lock in the last focused tab; others wait in line for it.
+ * Without Web Locks every tab notifies.
  */
 function useNotifierRole(enabled: boolean): boolean {
   const [holding, setHolding] = useState(false);

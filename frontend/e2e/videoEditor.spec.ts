@@ -6,10 +6,7 @@ import { WORKSPACE, openWorkspace } from "./workspace";
 const drafts = () =>
   fs.readdirSync(WORKSPACE).filter((name) => name.endsWith(".video-project.json"));
 
-/**
- * Ctrl plus a letter as a German QWERTZ keyboard reports it: Z and Y trade places, so the key
- * labelled Z has the physical code of QWERTY's Y. Playwright's own presses are always QWERTY.
- */
+/** Ctrl plus a letter as QWERTZ reports it: Z carries QWERTY Y's code. Playwright presses QWERTY. */
 async function pressQwertz(page: Page, letter: "z" | "y") {
   const session = await page.context().newCDPSession(page);
   const key = {
@@ -74,8 +71,7 @@ test("edits a video into a saved project, reopens it from the gallery and delete
   });
   await versions.getByRole("button", { name: "Close", exact: true }).click();
 
-  // The editor is a route: its address names the saved draft, so a reload reopens it, Back
-  // returns to the gallery and Forward comes back.
+  // The editor is a route: reload reopens the draft, Back returns, Forward comes back.
   const draftAddress = new RegExp(`/editor/project\\?path=.+${drafts()[0].replace(/\./g, "\\.")}$`);
   await expect(page).toHaveURL(draftAddress);
   await page.reload();

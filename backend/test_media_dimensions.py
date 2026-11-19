@@ -111,8 +111,7 @@ class VideoDimensionTests(unittest.TestCase):
         with TempMediaFolder() as root:
             for name in ("clip.mkv", "clip.avi", "clip.wmv", "clip.flv"):
                 with self.subTest(name=name):
-                    # MP4 bytes under a non-MP4 name: only the suffix should decide,
-                    # so a parseable payload must still come back empty.
+                    # Only the suffix decides, so MP4 bytes under another name come back empty.
                     disguised = write_mp4_video(root, name, width=1920, height=1080)
                     self.assertIsNone(_dimensions(disguised, "video"))
 
@@ -200,8 +199,7 @@ class DimensionCacheTests(unittest.TestCase):
 
             self.assertEqual(_dimensions(media, "image"), (800, 600))
 
-            # Same stat signature, different bytes: the memo is what answers here,
-            # which is what keeps a repeat listing off the disk entirely.
+            # Same stat, different bytes: the memo answers, keeping repeat listings off the disk.
             media.write_bytes(write_media(root, "other.png", width=64, height=48).read_bytes())
             self.assertEqual(
                 media_dimensions(media, "image", stat.st_mtime_ns, stat.st_size),

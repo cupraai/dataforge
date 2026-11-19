@@ -1,8 +1,4 @@
-"""Every file tied to a media file by its name, so rename, move and delete keep them together.
-
-A file left behind is worse than clutter: backups and candidates pair by name, so a later file of
-the same name would silently inherit them.
-"""
+"""Every file tied to a media file by name, so rename, move and delete keep them together."""
 
 from __future__ import annotations
 
@@ -24,10 +20,7 @@ from video_project import snapshot_path_for
 
 
 def media_group_paths(media: Path) -> list[Path]:
-    """The media file first, then each related file that exists.
-
-    A model file takes no caption: a same-stem caption belongs to the folder's media, so it stays.
-    """
+    """The media file first, then each related file; a model file takes no caption."""
     paths = [media]
     captioned = not is_model_path(media)
 
@@ -36,7 +29,7 @@ def media_group_paths(media: Path) -> list[Path]:
         if sidecar.is_file():
             paths.append(sidecar)
 
-    # Not `with_suffix` names: these are two suffixes deep or keep the whole filename.
+    # Two suffixes deep, or keyed by the whole filename.
     for extra in (
         issue_file_path(media),
         duplicate_file_path(media),
@@ -65,7 +58,7 @@ def media_group_paths(media: Path) -> list[Path]:
 
 
 def stem_siblings(media: Path) -> list[Path]:
-    """Other captioned files in the folder with this stem; they share its caption."""
+    """Other captioned files with this stem; they share its caption."""
     stem = os.path.normcase(media.stem)
     try:
         entries = list(media.parent.iterdir())
@@ -82,11 +75,7 @@ def stem_siblings(media: Path) -> list[Path]:
 
 
 def stem_keyed_paths(media: Path) -> set[Path]:
-    """Related names built from the stem alone, which every same-stem sibling resolves to.
-
-    Only the caption and its backup: everything else, the edit state included, is keyed by the
-    whole filename so siblings never change each other's.
-    """
+    """Only the caption and its backup; the rest is keyed by the whole filename."""
     backup_dir = media.parent / CAPTION_BACKUP_DIR_NAME
     return {
         *(media.with_suffix(extension) for extension in SIDECAR_EXTENSIONS),
@@ -95,17 +84,17 @@ def stem_keyed_paths(media: Path) -> set[Path]:
 
 
 def shared_stem_paths(media: Path) -> set[Path]:
-    """:func:`stem_keyed_paths` while a sibling still shares them; empty for a lone file."""
+    """:func:`stem_keyed_paths` while a sibling shares them; empty for a lone file."""
     return stem_keyed_paths(media) if stem_siblings(media) else set()
 
 
 def sidecar_suffix(media: Path, related: Path) -> str:
-    """The part after the media stem. ``Path.suffix`` would collapse ``photo.issue.json`` onto ``.json``."""
+    """``Path.suffix`` reads ``photo.issue.json`` as ``.json``."""
     return related.name[len(media.stem) :]
 
 
 def group_target(media: Path, target_media: Path, related: Path) -> Path:
-    """Where ``related`` lands when ``media`` becomes ``target_media``, keeping its subfolder."""
+    """Where ``related`` lands when ``media`` is renamed, keeping its subfolder."""
     if related == media:
         return target_media
     name = target_media.stem + sidecar_suffix(media, related)

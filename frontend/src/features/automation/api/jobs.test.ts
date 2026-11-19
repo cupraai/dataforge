@@ -86,8 +86,7 @@ describe("automation API", () => {
       overwrite: true,
     });
 
-    // The bodies still go out verbatim: the guarantee is the compile error above,
-    // not a runtime filter. Without it the backend would silently ignore both.
+    // The guarantee is the compile error above; the bodies still go out verbatim.
     expect(postJsonMock).toHaveBeenCalledTimes(2);
     expect(postJsonMock).toHaveBeenLastCalledWith(
       "/api/automation/batch-rename?path=C%3A%5CPhotos",

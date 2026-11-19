@@ -1,5 +1,3 @@
-"""Utility job to rename supported media files with a numbered stem prefix."""
-
 from __future__ import annotations
 
 import logging
@@ -36,7 +34,7 @@ def normalize_name_stem(stem: str) -> str:
 
 
 def normalize_start_number(start_number: object) -> int:
-    # Arrives as JSON from a job's stored settings, so anything at all can turn up here.
+    # Stored JSON, so anything can turn up here.
     if isinstance(start_number, bool) or not isinstance(start_number, int | float | str):
         raise ValueError("Start number must be a whole number")
     try:
@@ -49,7 +47,7 @@ def normalize_start_number(start_number: object) -> int:
 
 
 def sequence_padding(count: int, start_number: int = 1) -> int:
-    """Digits wide enough for the highest number in the sequence, never fewer than three."""
+    """Never fewer than three digits."""
     highest = max(start_number + count - 1, start_number)
     return max(3, len(str(highest)))
 
@@ -114,7 +112,7 @@ def validate_rename_media_folder(
 
 
 def _progress_files(step: int, total: int) -> int:
-    # step runs 1..2N across the two passes; the UI counts files, not passes.
+    # step runs 1..2N; the UI counts files, not passes.
     return min(total, (step + 1) // 2)
 
 
@@ -178,8 +176,7 @@ def run_rename_media_job(
         for index, media_path in enumerate(media_files, start=normalized_start)
     ]
 
-    # Held for both passes: a render or caption save meanwhile would write under a name that is
-    # about to change.
+    # Held for both passes so nothing writes under a name about to change.
     claimed = [path for source, target in plan for path in (*media_group_paths(source), target)]
     with claim(claimed, "rename"):
         return _rename_planned(
@@ -195,7 +192,7 @@ def _rename_planned(
     on_progress: ProgressCallback | None,
     should_cancel: ShouldCancel | None,
 ) -> dict[str, object]:
-    """Every source to a temporary name, then every temporary name to its target."""
+    """Every source to a temporary name, then to its target."""
     total = len(plan)
     file_results: list[dict[str, object]] = []
     temp_entries: list[tuple[Path, Path, Path]] = []

@@ -56,7 +56,6 @@ function renderMap(onSelect?: (nodeId: string) => void) {
   );
 }
 
-/** The box whose visible label is ``label``. */
 function box(label: string): HTMLElement {
   return screen.getByText(label).closest(".comfy-workflow-dialog__map-node") as HTMLElement;
 }

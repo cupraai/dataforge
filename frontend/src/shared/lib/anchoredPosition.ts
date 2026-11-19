@@ -94,8 +94,7 @@ export function computeAnchoredPosition({
   const room = (side: AnchoredSide) => roomOn(side, anchor, viewport, offset, gutter);
   const mainNatural = (side: AnchoredSide) => (isVertical(side) ? floating.height : floating.width);
 
-  // Flip only to escape a side that cannot hold the element, and only when the
-  // other side is genuinely roomier — otherwise a cramped surface would flap.
+  // Flip only off a side too small, to a roomier one, or a cramped surface would flap.
   const opposite = OPPOSITE_SIDE[preferred];
   const side =
     flip && room(preferred) < mainNatural(preferred) && room(opposite) > room(preferred)
@@ -138,8 +137,7 @@ export function computeAnchoredPosition({
     top: vertical ? main : cross,
     side,
     shift,
-    // Reported only where it binds: an unconditional cap would override the
-    // element's own CSS max-width and let it grow rather than hold it back.
+    // Only where it binds, or it would override the element's own max-width.
     maxWidth: width < floating.width ? width : undefined,
     maxHeight: height < floating.height ? height : undefined,
   };

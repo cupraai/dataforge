@@ -1,8 +1,6 @@
 @use "../abstracts/mixins" as *;
 
-// Range inputs: a thin track painted from `--fill-from` to `--fill-to`, and a light thumb that
-// reads on both themes and over media. Vendor pseudo-elements cannot share a selector list (an
-// engine that does not recognise one drops the whole rule), hence the mixins.
+// Thin filled track and light thumb; vendor pseudo-elements need separate rules.
 
 @mixin slider-track {
   height: var(--slider-track);

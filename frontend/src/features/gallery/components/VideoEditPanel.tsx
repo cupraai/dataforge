@@ -87,8 +87,7 @@ function speedHint(frameRate: VideoFrameRate | null, outputSeconds: number): Too
   };
 }
 
-// Adjust has none: its strip and dial take the whole row and label themselves.
-// Adjust has its own, which follows the wand. Speed's depends on the draft.
+// Adjust labels itself and follows the wand; Speed's depends on the draft.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   trim: TRIM_HINT,
   volume: { message: "Applies to the whole clip; Mute removes the sound." },

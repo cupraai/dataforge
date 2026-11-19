@@ -9,10 +9,7 @@ interface FolderNoteSave {
   text: string;
 }
 
-/**
- * Matches by the listing's own path: the folder opened at startup is cached under a
- * placeholder key, not its path.
- */
+/** Matches by the listing's own path: the startup folder is cached under a placeholder key. */
 function holdsFolder(path: string) {
   return (query: Query) => {
     const data = query.state.data as FolderResponse | undefined;

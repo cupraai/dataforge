@@ -23,10 +23,7 @@ export function hasUsableDuration(duration: number): boolean {
   return Number.isFinite(duration) && duration > 0;
 }
 
-/**
- * Last step-aligned time before the duration. A range input only reaches step multiples, so a
- * bare-duration max leaves the thumb short and an off-grid value splits thumb from fill.
- */
+/** The last step-aligned time, so the thumb and fill line up. */
 export function lastFrameTime(duration: number, step: number = FRAME_STEP_SECONDS): number {
   if (!hasUsableDuration(duration)) return 0;
   // The nudge keeps float error from flooring an exact multiple one step down.

@@ -1,5 +1,3 @@
-"""Drive a running ComfyUI over its HTTP API."""
-
 from __future__ import annotations
 
 import json
@@ -14,35 +12,35 @@ from comfy_settings import get_comfy_base_url
 from external.comfy_logs import LOG_TAIL_LINES, assemble_log_lines
 
 COMFY_REQUEST_TIMEOUT_SECONDS = 10.0
-# Per read/write, not per transfer, so a chunked download of a long clip is covered by it.
+# Per read/write, not per transfer, so a long download is covered.
 COMFY_TRANSFER_TIMEOUT_SECONDS = 120.0
 COMFY_POLL_INTERVAL_SECONDS = 1.0
 
 DOWNLOAD_CHUNK_BYTES = 64 * 1024
 
-# Uploads land in this subfolder; ComfyUI has no delete-input endpoint.
+# ComfyUI has no delete-input endpoint.
 COMFY_INPUT_SUBFOLDER = "dataforge"
 
-# Internal and unversioned: an older ComfyUI simply 404s here.
+# Internal and unversioned.
 COMFY_LOGS_PATH = "/internal/logs/raw"
 
 _TERMINAL_STATUS_STRINGS = frozenset({"success", "error"})
 
 
 class ComfyError(Exception):
-    """Any failure talking to ComfyUI."""
+    pass
 
 
 class ComfyUnavailableError(ComfyError):
-    """ComfyUI did not answer at all."""
+    pass
 
 
 class ComfyPromptError(ComfyError):
-    """ComfyUI rejected the graph, or failed while executing it."""
+    """Rejected the graph, or failed while executing it."""
 
 
 def open_comfy_client(timeout: float) -> httpx.Client:
-    """Binds the address once, so a job keeps talking to the ComfyUI it started on."""
+    """So a job keeps talking to the ComfyUI it started on."""
     return httpx.Client(base_url=get_comfy_base_url(), timeout=timeout)
 
 
@@ -52,7 +50,6 @@ def _media_type(source: Path) -> str:
 
 
 def _node_error_text(payload: dict[str, Any]) -> str:
-    """The most specific message ComfyUI offers about a rejected graph."""
     error = payload.get("error")
     if isinstance(error, dict):
         message = error.get("message")
@@ -82,15 +79,12 @@ def upload_media(
     name: str,
     subfolder: str = COMFY_INPUT_SUBFOLDER,
 ) -> str:
-    """Put ``source`` in ComfyUI's input folder; ``name`` must be unique per file.
-
-    Streamed from a handle rather than read whole: a clip does not fit the way a PNG does.
-    """
+    """Upload into ComfyUI's input folder, streamed; ``name`` must be unique per file."""
     data = {"type": "input", "subfolder": subfolder, "overwrite": "true"}
 
     try:
         with source.open("rb") as handle:
-            # The field is "image" for video too; VHS uploads through this same endpoint.
+            # The field is "image" for video too.
             files = {"image": (name, handle, _media_type(source))}
             response = client.post(
                 "/upload/image",
@@ -116,7 +110,7 @@ def upload_media(
 
 
 def submit_prompt(client: httpx.Client, prompt: dict[str, Any], *, client_id: str) -> str:
-    """Queue a patched graph, returning its prompt id. A 200 with ``node_errors`` is still a reject."""
+    """A 200 with ``node_errors`` is a reject."""
     try:
         response = client.post(
             "/prompt",
@@ -148,7 +142,7 @@ def submit_prompt(client: httpx.Client, prompt: dict[str, Any], *, client_id: st
 
 
 def fetch_history(client: httpx.Client, prompt_id: str) -> dict[str, Any] | None:
-    """The finished run's entry, or None while it is still queued or executing."""
+    """None while still queued or executing."""
     try:
         response = client.get(
             f"/history/{prompt_id}",
@@ -171,7 +165,7 @@ def fetch_history(client: httpx.Client, prompt_id: str) -> dict[str, Any] | None
 def history_is_finished(entry: dict[str, Any]) -> bool:
     status = entry.get("status")
     if not isinstance(status, dict):
-        # Older builds report no status block at all; an entry with outputs is done.
+        # Older builds report no status block.
         return bool(entry.get("outputs"))
 
     if status.get("completed") is True:
@@ -180,7 +174,7 @@ def history_is_finished(entry: dict[str, Any]) -> bool:
 
 
 def history_error_text(entry: dict[str, Any]) -> str | None:
-    """The reason a finished run failed, or None if it succeeded."""
+    """None if it succeeded."""
     status = entry.get("status")
     if not isinstance(status, dict):
         return None
@@ -204,9 +198,7 @@ def history_error_text(entry: dict[str, Any]) -> str | None:
 
 
 def _node_refs(node_output: object) -> list[dict[str, str]]:
-    """Every file one node wrote. Matched by shape, not by key: SaveImage files under "images",
-    VHS_VideoCombine under "gifs" and SaveVideo under "videos", and a guessed key reads as
-    "produced no output" on a run that succeeded."""
+    """Matched by shape, not key: each save node files under its own key."""
     if not isinstance(node_output, dict):
         return []
 
@@ -231,11 +223,7 @@ def _node_refs(node_output: object) -> list[dict[str, str]]:
 
 
 def history_outputs(entry: dict[str, Any], *, node_id: str | None = None) -> list[dict[str, str]]:
-    """Every file the run wrote, as ``{filename, subfolder, type}`` refs ``/view`` takes verbatim.
-
-    ``node_id`` narrows it to one node, which is the only way to tell a graph's real output from
-    a preview it also emitted.
-    """
+    """``node_id`` tells a graph's real output from a preview it also emitted."""
     outputs = entry.get("outputs")
     if not isinstance(outputs, dict):
         return []
@@ -250,7 +238,7 @@ def history_outputs(entry: dict[str, Any], *, node_id: str | None = None) -> lis
 
 
 def download_view_to(client: httpx.Client, ref: dict[str, str], destination: Path) -> None:
-    """The bytes behind one output ref, streamed to a file. A rendered clip does not belong in memory."""
+    """Streamed to a file, not held in memory."""
     try:
         with (
             client.stream(
@@ -273,7 +261,6 @@ def download_view_to(client: httpx.Client, ref: dict[str, str], destination: Pat
 
 
 def fetch_queue(client: httpx.Client) -> tuple[list[str], list[str]]:
-    """Prompt ids ComfyUI is running now, and those still pending."""
     try:
         response = client.get("/queue", timeout=COMFY_REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
@@ -312,7 +299,6 @@ def interrupt(client: httpx.Client, prompt_id: str) -> None:
 
 
 def delete_queued(client: httpx.Client, prompt_id: str) -> None:
-    """Drop a still-pending prompt from the queue."""
     try:
         response = client.post(
             "/queue",
@@ -325,7 +311,7 @@ def delete_queued(client: httpx.Client, prompt_id: str) -> None:
 
 
 def fetch_node_info(client: httpx.Client, class_type: str) -> dict[str, Any] | None:
-    """ComfyUI's description of one node class, or None when it has no such node installed."""
+    """None when the node is not installed."""
     try:
         response = client.get(
             f"/object_info/{quote(class_type, safe='')}", timeout=COMFY_REQUEST_TIMEOUT_SECONDS
@@ -342,7 +328,7 @@ def fetch_node_info(client: httpx.Client, class_type: str) -> dict[str, Any] | N
 
 
 def fetch_raw_log_entries(client: httpx.Client) -> list[dict[str, Any]]:
-    """ComfyUI's recent console writes, oldest first. The window is bounded by ComfyUI, not us."""
+    """Oldest first; ComfyUI bounds the window."""
     try:
         response = client.get(COMFY_LOGS_PATH, timeout=COMFY_REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
@@ -360,10 +346,7 @@ def fetch_raw_log_entries(client: httpx.Client) -> list[dict[str, Any]]:
 
 
 def read_log_lines(*, limit: int = LOG_TAIL_LINES) -> list[str] | None:
-    """The tail of ComfyUI's console, or None when it cannot be read at all.
-
-    None and an empty list are different answers: nothing to read versus nothing written.
-    """
+    """None when unreadable; an empty list when nothing was written."""
     try:
         with open_comfy_client(COMFY_REQUEST_TIMEOUT_SECONDS) as client:
             entries = fetch_raw_log_entries(client)
@@ -374,7 +357,6 @@ def read_log_lines(*, limit: int = LOG_TAIL_LINES) -> list[str] | None:
 
 
 def probe_available() -> bool:
-    """Whether ComfyUI answers, for the dialog to say so before a job is queued."""
     try:
         with open_comfy_client(COMFY_REQUEST_TIMEOUT_SECONDS) as client:
             response = client.get("/system_stats")

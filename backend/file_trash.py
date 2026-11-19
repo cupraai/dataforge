@@ -1,5 +1,3 @@
-"""Deleting to somewhere recoverable where the platform has one."""
-
 from __future__ import annotations
 
 import os
@@ -35,8 +33,7 @@ if sys.platform == "win32":
 
 
 def _send_to_recycle_bin(path: Path) -> None:
-    """Move ``path`` to the Windows Recycle Bin (FOF_ALLOWUNDO)."""
-    # PCZZWSTR entries are null-terminated; a trailing "\0" yields the double-null terminator.
+    # A trailing "\0" yields PCZZWSTR's double-null terminator.
     absolute = str(path.resolve(strict=False))
     from_buffer = ctypes.create_unicode_buffer(absolute + "\0")
 
@@ -61,7 +58,7 @@ def delete_path(path: Path) -> None:
 
 
 def delete_empty_dir(path: Path) -> None:
-    """Like :func:`delete_path`; elsewhere ``rmdir`` refuses a folder that gained an entry."""
+    """Elsewhere ``rmdir`` refuses a folder that gained an entry."""
     if sys.platform == "win32":
         _send_to_recycle_bin(path)
         return
@@ -69,20 +66,16 @@ def delete_empty_dir(path: Path) -> None:
 
 
 def deletes_to_trash() -> bool:
-    """Whether :func:`delete_path` puts a file somewhere it can be recovered from."""
     return sys.platform == "win32"
 
 
-# A recycled file is a `$R…` data file beside a `$I…` record of where it came from:
-# version (int64), size (int64), deletion FILETIME (int64), then the original path in UTF-16.
-# Version 1 (Vista to 8.1) stores the path in a fixed 260-character field; version 2 (10 and
-# later) prefixes it with its length in characters, terminator included.
+# A `$I` record: version, size, deletion FILETIME, then the UTF-16 path (v1 fixed 260, v2 sized).
 _RECYCLE_HEADER = struct.Struct("<qqq")
 _RECYCLE_V1_PATH_CHARS = 260
 
 
 def parse_recycle_record(data: bytes) -> tuple[str, int] | None:
-    """The original path and deletion time of a `$I` record, or ``None`` if it is not one."""
+    """``None`` if it is not a `$I` record."""
     if len(data) < _RECYCLE_HEADER.size:
         return None
     version, _size, deleted_at = _RECYCLE_HEADER.unpack_from(data)
@@ -99,12 +92,12 @@ def parse_recycle_record(data: bytes) -> tuple[str, int] | None:
 
 
 def _recycled_copies(original: Path) -> list[tuple[int, Path]]:
-    """Every `$I` record for ``original`` in its drive's Recycle Bin, as (deleted_at, record)."""
+    """Every `$I` record for ``original``, as (deleted_at, record)."""
     root = Path(original.anchor) / "$Recycle.Bin"
     wanted = os.path.normcase(str(original))
     found: list[tuple[int, Path]] = []
     try:
-        # One folder per user SID; other users' folders refuse a listing, which is fine.
+        # Other users' folders refuse a listing.
         bins = [entry for entry in root.iterdir() if entry.is_dir()]
     except OSError:
         return found
@@ -124,11 +117,7 @@ def _recycled_copies(original: Path) -> list[tuple[int, Path]]:
 
 
 def restore_from_trash(original: Path) -> bool:
-    """Put the newest recycled copy of ``original`` back; ``False`` when the bin has none.
-
-    Raises :class:`FileExistsError` when something already took the name, since restoring over
-    it would destroy that file.
-    """
+    """Restore the newest recycled copy; ``False`` if none, ``FileExistsError`` if taken."""
     if not deletes_to_trash():
         return False
     for _deleted_at, record in sorted(_recycled_copies(original), reverse=True):

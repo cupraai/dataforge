@@ -268,8 +268,7 @@ export function Timeline({
     return engine.subscribe(move);
   }, [engine, pxPerSecond]);
 
-  // A zoom keeps one moment where it was on screen: the pointer's for a wheel zoom, otherwise
-  // the playhead when it is in view, otherwise the left edge.
+  // Zoom keeps one moment in place: the pointer, else the visible playhead, else the left edge.
   useLayoutEffect(() => {
     const before = shownPxRef.current;
     shownPxRef.current = pxPerSecond;
@@ -291,8 +290,7 @@ export function Timeline({
     );
   }, [engine, pxPerSecond]);
 
-  // Ctrl/Cmd + wheel zooms around the pointer. A plain wheel scrolls sideways while every track
-  // fits, since there is nothing to scroll the other way.
+  // Ctrl/Cmd + wheel zooms; a plain wheel scrolls sideways while every track fits.
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
@@ -888,9 +886,8 @@ const STEPS: [step: number, divisions: number][] = [
 const RULER_LABEL_PX = 96;
 
 /**
- * One label every 0.5 to 600 seconds, whichever leaves room to read it, and minor ticks between
- * them: single frames once they are wide enough to tell apart. A half second rounds down to a
- * whole frame (12 of 25), so every label names a frame.
+ * One label every 0.5-600 s as room allows, with frame ticks when wide enough.
+ * A half second rounds down to a whole frame, so every label names a frame.
  */
 function rulerTicks(
   pxPerSecond: number,
@@ -1242,11 +1239,7 @@ const FILMSTRIP_LEVEL: TileLevel = {
 const WAVEFORM_TILE_PX = 512;
 const WAVEFORM_LEVEL: TileLevel = { tilePx: WAVEFORM_TILE_PX, minSeconds: 1 / 32 };
 
-/**
- * The take's frames or sound, as tiles of the source in view: a closer zoom asks for finer
- * tiles, so it shows the frames and transients of the stretch it looks at, and the waveform
- * draws a lane per channel.
- */
+/** The take's frames or sound as source tiles in view; closer zoom asks for finer tiles. */
 function ClipPicture({
   clip,
   location,
@@ -1313,11 +1306,7 @@ function ClipPicture({
   return null;
 }
 
-/**
- * The sound's tiles, each fetched at the device pixels it is drawn at, or a little more, so the
- * browser only ever shrinks the mask: a stretched one blurs the line. A tile is drawn up to √2 of
- * its level's width before the next level takes over, so that is the width asked for.
- */
+/** Fetched at the device pixels drawn (up to √2 wide), so the mask only ever shrinks. */
 function WaveformTiles({
   clip,
   location,

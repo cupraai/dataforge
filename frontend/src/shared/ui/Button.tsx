@@ -20,10 +20,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "typ
   busyLabel?: ReactNode;
   /** A toggle's state; drawn with the accent surface. */
   pressed?: boolean;
-  /**
-   * No visible label: a bare icon makes a circle, and a count badge after it widens the pill.
-   * Name it with `aria-label`.
-   */
+  /** Icon-only: a circle, widened by a count badge; name it with `aria-label`. */
   iconOnly?: boolean;
   /** A copy button's result from `useCopyFeedback`, drawn over the variant until it clears. */
   feedback?: CopyState;

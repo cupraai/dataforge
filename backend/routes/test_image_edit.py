@@ -65,7 +65,7 @@ class ImageEditStateTests(unittest.TestCase):
             self.assertEqual(client.get(edit_url(media)).status_code, 400)
 
     def test_a_gif_is_a_400(self) -> None:
-        """A Pillow round-trip would flatten the animation; GIF keeps frame capture."""
+        """GIF keeps frame capture."""
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif")
 

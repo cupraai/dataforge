@@ -77,7 +77,8 @@
 
   &__menu-panel {
     min-width: min(13rem, calc(100vw - 2rem));
-    // Caps at ~ten rows so a folder with hundreds of children stays a menu. Declared here so the placement pass measures a settled panel.
+    // About ten rows, so a folder with hundreds of children stays a menu. Set here so the placement
+    // pass measures a settled panel.
     max-height: 20rem;
   }
 

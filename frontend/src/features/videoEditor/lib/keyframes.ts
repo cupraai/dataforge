@@ -7,10 +7,7 @@ import type {
 } from "@/shared/types";
 import type { Clip } from "./timeline";
 
-/**
- * The preview's half of `video_project_animation.py`. Keyframe times are timeline seconds from
- * the clip's start; a property with keyframes ignores its static value.
- */
+/** The preview's half of `video_project_animation.py`; keyframes override the static value. */
 
 export type AnimatedProperty = keyof VideoProjectKeyframes;
 export type TransformProperty = Exclude<AnimatedProperty, "gain" | GainBand>;
@@ -135,10 +132,7 @@ function staticPatch(clip: Clip, property: AnimatedProperty): Partial<Clip> {
   return isEq(property) ? { audio_effects: clip.audio_effects } : { transform: clip.transform };
 }
 
-/**
- * The patch a control sets: an animated property gets a keyframe at the playhead, or that one
- * changed; one that is not animated changes its static value.
- */
+/** An animated property keys the playhead; otherwise the static value changes. */
 export function setValueAt(
   clip: Clip,
   property: AnimatedProperty,
@@ -172,10 +166,7 @@ export function transformPatchAt(clip: Clip, time: number, next: Clip["transform
   return { transform: current.transform, keyframes: current.keyframes };
 }
 
-/**
- * Adds a keyframe holding the value shown at the playhead, or removes the one there. Removing the
- * last one leaves the property still at that value, so nothing jumps.
- */
+/** Toggles a keyframe at the playhead; removing the last keeps the value, so nothing jumps. */
 export function toggleKeyframe(clip: Clip, property: AnimatedProperty, time: number): Clip {
   const value = clipValueAt(clip, property, time);
   const existing = keyframeAt(clip, property, time);

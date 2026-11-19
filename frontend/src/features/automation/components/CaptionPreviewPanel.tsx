@@ -24,11 +24,7 @@ interface CaptionPreviewPanelProps {
   ref?: Ref<HTMLDivElement>;
 }
 
-/**
- * The Preview field shared by the caption job dialogs. Its sample list is the dialog's one
- * scroller: it takes the height the form leaves and shrinks to a single sample before the
- * dialog itself would have to scroll.
- */
+/** The caption dialogs' Preview field; its sample list is the dialog's one scroller. */
 export function CaptionPreviewPanel({
   summary,
   samples = [],
@@ -47,8 +43,7 @@ export function CaptionPreviewPanel({
           error && "caption-preview--error",
           pending && "caption-preview--pending",
         )}
-        // One live region for the whole panel: the summary and the samples always change
-        // together, and announcing them separately would interleave them.
+        // One live region, so the summary and samples are announced together.
         role="status"
         aria-busy={pending || undefined}
       >

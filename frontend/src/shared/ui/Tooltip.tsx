@@ -121,8 +121,7 @@ export function Tooltip({
     setVisible(false);
   }, [clearShowTimeout, stopScrollWatch]);
 
-  // Scrolling moves the content out from under a resting pointer, so a hover bubble would point
-  // at the wrong thing; close it instead of tracking. Focus has not moved, so a focus bubble stays.
+  // Scrolling closes a hover bubble; a focus bubble stays.
   const showOnHover = useCallback(() => {
     if (!show() || stopScrollWatchRef.current) return;
     const onScroll = () => hide();
@@ -131,9 +130,7 @@ export function Tooltip({
       document.removeEventListener("scroll", onScroll, { capture: true });
   }, [hide, show]);
 
-  // A trigger nested inside this one, like a card's "+N more", owns the hover while the pointer
-  // is over it. This one steps aside, and comes back when the pointer returns to its own part:
-  // that move stays inside the wrapper, so no second mouseenter would bring it back.
+  // A nested trigger owns the hover; this one returns with the pointer.
   const steppedAsideRef = useRef(false);
   const handleMouseOver = useCallback(
     (event: MouseEvent<HTMLSpanElement>) => {

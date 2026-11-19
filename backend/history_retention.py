@@ -1,4 +1,4 @@
-"""Drops finished jobs and notifications once they are older than the configured number of days."""
+"""Drops finished jobs and notifications past the configured number of days."""
 
 from __future__ import annotations
 

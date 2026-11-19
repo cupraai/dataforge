@@ -1,5 +1,3 @@
-"""Apply or reset color adjustments over a folder, rendering each result from its original."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -34,7 +32,7 @@ AUTO_ADJUST_EXTENSIONS = IMAGE_EDIT_EXTENSIONS | VIDEO_EDIT_EXTENSIONS
 
 
 class AlreadyAdjustedError(Exception):
-    """Raised when applying or resetting color adjustments would leave the file as it is."""
+    """Applying or resetting would leave the file as it is."""
 
 
 def list_auto_adjust_files(folder: Path) -> list[Path]:
@@ -83,7 +81,7 @@ def auto_adjust_image(media: Path, *, replace: bool = False, reset: bool = False
         pixels, weights = image_analysis_pixels(original_path_for(media), spec.masks, spec.crop)
         adjusted = _auto_adjusted(spec, suggest_adjust(pixels, weights), replace=replace)
 
-    # Nothing left to render: restore the original, so the file no longer reads as edited.
+    # Restore the original so the file no longer reads as edited.
     if is_identity_image_spec(adjusted):
         revert_image_edit(media)
     else:
@@ -129,7 +127,7 @@ def auto_adjust_file(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> str:
-    """Apply or reset only the Adjust tools, returning ``image`` or ``video``."""
+    """Returns ``image`` or ``video``."""
     if media.suffix.lower() in VIDEO_EDIT_EXTENSIONS:
         auto_adjust_video(
             media, replace=replace, reset=reset, ffmpeg=ffmpeg, should_cancel=should_cancel
@@ -198,7 +196,7 @@ def run_auto_adjust_job(
         on_progress=on_progress,
         should_cancel=should_cancel,
         claim_activity="render",
-        # image_success and video_success are sub-stats of success and must not be counted.
+        # Sub-stats of success, which must not be counted twice.
         processed_stat_keys=(
             "success",
             "unchanged",

@@ -1,8 +1,4 @@
-"""Automation job settings, remembered per folder with a most-recent fallback.
-
-The ComfyUI jobs are the exception: their prompt, seed and inputs are remembered per workflow
-preset, each job in its own store.
-"""
+"""Job settings per folder with a most-recent fallback; ComfyUI jobs remember per preset."""
 
 from __future__ import annotations
 
@@ -37,7 +33,7 @@ AUTOMATION_SETTINGS_KEY_PREFIX = "automation_settings"
 COMFY_PROCESS_JOB_TYPE = "comfy_process"
 COMFY_GENERATE_JOB_TYPE = "comfy_generate"
 
-#: Keys are job types and field names of AutomationSettingsResponse; jobs with no dialog are absent.
+#: Keys are job types; jobs with no dialog are absent.
 JOB_SETTINGS_MODELS: dict[str, type[BaseModel]] = {
     "auto_caption": AutoCaptionJobSettings,
     "set_captions": SetCaptionsJobSettings,
@@ -82,7 +78,7 @@ class _ComfyFolderSettings(BaseModel):
     overwrite_candidates: bool = False
 
 
-# The per-folder half lives under the job's own key; the per-preset half under ``.presets``.
+# Per-folder settings under the job's key; per-preset under ``.presets``.
 _COMFY_FOLDER_STORE: FolderScopedPreference[_ComfyFolderSettings] = FolderScopedPreference(
     automation_settings_key(COMFY_PROCESS_JOB_TYPE), _ComfyFolderSettings
 )
@@ -96,7 +92,7 @@ _COMFY_GENERATE_FOLDER_STORE: FolderScopedPreference[ComfyGenerateOutputSettings
 
 
 class _ComfyPresetEnvelope(BaseModel):
-    """Payloads stay untyped so one corrupt preset cannot fail the rest."""
+    """Untyped so one corrupt preset cannot fail the rest."""
 
     preset: str = ""
     by_preset: dict[str, dict[str, object]] = Field(default_factory=dict)
@@ -159,7 +155,7 @@ def _get_comfy_generate_settings(folder_key: str) -> ComfyGenerateSettingsRespon
 
 
 def _remember_comfy_generate_settings(body: BaseModel, folder_key: str) -> None:
-    # A file's own workflow is a one-off: its stem is no preset to come back to.
+    # A file's own workflow is a one-off, not a preset.
     if getattr(body, "source", None) is not None:
         return
     run = ComfyGenerateJobSettings.model_validate(
@@ -171,7 +167,7 @@ def _remember_comfy_generate_settings(body: BaseModel, folder_key: str) -> None:
             run.model_dump(include=set(ComfyGenerateOutputSettings.model_fields))
         ),
     )
-    # Never the seed: a remembered one would repeat the last images on the next open.
+    # Never the seed, or the next open repeats the last images.
     _remember_preset(_COMFY_GENERATE_STORE, run.preset, run.model_copy(update={"seed": None}))
 
 
@@ -186,7 +182,7 @@ def get_automation_settings(*, folder_path: str) -> AutomationSettingsResponse:
 
 
 def remember_job_settings(job_type: str, body: BaseModel, *, folder_path: str) -> None:
-    """A job type with no registered model is skipped, which keeps settings-less jobs free."""
+    """Job types with no registered model are skipped."""
     if job_type == COMFY_PROCESS_JOB_TYPE:
         _remember_comfy_process_settings(body, preference_folder_key(folder_path))
         return

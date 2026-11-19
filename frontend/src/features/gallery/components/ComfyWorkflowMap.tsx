@@ -179,11 +179,7 @@ function MapLabel({ node }: { node: ComfyMapNode }) {
   );
 }
 
-/**
- * A small diagram of the output's passes and what feeds them: models, LoRAs, CLIPs, VAEs, input
- * media and prompts. Lines are drawn in an SVG; the boxes are HTML over it, so they can carry
- * tooltips. A pass with its own section opens it.
- */
+/** The output's passes and inputs: SVG lines under HTML boxes with tooltips. */
 export function ComfyWorkflowMap({
   map,
   passNumbers,

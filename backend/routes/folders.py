@@ -43,7 +43,7 @@ def folder_roots() -> FolderRootsResponse:
 def folder_children(
     path: str = Query(..., description="Absolute path to parent folder"),
 ) -> FolderChildrenResponse:
-    """List immediate child folders only (no media items, stats, or last-folder side effects)."""
+    """No media, stats or last-folder side effects."""
     folder = resolve_folder(path)
     return FolderChildrenResponse(folder=str(folder), children=list_child_folders(folder))
 
@@ -104,7 +104,7 @@ def delete_folder(
 ) -> FolderDeleteResponse:
     folder = resolve_folder(path)
     parent = delete_empty_folder(folder)
-    # Otherwise a folder recreated under the same name would come back as a favorite.
+    # Otherwise a recreated folder would come back as a favorite.
     remove_folder_favorite(str(folder))
     return FolderDeleteResponse(
         path=str(folder),

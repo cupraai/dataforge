@@ -8,7 +8,7 @@ from db import get_preference, set_preference
 
 
 def validated_or_default[T: BaseModel](model: type[T], data: dict) -> T:
-    """``model`` must be constructible with no arguments; a stored value it rejects reads as that."""
+    """``model`` must build with no arguments."""
     try:
         return model.model_validate(data)
     except ValidationError:
@@ -29,7 +29,7 @@ def _stored_mapping(key: str) -> dict | None:
 
 
 class JsonPreference[T: BaseModel]:
-    """``model`` must be constructible with no arguments so a bad stored value cannot break the reader."""
+    """``model`` must build with no arguments."""
 
     def __init__(self, key: str, model: type[T]) -> None:
         self.key = key
@@ -49,14 +49,14 @@ class JsonPreference[T: BaseModel]:
 
 
 class FolderScopedEnvelope(BaseModel):
-    """Payloads stay untyped: a typed ``dict[str, T]`` would fail the whole envelope on one corrupt folder."""
+    """A typed dict would fail on one corrupt folder."""
 
     latest: dict[str, object] | None = None
     by_folder: dict[str, dict[str, object]] = Field(default_factory=dict)
 
 
 class FolderScopedPreference[T: BaseModel]:
-    """Falls back to the most recent save. ``folder_key`` must already be canonical; this module does not import filesystem."""
+    """``folder_key`` must already be canonical."""
 
     def __init__(self, key: str, model: type[T]) -> None:
         self.key = key
@@ -76,7 +76,7 @@ class FolderScopedPreference[T: BaseModel]:
         return set(self._envelope.get().by_folder)
 
     def forget_folders(self) -> None:
-        """Keeps ``latest``, so a folder opened afterwards still starts from the last choices."""
+        """Keeps ``latest`` for folders opened later."""
         self._envelope.update(by_folder={})
 
     def latest(self) -> T:

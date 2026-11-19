@@ -12,10 +12,7 @@ function folderParams(folderPath?: string): URLSearchParams {
 
 export interface FetchFolderOptions {
   signal?: AbortSignal;
-  /**
-   * A speculative read: the server neither watches it (it keeps only a few folders per tab)
-   * nor remembers it as the folder to start in.
-   */
+  /** A speculative read: the server neither watches it nor remembers it as the start folder. */
   prefetch?: boolean;
 }
 

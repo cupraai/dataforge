@@ -19,7 +19,7 @@ _MAX_PROMPT_CHARS = 20000
 _SAVE_CLASS_MARKERS = ("save", "videocombine", "output")
 _PREVIEW_CLASS_MARKERS = ("preview",)
 _MEDIA_INPUTS = frozenset({"images", "image", "video", "audio"})
-#: Lowercased classes that write their own file but carry no save marker in the name.
+#: Classes that write their own file without a save marker in the name.
 _EXTRA_OUTPUT_CLASSES = frozenset({"swiftvrrestorevideo"})
 
 _POSITIVE_INPUT_NAMES = frozenset(
@@ -45,12 +45,12 @@ _SCALAR_INPUT_KEYS = {
 
 _ROUTE_CLASSES = frozenset({"GetNode", "SetNode", "Reroute"})
 _RESOLUTION_INPUT_KEYS = ("aspect_ratio", "megapixels", "multiple")
-#: Impact Pack detailers and Ultimate SD Upscale re-sample the image their own stage made.
+#: These re-sample the image their own stage made.
 _REFINER_CLASS_MARKERS = ("detailer", "ultimatesdupscale")
 _NAME_INPUT_KEYS = ("filename_prefix", "filename")
-#: Switched off, Video Helper Suite's combine writes to ComfyUI's temp folder, as a preview does.
+#: Switched off, VHS's combine writes to the temp folder, as a preview does.
 _SAVE_FLAG_INPUTS = ("save_output",)
-#: Lazy switches by their selector and the input each value evaluates; the rest never run.
+#: The input each selector value evaluates; the rest never run.
 _BOOLEAN_SWITCHES = {
     "ComfySwitchNode": ("switch", "on_true", "on_false"),
     "ImpactConditionalBranch": ("cond", "tt_value", "ff_value"),
@@ -58,9 +58,9 @@ _BOOLEAN_SWITCHES = {
 #: Impact Pack's indexed switches evaluate only `input{select}`.
 _INDEXED_SWITCHES = frozenset({"ImpactSwitch", "LatentSwitch", "SEGSSwitch"})
 _INDEXED_INPUT = re.compile(r"input\d+")
-#: Sampler nodes such as SamplerLCM or SamplerEulerAncestral: the class names the sampler.
+#: Sampler nodes such as SamplerLCM, whose class names the sampler.
 _SAMPLER_OBJECT_PREFIX = "Sampler"
-#: Where a class name's words meet: `EulerAncestral`, `SASolver`; `DPMPP_2M` already has `_`.
+#: Where a class name's words meet; `DPMPP_2M` already has `_`.
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 type ScalarValue = str | int | float | bool
@@ -107,7 +107,6 @@ class Parameter:
 class SamplingStage:
     node_id: str
     label: str
-    #: The innermost subgraph the pass sits in.
     group: str | None
     status: ComfyPassStatus
     parameters: list[Parameter]
@@ -116,18 +115,14 @@ class SamplingStage:
 
 @dataclass(frozen=True)
 class MapNode:
-    """One box of the output's map: a pass, or what feeds the passes."""
-
     id: str
     kind: ComfyMapNodeKind
     label: str
-    #: The full text behind a short label: a prompt, a model file or LoRA names.
+    #: The full text behind a short label.
     detail: list[str]
     status: ComfyPassStatus
-    #: Map nodes this one hands its result to directly.
     feeds: list[str]
     role: ComfyPromptRole | None = None
-    #: Set on an input box: what kind of media it is.
     media: ComfyMediaKind | None = None
 
 
@@ -141,17 +136,17 @@ class OutputBranch:
     is_preview: bool
     matches_filename: bool
     prompts: list[PromptText] = field(default_factory=list)
-    #: With `stages`, only the settings no single pass owns; otherwise every setting.
+    #: With `stages`, only the settings no single pass owns.
     parameters: list[Parameter] = field(default_factory=list)
     loras: list[str] = field(default_factory=list)
-    #: Sampling passes, earliest first; empty when the output has one pass and it ran.
+    #: Empty when the output has one pass and it ran.
     stages: list[SamplingStage] = field(default_factory=list)
     #: The passes and what feeds them, earliest first; empty when nothing samples.
     map: list[MapNode] = field(default_factory=list)
-    #: Widths and heights the stage was set to render at, for telling same-named outputs apart.
+    #: For telling same-named outputs apart.
     widths: frozenset[int] = frozenset()
     heights: frozenset[int] = frozenset()
-    #: The output as a runnable generation; None when it loads a source file or cannot parse.
+    #: None when it loads a source file or cannot parse.
     generation: ComfyWorkflow | None = None
 
 
@@ -163,7 +158,7 @@ class WorkflowPrompts:
     matched_node_id: str | None
     orphan_prompts: list[PromptText]
     has_editor_workflow: bool = False
-    #: The filename matched several outputs, and only the matched one renders at the file's size.
+    #: Only the matched output renders at the file's size.
     matched_by_size: bool = False
 
 
@@ -229,13 +224,7 @@ def _ancestors(graph: dict[str, dict], root: str) -> list[str]:
 def _generation_stages(
     graph: dict[str, dict], outputs: set[str]
 ) -> tuple[set[str], set[str], set[str]]:
-    """Samplers, generators, and the nodes that only carry an earlier sampler's result on.
-
-    A generator is a sampler or a node carrying its own prompt, such as an image-to-video node,
-    but never a refiner.
-    A node computed from a sampler's result stays live if it also takes another computed input,
-    such as a node mixing a first pass's latent into the second pass's conditioning.
-    """
+    """Samplers, generators, and nodes that only carry an earlier sampler's result on."""
     samplers = {
         node_id
         for node_id, node in graph.items()
@@ -249,7 +238,7 @@ def _generation_stages(
             for key, value in _node_inputs(node).items()
         )
     }
-    # A save node with a caption input writes text; it generates nothing.
+    # A save node with a caption input writes text.
     generators -= {
         node_id
         for node_id in generators
@@ -288,12 +277,7 @@ def _generation_stages(
 def _stage_ancestors(
     graph: dict[str, dict], root: str, stages: tuple[set[str], set[str], set[str]]
 ) -> list[str]:
-    """Ancestors up to the nearest generation stage, excluding earlier stages' results.
-
-    Past a generator, another sampler or an earlier result (an upstream image, a first pass's
-    latent) belongs to an earlier stage, whose size is not the file's. Nodes the stage reaches
-    directly, such as a prompt shared with an earlier stage, still count.
-    """
+    """Ancestors up to the nearest generation stage, excluding earlier stages' results."""
     samplers, generators, results = stages
     order = [root]
     visited = {(root, False)}
@@ -318,7 +302,7 @@ def _stage_ancestors(
 
 
 def _skipped_inputs(graph: dict[str, dict], node: object) -> set[str]:
-    """The inputs a lazy switch never evaluates; none when its selector cannot be read."""
+    """None when the selector cannot be read."""
     inputs = _node_inputs(node)
     class_type = _node_class(node)
     if class_type in _BOOLEAN_SWITCHES:
@@ -336,7 +320,7 @@ def _skipped_inputs(graph: dict[str, dict], node: object) -> set[str]:
 
 
 def _live_nodes(graph: dict[str, dict], root: str) -> set[str]:
-    """Ancestors that ran: everything reachable without passing a switch's unselected input."""
+    """Reachable without passing a switch's unselected input."""
     live = {root}
     queue = [root]
     while queue:
@@ -352,7 +336,7 @@ def _live_nodes(graph: dict[str, dict], root: str) -> set[str]:
 
 
 def _is_sampling_node(node: object) -> bool:
-    """Whether a node runs its own sampling pass; refiners and upscalers included."""
+    """Refiners and upscalers included."""
     lowered = _node_class(node).lower()
     keys = _node_inputs(node).keys()
     return (
@@ -365,7 +349,7 @@ def _is_sampling_node(node: object) -> bool:
 
 
 def _stand_in(entry: EditorNode) -> dict:
-    """An API-format node for a bypassed editor node, so its settings read like any other's."""
+    """So its settings read like any other's."""
     inputs: dict[str, object] = {**entry.widgets, **entry.values}
     inputs.update({name: [source, slot] for name, (source, slot) in entry.links.items()})
     return {
@@ -378,10 +362,7 @@ def _stand_in(entry: EditorNode) -> dict:
 def _linked_inputs(
     graph: dict[str, dict], editor: dict[str, EditorNode], node_id: str
 ) -> list[tuple[str, str]]:
-    """``(input name, source)`` for what feeds a node in either graph.
-
-    Both, because the prompt links around a bypassed node that the editor still has.
-    """
+    """Both graphs: the prompt links around a bypassed node the editor still has."""
     linked = [
         (name, source)
         for name, value in _node_inputs(graph.get(node_id)).items()
@@ -400,11 +381,7 @@ def _sources(graph: dict[str, dict], editor: dict[str, EditorNode], node_id: str
 def _bypassed_on_path(
     graph: dict[str, dict], editor: dict[str, EditorNode], root: str, members: set[str]
 ) -> list[str]:
-    """Bypassed editor nodes the output's own stage runs through, nearest first.
-
-    The walk crosses only the branch's own nodes, so an earlier stage's bypassed nodes are left
-    to the output that stage feeds.
-    """
+    """Bypassed editor nodes the output's stage runs through, nearest first."""
     found: list[str] = []
     seen = {root}
     queue = [root]
@@ -425,7 +402,7 @@ def _bypassed_on_path(
 def _pass_region(
     graph: dict[str, dict], stage: str, members: set[str], stage_ids: set[str]
 ) -> set[str]:
-    """What a pass reads within the branch, up to but excluding any other pass."""
+    """Up to but excluding any other pass."""
     region = {stage}
     queue = [stage]
     while queue:
@@ -438,7 +415,7 @@ def _pass_region(
 
 
 def _earliest_first(ids: list[str], reads: dict[str, set[str]]) -> list[str]:
-    """``ids`` reordered so each comes after what it reads; ties keep the given order."""
+    """``ids`` ordered after what each reads; ties keep the given order."""
     ordered: list[str] = []
     while len(ordered) < len(ids):
         placed = set(ordered)
@@ -463,13 +440,7 @@ def _split_by_pass(
     editor: dict[str, EditorNode],
     subgraph_labels: dict[str, str],
 ) -> tuple[list[str], list[SamplingStage]]:
-    """The branch's shared nodes, and its passes with the nodes only each of them reads.
-
-    ``graph`` carries stand-ins for the ``bypassed`` nodes. A node that ran belongs to a pass
-    only if no other pass reads it and that pass ran too; what a pass that did not run alone
-    reads is shown on it. Anything else that never ran is dropped. A single pass that ran
-    keeps every node on the branch.
-    """
+    """Shared nodes, and each pass's own nodes: those no other pass reads."""
     members = ancestry + bypassed
     stage_ids = [step for step in members if _is_sampling_node(graph.get(step))]
     if len(stage_ids) < 2 and all(stage in live for stage in stage_ids):
@@ -489,11 +460,7 @@ def _split_by_pass(
         return None
 
     def nearest_passes(target: str) -> set[str]:
-        """The passes a node reads with no other pass in between.
-
-        Not bounded by the branch: the latent between two passes is an earlier result the
-        branch leaves out.
-        """
+        """The passes a node reads with none in between; not bounded by the branch."""
         found: set[str] = set()
         seen = {target}
         queue = [target]
@@ -531,12 +498,12 @@ def _split_by_pass(
 
 
 _MODEL_FILE_KEYS = ("ckpt_name", "unet_name")
-#: CLIPLoader's `clip_name`, and the numbered inputs of the dual, triple and quad loaders.
+#: CLIPLoader's `clip_name` and the multi-loaders' numbered inputs.
 _CLIP_FILE_KEY = re.compile(r"clip_name\d*")
-#: Kinds whose boxes name one loaded file: several loaders of the same file are one box.
+#: Several loaders of the same file are one box.
 _TWIN_KINDS: frozenset[ComfyMapNodeKind] = frozenset({"model", "clip", "vae"})
 _INPUT_MEDIA_KEYS: tuple[ComfyMediaKind, ...] = ("image", "video", "audio")
-#: Within a row of the map, sources read left to right in this order.
+#: Left-to-right order of sources in a row.
 _MAP_KIND_ORDER: dict[ComfyMapNodeKind, int] = {
     "model": 0,
     "loras": 1,
@@ -550,7 +517,7 @@ _MAP_KIND_ORDER: dict[ComfyMapNodeKind, int] = {
 
 
 def _short_name(path: str) -> str:
-    """A file name without its folders and extension, for a box too small for the path."""
+    """For a box too small for the path."""
     name = re.split(r"[\\/]", path.strip())[-1]
     return name.rsplit(".", 1)[0] if "." in name else name
 
@@ -558,7 +525,7 @@ def _short_name(path: str) -> str:
 def _map_box(
     graph: dict[str, dict], node_id: str
 ) -> tuple[ComfyMapNodeKind, str, list[str]] | None:
-    """The kind, label and detail of a node the map shows, or None for one it walks through."""
+    """None for a node the map walks through."""
     node = graph.get(node_id)
     if _is_sampling_node(node):
         return "pass", _node_title(node) or _node_class(node), []
@@ -589,7 +556,6 @@ def _map_box(
 
 
 def _loaded_media(node: object) -> ComfyMediaKind | None:
-    """The kind of media file a node names, by the input that holds it."""
     inputs = _node_inputs(node)
     return next(
         (
@@ -602,7 +568,7 @@ def _loaded_media(node: object) -> ComfyMediaKind | None:
 
 
 def _output_media(node: object) -> ComfyMediaKind:
-    """What an output writes: by its class first, since a video combine takes ``images``."""
+    """By class first, since a video combine takes ``images``."""
     lowered = _node_class(node).lower()
     if "audio" in lowered:
         return "audio"
@@ -619,7 +585,7 @@ def _prompt_box_id(prompt: PromptText) -> str:
 
 
 def _prompt_box_text(text: str) -> tuple[str, list[str]]:
-    """A box's one-line label for a prompt, and the text its tooltip shows."""
+    """The label and the tooltip text."""
     return " ".join(text.split())[:80], [text[:500]]
 
 
@@ -634,14 +600,7 @@ def _branch_map(
     *,
     passless: bool = False,
 ) -> list[MapNode]:
-    """The output's passes and what feeds them: models, LoRAs, CLIPs, VAEs, media and prompts.
-
-    Each box links to the nearest boxes downstream. A prompt never blocks the walk, since its
-    text often sits on a node that also takes the image or the model. A chain of LoRA loaders
-    is one box, and so are twin loaders of one file, such as one per subgraph. Empty when
-    nothing on the branch samples, unless ``passless``: a preset that only upscales still has
-    loaders worth drawing, and its models then feed the output directly.
-    """
+    """The output's passes and what feeds them; LoRA chains and twin loaders become one box."""
     boxes = {step: box for step in members if step != root and (box := _map_box(graph, step))}
     has_pass = any(kind == "pass" for kind, _, _ in boxes.values())
     if not has_pass and not passless:
@@ -663,8 +622,7 @@ def _branch_map(
                 seen.add(source)
                 edges.update((prompt_id, target) for prompt_id in prompt_ids.get(source, []))
                 if source in boxes:
-                    # A checkpoint's VAE reaches the decode before the output; that is no flow.
-                    # Without a pass the model is the flow, as in an upscale.
+                    # A checkpoint's VAE is no flow; without a pass the model is.
                     if not has_pass or not (boxes[source][0] == "model" and target == root):
                         edges.add((source, target))
                     continue
@@ -673,7 +631,7 @@ def _branch_map(
     def status(step: str) -> ComfyPassStatus:
         return _pass_status(step, live, bypassed)
 
-    # Twins become the box of the one nearest the output; loaders are sources, never targets.
+    # Loaders are sources, never targets.
     first: dict[tuple[str, ...], str] = {}
     twin = {
         step: first.setdefault((kind, status(step), *detail), step)
@@ -682,7 +640,7 @@ def _branch_map(
     }
     edges = {(twin.get(source, source), target) for source, target in edges}
 
-    # LoRA loaders chained to each other become the box of the one nearest the output.
+    # Chained LoRA loaders become one box.
     group = {step: step for step, box in boxes.items() if box[0] == "loras"}
 
     def head(step: str) -> str:
@@ -706,7 +664,7 @@ def _branch_map(
         if kind == "loras":
             if head(step) != step:
                 continue
-            # Upstream first: the order the model meets them.
+            # The order the model meets them.
             chain = [member for member in reversed(members) if head(member) == step]
             detail = [lora for member in chain if member in group for lora in boxes[member][2]]
             only = _short_name(detail[0].rsplit(" (", 1)[0])
@@ -737,7 +695,7 @@ def _branch_map(
         step = prompt_nodes.get(node_id, node_id)
         return _MAP_KIND_ORDER[nodes[node_id][0]], -position.get(step, 0)
 
-    # Earliest first, so the map can lay out its rows in one pass.
+    # So the map lays out its rows in one pass.
     ordered = _earliest_first(sorted(nodes, key=rank), reads)
     return [
         MapNode(
@@ -818,7 +776,7 @@ def _with_virtual_routes(graph: dict[str, dict], workflow: object) -> dict[str, 
             if node_id in routes:
                 identifier = f"{prefix}{node_id}"
                 existing = graph.get(identifier)
-                # Executed API nodes win; editor metadata only supplies missing virtual routing.
+                # Editor metadata only supplies missing virtual routing.
                 if existing is None or _node_class(existing) == node_type:
                     resolved[identifier] = {
                         **(existing or {}),
@@ -835,7 +793,7 @@ def _with_virtual_routes(graph: dict[str, dict], workflow: object) -> dict[str, 
 
 
 def _forwarded_input(node: object) -> object | None:
-    """The input a constant or route node passes on unchanged, or None for any other node."""
+    """The input a constant or route node passes on unchanged; None for any other."""
     inputs = _node_inputs(node)
     class_type = _node_class(node)
     key = _SCALAR_INPUT_KEYS.get(class_type)
@@ -852,7 +810,6 @@ def _forwarded_input(node: object) -> object | None:
 def _computed_output(
     graph: dict[str, dict], node: object, slot: int, hops: int
 ) -> ScalarValue | None:
-    """An output of a core node that computes numbers, such as the frame count of a video."""
     inputs = _node_inputs(node)
     class_type = _node_class(node)
     if class_type == "ResolutionSelector" and slot in (0, 1):
@@ -890,7 +847,6 @@ def _scalar_at(graph: dict[str, dict], value: object, hops: int = 0) -> ScalarVa
 
 
 def _scalar_chain(graph: dict[str, dict], value: object) -> list[str]:
-    """The node ids `_scalar_at` walks through, so the constants it reads are not prompts."""
     chain: list[str] = []
     for _ in range(_MAX_VALUE_HOPS):
         reference = _link_reference(value)
@@ -963,7 +919,7 @@ def _collect_prompts(graph: dict[str, dict], node_ids: list[str]) -> list[Prompt
             )
         )
 
-    # A CLIPTextEncode carries no polarity of its own; the sampler slot it lands in does.
+    # The sampler slot decides a CLIPTextEncode's polarity.
     for node_id in node_ids:
         for input_name, value in _node_inputs(graph.get(node_id)).items():
             key = input_name.lower()
@@ -988,13 +944,13 @@ def _collect_prompts(graph: dict[str, dict], node_ids: list[str]) -> list[Prompt
                 role = "negative" if key in _NEGATIVE_INPUT_NAMES else "positive"
                 add(node_id, *found, role, input_name)
 
-    # Nearest the output first: the last stage to touch the pixels is the one being looked at.
+    # The last stage to touch the pixels is the one being looked at.
     prompts.sort(key=lambda entry: (entry[0], entry[1].role == "negative"))
     return [prompt for _, prompt in prompts]
 
 
 def _strength(graph: dict[str, dict], value: object) -> str | None:
-    """A strength as a decimal (`1.0`, never `1`), so every loader's strengths read alike."""
+    """A strength as a decimal, `1.0` never `1`, so loaders read alike."""
     resolved = _scalar_at(graph, value)
     if isinstance(resolved, bool) or not isinstance(resolved, (int, float)):
         return None
@@ -1021,7 +977,7 @@ def _lora_names(graph: dict[str, dict], inputs: dict[str, object], value: object
 
 
 def _stacked_lora_names(graph: dict[str, dict], value: object) -> list[str]:
-    """The live rows of plaguekind's LoRA Loader Stack: a JSON list of `{on, lora, str}`."""
+    """plaguekind's LoRA Loader Stack: a JSON list of `{on, lora, str}`."""
     text = _scalar_at(graph, value)
     try:
         rows = json.loads(text) if isinstance(text, str) else None
@@ -1041,10 +997,7 @@ def _stacked_lora_names(graph: dict[str, dict], value: object) -> list[str]:
 
 
 def _sampler_object_name(node: object) -> str | None:
-    """The sampler a node such as SamplerLCM hands SamplerCustom, named as KSamplerSelect would.
-
-    Its class is the choice, so it has no ``sampler_name`` to read.
-    """
+    """The sampler a node like SamplerLCM picks by its class, named as KSamplerSelect would."""
     class_type = _node_class(node)
     if (
         not class_type.startswith(_SAMPLER_OBJECT_PREFIX)
@@ -1105,7 +1058,7 @@ def _declared_name(graph: dict[str, dict], node: object, key: str) -> str | None
 
 
 def _is_preview(graph: dict[str, dict], node: object) -> bool:
-    """Whether an output writes only a temp file: a preview class, or its save flag is off."""
+    """A preview class, or its save flag is off."""
     if any(marker in _node_class(node).lower() for marker in _PREVIEW_CLASS_MARKERS):
         return True
     inputs = _node_inputs(node)
@@ -1119,7 +1072,7 @@ def _prefix_basename(prefix: str) -> str:
 def _matches_filename(
     prefix: str | None, filename: str | None, file_path: Path, class_type: str
 ) -> bool:
-    # Embedded naming templates are not the evaluated names used when the nodes ran.
+    # Embedded naming templates are not the names used when the nodes ran.
     if (
         filename
         and not re.search(r"%[^%]+%", filename)
@@ -1140,12 +1093,7 @@ def _matches_filename(
 
 
 def _output_nodes(graph: dict[str, dict]) -> set[str]:
-    """Save and preview nodes that take media; named by class, since a graph is full of dead ends.
-
-    The name alone is weak evidence: Save Text File writes text, a LoRA saver writes a model,
-    and ModelPreviewOverrideKJ patches a model's sampling preview. Whether the node is consumed
-    does not matter: the editor can give PreviewImage a passthrough output.
-    """
+    """Named by class; Save Text File, LoRA savers and the like are excluded."""
     outputs: set[str] = set()
     for node_id, node in graph.items():
         lowered = _node_class(node).lower()
@@ -1189,7 +1137,7 @@ def _subgraph_labels(workflow: object) -> dict[str, str]:
         label = title if isinstance(title, str) and title.strip() else names.get(node.get("type"))
         return label.strip() if label else None
 
-    # Nested instances are keyed by their flattened path, such as `9:20`.
+    # Keyed by flattened path, such as `9:20`.
     def visit_nested(definition: dict, prefix: str, depth: int) -> None:
         nodes = definition.get("nodes")
         for node in nodes if isinstance(nodes, list) and depth < _MAX_VALUE_HOPS else []:
@@ -1248,15 +1196,12 @@ def _parse_workflow(raw: str) -> dict | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-#: Where a payload hides when the container has no per-key metadata of its own.
+#: Where a payload hides without per-key metadata.
 _NESTED_KEYS = ("prompt", "Prompt", "PROMPT", "workflow", "Workflow", "WORKFLOW")
 
 
 def _nested_values(values: dict[str, str]) -> dict[str, str]:
-    """A muxed video writes the whole payload into one comment, so unwrap a level before reading.
-
-    ``prompt`` arrives as a JSON string and ``workflow`` as an object; both come back as text.
-    """
+    """A muxed video holds the whole payload in one comment, so unwrap a level."""
     nested: dict[str, str] = {}
 
     for raw in values.values():
@@ -1278,16 +1223,12 @@ def _nested_values(values: dict[str, str]) -> dict[str, str]:
 
 def _metadata_values(file_path: Path) -> dict[str, str]:
     values = read_media_metadata_values(file_path)
-    # Top level wins: a PNG names its chunks, and only a container that cannot needs unwrapping.
+    # Top level wins: only a container without named keys needs unwrapping.
     return {**_nested_values(values), **values} if values else {}
 
 
 def _editor_workflow(values: dict[str, str]) -> str | None:
-    """The editor-format workflow as stored, if ComfyUI would load it from a paste.
-
-    ComfyUI's paste handler loads plain text only when it carries ``version``, ``nodes`` and
-    ``extra``; the API-format ``prompt`` is pasted as nothing.
-    """
+    """Only what ComfyUI's paste handler would load: ``version``, ``nodes`` and ``extra``."""
     for key in ("workflow", "Workflow", "WORKFLOW"):
         raw = values.get(key)
         workflow = _parse_workflow(raw or "")
@@ -1320,11 +1261,7 @@ def _media_size(file_path: Path) -> tuple[int, int] | None:
 
 
 def _size_tiebreak(candidates: list[OutputBranch], file_path: Path) -> OutputBranch | None:
-    """The one same-named output set to render at the file's size, or None.
-
-    A stage without a readable size is never ruled out. The frame count is no help: frame
-    interpolation and chained segments multiply it, so the generated length rarely matches.
-    """
+    """The same-named output set to render at the file's size, or None."""
     if len(candidates) < 2 or not any(branch.widths and branch.heights for branch in candidates):
         return None
     size = _media_size(file_path)
@@ -1340,7 +1277,7 @@ def _size_tiebreak(candidates: list[OutputBranch], file_path: Path) -> OutputBra
 
 
 def _sort_branches(branches: list[OutputBranch], matched_id: str | None) -> list[OutputBranch]:
-    """The likely output first, since the dialog opens on it."""
+    """The dialog opens on the first."""
     return sorted(
         branches,
         key=lambda branch: (
@@ -1374,13 +1311,13 @@ def _output_branch(
     file_path: Path | None,
     passless: bool = False,
 ) -> OutputBranch:
-    """One output's prompts, settings and map. ``file_path`` is None for a graph no file holds."""
+    """``file_path`` is None for a graph no file holds."""
     node = graph[node_id]
     class_type = _node_class(node)
     ancestry = _ancestors(graph, node_id)
     live = _live_nodes(graph, node_id)
     ran = [step for step in ancestry if step in live]
-    # Only the stage that made the file sets its size; an earlier stage has its own.
+    # Only the stage that made the file sets its size.
     sized = [step for step in _stage_ancestors(graph, node_id, stages) if step in live]
     prefix = _declared_name(graph, node, "filename_prefix")
     filename = _declared_name(graph, node, "filename")
@@ -1418,7 +1355,7 @@ def _output_branch(
     )
 
 
-#: How a preset's map names the boxes DataForge fills in on every run.
+#: How a preset's map names the boxes DataForge fills in.
 SOURCE_BOX_LABEL = "Each source file"
 SOURCE_BOX_DETAIL = "DataForge loads each file the job runs on here."
 PROMPT_BOX_DETAIL = "DataForge writes the dialog's prompt here; empty runs this saved text."
@@ -1431,12 +1368,7 @@ def extract_graph_branch(
     source_node: str | None = None,
     prompt_node: str | None = None,
 ) -> OutputBranch | None:
-    """One output of an API-format graph no file holds, such as a preset, mapped even when
-    nothing on it samples. None when the node is not in the graph.
-
-    ``source_node`` and ``prompt_node`` are the nodes a run fills in: their boxes say so instead
-    of showing the placeholder file or text the preset was saved with as if it were used.
-    """
+    """Mapped even when nothing samples; None when the node is not in the graph."""
     if output_node not in graph or not isinstance(graph[output_node], dict):
         return None
     stages = _generation_stages(graph, _output_nodes(graph) | {output_node})
@@ -1475,7 +1407,7 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
     if graph is None:
         return _empty()
 
-    # Generation runs what the file recorded, not the routes added here for reading it.
+    # Not the routes added here for reading it.
     raw_graph = graph
     subgraph_labels = _subgraph_labels(workflow)
     graph = _with_virtual_routes(graph, workflow)
@@ -1485,7 +1417,7 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
     outputs = _output_nodes(graph)
     stages = _generation_stages(graph, outputs)
     editor = flatten_editor_graph(workflow)
-    # The prompt wins: a stand-in only fills in what never ran.
+    # A stand-in only fills in what never ran.
     full = {
         **{node_id: _stand_in(entry) for node_id, entry in editor.items() if entry.bypassed},
         **graph,
@@ -1500,12 +1432,11 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
         branch.generation = embedded_generation(
             raw_graph, node_id, _positive_prompt_nodes(branch), source=file_path.stem
         )
-        # The whole chain that made the file, earlier stages such as a reference image included.
+        # The whole chain that made the file, earlier stages included.
         covered.update(_ancestors(graph, node_id))
         branches.append(branch)
 
-    # A temp file shares a saved file's name pattern, so a preview claims the file only when no
-    # saving output does: then the file was copied out of the temp folder.
+    # A preview claims the file only when no saving output does.
     if any(branch.matches_filename and not branch.is_preview for branch in branches):
         for branch in branches:
             branch.matches_filename = branch.matches_filename and not branch.is_preview
@@ -1531,7 +1462,6 @@ def _positive_prompt_nodes(branch: OutputBranch) -> list[str]:
 
 
 def load_embedded_generation(file_path: Path, node_id: str) -> ComfyWorkflow:
-    """One output of the file's workflow as a generation, or the reason it cannot be one."""
     extracted = extract_workflow_prompts(file_path)
     if not extracted.has_workflow:
         raise ComfyWorkflowError(f"{file_path.name} carries no ComfyUI workflow.")
@@ -1553,7 +1483,7 @@ def load_embedded_generation(file_path: Path, node_id: str) -> ComfyWorkflow:
         ),
         None,
     )
-    # Re-derived only to name the reason; extraction keeps None, not the error.
+    # Extraction keeps None, not the error.
     return generation_workflow(
         graph or {}, node_id, _positive_prompt_nodes(branch), source=file_path.stem
     )

@@ -3,8 +3,7 @@ import type { ReasoningEffort } from "@/shared/types";
 
 export type { ReasoningEffort };
 
-// The set is fixed by the chat template, which raises on anything outside it. Descriptions
-// paraphrase the instruction each level makes the template inject.
+// Fixed by the chat template, which raises on anything else.
 const EFFORTS: ReadonlyArray<RadioTileOption<ReasoningEffort>> = [
   {
     value: "xhigh",

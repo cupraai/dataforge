@@ -54,7 +54,8 @@
       var(--bg-media);
   }
 
-  // Two equal columns, never auto-fit: a wrapped before/after has stopped being a comparison. Capped and centred as one block so portrait frames are not pushed to the outer edges.
+  // Two equal columns, never auto-fit: a wrapped before/after is no longer a comparison. Capped and
+  // centred as one block so portrait frames stay near the middle.
   &__compare {
     --stage-gap: 0.875rem;
     --stage-max-h: min(70vh, calc(94vh - 13rem));
@@ -87,7 +88,8 @@
     color: var(--text-muted);
   }
 
-  // Same box on both panes so shared zoom (origin as percent) lands on the same region; a square would distort. Height cap is on the grid's max-width: a max-height here would clamp height while leaving column width alone.
+  // Same box on both panes, so shared zoom (origin as percent) lands on the same region. The height
+  // cap is the grid's max-width: a max-height here would leave the column width alone.
   &__stage {
     position: relative;
     width: 100%;

@@ -28,8 +28,7 @@ export function SetCaptionsDialog({
   onCancel,
 }: SetCaptionsDialogProps) {
   const [caption, setCaption] = useState(initialSettings.caption);
-  // Never restored: overwriting existing captions is destructive, so it is re-chosen
-  // every run however the last one was started.
+  // Never restored: overwriting captions is destructive, so it is re-chosen every run.
   const [overwrite, setOverwrite] = useState(initialSettings.overwrite ?? false);
   const captionRef = useRef<HTMLTextAreaElement>(null);
 

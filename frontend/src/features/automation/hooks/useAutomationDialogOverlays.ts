@@ -147,8 +147,7 @@ export function useAutomationDialogOverlays({
     const shared = <K extends keyof AutomationSettings & JobType>(jobType: K) => ({
       open: openJobType === jobType,
       scope: stepScope,
-      // Every dialog starts from what its last run used, so there is no job type
-      // here that reads its settings differently from the rest. A step brings its own.
+      // Every dialog starts from its last run's settings; a workflow step brings its own.
       initialSettings:
         settings === null
           ? null

@@ -117,7 +117,7 @@ class ProjectEndpointTests(unittest.TestCase):
             self.assertEqual(wave.status_code, 200, wave.text)
 
     def test_the_waveform_of_an_edited_file_can_be_drawn_from_its_original(self) -> None:
-        """The gallery's audio edit trims against the original, so it draws that one."""
+        """The audio edit trims against the original."""
         with TempMediaFolder() as root:
             sound = write_wav(root, "voice.wav", seconds=1)
             write_wav(root, "long.wav", seconds=3).replace(backup_path_for(sound))
@@ -219,7 +219,7 @@ class AllProjectsEndpointTests(unittest.TestCase):
 
     def test_drafts_from_every_folder_the_app_has_seen_are_listed_newest_first(self) -> None:
         with TempMediaFolder() as first, TempMediaFolder() as second:
-            # Written behind the app's back: it is found once its folder is listed.
+            # Found once its folder is listed.
             elsewhere, _ = save_project(second, None, None, new_empty_project())
             saved = self.save_new(first, "Trip")
             self.assertEqual(self.all_paths(first, second), [saved])

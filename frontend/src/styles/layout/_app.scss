@@ -1,9 +1,8 @@
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
-// Sidebar | header over note, gallery and inspector. The header spans the full width so opening
-// the inspector never reflows it; the inspector takes the note's and gallery's rows. The note row
-// collapses to nothing when the folder has no note.
+// Sidebar
+// header over note, gallery and inspector; the header spans so the inspector never reflows it.
 .app {
   display: grid;
   flex: 1;

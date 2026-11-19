@@ -1,7 +1,4 @@
-"""Color grades saved by name, to apply the same look across generated shots and projects.
-
-They live in the app database rather than in a project, so every project can use them.
-"""
+"""Named color grades in the app database, shared by every project."""
 
 from __future__ import annotations
 

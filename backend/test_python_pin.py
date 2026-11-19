@@ -86,8 +86,7 @@ class PythonConfigurationPinTests(unittest.TestCase):
                 self.assertNotIn("python-version", setup[0]["with"])
 
     def test_every_ci_job_runs_on_a_pinned_ubuntu_release(self) -> None:
-        # setup-python publishes each patch release only for the Ubuntu releases current
-        # at the time, so a floating `-latest` runner can outgrow the pinned interpreter.
+        # setup-python publishes patches only for current Ubuntu releases, so `-latest` can outgrow the pin.
         workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "checks.yml").read_text())
         for name, job in workflow["jobs"].items():
             with self.subTest(job=name):

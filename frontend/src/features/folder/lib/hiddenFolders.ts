@@ -1,9 +1,6 @@
 import { foldersMatch, isInsideFolder } from "@/features/folder/lib/folderPath";
 
-/**
- * Leaves hidden folders out while the setting is on, except one that holds the open folder,
- * so the way back to it stays listed. Returns `folders` itself when nothing drops out.
- */
+/** Drops hidden folders, except one holding the open folder; returns `folders` if none drop. */
 export function visibleFolders<T extends { path: string; hidden: boolean }>(
   folders: T[],
   hideHidden: boolean,

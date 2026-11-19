@@ -13,8 +13,7 @@ function parseCache(value: unknown): string[] | null {
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 
-// Only expanded folders are stored, so collapsing back to the default costs an entry rather
-// than adding one, and a folder never visited reads as collapsed without a lookup miss.
+// Only expanded folders are stored; a missing entry reads as collapsed.
 function readCache(): string[] {
   return readStoredJson<string[]>(CACHE_KEY, parseCache, []);
 }
@@ -28,8 +27,7 @@ export function writeFolderExpanded(folderPath: string | undefined, expanded: bo
   if (!folderPath) return;
 
   const key = cacheKeyFor(folderPath);
-  // Dropping the old entry first moves the folder to the end, so the trim sheds the least
-  // recently expanded rather than whichever happened to be written first.
+  // Re-inserting moves the folder to the end, so the trim sheds the least recent.
   const kept = readCache().filter((entry) => entry !== key);
   if (expanded) kept.push(key);
 

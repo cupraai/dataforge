@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def publish_replacing(temp_path: Path, final_path: Path, stale_path: Path) -> None:
-    """``os.replace`` onto a streamed path fails on Windows (WinError 5); rename the destination out of the way first."""
+    """Windows refuses ``os.replace`` onto a streamed path, so the destination moves aside first."""
     try:
         os.replace(temp_path, final_path)
         return
@@ -39,11 +39,7 @@ def sweep_publish_leftovers(
     stale_suffix: str,
     is_busy: Callable[[Path], bool],
 ) -> None:
-    """Clear what a hard kill left behind, without touching another file's write in progress.
-
-    A stale file whose live file is gone is the only copy of a failed publish, so it is moved
-    back rather than deleted.
-    """
+    """A stale file whose live file is gone is moved back, not deleted."""
     with suppress(OSError):
         for suffix in (temp_suffix, stale_suffix):
             for leftover in folder.glob(f"*{suffix}"):

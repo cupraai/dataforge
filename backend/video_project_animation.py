@@ -1,8 +1,4 @@
-"""Keyframes and ducking, as values and as ffmpeg expressions of time.
-
-The preview evaluates the same rules in ``lib/keyframes.ts``; an expression written here must give
-what ``keyframe_value`` gives at every frame time, or the export would not move as the preview.
-"""
+"""Keyframes and ducking as values and ffmpeg expressions; must match ``lib/keyframes.ts``."""
 
 from __future__ import annotations
 
@@ -61,8 +57,7 @@ def _eased(easing: VideoProjectEasing, progress: str) -> str:
 
 
 def keyframe_expression(keys: Sequence[VideoProjectKeyframe], time: str) -> str:
-    """``keyframe_value`` for ffmpeg's evaluator, ``time`` naming the clip's own clock. It holds
-    commas, so the graph must quote it."""
+    """``keyframe_value`` for ffmpeg, on the clip's clock; it holds commas, so quote it."""
     assert keys, "a constant needs no expression"
     expression = _number(keys[-1].value)
     for before, after in reversed(list(pairwise(keys))):
@@ -99,8 +94,7 @@ def _sounds(clip: VideoProjectClip) -> bool:
 
 
 def duck_presence(spans: Sequence[tuple[float, float]], time: float) -> float:
-    """0 away from speech, 1 while it sounds, ramping over the ramp before and after each span.
-    Ramps of spans close together add up, so a short pause between lines stays ducked."""
+    """0 away from speech, 1 while it sounds, ramped; close spans stay ducked."""
     ramp = VIDEO_PROJECT_DUCK_RAMP_SECONDS
     total = 0.0
     for start, end in spans:

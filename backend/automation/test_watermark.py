@@ -101,7 +101,7 @@ class DrawtextEscapingTests(unittest.TestCase):
                 self.assertEqual(escape_drawtext_text(text), expected)
 
     def test_escapes_backslash_before_the_escapes_it_adds(self) -> None:
-        # Escaping ':' first would leave 'a\\\:b', which renders a stray backslash.
+        # Escaping ':' first would leave a stray backslash.
         self.assertEqual(escape_drawtext_text("a:b"), "a\\:b")
         self.assertEqual(escape_drawtext_text("a\\:b"), "a\\\\\\:b")
 
@@ -147,17 +147,17 @@ class DrawtextFilterTests(unittest.TestCase):
                 self.assertIn(y_fragment, filter_text)
 
     def test_disables_strftime_expansion(self) -> None:
-        # Without this a '%' in the text is read as a strftime directive.
+        # Otherwise '%' reads as a strftime directive.
         self.assertIn(":expansion=none", self.filter_for(text="100%"))
 
     def test_escapes_every_comma_inside_an_expression(self) -> None:
-        # A bare comma ends the filter's option list, so none may survive unescaped.
+        # A bare comma ends the option list.
         for fragment in self.filter_for().split(":"):
             if "max(" in fragment:
                 self.assertNotIn(",", fragment.replace("\\,", ""), fragment)
 
     def test_border_width_is_a_plain_integer(self) -> None:
-        # ffmpeg's borderw rejects frame variables, unlike fontsize/x/y.
+        # borderw rejects frame variables.
         self.assertIn(":borderw=3:", self.filter_for(size="large"))
 
     def test_draws_on_every_frame(self) -> None:
@@ -201,7 +201,7 @@ class WatermarkValidationTests(unittest.TestCase):
             )
 
     def test_skips_containers_the_ffmpeg_command_cannot_mux(self) -> None:
-        """`-movflags` and `-c:a copy` are MP4-family shaped; the rest are left alone."""
+        """Only the MP4 family takes `-movflags` and `-c:a copy`."""
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
             for name in ("clip.mkv", "clip.avi", "clip.wmv", "clip.flv"):
@@ -225,7 +225,7 @@ class WatermarkValidationTests(unittest.TestCase):
             normalize_watermark_text("line\nbreak")
 
     def test_accepts_filtergraph_metacharacters(self) -> None:
-        # These are escaped at render time; rejecting them would be a regression.
+        # Escaped at render time, never rejected.
         self.assertEqual(normalize_watermark_text("  a:b's 100% \\  "), "a:b's 100% \\")
 
     def test_rejects_unknown_size_opacity_and_position(self) -> None:
@@ -301,7 +301,7 @@ class WatermarkImageTests(unittest.TestCase):
 
             run_watermark_job(root, text="Sample Studio")
 
-            # Windows refuses both of these while Pillow still holds the file open.
+            # Windows refuses these while Pillow holds the file.
             source.rename(root / "renamed.png")
             (root / "renamed.png").unlink()
 
@@ -316,7 +316,7 @@ class WatermarkImageTests(unittest.TestCase):
                 self.assertEqual(output.mode, "RGB")
 
     def test_every_image_format_is_saved_as_itself(self) -> None:
-        """The output is named after the source, so it has to be encoded that way too."""
+        """Named after the source, so encoded that way too."""
         expected = {
             "beach.jpg": "JPEG",
             "photo.png": "PNG",
@@ -450,7 +450,7 @@ class WatermarkImageTests(unittest.TestCase):
 
     def test_rotated_jpeg_is_marked_in_the_corner_the_viewer_sees(self) -> None:
         with TempMediaFolder() as root:
-            # Orientation 6 means "rotate 90 degrees clockwise to display".
+            # Orientation 6 means rotate 90 degrees clockwise.
             write_jpeg(root, "portrait.jpg", width=400, height=300, orientation=6)
 
             run_watermark_job(root, text="Sample Studio")
@@ -476,7 +476,7 @@ class WatermarkImageTests(unittest.TestCase):
 
 
 class WatermarkVideoTests(unittest.TestCase):
-    """The video path is mocked: no backend test invokes ffmpeg for real."""
+    """No backend test invokes ffmpeg for real."""
 
     def test_counts_images_and_videos_separately(self) -> None:
         with TempMediaFolder() as root:
@@ -567,15 +567,14 @@ class WatermarkVideoTests(unittest.TestCase):
 
         command = commands[0]
         mapped = [command[i + 1] for i, token in enumerate(command) if token == "-map"]
-        # The first video and every audio track: not `-map 0`, which would pull in cover art
-        # (drawtext cannot filter two video streams) and untyped subtitle/data streams.
+        # Not `-map 0`, which pulls in cover art and data streams.
         self.assertEqual(mapped, ["[v]", "0:a?"])
         graph = command[command.index("-filter_complex") + 1]
         self.assertTrue(graph.startswith("[0:v:0]drawtext="), graph)
 
 
 def write_jpeg_with_exif(root: Path, name: str = "photo.jpg") -> Path:
-    """Software and Artist, not Orientation: ``exif_transpose`` drops Orientation on every read."""
+    """``exif_transpose`` drops Orientation on every read."""
     media = root / name
     exif = Image.Exif()
     exif[0x0131] = "DataForge Test"
@@ -606,8 +605,7 @@ class WatermarkStripMetadataTests(unittest.TestCase):
 
             run_watermark_job(root, text="Sample Studio")
 
-            # save_image_preserving_format passes icc_profile from encoderinfo; without it Pillow's
-            # JPEG and WebP savers drop the profile silently.
+            # Pillow's JPEG and WebP savers drop the profile without icc_profile.
             for name in ("photo.jpg", "photo.webp"):
                 with Image.open(watermarked(root, name)) as copy:
                     self.assertIsNotNone(copy.info.get("icc_profile"))
@@ -645,7 +643,7 @@ class WatermarkStripMetadataTests(unittest.TestCase):
                 run_watermark_job(root, text="Sample Studio", strip_metadata=True)
 
             stripped = Path(strip.call_args.args[0])
-            # Stripping the published copy would leave a marked file carrying metadata if it failed.
+            # A failed strip must not leave a marked file with metadata.
             self.assertIn(WATERMARK_TEMP_MARKER, stripped.name)
             self.assertFalse(stripped.exists())
 
@@ -750,7 +748,6 @@ def write_flat_gif(
     transparent: bool = False,
     comment: str | None = None,
 ) -> Path:
-    """One flat colour per frame; ``transparent`` clears the left half of every frame."""
     frames = []
     for colour in colours:
         frame = Image.new("P", (160, 120), 1)
@@ -775,7 +772,6 @@ def write_flat_gif(
 
 
 def read_gif(path: Path) -> tuple[list[Image.Image], list[int], dict]:
-    """Composited frames, per-frame delays, and the header info of frame zero."""
     with Image.open(path) as opened:
         info = dict(opened.info)
         frames: list[Image.Image] = []
@@ -802,7 +798,7 @@ class WatermarkGifTests(unittest.TestCase):
 
 @unittest.skipUnless(ffmpeg_path(), "ffmpeg is not installed")
 class WatermarkGifEncodeTests(unittest.TestCase):
-    """Real encodes: the muxer's delay rounding and palette loss only show in the output."""
+    """Delay rounding and palette loss only show in real encodes."""
 
     def test_marks_every_frame_and_keeps_the_timing_and_loop_count(self) -> None:
         with TempMediaFolder() as root:
@@ -827,7 +823,7 @@ class WatermarkGifEncodeTests(unittest.TestCase):
             self.assertEqual(delays, [100, 250, 400])
             self.assertEqual(info.get("loop"), 3)
             for frame in frames:
-                # Frames are near-black and distinct, since Pillow merges identical frames.
+                # Pillow merges identical frames.
                 marked = bottom_right(frame).convert("L").point(lambda value: value > 100 and 255)
                 self.assertIsNotNone(marked.getbbox())
 
@@ -908,9 +904,8 @@ def store_watermark_png(
 
 
 def red_box(image: Image.Image) -> tuple[int, int, int, int] | None:
-    """Where the red mark landed on a black frame."""
     red, green, _blue = image.convert("RGB").split()
-    # Text is white, so a pixel that is red but not green is the PNG's, never the text's.
+    # Text is white, so red-not-green pixels are the PNG's.
     return ImageChops.multiply(
         red.point(lambda value: 255 if value > 40 else 0),
         green.point(lambda value: 255 if value < 40 else 0),
@@ -973,10 +968,10 @@ class WatermarkPngTests(unittest.TestCase):
                     box = red_box(output)
                 assert box is not None
                 widths[size] = box[2] - box[0]
-                # A 2:1 logo keeps its aspect ratio.
+                # The logo keeps its aspect ratio.
                 self.assertAlmostEqual(widths[size] / (box[3] - box[1]), 2, delta=0.1)
 
-        # The wide side fills the square: 10%, 15% and 22% of 300px.
+        # 10%, 15% and 22% of 300px.
         self.assertEqual(widths, {"small": 30, "medium": 45, "large": 66})
 
     def test_opacity_fades_the_png(self) -> None:
@@ -1228,7 +1223,7 @@ def make_black_mp4(root: Path, name: str, *, rotation: int | None = None) -> Pat
 
 
 def first_frame(video: Path, root: Path) -> Image.Image:
-    """Decoded as a player would show it, display matrix applied."""
+    """Display matrix applied."""
     executable = ffmpeg_path()
     assert executable is not None
     frame = root / "frame.png"
@@ -1255,7 +1250,7 @@ def first_frame(video: Path, root: Path) -> Image.Image:
 
 @unittest.skipUnless(ffmpeg_path(), "ffmpeg is not installed")
 class WatermarkPngEncodeTests(unittest.TestCase):
-    """Real encodes: frame-relative scaling and the display matrix only show in the output."""
+    """Scaling and the display matrix only show in real encodes."""
 
     def test_marks_a_video_in_the_chosen_corner_at_the_chosen_size(self) -> None:
         store_watermark_png(self)
@@ -1274,7 +1269,7 @@ class WatermarkPngEncodeTests(unittest.TestCase):
             self.assertEqual(frame.size, (160, 120))
             self.assertGreater(box_centre(box)[0], 80)
             self.assertLess(box_centre(box)[1], 60)
-            # 15% of the 120px short side, give or take chroma bleed.
+            # 15% of the 120px short side.
             self.assertAlmostEqual(box[2] - box[0], 18, delta=3)
 
     def test_a_rotated_video_is_marked_upright_and_not_rotated_again(self) -> None:
@@ -1288,13 +1283,13 @@ class WatermarkPngEncodeTests(unittest.TestCase):
 
             with TempMediaFolder() as scratch:
                 frame = first_frame(watermarked(root, "portrait.mp4"), scratch)
-            # A display matrix left on the copy would turn it back to landscape here.
+            # A leftover display matrix would turn it back to landscape.
             self.assertEqual(frame.size, (120, 160))
             box = red_box(frame)
             assert box is not None
             self.assertLess(box_centre(box)[0], 60)
             self.assertGreater(box_centre(box)[1], 80)
-            # Still a 2:1 logo: it was scaled after the rotation, not before.
+            # Scaled after the rotation.
             self.assertGreater(box[2] - box[0], box[3] - box[1])
 
     def test_marks_every_gif_frame_and_keeps_the_frame_count(self) -> None:

@@ -91,7 +91,6 @@ class ListDuplicatesTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_reports_whether_a_delete_can_be_undone(self) -> None:
-        """The resolver only asks for confirmation where deleting is final."""
         with TempMediaFolder() as root:
             write_media(root, "one.png")
 
@@ -100,7 +99,7 @@ class ListDuplicatesTests(unittest.TestCase):
                     self.assertIs(list_duplicates(root)["deletes_to_trash"], recoverable)
 
     def test_the_capability_follows_the_delete_implementation(self) -> None:
-        """Named for the behaviour, so a future trash backend flips it on its own."""
+        """Named for the behaviour, so a trash backend flips it."""
         with patch("file_trash.sys.platform", "win32"):
             self.assertTrue(deletes_to_trash())
 
@@ -108,7 +107,7 @@ class ListDuplicatesTests(unittest.TestCase):
             self.assertFalse(deletes_to_trash())
 
     def test_a_still_sharing_the_video_stem_does_not_hide_the_group(self) -> None:
-        """The generated-folder shape: clip.mp4 and clip.png sit under one stem."""
+        """clip.mp4 and clip.png under one stem."""
         with TempMediaFolder() as root:
             first = write_media(root, "clip.mp4")
             second = write_media(root, "clip-copy.mp4")
@@ -145,7 +144,7 @@ class ResolveDuplicateTests(unittest.TestCase):
             self.assertEqual(response.json()["failed"], [])
             self.assertTrue(keep.is_file())
             self.assertFalse(drop.is_file())
-            # The group is settled, so the survivor stops advertising it.
+            # The survivor stops advertising a settled group.
             self.assertFalse(duplicate_file_path(keep).exists())
 
     def test_deletes_the_discards_sidecars_too(self) -> None:
@@ -235,11 +234,11 @@ class DismissDuplicateTests(unittest.TestCase):
 
             payload = list_duplicates(root)
             self.assertEqual(payload["groups"], [])
-            # Not stale either: a stale member still carries a sidecar, these do not.
+            # A stale member still carries a sidecar.
             self.assertEqual(payload["stale"], [])
 
     def test_a_member_without_a_finding_is_still_reported_as_cleared(self) -> None:
-        """A half-written group dismisses in one go rather than erroring."""
+        """A half-written group dismisses rather than erroring."""
         with TempMediaFolder() as root:
             first = write_media(root, "one.png")
             second = write_media(root, "two.png")

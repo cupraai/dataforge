@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
-#
-# Runs DataForge in production mode: builds the frontend if needed, then serves the
-# bundled UI and the API from a single process.
-#
-# One uvicorn process binds DATAFORGE_UI_PORT (default 18081) and answers both the
-# built UI at / and the API under /api. Same origin, so there is no proxy hop and no
-# CORS - and no reloader, so a long job is never restarted out from under itself.
-#
-# The build is skipped when frontend/dist is newer than every frontend source, which
-# makes the usual launch near-instant. This terminal stays open as a supervisor:
-# press any key, or Ctrl+C, to stop the server cleanly.
-#
-# The Windows twin is start.ps1. For hot reload while developing, use ./dev.sh.
+# Production mode: builds the frontend if stale, then serves UI and API from one process.
+# No reloader, so a long job is never restarted. Windows twin: start.ps1.
 #
 # Usage: ./start.sh [--rebuild] [--no-build] [--no-browser] [--detach]
 
@@ -70,15 +59,13 @@ cleanup() {
         say ""
         say "Stopping the server..."
         stop_supervised
-        # Backstop: a terminal closed by hand can leave the server holding the port
-        # with no job left to walk down from.
+        # Backstop for a terminal closed by hand.
         clear_port "$DEV_UI_PORT" "app" >/dev/null 2>&1 || true
         say "Stopped."
     fi
 }
 
-# INT and TERM exit, and the EXIT trap does the actual stopping - so Ctrl+C, kill,
-# and a closed terminal all take the same path.
+# The EXIT trap stops everything, so every way out takes one path.
 trap 'exit 130' INT TERM
 trap cleanup EXIT
 
@@ -89,9 +76,7 @@ say "  Mode     : production - bundled UI, no hot reload"
 say "================================================"
 say ""
 
-# Ahead of both the check below and the freshness test: the generated sources are
-# gitignored, so a branch switch leaves the other branch's shape in place, and a dist
-# built from it would otherwise still measure as up to date.
+# Regenerated first, so a branch switch cannot leave a falsely fresh dist.
 update_generated_sources || true
 
 check_prerequisites 1 1 || exit 1
@@ -113,8 +98,7 @@ else
 fi
 say ""
 
-# Vite from a leftover ./dev.sh holds this port too, and the server would just fail
-# to bind. Clearing it first keeps ./start.sh working right after ./dev.sh.
+# A leftover ./dev.sh Vite holds this port too.
 clear_port "$DEV_UI_PORT" "app" || exit 1
 
 say "Starting the server on port $DEV_UI_PORT..."

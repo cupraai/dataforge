@@ -145,8 +145,7 @@ describe("ServerEventsProvider", () => {
       await vi.advanceTimersByTimeAsync(STREAM_STALE_MS + 10_000);
     });
 
-    // A dropped connection reports itself; one that goes quiet does not, so silence
-    // past the threshold is the only signal that it has stopped working.
+    // Silence past the threshold is the only sign of a stalled stream.
     expect(first.closed).toBe(true);
     expect(stream.source()).not.toBe(first);
   });
@@ -176,8 +175,7 @@ describe("ServerEventsProvider", () => {
     });
     const first = stream.source();
 
-    // A busy stream never goes idle long enough for the server to send a heartbeat,
-    // so a heartbeat-only watchdog would fire during exactly the busiest run.
+    // A busy stream sends no heartbeat, so a heartbeat-only watchdog would misfire.
     for (let elapsed = 0; elapsed < STREAM_STALE_MS * 2; elapsed += 10_000) {
       await act(async () => {
         stream.push({ type: "folder", path: "C:\\Photos", fingerprint: `fp-${elapsed}` });
@@ -200,8 +198,7 @@ describe("ServerEventsProvider", () => {
     visibility.mockReturnValue("hidden");
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
-      // Short of the hidden-disconnect timer, so any close here would be the watchdog
-      // reacting to throttled wall-clock time rather than a real fault.
+      // Below the hidden-disconnect timer, so a close here would be the watchdog.
       await vi.advanceTimersByTimeAsync(HIDDEN_DISCONNECT_MS - 5_000);
     });
 

@@ -1,5 +1,3 @@
-"""Utility job to edit existing captions in bulk: find and replace, prepend, or append text."""
-
 from __future__ import annotations
 
 import re
@@ -29,15 +27,15 @@ DEFAULT_MODE = "replace"
 
 CaptionReplacer = Callable[[str], str | None]
 
-#: A replace result whose pattern ran out of time; stops a job, since the next caption may too.
+#: Stops the job, since the next caption may time out too.
 PATTERN_ERROR = "pattern_error"
 
 
 class PatternTooSlowError(ValueError):
-    """A valid pattern that did not finish within ``CAPTION_REGEX_TIMEOUT_SECONDS``."""
+    """The pattern did not finish within ``CAPTION_REGEX_TIMEOUT_SECONDS``."""
 
 
-# $$ first so $$1 stays the characters $1 rather than group 1.
+# $$ first, so $$1 stays the characters $1.
 _DOLLAR_REPL = re.compile(r"\$(\$|\d{1,2})")
 
 
@@ -59,7 +57,7 @@ def build_caption_replacer(
     use_regex: bool = False,
     case_sensitive: bool = False,
 ) -> CaptionReplacer:
-    """Compile one reusable edit shared by the job and its preview; raises ``ValueError`` if unusable."""
+    """Raises ``ValueError`` if unusable."""
     if mode not in REPLACE_MODES:
         raise ValueError(f"Unknown replace mode: {mode}")
 
@@ -84,15 +82,14 @@ def _build_replacer(
     if not search:
         raise ValueError("Enter the text to search for")
 
-    # Per-line anchors, as in a text editor; ``.`` still stops at a line break. ``regex`` reads
-    # ``re`` syntax (its version 0) and, unlike ``re``, can be timed out.
+    # Per-line anchors, as in an editor; ``regex`` reads ``re`` syntax but can time out.
     flags = regex.MULTILINE if case_sensitive else regex.MULTILINE | regex.IGNORECASE
     try:
         pattern = regex.compile(search if use_regex else regex.escape(search), flags)
     except regex.error as exc:
         raise ValueError(f"Invalid regular expression: {exc}") from exc
 
-    # Plain text is returned as it is: as a template, ``\n`` or ``\1`` would be expanded.
+    # As a template, ``\n`` or ``\1`` would be expanded.
     template: str | Callable[[object], str] = (
         _python_replacement(replacement) if use_regex else lambda _match: replacement
     )
@@ -105,7 +102,7 @@ def _build_replacer(
                 "The search pattern took too long to evaluate. Simplify it and try again."
             ) from exc
         except regex.error as exc:
-            # Group refs like ``\9`` are only resolved against a real match, not at compile time.
+            # Group refs like ``\9`` are only resolved against a real match.
             raise ValueError(f"Invalid replacement text: {exc}") from exc
         return _changed(text, edited)
 
@@ -113,7 +110,7 @@ def _build_replacer(
 
 
 def _build_affixer(*, mode: str, addition: str, case_sensitive: bool) -> CaptionReplacer:
-    # ``save_caption`` strips, so adding only whitespace is a no-op.
+    # ``save_caption`` strips, so whitespace alone is a no-op.
     trimmed = addition.strip()
     if not trimmed:
         raise ValueError("Enter the text to add")
@@ -135,7 +132,7 @@ def _build_affixer(*, mode: str, addition: str, case_sensitive: bool) -> Caption
 
 
 def _changed(original: str, edited: str) -> str | None:
-    """The edited caption, or None when saving it would not change the sidecar."""
+    """None when saving would not change the sidecar."""
     return edited if edited.strip() != original.strip() else None
 
 
@@ -178,7 +175,6 @@ def preview_caption_replacements(
     selected_paths: list[Path] | None = None,
     sample_limit: int = 3,
 ) -> dict[str, object]:
-    """Count the captions this edit would change, with a few before/after samples."""
     replacer = build_caption_replacer(
         mode=mode,
         search=search,
@@ -188,7 +184,7 @@ def preview_caption_replacements(
     )
 
     media_files = filter_media_list(list_replace_captions_media(folder), selected_paths)
-    # Counted per caption, as the job changes them: a shared caption is one match.
+    # A shared caption is one match.
     targets = caption_targets(media_files)
     matched = 0
     samples: list[dict[str, str]] = []

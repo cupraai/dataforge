@@ -64,10 +64,7 @@ export function createQueryClient(): QueryClient {
   return client;
 }
 
-/**
- * A query function that folds a fresh read into the cached copy. The cache is read only once
- * the read answers, so a push that landed while it was out survives the merge.
- */
+/** Merges a fresh read into the cache once it answers, so a push meanwhile survives. */
 export function mergedRead<TCached, TFresh>(
   read: (signal: AbortSignal) => Promise<TFresh>,
   merge: (cached: TCached | undefined, fresh: TFresh) => TCached,

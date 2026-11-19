@@ -1,8 +1,4 @@
-"""The Adjust wand: read an image or a clip and suggest tool positions toward a natural look.
-
-It fixes levels, harsh contrast, loud or dull colour and casts, and leaves alone a frame that is
-already within natural bounds. Suggestions are partial, so a second run changes little.
-"""
+"""The Adjust wand: suggest partial tool positions toward a natural look."""
 
 from __future__ import annotations
 
@@ -27,45 +23,43 @@ from schemas import AutoAdjust, ColorAdjust, EditCropRect, MaskRegion
 
 logger = logging.getLogger(__name__)
 
-#: Long side the analysis reads at; statistics settle long before full resolution.
+#: Statistics settle long before full resolution.
 ANALYSIS_SIDE = 512
 VIDEO_ANALYSIS_SIDE = 256
 VIDEO_SAMPLE_FRAMES = 8
 
-#: Well-exposed footage keeps its median anywhere in this band of encoded luminance. Outside it
-#: the wand closes a share of the gap past the edge, so the move grows from nothing at the edge.
+#: Well-exposed footage keeps its median in this band of encoded luminance.
 DARK_MEDIAN = 0.34
 BRIGHT_MEDIAN = 0.62
 MEDIAN_GAP_GAIN = 1.5
 DARK_TARGET = 0.42
 BRIGHT_TARGET = 0.52
-#: Brightening stops where the brightest percentile would land, so it never blows highlights.
+#: Brightening never blows highlights.
 HEADROOM_PERCENTILE = 99.0
 HEADROOM_TARGET = 0.93
 #: Share of each measured correction the wand applies.
 CORRECTION_SHARE = 0.5
 MAX_SUGGESTION = 0.5
-#: Dark and bright scenes are often meant that way, so exposure moves less than the rest.
+#: Dark and bright scenes are often intended.
 MAX_EXPOSURE = 0.3
 MAX_WHITE_BALANCE = 0.25
 MAX_CONTRAST = 0.3
 MAX_VIBRANCE = 0.25
 MAX_DESATURATION = 0.3
-#: A warm scene reads like a warm cast, and cooling a sunset is the worse mistake.
+#: Cooling a sunset is the worse mistake.
 COOLING_SHARE = 0.25
 MAX_COOLING = 0.1
-#: Foliage reads like a green cast, so tint moves less than warmth.
+#: Foliage reads like a green cast.
 TINT_SHARE = 0.35
 MAX_TINT = 0.15
-#: Below this a suggestion is noise, and a tool the user did not ask about should stay at 0.
+#: Below this a suggestion is noise, and the tool stays at 0.
 DEAD_ZONE = 0.03
 
-#: A floor above this reads as haze; the correction ramps in over the next stretch, so a floor
-#: just past it is barely touched.
+#: A floor above this reads as haze.
 HAZE_FLOOR = 0.08
 HAZE_RAMP = 0.05
 BLACK_TARGET = 0.01
-#: Whites short of this get a white point; a dull white is the bright end's haze.
+#: Whites short of this get a white point.
 WHITE_PERCENTILE = 99.5
 WHITE_TARGET = 0.95
 CLIPPED_LEVEL = 0.97
@@ -73,33 +67,31 @@ CLIPPED_ALLOWANCE = 0.01
 DEEP_SHADOW_LEVEL = 0.1
 DEEP_SHADOW_ALLOWANCE = 0.15
 FLAT_SPREAD = 0.6
-#: Crushed blacks and blown whites together; past this share the contrast is harsh.
+#: Past this share of crushed and blown pixels the contrast is harsh.
 EXTREME_LOW = 0.04
 EXTREME_HIGH = 0.96
 HARSH_EXTREMES = 0.08
 HARSH_GAIN = 1.5
-#: Pure black and white in the source; no tone tool moves them, so they count as neither clipped
-#: nor deep in shadow, or the wand would keep asking for what it cannot do.
+#: No tone tool moves pure black and white, so they are not counted as clipped.
 PINNED_MARGIN = 1.5 / 255
-#: Oversaturation pins a channel at 0 or 1 in pixels that are neither dark nor white; natural
-#: colour almost never does. Dark pixels are left out: a night sky pins its red channel honestly.
+#: Natural colour rarely pins a channel; dark pixels are left out.
 PINNED_LOW = 0.35
 PINNED_HIGH = 0.95
 PINNED_CHANNEL = 0.015
 PINNED_ALLOWANCE = 0.05
 PINNED_GAIN = 1.5
-#: Hasler and Susstrunk's colourfulness, in 0..1 units: "highly colourful" ends near 0.26.
+#: Hasler and Susstrunk's colourfulness.
 LOUD_COLOURFULNESS = 0.26
 LOUD_GAIN = 2.0
 DULL_COLOURFULNESS = 0.1
 NEUTRAL_SATURATION = 0.15
-#: Grey-world needs this share of near-grey pixels, or a warm sunset reads as an orange cast.
+#: Grey-world needs this share of near-grey pixels.
 MIN_NEUTRAL_SHARE = 0.1
 WHITE_BALANCE_ROUNDS = 3
 
 
 class NothingToAnalyseError(ValueError):
-    """Raised when the crop, masks and transparency leave no pixel to read."""
+    """The crop, masks and transparency leave no pixel to read."""
 
 
 def _clamp(value: float, limit: float = MAX_SUGGESTION) -> float:
@@ -129,7 +121,7 @@ def _encoded(luminance: np.ndarray, adjust: ColorAdjust) -> np.ndarray:
 
 
 def _solve(encoded: float, target: float, tool: str, fixed: ColorAdjust) -> float:
-    """Bisection over one tone tool: every stage is monotonic, so the target has one crossing."""
+    """Every stage is monotonic, so the target has one crossing."""
     low, high = -1.0, 1.0
     luminance = srgb_to_linear(np.array([encoded]))
     for _ in range(40):
@@ -142,9 +134,7 @@ def _solve(encoded: float, target: float, tool: str, fixed: ColorAdjust) -> floa
 def _midtones(
     encoded_luma: np.ndarray, weights: np.ndarray, levels: ColorAdjust
 ) -> tuple[float, float]:
-    """Exposure and brightness, judged on where the median lands after ``levels``. Brightening
-    uses exposure, which rolls off before white; darkening uses brightness, which keeps white
-    where a plain gain would grey it."""
+    """Brightening uses exposure, which rolls off before white; darkening uses brightness."""
     median = _weighted_percentile(encoded_luma, weights, 50.0)
     landed = float(_encoded(srgb_to_linear(np.array([median])), levels)[0])
     if landed > BRIGHT_MEDIAN:
@@ -162,9 +152,7 @@ def _midtones(
 
 
 def _levels(toned: np.ndarray, weights: np.ndarray) -> ColorAdjust:
-    """Black and white point, read after the midtone move, which shifts both ends. The black
-    point never sinks the median into the dark band: in a low-contrast frame the floor sits
-    close to the median, and clearing it would clear the subject."""
+    """Black and white point, after the midtone move; never sinks the median into the dark band."""
     floor = _weighted_percentile(toned, weights, 0.5)
     median = _weighted_percentile(toned, weights, 50.0)
     haze = min(1.0, max(0.0, (floor - HAZE_FLOOR) / HAZE_RAMP))
@@ -183,8 +171,7 @@ def _levels(toned: np.ndarray, weights: np.ndarray) -> ColorAdjust:
 
 
 def _contrast(levelled: np.ndarray, weights: np.ndarray, deep: float) -> float:
-    """Harsh footage is softened. A flat one is only steepened when it is neither dark nor deep in
-    shadow, since steeper midtones would sink what the shadows and exposure lift."""
+    """A flat frame is only steepened when it is neither dark nor deep in shadow."""
     extremes = _weighted_share((levelled < EXTREME_LOW) | (levelled > EXTREME_HIGH), weights)
     if extremes > HARSH_EXTREMES:
         return -_clamp((extremes - HARSH_EXTREMES) * HARSH_GAIN + DEAD_ZONE, MAX_CONTRAST)
@@ -211,7 +198,7 @@ def _colourfulness(rgb: np.ndarray, weights: np.ndarray) -> float:
 def _saturation_and_vibrance(
     rgb: np.ndarray, encoded_luma: np.ndarray, weights: np.ndarray
 ) -> tuple[float, float]:
-    """Loud colour is pulled back with saturation; only dull colour is lifted, and gently."""
+    """Only dull colour is lifted, and gently."""
     lit = (encoded_luma > PINNED_LOW) & (encoded_luma < PINNED_HIGH)
     pinned = lit & ((rgb.min(axis=-1) < PINNED_CHANNEL) | (rgb.max(axis=-1) > 1 - PINNED_CHANNEL))
     pinned_share = _weighted_share(pinned, weights)
@@ -235,8 +222,7 @@ def _spread(encoded: np.ndarray, weights: np.ndarray) -> float:
 
 
 def _cast(linear: np.ndarray, weights: np.ndarray) -> tuple[float, float] | None:
-    """Warmth and tint that would grey these pixels. Brighter ones count more: highlights
-    carry the light's color, shadows the surfaces'."""
+    """Brighter pixels count more: highlights carry the light's color."""
     grey_weights = weights * (linear @ LUMA) ** 2
     red, green, blue = (linear * grey_weights[:, None]).sum(axis=0)
     if min(red, green, blue) <= 0:
@@ -249,8 +235,7 @@ def _cast(linear: np.ndarray, weights: np.ndarray) -> tuple[float, float] | None
 def _white_balance(
     linear: np.ndarray, encoded_luma: np.ndarray, weights: np.ndarray
 ) -> tuple[float, float]:
-    """Grey-world, refined onto the pixels that are grey once its own guess is undone. A cast
-    tints the greys, so they can only be found after a first guess; with too few, stay put."""
+    """Grey-world, refined onto the pixels that are grey once its guess is undone."""
     midtones = (encoded_luma > 0.2) & (encoded_luma < 0.95)
     estimate = _cast(linear[midtones], weights[midtones])
     for _ in range(WHITE_BALANCE_ROUNDS):
@@ -270,7 +255,7 @@ def _saturation(encoded: np.ndarray) -> np.ndarray:
 
 
 def suggest_adjust(rgb: np.ndarray, weights: np.ndarray) -> ColorAdjust:
-    """``rgb`` is ``(n, 3)`` sRGB-encoded in 0..1; ``weights`` how much each pixel counts."""
+    """``rgb`` is ``(n, 3)`` sRGB in 0..1; ``weights`` how much each pixel counts."""
     if rgb.size == 0 or float(weights.sum()) <= 0:
         raise NothingToAnalyseError("There is nothing left to analyse")
 
@@ -345,7 +330,7 @@ def without_auto(adjust: ColorAdjust, auto: AutoAdjust) -> ColorAdjust:
 def with_auto(
     adjust: ColorAdjust, previous: AutoAdjust | None, suggestion: ColorAdjust
 ) -> tuple[ColorAdjust, AutoAdjust]:
-    """What pressing the wand does: the earlier suggestion is swapped out at the default amount."""
+    """The earlier suggestion is swapped out at the default amount."""
     base = adjust if previous is None else without_auto(adjust, previous)
     return _shifted(base, suggestion, 1.0), AutoAdjust(suggestion=suggestion, base=base)
 
@@ -353,7 +338,7 @@ def with_auto(
 def _frame_weights(
     shape: tuple[int, int], masks: Sequence[MaskRegion], crop: EditCropRect | None
 ) -> tuple[np.ndarray, tuple[slice, slice]]:
-    """Masked pixels count for nothing; the slices cut the crop out of the frame."""
+    """Masked pixels count for nothing."""
     height, width = shape
     weights = np.ones(shape, dtype=np.float64)
     for region in masks:
@@ -380,7 +365,7 @@ def _flattened(
 def image_analysis_pixels(
     source: Path, masks: Sequence[MaskRegion], crop: EditCropRect | None
 ) -> tuple[np.ndarray, np.ndarray]:
-    """The whole frame is shrunk first: crop and masks are fractions, so they cut the same pixels."""
+    """Crop and masks are fractions, so shrinking first cuts the same pixels."""
     image, _, _ = load_image_for_edit(source)
     image.thumbnail((ANALYSIS_SIDE, ANALYSIS_SIDE), Image.Resampling.BOX)
     rgba = np.asarray(image, dtype=np.float64) / 255.0
@@ -401,8 +386,7 @@ def video_analysis_pixels(
     end: float | None,
     duration: float | None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Frames spread over the kept range, each read like a still. Always ``release()``: an
-    unopened capture still locks the file on Windows."""
+    """Always ``release()``: an unopened capture still locks the file on Windows."""
     import cv2
 
     stop = end if end is not None else duration

@@ -45,8 +45,7 @@ describe("useGallerySelection", () => {
   it("adds to the selection rather than replacing it when selecting all", () => {
     const { result } = renderHook(() => useGallerySelection());
 
-    // "All" is only ever handed the visible paths, so a replace would drop
-    // whatever a previous, wider filter left selected off screen.
+    // "All" gets only visible paths, so a replace would drop off-screen selections.
     act(() => {
       result.current.enterSelectionMode();
       result.current.selectAllPaths(["/photos/a.png"]);

@@ -154,8 +154,7 @@ test("video playback fades in evenly along the preview edge", async ({ page }, t
       json: { ...folder, items, item_count: 1, subfolders: [], subfolder_count: 0 },
     });
   });
-  // React may apply the ready class after the playing event's next animation frame.
-  // Pause the actual fade so screenshots can inspect intermediate playback frames.
+  // The ready class may land a frame after playing; pause the fade to inspect frames.
   await page.addInitScript(() => {
     document.addEventListener("transitionrun", (event) => {
       const target = event.target;

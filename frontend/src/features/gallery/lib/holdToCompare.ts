@@ -1,7 +1,6 @@
 import type { KeyboardEvent, PointerEvent } from "react";
 
-/** Handlers for a hold-to-compare button: down by pointer, Space or Enter shows the original,
- * and any way of letting go (including losing focus or capture) shows the edit again. */
+/** Down by pointer, Space or Enter shows the original; any release shows the edit. */
 export function holdToCompareProps(setHolding: (holding: boolean) => void) {
   const release = () => setHolding(false);
   return {

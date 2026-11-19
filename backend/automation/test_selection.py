@@ -12,7 +12,6 @@ class SelectionHelpersTests(unittest.TestCase):
             self.assertIsNone(resolve_selected_media(root, None))
 
     def test_an_empty_selection_is_refused_rather_than_widened(self) -> None:
-        """The audit's F04: ``[]`` used to mean every file, so a lost selection wrote to all."""
         with TempMediaFolder() as root:
             with self.assertRaisesRegex(ValueError, "Select at least one file"):
                 resolve_selected_media(root, [])

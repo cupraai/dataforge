@@ -14,9 +14,7 @@ $toolbar-search-width-max: 22rem;
   justify-content: space-between;
   gap: 0.625rem;
 
-  // Fills the rest of the row so the view controls stay right of the folder actions. It never
-  // shrinks below its content: in a narrow header the group moves to its own line instead of
-  // stacking its controls vertically.
+  // Fills the row, keeping view controls right; in a narrow header it wraps as one group.
   &__controls {
     --toolbar-control-height: var(--control-height);
     display: flex;

@@ -54,8 +54,7 @@ describe("useStickyFloating", () => {
   });
 
   it("returns true once sticky holds the element below its sentinel", async () => {
-    // The sentinel has scrolled above the scroll root while the element stayed
-    // docked further down — the case an offset dock produces.
+    // The sentinel scrolled away while the element stayed docked lower, as with an offset dock.
     const { sentinelRef, elementRef } = setup(40, 160);
 
     const { result } = renderHook(() => useStickyFloating(sentinelRef, elementRef));

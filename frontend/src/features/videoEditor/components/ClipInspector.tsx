@@ -486,8 +486,7 @@ function InspectorContent({
         {timed && clip.speed !== 1 && (
           <p className="video-editor__hint">Sound keeps its pitch at any speed.</p>
         )}
-        {/* Both scales span the whole clip, so moving one fade never moves the other's thumb;
-            a fade dragged into the other stops where that one begins. */}
+        {/* Both scales span the whole clip; a fade stops where the other begins. */}
         <InspectorSlider
           label="Fade in"
           value={clip.fade_in}
@@ -725,10 +724,7 @@ const CROP_EDGES: { edge: CropEdge; label: string; opposite: CropEdge }[][] = [
   ],
 ];
 
-/**
- * Each side is cut on its own, on a fixed scale, so moving one edge never moves another or
- * rescales its slider; an edge dragged into the opposite one stops just short of it.
- */
+/** Each side on a fixed scale; an edge stops just short of the opposite one. */
 function CropPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
   const crop = clip.crop ?? { x: 0, y: 0, width: 1, height: 1 };
   const rounded = (fraction: number) => Number(fraction.toFixed(6));

@@ -8,10 +8,7 @@ export interface ReferenceFrame {
   timecode: string;
 }
 
-/**
- * A held frame over the live monitor, left of a divider that can be dragged across: compare a
- * shot against another one, or against itself before a change.
- */
+/** A held frame left of a draggable divider over the live monitor, for comparing shots. */
 export function ReferenceWipe({
   reference,
   onClear,

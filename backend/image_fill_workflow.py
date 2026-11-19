@@ -1,11 +1,4 @@
-"""The tracked Qwen-Image 2.1 masked-edit templates and their dependencies.
-
-Each preset is one API-format template in ``comfy_fill_templates/``. The roles are the prep job's:
-``DataForge Input``, ``DataForge Mask``, ``DataForge Prompt``, ``DataForge Seed`` and
-``DataForge Output``, plus the ``DataForge Steps`` integer. The
-model loaders and the sampler are found by class and take their file names and Quality's CFG from
-Settings, so changing a precision needs no template edit.
-"""
+"""Qwen-Image 2.1 masked-edit templates; loaders and sampler take their values from Settings."""
 
 from __future__ import annotations
 
@@ -31,14 +24,14 @@ FILL_TEMPLATES: dict[FillPreset, str] = {
     "quality": "qwen21_fill_quality",
 }
 
-#: Display names for messages, in the order the editor offers them.
+#: In the order the editor offers them.
 FILL_PRESET_LABELS: dict[FillPreset, str] = {"fast": "Fast", "quality": "Quality"}
 
 STEPS_INPUT = "Steps"
 SAMPLER_CLASS = "KSampler"
 CFG_INPUT = "cfg"
 
-#: Loader class, its file-name input, and the setting and model folder that supply it.
+#: Loader class, file-name input, and the setting and folder that supply it.
 _LOADERS: dict[str, tuple[str, str, str]] = {
     "UNETLoader": ("unet_name", "diffusion_model", "diffusion_models"),
     "CLIPLoader": ("clip_name", "text_encoder", "text_encoders"),
@@ -46,7 +39,7 @@ _LOADERS: dict[str, tuple[str, str, str]] = {
     "LoraLoaderModelOnly": ("lora_name", "turbo_lora", "loras"),
 }
 
-#: Removal includes partial objects so the model does not reconnect them across the selection.
+#: So the model does not reconnect partial objects across the selection.
 DEFAULT_FILL_INSTRUCTION = (
     "Remove all content covered by the selection, including parts of larger objects that extend "
     "outside it. Reconstruct only the background that would be visible behind the removed "
@@ -55,7 +48,7 @@ DEFAULT_FILL_INSTRUCTION = (
     "background seamlessly, without adding a new object, border, frame or outline"
 )
 
-#: The reference marks the selection; the sampler separately masks the untouched source.
+#: The sampler separately masks the untouched source.
 FILL_PROMPT = (
     "Edit <image1>: replace the solid magenta selection. {instruction}. "
     "Match the surrounding pattern, scale, color, lighting and perspective. "
@@ -67,7 +60,7 @@ FILL_PROMPT = (
 class FillTemplate:
     preset: FillPreset
     workflow: ComfyWorkflow
-    #: Template name and content digest, recorded with each fill for provenance.
+    #: Recorded with each fill for provenance.
     identity: str
 
 
@@ -120,7 +113,7 @@ def build_fill_prompt(
 ) -> dict[str, Any]:
     settings = settings or get_fill_settings()
     values: dict[str, object] = {}
-    # Fast keeps the eight steps its LoRA was distilled for; only Quality's are a setting.
+    # Fast keeps the eight steps its LoRA was distilled for.
     if template.preset == "quality":
         values[STEPS_INPUT] = settings.quality_steps
 
@@ -138,7 +131,7 @@ def build_fill_prompt(
     for node_id, class_type in _loader_nodes(prompt):
         key, setting, _ = _LOADERS[class_type]
         prompt[node_id]["inputs"][key] = getattr(settings, setting)
-    # Fast keeps the CFG 1 its LoRA was distilled for, like its steps.
+    # Fast keeps the CFG 1 its LoRA was distilled for.
     if template.preset == "quality":
         for node in prompt.values():
             if isinstance(node, dict) and node.get("class_type") == SAMPLER_CLASS:
@@ -147,8 +140,7 @@ def build_fill_prompt(
 
 
 def _combo_options(info: dict[str, Any], key: str) -> list[str] | None:
-    """The file names a loader offers. ComfyUI lists them as ``[[names], {...}]`` or, newer, as
-    ``["COMBO", {"options": [names]}]``."""
+    """Lists as ``[[names], {...}]`` or, newer, ``["COMBO", {"options": [names]}]``."""
     inputs = info.get("input")
     required = inputs.get("required") if isinstance(inputs, dict) else None
     spec = required.get(key) if isinstance(required, dict) else None
@@ -194,7 +186,7 @@ def _preset_reason(
 
 
 def describe_fill_presets(client: httpx.Client) -> list[FillPresetState]:
-    """Whether each preset can run on this ComfyUI, and what to install when it cannot."""
+    """And what to install when it cannot."""
     settings = get_fill_settings()
     templates: dict[FillPreset, FillTemplate | str] = {}
     for preset in FILL_TEMPLATES:

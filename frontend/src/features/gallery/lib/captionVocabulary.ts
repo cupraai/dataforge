@@ -29,10 +29,7 @@ function collectTags(caption: string, into: Map<string, number>) {
   }
 }
 
-/**
- * Words and comma-separated tags this folder's captions already use, most frequent first.
- * Tags outrank words of the same count so a tag-style dataset completes whole tags.
- */
+/** Words and tags the captions use, most frequent first; tags win ties. */
 export function buildCaptionVocabulary(items: GalleryItem[]): VocabularyEntry[] {
   const wordCounts = new Map<string, number>();
   const tagCounts = new Map<string, number>();

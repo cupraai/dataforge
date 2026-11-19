@@ -46,13 +46,7 @@ def progress_result(total: int) -> type[unittest.TextTestResult]:
 
 
 class WarningCounter:
-    """Counts and describes warnings as they are shown, then shows them as before.
-
-    A passing test's buffer swallows the text, so ``details`` is what ``run_checks`` can show:
-    the warning, where it was raised, and the test running then. A ``ResourceWarning`` is raised
-    where the object was collected, so the test is often the better clue. Warnings a test expects
-    (``assertWarns``, ``catch_warnings(record=True)``) bypass this hook.
-    """
+    """Count and describe warnings as shown; expected warnings are not counted."""
 
     def __init__(self) -> None:
         self.count = 0

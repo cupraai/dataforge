@@ -1,9 +1,4 @@
-"""Where the app has seen editor drafts, so the editor can list them across folders.
-
-A draft is recorded when it is saved and whenever a folder listing finds it, so one copied in
-from outside the app shows up once its folder is opened. Entries whose file is gone are dropped
-by whoever reads the list; nothing else keeps the index in step with the disk.
-"""
+"""Where editor drafts have been seen, recorded on save and on folder listing."""
 
 from __future__ import annotations
 

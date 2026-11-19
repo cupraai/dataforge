@@ -96,8 +96,7 @@ describe("VerifyCaptionsDialog", () => {
   });
 
   it("confirms without writing preferences of its own", async () => {
-    // Starting the job is what stores these now; a second write from the dialog was
-    // the inconsistency this replaced. The badge's own model lookup is not one.
+    // Starting the job stores these; the dialog writes nothing itself.
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const user = userEvent.setup();
     const onConfirm = renderDialog();

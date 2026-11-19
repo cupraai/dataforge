@@ -1,5 +1,3 @@
-"""Shared driver for the per-file loop every media automation job runs."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,24 +12,22 @@ ShouldCancel = Callable[[], bool]
 
 CANCELLED = "cancelled"
 
-#: A file another operation was changing; counted as a failure so "Retry failed" picks it up.
+#: Counted as a failure so "Retry failed" picks it up.
 BUSY = "busy"
 
 
 @dataclass(frozen=True)
 class FileOutcome:
-    """One file's result: ``stats`` increments, extra result ``fields``, and ``stop`` to abort the run."""
-
     status: str
     stats: dict[str, int] = field(default_factory=dict)
     fields: dict[str, object] = field(default_factory=dict)
     stop: bool = False
-    #: A caption write the job can take back; kept out of ``fields``, which clients are served.
+    #: Kept out of ``fields``, which clients are served.
     undo: CaptionUndo | None = None
 
     @classmethod
     def counted(cls, status: str, message: object = None, **fields: object) -> FileOutcome:
-        """One file under its own ``status`` counter; ``message`` is kept only when non-empty."""
+        """``message`` is kept only when non-empty."""
         if message:
             fields["message"] = str(message)
         return cls(status=status, stats={status: 1}, fields=fields)
@@ -55,12 +51,7 @@ def run_media_job(
     processed_stat_keys: tuple[str, ...] | None = None,
     claim_activity: ClaimActivity | None = None,
 ) -> dict[str, object]:
-    """Run ``process`` over ``media_files``. Omit ``processed_stat_keys`` when counters include sub-stats.
-
-    With ``claim_activity`` each file is claimed while it is processed; a file another operation
-    holds is reported as ``busy`` instead. A :class:`MediaBusyError` from inside ``process``,
-    such as a caption write that found its sidecar held, is reported the same way.
-    """
+    """Run ``process`` over ``media_files``; a file another operation holds is reported ``busy``."""
     file_results: list[dict[str, object]] = []
     caption_undo: list[CaptionUndo] = []
     total = len(media_files)
@@ -134,12 +125,7 @@ def run_caption_job(
     should_cancel: ShouldCancel | None = None,
     processed_stat_keys: tuple[str, ...] | None = None,
 ) -> dict[str, object]:
-    """:func:`run_media_job` over captions instead of files.
-
-    Same-stem media share one caption, so each caption is processed, backed up and counted once:
-    its row is its first file's, naming the others in ``shared_with``. ``stats["total"]`` becomes
-    the number of captions.
-    """
+    """:func:`run_media_job` once per caption, since same-stem media share one."""
     targets = {target.primary: target for target in caption_targets(media_files)}
     stats["total"] = len(targets)
 

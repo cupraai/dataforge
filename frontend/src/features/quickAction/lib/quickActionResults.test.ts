@@ -89,8 +89,7 @@ describe("rankQuickActionItems", () => {
   });
 
   it("floats the section holding the better match above an earlier-declared one", () => {
-    // The real case: both are prefix matches for "watermark", but only the job is
-    // an exact one — and folders are declared first, so a tie would bury it.
+    // Only the job is an exact match, and folders come first, so a tie would bury it.
     const items = [
       item("folder:watermarked", "watermarked", { section: "subfolders" }),
       item("run:watermark", "Watermark", { section: "run" }),
@@ -113,8 +112,7 @@ describe("rankQuickActionItems", () => {
   });
 
   it(`caps the whole list at ${MAX_RESULT_ROWS} rows, not each section`, () => {
-    // Spread across two sections: a per-section cap would let this through at
-    // double the limit, which is what made the panel scroll.
+    // Across two sections: a per-section cap would allow double the limit.
     const items = Array.from({ length: MAX_RESULT_ROWS + 5 }, (_, index) =>
       item(`sub-${index}`, `alpha ${index}`, { section: "subfolders" }),
     ).concat(
@@ -318,8 +316,7 @@ describe("orderQuickActionItems", () => {
   });
 
   it("drops a folder that is both a subfolder and a recent, keeping the earlier section", () => {
-    // Same path, so both builders mint the same id — and a duplicate id pins the
-    // palette's active row, because it tracks the selection by id.
+    // Same path, so both builders mint the same id.
     const asSubfolder = item("folder:C:\\Shots", "Shots", { section: "subfolders" });
     const asRecent = item("folder:C:\\Shots", "Shots", { section: "recentFolders" });
 

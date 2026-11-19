@@ -1,15 +1,4 @@
-"""Check that no stylesheet transitions a background or hard-codes a transition time.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/check_transitions.py
-
-Chrome runs background-color transitions on the compositor, and one that ends while the page
-is busy can flash a frame of its start. Fade the registered ``--fade-bg`` instead, through the
-``fade-bg()`` mixin, which paints ``background`` from it on the main thread.
-
-Durations and delays come from the motion tokens (``--transition``, ``--duration-*``), so the
-app moves at one tempo. A file-level SCSS variable is accepted for a deliberate one-off.
-"""
+"""Check that no stylesheet transitions a background or hard-codes a transition time."""
 
 from __future__ import annotations
 
@@ -23,8 +12,7 @@ STYLES = ROOT / "frontend" / "src" / "styles"
 _TRANSITION = re.compile(r"\btransition(?:-property)?\s*:([^;{}]*);")
 _TIMING = re.compile(r"\btransition-(?:duration|delay)\s*:([^;{}]*);")
 _FORBIDDEN = {"background", "background-color", "all"}
-# A bare nonzero time outside any `var()`/`calc()` argument, such as `0.2s` or `150ms`. Zero
-# means "no transition", not a tempo.
+# A bare nonzero time outside `var()`/`calc()`; zero means no transition.
 _LITERAL_TIME = re.compile(r"(?<![\w.$-])(?![0.]+m?s\b)\d*\.?\d+m?s\b")
 _PARENTHESIZED = re.compile(r"\([^()]*\)")
 _LINE_COMMENT = re.compile(r"(?<!:)//.*$", re.M)

@@ -89,7 +89,7 @@ class CaptionReplacerTests(unittest.TestCase):
         self.assertEqual(replace("a dog"), "a $1")
 
     def test_literal_replacement_is_inserted_exactly_as_typed(self) -> None:
-        """The audit's F08: ``\\new`` became a line break and ``\\item`` a "bad escape"."""
+        """``\\new`` must not become a line break, nor ``\\item`` a "bad escape"."""
         for replacement in (r"\new", r"\item", r"\1", r"\g<0>", "$1", "a\\b"):
             with self.subTest(replacement=replacement):
                 replace = build_caption_replacer(search="dog", replacement=replacement)
@@ -127,7 +127,6 @@ class CaptionReplacerTests(unittest.TestCase):
         self.assertEqual(append("a portrait"), "a portrait, high quality")
 
     def test_prepend_and_append_are_idempotent(self) -> None:
-        """A second run must not stack a second copy of the trigger word."""
         prepend = build_caption_replacer(mode="prepend", replacement="sks person, ")
         append = build_caption_replacer(mode="append", replacement=", high quality")
 
@@ -231,7 +230,7 @@ class ReplaceCaptionsJobTests(unittest.TestCase):
             )
 
     def test_a_search_spanning_lines_matches_windows_line_endings(self) -> None:
-        """The dialog sends LF; a caption written elsewhere on Windows may hold CRLF."""
+        """The dialog sends LF; a Windows caption may hold CRLF."""
         with TempMediaFolder() as root:
             media = write_media(root, "photo.png")
             media.with_suffix(".txt").write_bytes(b"a red\r\ndog in a field")
@@ -337,8 +336,7 @@ class ReplaceCaptionsJobTests(unittest.TestCase):
 
 
 class SharedCaptionTests(unittest.TestCase):
-    """The audit's F03: a caption shared by scene.jpg and scene.png was replaced twice, and its
-    backup kept the half-done text."""
+    """A shared caption is replaced once and backed up untouched."""
 
     def _shared(self, root):
         jpg = write_media(root, "scene.jpg")
@@ -379,7 +377,7 @@ SLOW_CAPTION = "a" * 40 + "!"
 
 @patch("automation.replace_captions.CAPTION_REGEX_TIMEOUT_SECONDS", 0.1)
 class SlowPatternTests(unittest.TestCase):
-    """The audit's F09: a valid pattern could backtrack for minutes inside one caption."""
+    """A valid pattern can backtrack for minutes."""
 
     def test_a_pattern_that_runs_too_long_is_stopped(self) -> None:
         replace = build_caption_replacer(search=SLOW_PATTERN, replacement="x", use_regex=True)

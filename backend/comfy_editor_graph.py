@@ -1,10 +1,4 @@
-"""The editor-format ComfyUI workflow flattened to the ids the API-format ``prompt`` uses.
-
-The ``prompt`` chunk holds only what ran: bypassed nodes are dropped from it, while the
-``workflow`` chunk keeps them with their links. Flattening gives every node inside a subgraph
-its ``instance:inner`` path and resolves links across subgraph boundaries, so the two graphs
-can be read side by side.
-"""
+"""The editor-format workflow flattened to the ``prompt``'s ids, bypassed nodes included."""
 
 from __future__ import annotations
 
@@ -24,11 +18,11 @@ class EditorNode:
     title: str | None
     #: Bypassed itself or inside a bypassed subgraph instance.
     bypassed: bool
-    #: Linked inputs by name, resolved to the node and output slot feeding them.
+    #: Linked inputs, resolved to the feeding node and slot.
     links: dict[str, Source] = field(default_factory=dict)
-    #: Inputs whose value a subgraph instance supplies from its own widget.
+    #: Inputs a subgraph instance supplies from its own widget.
     values: dict[str, object] = field(default_factory=dict)
-    #: Widget values by name; only newer ComfyUI frontends record the names.
+    #: Only newer ComfyUI frontends record widget names.
     widgets: dict[str, object] = field(default_factory=dict)
 
 
@@ -48,7 +42,7 @@ def _dicts(value: object) -> list[dict]:
 
 
 def _link(link: object) -> tuple[str, tuple[str, int, str, int]] | None:
-    """``(link id, (origin, origin slot, target, target slot))`` from either link layout."""
+    """``(link id, (origin, origin slot, target, target slot))``, from either link layout."""
     if isinstance(link, list) and len(link) >= 5:
         ends = link[:5]
     elif isinstance(link, dict):
@@ -80,7 +74,7 @@ def _scope(
 
 
 def flatten_editor_graph(workflow: object) -> dict[str, EditorNode]:
-    """Every node of the editor workflow by its flattened id; empty for anything unreadable."""
+    """Every editor node by its flattened id; empty for anything unreadable."""
     if not isinstance(workflow, dict):
         return {}
     definitions = workflow.get("definitions")
@@ -101,7 +95,6 @@ def flatten_editor_graph(workflow: object) -> dict[str, EditorNode]:
         return _scope(definition, f"{scope.prefix}{node_id}:", bypassed, scope, node)
 
     def resolve(scope: _Scope, origin: str, slot: int, depth: int = 0) -> object:
-        """The node and slot an origin stands for, or a literal an instance supplies."""
         if depth >= _MAX_SUBGRAPH_DEPTH * 4:
             return None
         if origin == _SUBGRAPH_INPUT:

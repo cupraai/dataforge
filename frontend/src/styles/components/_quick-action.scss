@@ -4,7 +4,7 @@
 .quick-action {
   @include dialog-shell($z-index-confirm);
   align-items: flex-start;
-  // Top-anchored so the list grows down from a fixed input and the field does not walk up as results change.
+  // Top-anchored, so the list grows down from an input that stays put as results change.
   padding-top: min(6vh, 5rem);
 
   &__backdrop {
@@ -16,7 +16,8 @@
     display: flex;
     flex-direction: column;
     width: min($dialog-width-md, 100%);
-    // Sizes to content (list capped at MAX_RESULT_ROWS). 100% is the flex content box and only bites on a window too short for 8 rows.
+    // Sized by content (the list caps at MAX_RESULT_ROWS); 100% only bites on a window too short for
+    // eight rows.
     max-height: 100%;
     overflow: hidden;
     @include dialog-panel-surface;
@@ -47,7 +48,7 @@
     font-size: var(--text-md);
     line-height: var(--leading-snug);
 
-    // The panel border already frames the field; a focus ring inside it would read as a second control.
+    // The panel border frames the field; a ring inside it would read as a second control.
     @include focus-ring-none;
 
     &::placeholder {
@@ -62,7 +63,8 @@
     flex-direction: column;
     gap: 0.375rem;
     min-height: 0;
-    // Safety valve for a window too short for the capped list. No scrollbar-gutter: that would reserve a gutter on every open for a scrollbar that never appears.
+    // For a window too short for the capped list. No scrollbar-gutter: it would reserve room on every
+    // open for a scrollbar that rarely appears.
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 0.375rem;
@@ -91,7 +93,8 @@
     line-height: var(--leading-snug);
     cursor: pointer;
 
-    // Hovering a row makes it active, so the mixin's hover must go: `.a:hover` outranks a plain `.a--active` and would strip the highlight off the pointed-at row.
+    // Hovering a row makes it active, so the mixin's hover goes: `.a:hover` outranks `.a--active` and
+    // would strip the highlight off the pointed-at row.
     &:hover {
       @include fade-bg(transparent);
       color: var(--text-muted);

@@ -1,5 +1,3 @@
-"""Helpers for choosing which folder media an automation job runs on."""
-
 from __future__ import annotations
 
 import os
@@ -26,7 +24,7 @@ def list_folder_media(
     *,
     order: MediaOrder = "name",
 ) -> list[Path]:
-    """Files in ``folder`` with a matching suffix, in a stable processing order."""
+    """In a stable processing order."""
     try:
         entries = sorted(folder.iterdir(), key=_mtime_key if order == "mtime" else _name_key)
     except OSError:
@@ -47,8 +45,7 @@ def list_folder_media(
 
 
 def resolve_selected_media(folder: Path, paths: list[str] | None) -> list[Path] | None:
-    """Resolve optional client paths. Only ``None`` means every eligible file in the folder; an
-    empty list is refused, so a client that lost its selection cannot widen it to everything."""
+    """``None`` means every eligible file; an empty list is refused."""
     if paths is None:
         return None
     if not paths:

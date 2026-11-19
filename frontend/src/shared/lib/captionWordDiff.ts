@@ -8,10 +8,7 @@ export interface CaptionDiffSegment {
 /** Above this many LCS cells the changed middle is shown as one removal and one addition. */
 export const WORD_DIFF_CELL_LIMIT = 250_000;
 
-/**
- * Below this share of the shorter side's words surviving, the changed stretch reads as a
- * rewrite: the few chance matches ("a", "the") would otherwise chop it into confetti.
- */
+/** Below this share of surviving words a change reads as a rewrite, not confetti. */
 const REWRITE_SHARED_WORDS = 0.3;
 
 interface Token {
@@ -93,11 +90,7 @@ export function diffCaptionWords(before: string, after: string): CaptionDiffSegm
   return mergeOps(ops);
 }
 
-/**
- * Where a one-sided change could sit one token later with the same result, moves it there:
- * ". A cat" inserted before a final "." becomes " A cat." inserted after the kept one, so a
- * whole added or removed sentence is marked as itself.
- */
+/** Slides an equivalent one-sided change a token later, so whole sentences stay whole. */
 function slideChangesRight(ops: Op[]): void {
   let start = 0;
   while (start < ops.length) {
@@ -173,10 +166,7 @@ function lcsOps(a: Token[], b: Token[]): Op[] {
   return ops;
 }
 
-/**
- * Joins token runs into segments, removals before additions. Whitespace both sides of a
- * change share stays unchanged text, so "red dog" -> "blue cat" reads as one clean swap.
- */
+/** Segments with removals first; shared whitespace stays unchanged for clean swaps. */
 function mergeOps(ops: Op[]): CaptionDiffSegment[] {
   const segments: CaptionDiffSegment[] = [];
   let removed = "";
@@ -255,10 +245,7 @@ const ELLIPSIS = "…";
 /** How far a cut may move to land between words rather than inside one. */
 const WORD_BOUNDARY_SLACK = 12;
 
-/**
- * Shortens unchanged runs to `contextChars` around each change, so a small edit in a long
- * caption stays in view. Changed text is never cut.
- */
+/** Shortens unchanged runs to `contextChars` around changes; changed text is never cut. */
 export function collapseDiffContext(
   segments: CaptionDiffSegment[],
   contextChars: number,

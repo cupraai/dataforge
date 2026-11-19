@@ -2,10 +2,7 @@ import { frameTargetStem } from "@/features/gallery/lib/frameCapture";
 
 const FRAME_INDEX_DIGITS = 4;
 
-/**
- * Indexed, not time-stamped: delay stamps collapse zero-delay frames onto one filename.
- * The `_f` prefix also keeps clip.gif and clip.mp4 from colliding.
- */
+/** Indexed, since zero-delay frames share a time; `_f` keeps clip.gif and clip.mp4 apart. */
 export function gifFrameTargetName(path: string, index: number): string {
   const safe = Number.isFinite(index) ? Math.max(0, Math.round(index)) : 0;
   const stamp = String(safe).padStart(FRAME_INDEX_DIGITS, "0");

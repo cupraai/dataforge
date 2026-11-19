@@ -79,7 +79,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-#: One frame renders only the clips around it, so this is generous.
+#: One frame renders only nearby clips.
 FRAME_TIMEOUT_SECONDS = 120
 
 _TIMELINE_CACHE = "public, max-age=31536000, immutable"
@@ -107,7 +107,7 @@ def _project_file(path: str) -> Path:
 def start_video_project(
     path: str = Query(..., description="Absolute path to the video the editor opens on"),
 ) -> VideoProjectDocument:
-    """A new, unsaved project on the video, or the edit an exported video was made from."""
+    """Or the edit an exported video was made from."""
     media = _editor_source(path)
     if source_kind_for(media) != "video":
         raise HTTPException(status_code=400, detail="Only a video can start a project")
@@ -121,7 +121,7 @@ def start_video_project(
 def new_video_project(
     folder: str = Query(..., description="Absolute path to the folder the project works in"),
 ) -> VideoProjectDocument:
-    """An empty, unsaved project; nothing is written until the first edit is saved."""
+    """Nothing is written until the first save."""
     return document_for(None, resolve_folder(folder), new_empty_project())
 
 
@@ -136,7 +136,7 @@ def list_video_projects(
 
 @router.get("/video-projects/all", response_model=VideoProjectListResponse)
 def list_all_video_projects() -> VideoProjectListResponse:
-    """Every draft the app has seen, in any folder, newest first."""
+    """Newest first."""
     projects = []
     for path in known_draft_paths():
         if not path.is_file():
@@ -178,12 +178,12 @@ def save_video_project(body: VideoProjectSaveRequest) -> VideoProjectSaveRespons
     try:
         record_checkpoint(saved)
     except Exception:
-        # The draft is saved; a missing checkpoint only shortens the version history.
+        # A missing checkpoint only shortens the history.
         logger.warning("Could not record a checkpoint of %s", saved_path.name, exc_info=True)
     try:
         remember_drafts([saved_path])
     except Exception:
-        # The draft is saved; it is indexed again when its folder is next listed.
+        # Indexed again when its folder is listed.
         logger.warning("Could not index %s", saved_path.name, exc_info=True)
     return VideoProjectSaveResponse(
         path=str(saved_path), revision=saved.revision, updated_at=saved.updated_at
@@ -215,7 +215,7 @@ def delete_video_project(
 def list_video_project_versions(
     project_id: str = Query(..., min_length=1, description="The project's id"),
 ) -> VideoProjectVersionsResponse:
-    """Named versions and automatic checkpoints, newest first."""
+    """Newest first."""
     return VideoProjectVersionsResponse(versions=list_versions(project_id))
 
 
@@ -262,7 +262,7 @@ def probe_video_project_source(
 def make_video_project_compatible_copy(
     body: VideoProjectCompatibleCopyRequest,
 ) -> VideoProjectSourceInfo:
-    """An H.264 copy of a video the preview cannot decode, beside it; the original stays."""
+    """Beside it; the original stays."""
     media = _editor_source(body.path)
     if source_kind_for(media) != "video":
         raise HTTPException(status_code=400, detail="Only a video can be copied this way")
@@ -279,8 +279,7 @@ def make_video_project_compatible_copy(
 
 @router.post("/video-projects/frame")
 def render_video_project_frame(body: VideoProjectFrameRequest) -> Response:
-    """The frame at ``time`` drawn by the export's own renderer, at the project's full size,
-    so what the export will show can be checked against the browser's preview."""
+    """Drawn by the export's renderer, for checking against the preview."""
     folder = resolve_folder(body.folder)
     executable = ffmpeg_path()
     if not executable:
@@ -310,7 +309,6 @@ def render_video_project_frame(body: VideoProjectFrameRequest) -> Response:
 
 @router.get("/video-projects/grades", response_model=VideoProjectGradesResponse)
 def list_video_project_grades() -> VideoProjectGradesResponse:
-    """Saved grades, shared by every project."""
     return VideoProjectGradesResponse(grades=list_grades())
 
 
@@ -328,7 +326,7 @@ def delete_video_project_grade(grade_id: str) -> Response:
 
 @router.get("/video-projects/fonts", response_model=VideoProjectFontsResponse)
 def list_video_project_fonts() -> VideoProjectFontsResponse:
-    """The families a title can be set in; read once and kept until a font is installed."""
+    """Read once and kept until a font is installed."""
     return VideoProjectFontsResponse(
         families=[
             VideoProjectFontFamily(family=family, styles=styles)
@@ -339,9 +337,7 @@ def list_video_project_fonts() -> VideoProjectFontsResponse:
 
 @router.post("/video-projects/auto-adjust", response_model=AutoAdjustResponse)
 def auto_adjust_video_project_clip(body: VideoProjectAutoAdjustRequest) -> AutoAdjustResponse:
-    """The wand's suggestion for one clip: the file as it is now, over the clip's take and crop.
-    Unlike the gallery's wand it reads the current file, not an edit backup, since that is
-    what the project composites."""
+    """Reads the current file, not an edit backup: that is what the project composites."""
     media = _editor_source(body.path)
     kind = source_kind_for(media)
     if kind == "audio":
@@ -366,7 +362,7 @@ def render_video_project_title(
     height: int = Query(..., ge=MIN_PROJECT_DIMENSION, le=MAX_PROJECT_DIMENSION),
     spec: str = Query(..., description="The title as JSON"),
 ) -> Response:
-    """The exact layer the export overlays, so the preview cannot draw the text differently."""
+    """The exact layer the export overlays."""
     try:
         title = VideoProjectTitle.model_validate(json.loads(spec))
     except (ValueError, ValidationError) as exc:
@@ -420,8 +416,7 @@ def video_project_waveform(
     original: bool = Query(False, description="Draw the untouched original of an edited file"),
     v: str | None = Query(None, description="Client cache-busting token"),
 ) -> Response:
-    """The sound of one stretch of a file, one lane per channel, at the pixel size drawn. The
-    gallery's audio edit asks for the original, which its trims are measured against."""
+    """One stretch of a file's sound, one lane per channel."""
     media = _editor_source(path)
     if source_kind_for(media) == "image":
         raise HTTPException(status_code=400, detail="An image has no sound")
@@ -462,6 +457,6 @@ def cancel_video_project_export(export_id: str) -> VideoProjectExportState:
 
 @router.delete("/video-projects/exports/{export_id}", status_code=204)
 def dismiss_video_project_export(export_id: str) -> Response:
-    """Forget a finished export. Its video and snapshot stay where they are."""
+    """Its video and snapshot stay."""
     export_manager.dismiss(export_id)
     return Response(status_code=204)

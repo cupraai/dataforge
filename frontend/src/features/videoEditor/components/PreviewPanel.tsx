@@ -219,8 +219,7 @@ function TimelinePreview({
   });
   const duration = projectDuration(project);
   const step = 1 / project.frame_rate;
-  // The scrubber counts frames: a seconds range stepped by 1/fps stops on its last whole step,
-  // short of an end that is off the frame grid. Its last slot always means the very end.
+  // Counts frames, so the last slot always means the very end, even off the frame grid.
   const lastFrame = Math.max(1, Math.ceil(duration * project.frame_rate - 1e-6));
   const frameValue = time >= duration - 1e-6 ? lastFrame : Math.round(time * project.frame_rate);
 

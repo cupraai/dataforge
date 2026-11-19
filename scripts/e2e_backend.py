@@ -1,8 +1,4 @@
-"""Backend for the browser E2E suite: a throwaway workspace, stand-in services, no real ones.
-
-Started by frontend/playwright.config.ts, never by hand. Reads DATAFORGE_E2E_RUN_DIR, the run's
-own folder that frontend/e2e/runDirectory.ts made, and DATAFORGE_API_PORT for where to serve.
-"""
+"""Backend for the browser E2E suite, started by frontend/playwright.config.ts."""
 
 from __future__ import annotations
 
@@ -111,11 +107,7 @@ class UnavailableHandler(BaseHTTPRequestHandler):
 
 
 class FillComfyHandler(UnavailableHandler):
-    """ComfyUI as far as the editor's fill uses it; everything else stays a stopped service.
-
-    The probe and the prep job's endpoints still answer 503, so only the fill sees a ComfyUI. Every
-    node and the default model files exist, and a fill paints its whole crop in ``FILL_COLOR``.
-    """
+    """ComfyUI as far as the fill uses it; probes still answer 503."""
 
     workspace: Path
     lock = threading.Lock()
@@ -329,8 +321,7 @@ def main() -> int:
 
     from main import app
 
-    # The stand-ins answer the availability polls with 503 every few seconds; one INFO line each
-    # would bury the app's own logs.
+    # Stand-ins answer polls with 503; one INFO line each would bury the app's logs.
     logging.getLogger("httpx").setLevel(logging.WARNING)
     port = int(os.environ.get("DATAFORGE_API_PORT", DEFAULT_API_PORT))
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

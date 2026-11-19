@@ -1,15 +1,5 @@
-"""Run backend and frontend linting, formatting checks, typechecking, and tests.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/run_checks.py [--fix] [--lint-only] [--e2e] [--scope SCOPE]
-
-A passing step is one line. A failing step prints everything it wrote, and the run stops there.
-Lint and type warnings fail their step. Warnings raised while tests pass cannot fail it; their
-count follows the step's line and a one-line description of each is listed under it.
-
-``--scope`` exists for CI, which matrixes the backend over Python versions and so
-would otherwise repeat the (version-independent) frontend checks for each one.
-"""
+"""Run backend and frontend linting, formatting, typechecking and tests.
+backend/.venv/Scripts/python scripts/run_checks.py [--fix] [--lint-only] [--e2e] [--scope SCOPE]"""
 
 from __future__ import annotations
 
@@ -610,8 +600,7 @@ def main() -> int:
     if args.e2e and args.scope == "backend":
         parser.error("--e2e is a frontend check, so it cannot be combined with --scope backend")
 
-    # Backend venv is always needed: frontend API types are generated and not checked in.
-    # ``backend_python`` gates backend steps; holding the interpreter is not the same thing.
+    # The backend venv is always needed: frontend API types are generated.
     python = _resolve_python()
     backend_python = python if args.scope != "frontend" else None
     npm = _resolve_npm() if args.scope != "backend" else None

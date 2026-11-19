@@ -7,10 +7,7 @@ type PlaybackCheckedVideoProps = Omit<VideoHTMLAttributes<HTMLVideoElement>, "sr
   videoRef?: Ref<HTMLVideoElement>;
 };
 
-/**
- * A `<video>` that names why it cannot play, with Retry, instead of sitting black. Its parent
- * positions the notice, so it must be `position: relative`.
- */
+/** A `<video>` that says why it cannot play, with Retry; its parent must be positioned. */
 export function PlaybackCheckedVideo({
   src,
   videoRef,

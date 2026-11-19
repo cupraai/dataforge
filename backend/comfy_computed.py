@@ -1,9 +1,4 @@
-"""Recompute the outputs of ComfyUI core nodes that derive numbers from their inputs.
-
-Each mirrors the node's own code (``comfy_extras/nodes_resolution.py`` and ``nodes_math.py``),
-so a value shown or compared is the one the node produced. Anything outside what is mirrored
-returns None rather than a guess.
-"""
+"""Mirrors of ComfyUI core nodes that compute numbers; anything unmirrored returns None."""
 
 from __future__ import annotations
 
@@ -33,7 +28,7 @@ type Number = int | float
 def resolution_selector(
     aspect_ratio: object, megapixels: object, multiple: object
 ) -> tuple[int, int] | None:
-    """``(width, height)`` as ResolutionSelector computes them."""
+    """As ResolutionSelector computes them."""
     ratio = _ASPECT_RATIOS.get(aspect_ratio) if isinstance(aspect_ratio, str) else None
     if (
         ratio is None
@@ -56,7 +51,7 @@ def _is_number(value: object) -> TypeIs[Number]:
 
 
 def _is_finite_number(value: object) -> TypeIs[Number]:
-    """A number a float can hold: not NaN or infinite, and no integer too large to convert."""
+    """Not NaN or infinite, and no integer too large to convert."""
     if not _is_number(value):
         return False
     try:
@@ -134,7 +129,7 @@ def _evaluate(node: ast.AST, names: Mapping[str, object]) -> object:
 
 
 def math_expression(expression: object, values: Mapping[str, object]) -> Number | None:
-    """The numeric result ComfyMathExpression computes, before it is split into its outputs."""
+    """Before it is split into its outputs."""
     if not isinstance(expression, str) or not expression.strip():
         return None
     if len(expression) > _MAX_EXPRESSION_CHARS:
@@ -144,12 +139,12 @@ def math_expression(expression: object, values: Mapping[str, object]) -> Number 
         result = _evaluate(ast.parse(expression.strip(), mode="eval").body, names)
     except (ValueError, TypeError, ZeroDivisionError, OverflowError, SyntaxError, RecursionError):
         return None
-    # Also bounds an integer result: its FLOAT output must convert.
+    # Its FLOAT output must convert.
     return result if _is_finite_number(result) else None
 
 
 def math_expression_output(result: Number, slot: int) -> Number | bool | None:
-    """ComfyMathExpression's outputs: FLOAT, INT (truncated) and BOOL."""
+    """FLOAT, INT (truncated) and BOOL."""
     if slot == 0:
         return float(result)
     if slot == 1:

@@ -88,9 +88,8 @@
     // Named: the stage hint shrinks on a narrow stage, and other containers sit closer to it.
     container: item-stage / inline-size;
 
-    // Crop and mask handles straddle the media edge, so they reach into the default padding and
-    // land on the nav buttons: 0.875rem offset + 2.75rem button + half a handle + a gap.
-    // Editing has no caption or footer, so the stage takes all the height the tools leave.
+    // Handles straddle the media edge, so the padding clears the nav buttons.
+    // Editing has no caption or footer, so the stage takes the rest.
     &--editing {
       flex: 1 1 0;
       height: auto;
@@ -352,9 +351,7 @@
     max-height: 100%;
   }
 
-  // Label-over-value cells in three columns: five details in two rows, so a 600px window
-  // still fits the media and the caption editor at their floors. The first column holds the
-  // longest values, the date and the dimensions.
+  // Three columns, two rows, so a 600px window fits media and caption at their floors.
   .gallery-item-dialog__meta {
     display: grid;
     flex-shrink: 0;

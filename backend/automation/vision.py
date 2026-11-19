@@ -1,5 +1,3 @@
-"""Sending media to the local model, for the auto-caption and verify-captions jobs."""
-
 from __future__ import annotations
 
 import base64
@@ -29,9 +27,9 @@ logger = logging.getLogger(__name__)
 JPEG_QUALITY = 85
 
 VIDEO_KEYFRAME_COUNT = 8
-# Above this, fps is usually an MPEG timescale of 90000, not a fast camera.
+# Above this, fps is usually a 90000 MPEG timescale.
 MAX_PLAUSIBLE_FPS = 1000.0
-# Walk back this far when CAP_PROP_FRAME_COUNT overshoots the decodable tail.
+# Walk back this far when CAP_PROP_FRAME_COUNT overshoots.
 TAIL_SEEK_LIMIT = 32
 QWEN_MIN_SIDE_PX = 512
 
@@ -56,7 +54,7 @@ def get_video_frame_min_pixels() -> int:
 
 
 def get_qwen_min_side_px() -> int:
-    """Per-side floor on Qwen's 32-pixel grid; never raised above ``QWEN_MIN_SIDE_PX``."""
+    """Never raised above ``QWEN_MIN_SIDE_PX``."""
     aligned = max(32, (math.isqrt(get_video_frame_min_pixels()) // 32) * 32)
     return min(QWEN_MIN_SIDE_PX, aligned)
 
@@ -72,7 +70,7 @@ MediaKind = Literal["image", "video"]
 
 
 def video_frame_max_pixels_for_seconds(seconds: float | None) -> int:
-    """Per-frame pixel budget; from 7s it lerps down to the 512px-side floor at 20s."""
+    """From 7s it lerps down to the 512px-side floor at 20s."""
     configured = get_video_frame_max_pixels()
     floor = min(configured, get_video_frame_min_pixels())
     if seconds is None or not math.isfinite(seconds) or seconds <= VIDEO_FRAME_SCALE_START_SECONDS:
@@ -85,18 +83,14 @@ def video_frame_max_pixels_for_seconds(seconds: float | None) -> int:
 
 
 def media_kind_max_pixels(media_kind: MediaKind, *, seconds: float | None = None) -> int:
-    """Per-frame pixel budget, resolved per call so env overrides reach the frames."""
+    """Resolved per call so env overrides apply."""
     if media_kind == "image":
         return get_image_max_pixels()
     return video_frame_max_pixels_for_seconds(seconds)
 
 
 def resize_for_qwen(image: Image.Image, max_pixels: int) -> Image.Image:
-    """Downscale to ``max_pixels``, keeping both sides on Qwen's 32-pixel patch grid.
-
-    The short side never drops below the side floor, even past the budget, but both sides scale
-    together, so the frame keeps its shape. A panorama the floor reaches is not upscaled.
-    """
+    """Fit to ``max_pixels`` on Qwen's 32-pixel grid, keeping shape; the side floor wins."""
     width, height = image.size
     current_pixels = width * height
     if current_pixels <= max_pixels:
@@ -107,14 +101,14 @@ def resize_for_qwen(image: Image.Image, max_pixels: int) -> Image.Image:
     min_side = get_qwen_min_side_px()
     if short_side * scale < min_side:
         scale = min(1.0, min_side / short_side)
-    # The epsilon keeps a side scaled exactly onto the floor from rounding down a whole cell.
+    # Keeps a side scaled exactly onto the floor from rounding down a cell.
     new_width = max(32, int(width * scale + 1e-6) // 32 * 32)
     new_height = max(32, int(height * scale + 1e-6) // 32 * 32)
     return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
 
 def retry_jpeg_quality(attempt: int) -> int:
-    """WORKAROUND: vary JPEG quality per attempt so llama.cpp cannot short-circuit identical retries."""
+    """WORKAROUND: llama.cpp short-circuits identical retries."""
     return max(JPEG_QUALITY - (attempt - 1), 1)
 
 
@@ -142,7 +136,7 @@ def prepare_images_for_api(
 
 
 def load_image_rgb(media_path: Path) -> tuple[list[Image.Image] | None, str | None]:
-    """Open a still and close the handle; Pillow otherwise locks multi-frame files on Windows."""
+    """Pillow locks multi-frame files on Windows."""
     try:
         with Image.open(media_path) as image:
             return [displayed_image(image).convert("RGB")], None
@@ -152,20 +146,20 @@ def load_image_rgb(media_path: Path) -> tuple[list[Image.Image] | None, str | No
 
 
 def media_kind_for(path: Path) -> MediaKind:
-    """How a file is captioned or verified; a GIF is treated as an image."""
+    """A GIF is treated as an image."""
     return "video" if path.suffix.lower() in VIDEO_EXTENSIONS else "image"
 
 
 @dataclass(frozen=True)
 class MediaFrames:
-    """Frames for one request; ``timestamps`` is None unless there is one entry per frame."""
+    """``timestamps`` is None unless there is one per frame."""
 
     images: list[Image.Image]
     timestamps: list[float] | None = None
 
 
 def keyframe_count_for_seconds(seconds: float | None) -> int:
-    """How many frames a clip of this length is worth sampling; short clips keep the floor."""
+    """Frames worth sampling for this length; short clips keep the floor."""
     if seconds is None or not math.isfinite(seconds) or seconds <= 0:
         return VIDEO_KEYFRAME_COUNT
 
@@ -174,7 +168,7 @@ def keyframe_count_for_seconds(seconds: float | None) -> int:
 
 
 def _video_fps(cap, cv2) -> float | None:
-    """How fast the clip runs, or ``None`` when the container will not say usefully."""
+    """``None`` when the container will not say usefully."""
     fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0)
     if not math.isfinite(fps) or fps <= 0 or fps > MAX_PLAUSIBLE_FPS:
         return None
@@ -182,19 +176,18 @@ def _video_fps(cap, cv2) -> float | None:
 
 
 def _video_seconds(fps: float | None, total_frames: int) -> float | None:
-    """How long the clip runs, given a rate ``_video_fps`` already vetted."""
     return None if fps is None else total_frames / fps
 
 
 def _capped(image: Image.Image, seconds: float | None = None) -> Image.Image:
-    """A keyframe at the multi-frame budget, applied as it is read so 4K frames are not held full-size."""
+    """Applied as read, so 4K frames are never held whole."""
     return resize_for_qwen(image, max_pixels=video_frame_max_pixels_for_seconds(seconds))
 
 
 def _read_frame_at(
     cap, cv2, frame_index: int, seconds: float | None = None
 ) -> tuple[Image.Image, float] | None:
-    """The frame and its presentation time in seconds, read back right after decoding it."""
+    """The time is read right after decoding the frame."""
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
     ok, frame = cap.read()
     if not ok:
@@ -206,11 +199,7 @@ def _read_frame_at(
 def _frame_timestamps(
     indices: list[int], presented: list[float], fps: float | None
 ) -> list[float] | None:
-    """Each frame's own time; ``index / fps`` only when the decoder's times are unusable.
-
-    The average rate mislabels a variable-rate clip, so the decoder's times win when they rise
-    strictly from frame to frame. Some backends report none, which is where the rate is needed.
-    """
+    """The decoder's times, unless they do not rise strictly; then ``index / fps``."""
     usable = all(math.isfinite(time) and time >= 0 for time in presented) and all(
         later > earlier for earlier, later in itertools.pairwise(presented)
     )
@@ -220,7 +209,7 @@ def _frame_timestamps(
 
 
 def _seek_keyframes(cap, cv2, total_frames: int, count: int, fps: float | None) -> MediaFrames:
-    """Sample a video whose length is known, ending on its real last frame."""
+    """Ends on the real last frame."""
     seconds = _video_seconds(fps, total_frames)
     wanted = keyframe_indices(total_frames, count)
     captured = {
@@ -229,7 +218,7 @@ def _seek_keyframes(cap, cv2, total_frames: int, count: int, fps: float | None) 
 
     last_wanted = wanted[-1] if wanted else 0
     if wanted and last_wanted not in captured:
-        # CAP_PROP_FRAME_COUNT overshoots the decodable tail; walk back to a frame that reads.
+        # CAP_PROP_FRAME_COUNT overshoots the decodable tail.
         floor = max(captured, default=-1)
         limit = max(floor, last_wanted - TAIL_SEEK_LIMIT)
         for index in range(last_wanted - 1, limit, -1):
@@ -246,7 +235,7 @@ def _seek_keyframes(cap, cv2, total_frames: int, count: int, fps: float | None) 
 
 
 def _streamed_keyframes(cap, cv2, count: int) -> MediaFrames:
-    """Sample a video whose length is unknown; no timestamps because the halving stride breaks them."""
+    """Untimed: the halving stride breaks timestamps."""
     kept: list[Image.Image] = []
     last: Image.Image | None = None
     stride = 1
@@ -279,10 +268,10 @@ def extract_video_keyframes(
     video_path: Path,
     count: int | None = None,
 ) -> MediaFrames | None:
-    """Evenly spaced frames spanning the whole clip, first and last included."""
+    """Evenly spaced over the whole clip, first and last included."""
     import cv2
 
-    # release() also covers failed-open: an unopened capture still locks the file on Windows.
+    # An unopened capture still locks the file on Windows.
     cap = cv2.VideoCapture(str(video_path))
     try:
         if not cap.isOpened():
@@ -307,7 +296,7 @@ def extract_video_keyframes(
 
 
 def keyframe_sentence(frame_count: int, seconds: float | None = None) -> str:
-    """States the real frame count; omit ``seconds`` to keep the unlabelled sentence."""
+    """Omit ``seconds`` for the unlabelled sentence."""
     if frame_count == 1:
         return "You are given a single frame. Analyze it while following the system instructions."
     if seconds is None:
@@ -324,14 +313,14 @@ def keyframe_sentence(frame_count: int, seconds: float | None = None) -> str:
 
 @dataclass(frozen=True)
 class MediaLoadError:
-    """Why a file never reached the model; ``status`` is the job counter key."""
+    """``status`` is the job counter key."""
 
     status: str
     message: str | None = None
 
 
 def load_media_images(media_path: Path) -> MediaFrames | MediaLoadError:
-    """Load a video's keyframes or a single still; GIFs skip ``load_image_rgb`` (uncomposited RGB)."""
+    """GIFs skip ``load_image_rgb``, which gives uncomposited RGB."""
     if media_kind_for(media_path) == "video":
         keyframes = extract_video_keyframes(media_path)
         if keyframes is None or not keyframes.images:
@@ -351,7 +340,7 @@ def load_media_images(media_path: Path) -> MediaFrames | MediaLoadError:
 
 
 def audio_part(audio_wav: bytes) -> dict:
-    """The OpenAI ``input_audio`` content part; a wrong key is dropped silently by the server."""
+    """A wrong key is dropped silently by the server."""
     return {
         "type": "input_audio",
         "input_audio": {
@@ -362,7 +351,7 @@ def audio_part(audio_wav: bytes) -> dict:
 
 
 def timestamp_part(seconds: float) -> dict:
-    """The ``<n.n seconds>`` marker Qwen3-VL was trained on; spelling and one decimal are the contract."""
+    """Qwen3-VL's marker; spelling and one decimal are the contract."""
     return {"type": "text", "text": f"<{seconds:.1f} seconds>"}
 
 
@@ -374,7 +363,7 @@ def vision_messages(
     timestamps: list[float] | None = None,
     audio_wav: bytes | None = None,
 ) -> list[dict]:
-    """Media parts first, instruction last; timestamps are dropped unless there is one per frame."""
+    """Timestamps are dropped unless there is one per frame."""
     labelled = timestamps if timestamps and len(timestamps) == len(images_b64) else None
 
     content: list[dict] = []
@@ -413,7 +402,7 @@ def request_vision_text(
     audio_wav: bytes | None = None,
     attempt: int = 1,
 ) -> str | None:
-    """Encode ``images`` and ask the model; ``attempt`` only reaches JPEG quality."""
+    """``attempt`` only reaches JPEG quality."""
     images_b64 = prepare_images_for_api(
         images, max_pixels=max_pixels, quality=retry_jpeg_quality(attempt)
     )

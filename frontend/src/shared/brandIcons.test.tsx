@@ -24,8 +24,7 @@ describe.each([
 
     expect(svg).toHaveAttribute("viewBox", "0 0 24 24");
     expect(svg).toHaveClass("job-card__icon", "app-icon--spin");
-    // `aria-hidden` comes from the Icon wrapper: every icon here is decorative, and a
-    // brand mark that announced itself would be read out beside its own label.
+    // Brand marks are decorative beside their labels.
     expect(svg).toHaveAttribute("aria-hidden");
   });
 });

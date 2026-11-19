@@ -1,4 +1,4 @@
-"""The folder's own note; a parent's note never applies to a subfolder."""
+"""A parent's note never applies to a subfolder."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def read_folder_note(path: Path) -> str:
-    """Blank when unreadable: a note is informational and must not fail the listing."""
+    """Blank when unreadable, so a note never fails the listing."""
     try:
         return read_instruction_file(path).strip()
     except (OSError, UnicodeDecodeError):
@@ -21,6 +21,6 @@ def read_folder_note(path: Path) -> str:
 
 
 def save_folder_note(folder: Path, text: str) -> str:
-    """Saving blank text deletes the file. Returns the note as a listing would read it."""
+    """Blank text deletes the file."""
     save_instruction_file(folder, NOTE_FILENAME, text)
     return text.strip()

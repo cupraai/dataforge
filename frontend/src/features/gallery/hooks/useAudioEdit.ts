@@ -199,8 +199,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     [seekTo],
   );
 
-  // The spec and the original's length come from the server; the element fills in a length it
-  // could not read. Every item runs this hook, and the server refuses what is not audio.
+  // Spec and length from the server; the element fills an unread length.
   const audioPath = item && isEditableAudio(item) ? item.path : undefined;
   useEffect(() => {
     if (!editMode || !audioPath) {
@@ -224,8 +223,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     })();
   }, [audioPath, editMode, optionsRef]);
 
-  // Seeded once both the spec and a length are in, whichever arrives last. Forgotten while the
-  // file is not loaded, as on paging away: the reset emptied the draft, so a return seeds again.
+  // Seeded once spec and length are both in; reset while unloaded so a return reseeds.
   const seededForRef = useRef<string | null>(null);
   useEffect(() => {
     if (!editMode || !ready) {
@@ -328,8 +326,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
       : 1;
   const normalizeGainRef = useLatestRef(normalizeGain);
 
-  // Built on the first play, inside its gesture: a context made earlier starts suspended and
-  // would silence the element it takes over.
+  // Built inside the first play's gesture, or the context starts suspended.
   const ensureGraph = useCallback((): PreviewGraph | null => {
     const element = audioRef.current;
     if (!element) return null;

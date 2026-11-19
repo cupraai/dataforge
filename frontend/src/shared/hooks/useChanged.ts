@@ -1,9 +1,8 @@
 import { useState } from "react";
 
 /**
- * True on the render where `value` differs from the previous render's. State reset behind it
- * lands in that same render, where an effect would first commit a frame with the stale state.
- * Call it unconditionally: `useChanged(a) || useChanged(b)` would skip the second hook.
+ * True on the render where `value` changed, so a state reset lands in the same render.
+ * Call it unconditionally: `useChanged(a) || useChanged(b)` would skip a hook.
  */
 export function useChanged(value: unknown): boolean {
   const [previous, setPrevious] = useState(() => value);

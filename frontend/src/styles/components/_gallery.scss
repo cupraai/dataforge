@@ -202,9 +202,7 @@
   }
 }
 
-// Sticks to the bottom of the gallery's scroller rather than the viewport, so the button stays
-// over the gallery when the inspector docks beside it. Zero height keeps the layout unchanged.
-// Sticky insets start inside the scroller's padding, so bottom 0 already clears it by 2rem.
+// Sticks to the gallery scroller's bottom, staying over the gallery beside a docked inspector.
 .gallery-back-to-top-anchor {
   position: sticky;
   bottom: 0;
@@ -686,7 +684,8 @@
   }
 }
 
-// Column widths come from `useGalleryListColumns`; fallbacks cover the first paint before that measurement lands. A virtualized list cannot size like a table because every row is a separate grid.
+// Column widths come from `useGalleryListColumns`; the fallbacks cover the first paint. Each row is
+// its own grid in a virtualized list, so the columns cannot size like a table's.
 $gallery-list-row-height: 2.5rem;
 $gallery-list-col-check: 1.05rem;
 $gallery-list-col-thumb: 2.75rem;
@@ -745,7 +744,8 @@ $gallery-list-columns: $gallery-list-col-thumb minmax($gallery-list-col-name-min
   height: $gallery-list-row-height;
   @include fade-bg(transparent);
   border: none;
-  // Inset shadow, not a border: a 1px border would leave 39px of content, and centering a 14px icon in an odd box puts it on a half pixel.
+  // Inset shadow, not a border: a border leaves 39px of content, and a 14px icon in an odd box sits
+  // on a half pixel.
   box-shadow: inset 0 -1px 0 var(--border);
   color: var(--text);
   text-align: left;
@@ -757,7 +757,7 @@ $gallery-list-columns: $gallery-list-col-thumb minmax($gallery-list-col-name-min
     @include fade-bg(var(--surface-hover));
   }
 
-  // Keyed on the virtualizer's row index: `:first-child` matches every row because each is the only child of its wrapper.
+  // Keyed on the virtualizer's row index: each row is the only child of its wrapper.
   .gallery-row[data-row-index="0"] & {
     box-shadow:
       inset 0 1px 0 var(--border),

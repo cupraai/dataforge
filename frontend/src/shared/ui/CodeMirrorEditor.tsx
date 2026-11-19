@@ -88,8 +88,7 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
     },
     ref,
   ) {
-    // Keep a stable onChange identity. @uiw/react-codemirror reconfigures the whole
-    // EditorState when this prop changes, which closes the Ctrl+F search panel.
+    // A stable onChange: a new one reconfigures the state and closes Ctrl+F search.
     const rootRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
     const onChangeRef = useLatestRef(onChange);
@@ -151,8 +150,7 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
         attrs.title = title;
       }
 
-      // Chrome lives in SCSS; syntax colors stay in HighlightStyle.
-      // search() must be permanent config (basicSetup only adds the keymap).
+      // search() must be permanent config; basicSetup only adds the keymap.
       const viewExtensions: Extension[] = [
         languageExtension(language),
         getCodeEditorHighlightExtension(language),

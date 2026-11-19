@@ -6,10 +6,7 @@ import { formatCount } from "@/shared/lib/format";
 import { UNDO_TOAST_DURATION_MS, useNotify } from "@/shared/notifications/notifications";
 import type { MediaDeleteResponse } from "@/shared/types";
 
-/**
- * Confirms a delete with an Undo that brings the files back from the Recycle Bin. Silent where
- * deletes are permanent: the server lists nothing as recycled there, so there is nothing to undo.
- */
+/** Confirms a delete with Undo from the Recycle Bin; silent where deletes are permanent. */
 export function useDeleteUndoNotice() {
   const notify = useNotify();
 

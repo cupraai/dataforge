@@ -32,10 +32,9 @@ router = APIRouter()
 def list_duplicates(
     folder: str = Query(..., description="Absolute path to the folder to report on"),
 ) -> DuplicateGroupsResponse:
-    """Every duplicate group in ``folder``, each member carrying its gallery metadata."""
     folder_path = resolve_folder(folder)
 
-    # One scan feeds both grouping and member metadata so they cannot disagree.
+    # One scan, so grouping and metadata cannot disagree.
     scan = scan_folder(folder_path)
     if scan is None:
         raise folder_not_found()
@@ -57,7 +56,7 @@ def list_duplicates(
             )
         )
 
-    # Largest groups first: they are where deleting saves the most.
+    # Largest groups first: deleting there saves the most.
     groups.sort(key=lambda group: (-len(group.members), group.members[0].name.lower()))
 
     return DuplicateGroupsResponse(
@@ -70,7 +69,7 @@ def list_duplicates(
 
 @router.post("/duplicates/resolve", response_model=DuplicateResolveResponse)
 def resolve_duplicate_group(request: DuplicateResolveRequest) -> DuplicateResolveResponse:
-    """Delete the discarded members of a group and clear the keeper's sidecar."""
+    """And clear the keeper's sidecar."""
     keep_path = resolve_media_file(request.keep)
 
     if not request.discard:
@@ -100,7 +99,7 @@ def resolve_duplicate_group(request: DuplicateResolveRequest) -> DuplicateResolv
         if response.retained:
             leftovers.append(response)
 
-    # Clear only after partners are gone; otherwise two files remain with no finding.
+    # Otherwise two files remain with no finding.
     if not failed:
         try:
             delete_duplicate_file(keep_path)
@@ -114,7 +113,7 @@ def resolve_duplicate_group(request: DuplicateResolveRequest) -> DuplicateResolv
 
 @router.post("/duplicates/dismiss", response_model=DuplicateDismissResponse)
 def dismiss_duplicate_group(request: DuplicateDismissRequest) -> DuplicateDismissResponse:
-    """Clear a group's findings, leaving every file where it is."""
+    """Leaves every file where it is."""
     if len(request.paths) < 2:
         raise HTTPException(status_code=400, detail="A duplicate group needs at least two members")
 

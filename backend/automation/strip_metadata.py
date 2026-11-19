@@ -1,4 +1,4 @@
-"""Strip embedded metadata from the image and ISOBMFF video files in a folder."""
+"""Strip metadata from images and ISOBMFF videos."""
 
 from __future__ import annotations
 
@@ -18,39 +18,37 @@ from ffmpeg_bin import ffmpeg_path
 from ffmpeg_run import FfmpegCancelled, ShouldCancel, run_ffmpeg
 from image_io import JPEG_SUFFIXES
 
-# BMP has no metadata container: it is listed so the job does not skip the file in silence.
+# BMP is listed so the job does not skip it in silence.
 STRIP_BMP_SUFFIX = ".bmp"
 STRIP_METADATA_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS
 
-# Sits before the suffix so the watermark job's `*.watermark-tmp.*` sweep still reaches it.
+# Before the suffix, so the watermark sweep still reaches it.
 STRIP_TEMP_MARKER = ".strip-meta"
 
 JPEG_SOI = b"\xff\xd8"
 _JPEG_SOS = 0xDA
-# TEM and the restart markers carry no length field, so they are copied as the bare two bytes.
+# TEM and restart markers carry no length field.
 _JPEG_STANDALONE = frozenset({0x01, *range(0xD0, 0xD8)})
-# APPn plus COM. Everything here identifies the source rather than describing the scan.
+# These identify the source rather than describe the scan.
 _JPEG_DROPPED = frozenset({*range(0xE0, 0xF0), 0xFE})
-# Kept out of the drop set: JFIF carries pixel density, ICC the colour space and Adobe the
-# component transform, so dropping them would change how the image renders, not just its origin.
+# JFIF, ICC and Adobe affect rendering, so they stay.
 _JPEG_KEPT_APP = frozenset({0xE0, 0xE2, 0xEE})
 
 _RIFF_SIGNATURE = b"RIFF"
 _WEBP_SIGNATURE = b"WEBP"
 _WEBP_METADATA_CHUNKS = frozenset({b"EXIF", b"XMP "})
 _WEBP_VP8X_CHUNK = b"VP8X"
-# Feature flags in the first payload byte of VP8X; ICC (0x20) is kept for the reason above.
+# VP8X feature flags; ICC (0x20) is kept.
 _WEBP_VP8X_METADATA_FLAGS = 0x08 | 0x04
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_IHDR = b"IHDR"
 _PNG_IEND = b"IEND"
-# Text, EXIF and modification time identify the source; iCCP/gAMA/cHRM/sRGB/pHYs/tRNS and the
-# animation chunks all change how the image renders, so only the provenance chunks are dropped.
+# Only provenance chunks go; the rest affect rendering.
 PNG_PROVENANCE_CHUNKS = frozenset({b"tEXt", b"zTXt", b"iTXt", b"eXIf", b"tIME"})
 
 
-#: What prefixes the TIFF block in a JPEG APP1 segment; PNG eXIf and WebP EXIF carry it bare.
+#: PNG eXIf and WebP EXIF carry the TIFF block bare.
 EXIF_HEADER = b"Exif\x00\x00"
 _JPEG_APP0 = 0xE0
 _JPEG_APP1 = 0xE1
@@ -64,7 +62,7 @@ def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
 
 
 def orientation_of(data: bytes) -> int:
-    """The EXIF Orientation an image displays with; 1 when it has none or it cannot be read."""
+    """1 when there is none or it cannot be read."""
     try:
         with Image.open(BytesIO(data)) as image:
             value = image.getexif().get(_ORIENTATION_TAG, 1)
@@ -74,17 +72,14 @@ def orientation_of(data: bytes) -> int:
 
 
 def orientation_exif(orientation: int) -> bytes:
-    """A bare TIFF block holding only Orientation: what stripping keeps so the pixels still turn."""
+    """What stripping keeps so the pixels still turn."""
     exif = Image.Exif()
     exif[_ORIENTATION_TAG] = orientation
     return exif.tobytes().removeprefix(EXIF_HEADER)
 
 
 def upright_exif(tiff: bytes) -> bytes:
-    """``tiff`` with its Orientation set to 1, patched in place so no other tag is re-encoded.
-
-    For metadata moved onto pixels that are already upright, such as a ComfyUI result.
-    """
+    """Orientation set to 1, patched in place so no other tag is re-encoded."""
     endian: Literal["little", "big"]
     if tiff[:2] == b"II":
         endian = "little"
@@ -102,7 +97,7 @@ def upright_exif(tiff: bytes) -> bytes:
         if entry + 12 > len(tiff):
             break
         if int.from_bytes(tiff[entry : entry + 2], endian) == _ORIENTATION_TAG:
-            # A SHORT sits left-justified in the entry's 4-byte value field.
+            # A SHORT sits left-justified in the 4-byte value field.
             value = entry + 8
             return tiff[:value] + (1).to_bytes(2, endian) + tiff[value + 2 :]
     return tiff
@@ -121,7 +116,7 @@ def validate_strip_metadata_folder(folder: Path) -> None:
 
 
 def _replace_with_bytes(path: Path, data: bytes) -> None:
-    """Publish rewritten container bytes so a failed write leaves the original in place."""
+    """A failed write leaves the original in place."""
     temp_path = path.with_name(f"{path.stem}{STRIP_TEMP_MARKER}{path.suffix}")
     try:
         temp_path.write_bytes(data)
@@ -132,7 +127,7 @@ def _replace_with_bytes(path: Path, data: bytes) -> None:
 
 
 def iter_png_chunks(data: bytes) -> Iterator[tuple[bytes, bytes]]:
-    """Yield ``(type, whole chunk)`` up to and including IEND; whole chunks keep their CRC valid."""
+    """Whole chunks keep their CRC valid."""
     if not data.startswith(PNG_SIGNATURE):
         raise UnidentifiedImageError("Not a PNG file")
 
@@ -155,10 +150,7 @@ def iter_png_chunks(data: bytes) -> Iterator[tuple[bytes, bytes]]:
 
 
 def strip_png_chunks(data: bytes, *, orientation: int = 1) -> bytes:
-    """Drop the text, EXIF and time chunks; a Pillow re-save would lose iCCP/gAMA and APNG frames.
-
-    An ``orientation`` other than 1 is written back as an Orientation-only ``eXIf``.
-    """
+    """Drop text, EXIF and time chunks; a Pillow re-save would lose iCCP/gAMA and APNG frames."""
     kept: list[bytes] = []
     for chunk_type, chunk in iter_png_chunks(data):
         if chunk_type in PNG_PROVENANCE_CHUNKS:
@@ -170,10 +162,7 @@ def strip_png_chunks(data: bytes, *, orientation: int = 1) -> bytes:
 
 
 def strip_jpeg_segments(data: bytes, *, orientation: int = 1) -> bytes:
-    """Drop the APPn and COM segments. A Pillow round-trip would re-encode the scan instead.
-
-    An ``orientation`` other than 1 is written back as an Orientation-only APP1, after any JFIF.
-    """
+    """Drop APPn and COM segments; a Pillow round-trip would re-encode the scan."""
     if not data.startswith(JPEG_SOI):
         raise UnidentifiedImageError("Not a JPEG file")
 
@@ -208,7 +197,7 @@ def strip_jpeg_segments(data: bytes, *, orientation: int = 1) -> bytes:
 
         if marker == _JPEG_SOS:
             flush_pending()
-            # Entropy-coded data has no length; copying the tail verbatim is what keeps this lossless.
+            # Entropy-coded data has no length; copying the tail keeps this lossless.
             kept.append(data[index:])
             return b"".join(kept)
 
@@ -227,11 +216,7 @@ def strip_jpeg_segments(data: bytes, *, orientation: int = 1) -> bytes:
 
 
 def strip_webp_chunks(data: bytes, *, orientation: int = 1) -> bytes:
-    """Drop the EXIF and XMP RIFF chunks. Re-saving through Pillow would re-compress the image.
-
-    An ``orientation`` other than 1 is written back as an Orientation-only EXIF chunk. Only an
-    extended (VP8X) file can carry EXIF, so a simple file never had an orientation to keep.
-    """
+    """Drop EXIF and XMP chunks; Pillow would re-compress. Only VP8X files carry EXIF."""
     if len(data) < 12 or data[:4] != _RIFF_SIGNATURE or data[8:12] != _WEBP_SIGNATURE:
         raise UnidentifiedImageError("Not a WebP file")
 
@@ -240,7 +225,7 @@ def strip_webp_chunks(data: bytes, *, orientation: int = 1) -> bytes:
     while index + 8 <= len(data):
         chunk_type = data[index : index + 4]
         size = int.from_bytes(data[index + 4 : index + 8], "little")
-        # Chunks pad to an even length and the pad byte is not counted in the size field.
+        # The pad byte is not counted in the size field.
         end = index + 8 + size + (size & 1)
         if end > len(data):
             raise UnidentifiedImageError("Truncated WebP chunk")
@@ -251,7 +236,7 @@ def strip_webp_chunks(data: bytes, *, orientation: int = 1) -> bytes:
 
         payload = data[index:end]
         if chunk_type == _WEBP_VP8X_CHUNK and size >= 1:
-            # The flags must agree with the chunks that remain or decoders look for a missing EXIF.
+            # Decoders look for EXIF the flags announce.
             flags = data[index + 8] & ~_WEBP_VP8X_METADATA_FLAGS
             if orientation != 1:
                 flags |= _WEBP_VP8X_EXIF_FLAG
@@ -263,7 +248,7 @@ def strip_webp_chunks(data: bytes, *, orientation: int = 1) -> bytes:
         raise UnidentifiedImageError("Truncated WebP chunk")
 
     if orientation != 1 and kept and kept[0][:4] == _WEBP_VP8X_CHUNK:
-        # EXIF goes after the image data, where the stripped chunk sat.
+        # Where the stripped chunk sat.
         exif = orientation_exif(orientation)
         padding = b"\x00" * (len(exif) & 1)
         kept.append(b"EXIF" + len(exif).to_bytes(4, "little") + exif + padding)
@@ -290,7 +275,7 @@ def _strip_image_bytes(path: Path, strip: Callable[..., bytes]) -> None:
 def strip_isobmff_metadata(
     path: Path, *, ffmpeg: str | None = None, should_cancel: ShouldCancel | None = None
 ) -> None:
-    """Remove MP4/MOV/M4V metadata (comments, titles, etc.) without re-encoding any stream."""
+    """Without re-encoding any stream."""
     executable = ffmpeg or ffmpeg_path()
     if not executable:
         raise RuntimeError("ffmpeg is required to strip video metadata")
@@ -314,11 +299,10 @@ def strip_isobmff_metadata(
         "-1",
         "-c",
         "copy",
-        # Without this the muxer stamps its own `encoder` tag on the way out, so a stripped
-        # file still names the software that wrote it.
+        # Otherwise the muxer stamps its own `encoder` tag on the stripped file.
         "-fflags",
         "+bitexact",
-        # A plain, front-loaded container: a stripped copy is still a standard streamable MP4.
+        # A stripped copy stays a streamable MP4.
         "-movflags",
         "+faststart",
         str(temp_path),
@@ -336,12 +320,12 @@ def strip_isobmff_metadata(
 def strip_file_metadata(
     path: Path, *, ffmpeg: str | None = None, should_cancel: ShouldCancel | None = None
 ) -> str:
-    """Strip one file in place and return whether it was an ``image`` or a ``video``."""
+    """Returns ``image`` or ``video``."""
     suffix = path.suffix.lower()
 
     if suffix in ISOBMFF_EXTENSIONS:
         strip_isobmff_metadata(path, ffmpeg=ffmpeg, should_cancel=should_cancel)
-        # An in-app rewrite, not a replacement: the next edit keeps its original.
+        # An in-app rewrite, so the next edit keeps its original.
         refresh_published(path)
         return "video"
 
@@ -352,7 +336,7 @@ def strip_file_metadata(
     elif suffix != STRIP_BMP_SUFFIX:
         raise UnidentifiedImageError(f"Cannot strip metadata from {suffix} files")
 
-    # BMP falls through untouched: the format has no container for metadata to hide in.
+    # BMP has no metadata container.
     return "image"
 
 
@@ -403,6 +387,6 @@ def run_strip_metadata_job(
         on_progress=on_progress,
         should_cancel=should_cancel,
         claim_activity="strip",
-        # image_success and video_success are sub-stats of success and must not be counted.
+        # Sub-stats of success, which must not be counted twice.
         processed_stat_keys=("success", "busy", "read_error", "write_error", "ffmpeg_error"),
     )

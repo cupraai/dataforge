@@ -31,7 +31,7 @@ def refused(request: httpx.Request) -> httpx.Response:
 class FillRouteCase(ResultsFolder):
     def setUp(self) -> None:
         super().setUp()
-        # For the whole test: the worker opens its client after the start request has answered.
+        # The worker opens its client after the start request answers.
         comfy = patch("image_fill_jobs.open_comfy_client", lambda _t: mock_comfy_client(refused))
         comfy.start()
         self.addCleanup(comfy.stop)

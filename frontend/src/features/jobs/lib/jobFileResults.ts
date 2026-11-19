@@ -92,10 +92,7 @@ export interface ResultGroup {
   results: JobFileResult[];
 }
 
-/**
- * Buckets an already-sorted list, dropping outcomes the job never produced. A cancelled run
- * counts from `cancelledCount`, which already covers the interrupted file's row.
- */
+/** Buckets a sorted list; a cancelled run counts from `cancelledCount`. */
 export function groupResultsForDisplay(
   results: JobFileResult[],
   cancelledCount = 0,

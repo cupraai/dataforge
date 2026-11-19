@@ -1,17 +1,4 @@
-"""Generative fill pixels: the mask a browser paints, the crop a model sees, and the patch it returns.
-
-Everything is expressed in the EXIF-oriented original's pixels, the frame the editor shows. A fill
-is generated from the original plus every earlier fill, before any other edit, so blur, geometry
-and color changes are never baked into generated pixels.
-
-A model only ever sees a context crop around the selection, scaled to an inference budget. Its
-output is scaled back and composited through a feathered blend mask that lies wholly inside the
-binary generation mask, so the crop's unselected pixels never replace the source.
-
-Generated pixels are stored losslessly: a temporary result per generation, server-managed, and the
-``<name>.fills`` archive beside an edited file once Apply references them. The pixels are the
-authoritative record; a fill is never regenerated to reopen or re-render an edit.
-"""
+"""Generative fill: masks, the model's crop and its patch, in EXIF-oriented original pixels."""
 
 from __future__ import annotations
 
@@ -41,29 +28,28 @@ from schemas import FillBox, ImageFill
 
 logger = logging.getLogger(__name__)
 
-#: The context crop is scaled to about this many pixels for inference, and never more than this
-#: far up: a small selection gains no detail from being blown up further.
+#: Inference size of the context crop; never scaled further up than this.
 FILL_TARGET_PIXELS = 1024 * 1024
 FILL_MAX_UPSCALE = 2.0
 #: Qwen-Image 2.1 latents need both sides on this grid.
 FILL_SIZE_MULTIPLE = 32
 
-#: Context added on each side of the selection, as a fraction of its longer side.
+#: A fraction of the selection's longer side.
 FILL_CONTEXT_FRACTION = 0.5
 FILL_MIN_CONTEXT_PX = 64
-#: A crop smaller than this on its short side gives the model too little scene to continue.
+#: Smaller crops give the model too little scene.
 FILL_MIN_CROP_SIDE_PX = 384
 
-#: The blend fades over this fraction of the crop's longer side, never less than the minimum.
+#: A fraction of the crop's longer side.
 FILL_FEATHER_FRACTION = 0.01
 FILL_MIN_FEATHER_PX = 2
-#: A one-pixel run must survive each box pass of :func:`_dilated`: 255 / (2r + 1) has to round up.
+#: A one-pixel run must survive each dilation pass: 255 / (2r + 1) rounds up.
 FILL_MAX_FEATHER_PX = 200
 
-#: Fewer painted pixels than this is a stray click rather than a selection.
+#: Fewer painted pixels is a stray click.
 FILL_MIN_SELECTED_PIXELS = 4
 
-#: Unkept results outlive an editor session by this much, then a later generation sweeps them.
+#: Then a later generation sweeps them.
 FILL_RESULT_RETENTION_SECONDS = 24 * 60 * 60
 
 _RESULT_META = "fill.json"
@@ -75,22 +61,22 @@ FILL_RESULTS_ENV = "DATAFORGE_FILL_RESULTS"
 
 
 class FillMaskError(ValueError):
-    """The painted mask cannot be used: undecodable, the wrong size or empty."""
+    """Undecodable, the wrong size or empty."""
 
 
 class FillOutputError(ValueError):
-    """ComfyUI answered with something that is not the patch the request asked for."""
+    """ComfyUI answered with something other than the patch."""
 
 
 class FillUnavailableError(ConflictError):
-    """A fill the draft or spec names cannot be used, with what the user can do about it."""
+    """Carries what the user can do about it."""
 
     code = "fill_unavailable"
 
 
 @dataclass(frozen=True)
 class FillGeometry:
-    """Where the model's crop sits in the original, and the size it is generated at."""
+    """And the size it is generated at."""
 
     box: FillBox
     inference_width: int
@@ -110,14 +96,12 @@ class FillGeometry:
 
 @dataclass(frozen=True)
 class FillInputs:
-    """What one generation uploads, and what compositing its answer needs."""
-
     geometry: FillGeometry
-    #: The crop at inference size; RGBA only when the crop has transparency to edit.
+    #: RGBA only when the crop has transparency to edit.
     model_image: Image.Image
     #: Binary, at inference size: white regenerates.
     model_mask: Image.Image
-    #: At crop size, inside the generation mask, 255 over the selection.
+    #: At crop size, 255 over the selection.
     blend: Image.Image
     opaque: bool
 
@@ -132,7 +116,7 @@ class FillAsset:
 
 
 def decode_mask(mask_png: str, size: tuple[int, int]) -> Image.Image:
-    """The browser's mask as binary ``L``, checked against the frame before it is decoded."""
+    """Checked against the frame before decoding."""
     try:
         data = base64.b64decode(mask_png, validate=True)
     except (binascii.Error, ValueError) as error:
@@ -142,7 +126,7 @@ def decode_mask(mask_png: str, size: tuple[int, int]) -> Image.Image:
         with Image.open(io.BytesIO(data)) as opened:
             if opened.format != "PNG":
                 raise FillMaskError("The selection mask must be a PNG")
-            # The header is enough to refuse a mismatch, before a decode allocates anything.
+            # Refused before a decode allocates anything.
             if opened.size != size:
                 raise FillMaskError(
                     f"The selection mask is {opened.width} x {opened.height}, but the image is "
@@ -164,7 +148,7 @@ def selected_pixels(mask: Image.Image) -> int:
 
 
 def _grow_span(start: int, end: int, minimum: int, limit: int) -> tuple[int, int]:
-    """Widen ``[start, end)`` to ``minimum`` around its centre, shifted back inside ``[0, limit)``."""
+    """Widen ``[start, end)`` to ``minimum`` about its centre, kept inside ``[0, limit)``."""
     span = end - start
     if span >= minimum or limit <= span:
         return start, end
@@ -181,7 +165,7 @@ def _grid_size(length: float) -> int:
 
 
 def plan_fill_geometry(size: tuple[int, int], selection: tuple[int, int, int, int]) -> FillGeometry:
-    """The context crop around ``selection`` (a bounding box, right and bottom exclusive)."""
+    """The context crop around ``selection``, right and bottom exclusive."""
     width, height = size
     left, top, right, bottom = selection
     pad = max(FILL_MIN_CONTEXT_PX, round(FILL_CONTEXT_FRACTION * max(right - left, bottom - top)))
@@ -206,7 +190,7 @@ def plan_fill_geometry(size: tuple[int, int], selection: tuple[int, int, int, in
 
 
 def _dilated(mask: Image.Image, radius: int) -> Image.Image:
-    """Square dilation by ``radius``, exact: each box pass is thresholded before the next."""
+    """Exact: each box pass is thresholded before the next."""
     if radius <= 0:
         return mask
     spread = mask.filter(ImageFilter.BoxBlur((radius, 0))).point(lambda v: 255 if v else 0)
@@ -214,14 +198,9 @@ def _dilated(mask: Image.Image, radius: int) -> Image.Image:
 
 
 def generation_and_blend(mask: Image.Image, feather: int) -> tuple[Image.Image, Image.Image]:
-    """The binary area the model regenerates, and the soft mask its answer is blended through.
-
-    The generation mask is the selection grown by the whole feather, so the fade runs over
-    regenerated pixels rather than over the object's own edge. The blend is 255 over the
-    selection and 0 everywhere outside the generation mask.
-    """
+    """The generation mask grows by the feather, so the fade runs over regenerated pixels."""
     generation = _dilated(mask, feather)
-    # Two sigmas each way of the halved edge: about 98% at the selection, 2% at the clip.
+    # About 98% at the selection, 2% at the clip.
     halo = _dilated(mask, feather // 2).filter(ImageFilter.GaussianBlur(feather / 4))
     blend = ImageChops.darker(ImageChops.lighter(halo, mask), generation)
     return generation, blend
@@ -232,7 +211,6 @@ def is_opaque(image: Image.Image) -> bool:
 
 
 def prepare_fill_inputs(base: Image.Image, mask: Image.Image) -> FillInputs:
-    """Cut the model's crop and masks from the RGBA base the fill goes on."""
     bounds = mask.getbbox()
     if bounds is None:
         raise FillMaskError("Paint over what to fill first")
@@ -246,7 +224,7 @@ def prepare_fill_inputs(base: Image.Image, mask: Image.Image) -> FillInputs:
     model_image = (crop.convert("RGB") if opaque else crop).resize(
         inference, Image.Resampling.LANCZOS
     )
-    # Any coverage counts after scaling, so a thin stroke cannot vanish between pixels.
+    # So a thin stroke cannot vanish between pixels.
     model_mask = generation.resize(inference, Image.Resampling.BILINEAR).point(
         lambda v: 255 if v else 0
     )
@@ -261,7 +239,7 @@ def prepare_fill_inputs(base: Image.Image, mask: Image.Image) -> FillInputs:
 
 
 def generated_patch(output: Image.Image, inputs: FillInputs) -> Image.Image:
-    """The model's answer at crop size. An opaque source stays opaque: its alpha is not edited."""
+    """The model's answer at crop size; an opaque source stays opaque."""
     expected = (inputs.geometry.inference_width, inputs.geometry.inference_height)
     if output.size != expected:
         raise FillOutputError(
@@ -277,7 +255,7 @@ def generated_patch(output: Image.Image, inputs: FillInputs) -> Image.Image:
 
 
 def composite_fill(base: Image.Image, asset: FillAsset) -> Image.Image:
-    """``base`` with one fill blended in. Pixels where the blend is 0 come through untouched."""
+    """Where the blend is 0 pixels come through untouched."""
     box = asset.fill.box
     bounds = (box.left, box.top, box.left + box.width, box.top + box.height)
     if bounds[2] > base.width or bounds[3] > base.height:
@@ -319,7 +297,7 @@ def results_root() -> Path:
 
 
 def _result_dir(fill_id: str) -> Path:
-    # The id is schema-checked hex before it gets here; this is the only path built from it.
+    # The only path built from the id, which is schema-checked hex.
     return results_root() / fill_id
 
 
@@ -330,7 +308,7 @@ def _png_bytes(image: Image.Image) -> bytes:
 
 
 def save_result(media: Path, asset: FillAsset) -> None:
-    """Write a finished generation where only this server reads it; the browser gets its id."""
+    """Only this server reads it; the browser gets its id."""
     root = results_root()
     root.mkdir(parents=True, exist_ok=True)
     final = _result_dir(asset.fill.id)
@@ -364,7 +342,7 @@ def _asset_from(meta: bytes, generated: bytes, blend: bytes) -> FillAsset:
 
 
 def load_result(media: Path, fill_id: str) -> FillAsset | None:
-    """A temporary result made for this same file, or None."""
+    """None unless made for this same file."""
     folder = _result_dir(fill_id)
     try:
         owner = json.loads((folder / _RESULT_OWNER).read_text(encoding="utf-8"))
@@ -380,7 +358,7 @@ def load_result(media: Path, fill_id: str) -> FillAsset | None:
 
 
 def discard_result(media: Path, fill_id: str) -> None:
-    """Drop an unkept result. A result made for another file is not this caller's to drop."""
+    """A result made for another file is not this caller's to drop."""
     folder = _result_dir(fill_id)
     try:
         owner = json.loads((folder / _RESULT_OWNER).read_text(encoding="utf-8"))
@@ -391,7 +369,7 @@ def discard_result(media: Path, fill_id: str) -> None:
 
 
 def sweep_results(active: set[str], *, now: float | None = None) -> None:
-    """Remove results past retention. ``active`` names generations still writing theirs."""
+    """``active`` names generations still writing theirs."""
     root = results_root()
     cutoff = (now if now is not None else time.time()) - FILL_RESULT_RETENTION_SECONDS
     with suppress(OSError):
@@ -442,7 +420,7 @@ def _read_archive(media: Path) -> dict[str, FillAsset]:
 
 
 def write_archive(media: Path, assets: Iterable[FillAsset]) -> None:
-    """Replace the archive with exactly ``assets``; with none, remove it. Needs the media claim."""
+    """Replace the archive with exactly ``assets``; needs the media claim."""
     path = fill_assets_path(media)
     unique = {asset.fill.id: asset for asset in assets}
     if not unique:
@@ -451,7 +429,7 @@ def write_archive(media: Path, assets: Iterable[FillAsset]) -> None:
         return
 
     buffer = io.BytesIO()
-    # Stored: the PNGs are compressed already.
+    # The PNGs are compressed already.
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
         for fill_id, asset in unique.items():
             meta, generated, blend = _archive_names(fill_id)
@@ -459,15 +437,12 @@ def write_archive(media: Path, assets: Iterable[FillAsset]) -> None:
             archive.writestr(generated, _png_bytes(asset.generated))
             archive.writestr(blend, _png_bytes(asset.blend))
     data = buffer.getvalue()
-    # A preview may have the archive open for a moment; Windows refuses to replace it until then.
+    # Windows refuses the replace while a preview holds the archive.
     retry_while_locked(partial(write_bytes_atomic, path, data))
 
 
 def resolve_fill_chain(media: Path, fills: list[ImageFill], source_digest: str) -> list[FillAsset]:
-    """The stored pixels behind ``fills``, refusing anything stale, foreign or missing.
-
-    Saved fills come from the archive, kept-but-unapplied ones from the temporary results.
-    """
+    """Refuses anything stale, foreign or missing."""
     if not fills:
         return []
 
@@ -494,7 +469,7 @@ def resolve_fill_chain(media: Path, fills: list[ImageFill], source_digest: str) 
 
 
 def resolve_fill_ids(media: Path, fill_ids: list[str], source_digest: str) -> list[FillAsset]:
-    """:func:`resolve_fill_chain` for a preview, which names the chain by id alone."""
+    """For a preview, which names the chain by id alone."""
     archived = _read_archive(media) if fill_ids else {}
     resolved: list[FillAsset] = []
     parent: str | None = None
@@ -512,7 +487,7 @@ def resolve_fill_ids(media: Path, fill_ids: list[str], source_digest: str) -> li
 
 
 def preview_png_bytes(image: Image.Image) -> bytes:
-    """A fast lossless encode for the editor; an opaque frame drops its unused alpha."""
+    """An opaque frame drops its unused alpha."""
     prepared = image.convert("RGB") if is_opaque(image) else image
     buffer = io.BytesIO()
     prepared.save(buffer, format="PNG", compress_level=1)
@@ -520,6 +495,6 @@ def preview_png_bytes(image: Image.Image) -> bytes:
 
 
 def archived_assets(media: Path, fills: Iterable[ImageFill]) -> list[FillAsset]:
-    """What the archive still holds of ``fills``; for keeping the saved edit reopenable."""
+    """Keeps the saved edit reopenable."""
     archived = _read_archive(media)
     return [archived[fill.id] for fill in fills if fill.id in archived]

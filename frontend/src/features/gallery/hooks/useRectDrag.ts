@@ -29,8 +29,7 @@ export function arrowDelta(
 
 /** Pointer drags over a rect drawn in fractions of the painted `box`. */
 export function useRectDrag(box: PaintedBox, orientation: Orientation, disabled: boolean) {
-  // Anchored to where the drag began: pointer moves outrun rendering, so a delta applied to the
-  // last rendered rect loses every move that landed inside the same frame.
+  // Anchored to the drag start: moves outrun renders.
   const dragRef = useRef<{ x: number; y: number; rect: CropRect } | null>(null);
 
   /** Returns false when disabled, so the caller can skip its own side effects. */

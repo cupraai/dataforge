@@ -78,7 +78,7 @@ def cancel_job(job_id: str) -> JobResponse:
 
 @router.post("/jobs/{job_id}/undo", response_model=JobUndoResponse)
 def undo_job(job_id: str) -> JobUndoResponse:
-    """Put back the captions a finished caption job replaced, except ones edited since."""
+    """Except captions edited since."""
     result = job_manager.undo_job(job_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Job not found")

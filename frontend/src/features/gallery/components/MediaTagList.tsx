@@ -12,11 +12,7 @@ function percent(confidence: number): number {
   return Math.round(confidence * 100);
 }
 
-/**
- * One row, always rendered: the paging dialog reserves its height, so it shows the strongest
- * tags that fit and counts the rest, and a file with none keeps the row. Hidden tags stay
- * readable to assistive tech, so the count is for sighted readers only.
- */
+/** One reserved row showing the strongest tags that fit and a count; hidden tags stay readable. */
 export function MediaTagList({ tags }: MediaTagListProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const hidden = useWrappedCount(listRef, tags);

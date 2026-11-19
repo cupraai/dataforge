@@ -51,7 +51,7 @@ class RenameMediaHelpersTests(unittest.TestCase):
         self.assertEqual(build_target_name("portugal", 1, 3, ".png"), "portugal_001.png")
 
     def test_sequence_padding_counts_from_the_start_number(self) -> None:
-        # The highest number decides the width, not how many files there are.
+        # The highest number decides the width.
         self.assertEqual(sequence_padding(5, 996), 4)
         self.assertEqual(sequence_padding(5, 100), 3)
 
@@ -187,7 +187,6 @@ class RenameMediaJobTests(unittest.TestCase):
             run_rename_media_job(root, stem="portugal")
 
             self.assertTrue((root / "portugal_001.png.issue.json").is_file())
-            # The issue sidecar must not be turned into a caption sidecar.
             self.assertFalse((root / "portugal_001.json").exists())
 
     def test_rejects_conflicting_target_names(self) -> None:
@@ -202,10 +201,10 @@ class RenameMediaJobTests(unittest.TestCase):
         with TempMediaFolder() as root:
             selected = write_media(root, "photo.png")
             write_media(root, "keeper.png")
-            # Non-selected media has the name that would be the target when only 1 file is selected.
+            # The target name when only one file is selected.
             write_media(root, "portugal_001.png")
 
-            # Full-folder validation may pass (overlaps a source that would move), but selection must reject.
+            # Full-folder validation may pass; the selection must reject.
             with self.assertRaisesRegex(ValueError, "already exists"):
                 validate_rename_media_folder(root, stem="portugal", selected_paths=[selected])
 
@@ -213,7 +212,7 @@ class RenameMediaJobTests(unittest.TestCase):
         with TempMediaFolder() as root:
             selected = write_media(root, "photo.png")
             write_txt_caption(selected, "sidecar content")
-            # Existing file collides with the .txt sidecar target, not the media target.
+            # Collides with the .txt target, not the media target.
             (root / "portugal_001.txt").write_text("colliding sidecar", encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "already exists"):
@@ -299,7 +298,7 @@ class RenameMediaJobTests(unittest.TestCase):
             record = read_candidate_sidecar(candidate)
             assert record is not None
             self.assertEqual(record.source_name, "portugal_001.jpg")
-            # Processing the renamed file again must not take its own candidate for a stranger's.
+            # Its own candidate is not a stranger's.
             validate_candidate_destination(renamed, candidate)
 
     def test_renames_a_same_name_candidate(self) -> None:
@@ -357,7 +356,7 @@ class RenameMediaJobTests(unittest.TestCase):
             self.assertEqual(record.source_name, "a.jpg")
 
     def test_refuses_while_a_file_is_rendering_or_being_accepted(self) -> None:
-        # Either would write back under the old name once it finished.
+        # Either would write back under the old name.
         for activity in ("render", "settle"):
             with self.subTest(activity=activity), TempMediaFolder() as root:
                 media = write_media(root, "photo.png")
@@ -436,7 +435,7 @@ class RenameMediaJobTests(unittest.TestCase):
 
 
 class RenameMediaInterruptionTests(unittest.TestCase):
-    """Antivirus and search indexers open a file as soon as its new name appears."""
+    """Antivirus and indexers open a file as soon as it appears."""
 
     def _flaky_rename(self, failures: dict[str, OSError]):
         real_rename = Path.rename

@@ -28,10 +28,7 @@ INDEX_CACHE_CONTROL = "no-cache"
 
 class SpaFiles(StaticFiles):
     async def get_response(self, path: str, scope: Scope) -> Response:
-        """A client route such as ``/editor/video`` gets the index, so a reload reopens it.
-
-        Missing files (they have a suffix) and unknown API paths stay 404s.
-        """
+        """A client route gets the index; missing files and unknown API paths stay 404s."""
         try:
             return await super().get_response(path, scope)
         except HTTPException as exc:
@@ -56,7 +53,7 @@ class SpaFiles(StaticFiles):
 
 
 def mount_ui(app: FastAPI, dist: Path | None = None) -> Path | None:
-    """Mount the built UI at ``/`` when enabled. Call after ``include_router`` so the mount cannot shadow the API."""
+    """Mount the built UI at ``/``; call after ``include_router`` so it cannot shadow the API."""
     if not serve_ui_enabled():
         return None
 

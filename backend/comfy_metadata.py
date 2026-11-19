@@ -15,7 +15,7 @@ _comfy_workflow_cache_lock = threading.Lock()
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _TEXT_CHUNK_TYPES = frozenset({b"tEXt", b"zTXt", b"iTXt", b"comf"})
 _MAX_READ_BYTES = 64 * 1024 * 1024
-# Decoded text per file, compressed chunks included: a few KiB of zlib can inflate to gigabytes.
+# A few KiB of zlib can inflate to gigabytes.
 _MAX_TEXT_BYTES = _MAX_READ_BYTES
 _WORKFLOW_KEYS = frozenset(
     {
@@ -34,7 +34,7 @@ _WORKFLOW_KEYS = frozenset(
 
 
 def _inflate(data: bytes, limit: int) -> bytes | None:
-    """``data`` decompressed, or ``None`` when it is corrupt, truncated or inflates past ``limit``."""
+    """``None`` when corrupt, truncated or inflating past ``limit``."""
     inflater = zlib.decompressobj()
     try:
         inflated = inflater.decompress(data, limit + 1)
@@ -46,7 +46,7 @@ def _inflate(data: bytes, limit: int) -> bytes | None:
 
 
 def _decode_text_chunk(chunk_type: bytes, chunk_data: bytes, budget: int) -> tuple[str, str] | None:
-    """``(keyword, text)``, or ``None`` when malformed or its text would exceed ``budget`` bytes."""
+    """``None`` when malformed or over ``budget`` bytes."""
     if budget <= 0:
         return None
 
@@ -386,7 +386,7 @@ def _read_media_bytes(file_path: Path) -> bytes:
             if file_path.suffix.lower() == ".png":
                 return handle.read(_MAX_READ_BYTES)
 
-            # ComfyUI/ffmpeg MP4s usually place the moov atom at the end of the file.
+            # ComfyUI/ffmpeg MP4s usually put the moov atom last.
             handle.seek(max(0, size - _MAX_READ_BYTES))
             return handle.read()
     except OSError:

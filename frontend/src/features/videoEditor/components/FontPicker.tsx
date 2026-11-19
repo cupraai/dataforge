@@ -102,8 +102,7 @@ function FamilyMenu({
     ...families.filter((family) => family.family.toLowerCase().includes(needle)),
   ];
 
-  // Opens on the chosen family, scrolled into view, with the search ready for typing. Only on
-  // opening: a list refreshing while open must not move the cursor.
+  // Only on opening: a refreshing list must not move the cursor.
   if (useChanged(open) && open) {
     setSearch("");
     const index = value

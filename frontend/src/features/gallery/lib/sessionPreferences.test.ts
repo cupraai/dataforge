@@ -43,8 +43,7 @@ describe("gallery session preferences", () => {
     cacheGallerySessionQuery({
       filter: "uncaptioned",
       mediaTypeFilter: "all",
-      // Left out of the second write below, so this also covers a non-default choice
-      // surviving a partial merge rather than being read as absent.
+      // Also covers a non-default surviving a partial merge.
       fileFilter: "duplicates",
       searchQuery: "lake",
       searchRegex: false,

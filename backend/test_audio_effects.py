@@ -83,8 +83,7 @@ def write_samples(root: Path, name: str, samples: np.ndarray, rate: int = RATE) 
 
 
 def rbj_gain_db(kind: str, frequency: float, corner: float, gain: float = 0.0) -> float:
-    """The RBJ cookbook response the browser's BiquadFilterNode draws for the same settings:
-    Butterworth cuts, shelves at slope 1, a peak at a linear Q."""
+    """The RBJ response the browser's BiquadFilterNode draws for the same settings."""
     w0 = 2 * math.pi * corner / RATE
     cos, sin = math.cos(w0), math.sin(w0)
     a = 10 ** (gain / 40)
@@ -132,8 +131,7 @@ class EqFilterTests(unittest.TestCase):
         self.assertEqual(names, ["highpass", "lowshelf", "equalizer", "highshelf", "lowpass"])
 
     def test_ffmpeg_draws_the_curves_the_browser_does(self) -> None:
-        """A sine through each band is measured against the RBJ response of the same settings,
-        which is what the preview's BiquadFilterNode plays."""
+        """Each band is measured against the RBJ response the preview plays."""
         cases = [
             (AudioEffects(low_cut=200), "highpass", 200.0, 0.0, [50, 200, 1000]),
             (AudioEffects(high_cut=4000), "lowpass", 4000.0, 0.0, [1000, 4000, 12000]),

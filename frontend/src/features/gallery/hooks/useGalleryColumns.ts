@@ -28,9 +28,7 @@ export function useGalleryColumns(
     // Inside the layout effect a plain update already lands before paint.
     update();
 
-    // Observers run after layout but before paint. A plain state update renders in a later task,
-    // so the old columns would be painted at the new width for a frame (opening or closing the
-    // inspector); committing now skips that frame.
+    // Commit inside the observer, or the old columns paint at the new width for a frame.
     const observer = new ResizeObserver(() => flushSync(update));
     observer.observe(element);
     return () => observer.disconnect();

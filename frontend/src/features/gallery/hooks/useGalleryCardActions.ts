@@ -24,10 +24,7 @@ interface UseGalleryCardActionsOptions {
   onRenamed: (path: string, renamedPath: string) => void;
 }
 
-/**
- * One handler for every card, stable whatever its targets do: the cards are memoized. Anything
- * touching a file goes through a transition first, as the inspector may hold its unsaved caption.
- */
+/** One stable handler for memoized cards; file actions transition first. */
 export function useGalleryCardActions(options: UseGalleryCardActionsOptions) {
   const { requestTransition } = options;
   const notify = useNotify();

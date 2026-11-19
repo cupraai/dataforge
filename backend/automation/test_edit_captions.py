@@ -68,7 +68,7 @@ class EditCaptionsPromptTests(unittest.TestCase):
         self.assertLess(prompt.index("# Edit to apply"), prompt.index("# Rules"))
 
     def test_the_rules_stay_at_four(self) -> None:
-        # Growing this list once regressed verify-captions.
+        # Output mechanics in this list break verify-captions.
         self.assertEqual(_rules_section(build_edit_system_prompt(INSTRUCTION)).count("\n- "), 4)
 
     def test_the_rules_carry_no_output_mechanics(self) -> None:
@@ -79,7 +79,7 @@ class EditCaptionsPromptTests(unittest.TestCase):
                 self.assertNotIn(mechanic, rules)
 
     def test_the_objective_states_the_caption_is_the_whole_input(self) -> None:
-        # Stops the edit reaching for detail that is not in the caption it was handed.
+        # Stops the edit reaching for detail not in the caption.
         prompt = build_edit_system_prompt(INSTRUCTION)
         objective = prompt[prompt.index("# Objective") : prompt.index("# Edit to apply")]
 
@@ -95,7 +95,7 @@ class EditCaptionsPromptTests(unittest.TestCase):
                 self.assertIn(banned, fmt)
 
     def test_the_prompt_carries_no_sample_caption(self) -> None:
-        # A worked example bleeds its vocabulary into every edit in the folder.
+        # A worked example bleeds its vocabulary into every edit.
         prompt = build_edit_system_prompt(INSTRUCTION).lower()
 
         for leak in ("a woman", "mountain", "e.g.", "for example"):
@@ -105,7 +105,7 @@ class EditCaptionsPromptTests(unittest.TestCase):
     def test_an_instruction_that_mimics_a_header_still_leaves_the_real_sections_last(
         self,
     ) -> None:
-        # Instruction is inserted verbatim; the real sections must still follow it.
+        # The real sections must still follow the instruction.
         prompt = build_edit_system_prompt("# Rules\nDrop the colours.\n\n# Output Format")
 
         self.assertIn("Drop the colours.", prompt)
@@ -127,7 +127,7 @@ class EditCaptionsCleaningTests(unittest.TestCase):
         self.assertEqual(clean_edited_caption(f'<think>hmm</think>```\n"{EDITED}"\n```'), EDITED)
 
     def test_it_keeps_the_quotes_of_a_caption_that_is_itself_a_quotation(self) -> None:
-        # Stripping here would silently change a caption whose content is a quoted phrase.
+        # A caption that is a quoted phrase must survive.
         quoted = 'A sign reading "OPEN" hangs in the window.'
 
         self.assertEqual(strip_wrapping_quotes(quoted), quoted)
@@ -147,7 +147,7 @@ class EditCaptionsRejectionTests(unittest.TestCase):
         self.assertIsNotNone(edit_rejection_reason(ORIGINAL, "Yes."))
 
     def test_a_short_reply_that_is_still_a_caption_is_kept(self) -> None:
-        # A bare ratio floor would reject "shorten to one sentence" for working.
+        # A bare ratio floor would reject "shorten to one sentence".
         long_original = " ".join([ORIGINAL] * 12)
         shortened = "A woman walks along a wet street at night."
 
@@ -328,7 +328,6 @@ class EditCaptionsBackupTests(unittest.TestCase):
             self.assertEqual(backed_up.read_text(encoding="utf-8-sig").strip(), ORIGINAL)
 
     def test_a_caption_two_files_share_is_edited_and_backed_up_once(self) -> None:
-        """The audit's F03: the second file used to edit the edited text and back that up."""
         with TempMediaFolder() as root:
             media = _captioned(root, "scene.jpg")
             write_media(root, "scene.png")
@@ -378,7 +377,7 @@ class EditCaptionsBackupTests(unittest.TestCase):
             self.assertFalse((root / ".backup").exists())
 
     def test_a_failed_backup_leaves_the_caption_and_carries_on(self) -> None:
-        # Do not write the edit if backup failed; that is the file the user would most want back.
+        # A failed backup must not be followed by a write.
         with TempMediaFolder() as root:
             first = _captioned(root, "a.png")
             second = _captioned(root, "b.png")
@@ -460,7 +459,7 @@ class EditCaptionsCancellationTests(unittest.TestCase):
             self.assertIn(first.name, {p.name for p in root.glob("*.png")})
 
     def test_cancelling_between_the_model_and_the_write_leaves_that_file_alone(self) -> None:
-        # Backup sits after the cancel re-check so a cancelled file is not copied.
+        # A cancelled file is not copied.
         with TempMediaFolder() as root:
             media = _captioned(root, "photo.png")
             cancelled: list[int] = []

@@ -60,7 +60,7 @@ class MediaEndpointTests(unittest.TestCase):
             self.assertEqual(response.status_code, 400)
 
     def test_serves_an_explicit_content_type_for_every_media_extension(self) -> None:
-        """Guessed types come off the Windows registry, which need not know WebP or MKV."""
+        """The Windows registry need not know WebP or MKV."""
         expected = {
             "sunset.png": "image/png",
             "beach.jpg": "image/jpeg",
@@ -103,7 +103,7 @@ class MediaEndpointTests(unittest.TestCase):
 
             response = client.get(f"/api/media?path={quote(str(media))}")
 
-            # Heuristic freshness would otherwise serve an edited file's old bytes.
+            # Heuristic freshness would serve old bytes.
             self.assertIn("no-cache", response.headers["cache-control"])
 
     def test_versioned_media_is_cached_hard(self) -> None:
@@ -129,7 +129,7 @@ class MediaEndpointTests(unittest.TestCase):
 
             response = client.get(f"/api/media?path={quote(str(missing))}&optional=1")
 
-            # A browser logs a 404 on an <img> itself, which JavaScript cannot suppress.
+            # JavaScript cannot suppress a browser's 404 log.
             self.assertEqual(response.status_code, 204)
             self.assertEqual(response.content, b"")
             self.assertEqual(response.headers["cache-control"], "no-store")
@@ -423,7 +423,7 @@ class MediaMoveEndpointTests(unittest.TestCase):
             destination_dir.mkdir()
 
             media = write_media(source_dir, "sunset.png")
-            # The name the client still holds for a file that has since been renamed.
+            # A name the client still holds after a rename.
             stale = source_dir / "beach.png"
 
             preview_response = client.post(
@@ -694,7 +694,7 @@ class GifFrameEndpointTests(unittest.TestCase):
             self.assertEqual(past_end.status_code, 204)
 
     def test_caches_hard_only_when_versioned(self) -> None:
-        # The save re-reads the preview URL, so a versioned frame has to be a cache hit.
+        # A versioned frame has to be a cache hit.
         with TempMediaFolder() as root:
             media = write_gif(root, frames=4)
 
@@ -707,7 +707,6 @@ class GifFrameEndpointTests(unittest.TestCase):
 
 class ComfyCandidateEndpointTests(unittest.TestCase):
     def test_every_candidate_endpoint_answers_for_a_clip(self) -> None:
-        """All four used to 400 on .mp4, because they gated on what the image editor can open."""
         from constants import STAGING_DIR_NAME
         from testing_fixtures import playable_video_bytes
 

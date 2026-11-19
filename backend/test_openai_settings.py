@@ -154,8 +154,7 @@ class OpenAISettingsTests(unittest.TestCase):
             self.assertNotIn("reasoning_effort", build_sampling_extra_body("instruct"))
 
     def test_thinking_sends_reasoning_defaults_both_ways(self) -> None:
-        # Sent even at the default: the template falls back to xhigh, so omitting the
-        # key would quietly ignore the medium DataForge picks.
+        # Sent even at the default, since the template falls back to xhigh.
         with patch.dict(os.environ, {}, clear=True):
             extra = build_sampling_extra_body("thinking")
             self.assertEqual(

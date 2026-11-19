@@ -1,5 +1,3 @@
-"""Copy caption sidecars into a `.backup` folder, and restore them from it again."""
-
 from __future__ import annotations
 
 import os
@@ -39,11 +37,7 @@ def list_backup_captions_media(folder: Path) -> list[Path]:
 
 
 def back_up_caption(caption: Path, backup_dir: Path) -> bool:
-    """Refresh the backup with the current caption before an edit; False when there is none.
-
-    Called once per caption a job changes, never per file, so a caption same-stem media share
-    keeps the text it had before the job.
-    """
+    """Back up the current caption before an edit; once per caption, never per file."""
     if not caption.is_file():
         return False
     target = backup_dir / caption.name
@@ -54,7 +48,6 @@ def back_up_caption(caption: Path, backup_dir: Path) -> bool:
 
 
 def list_backup_sidecars(folder: Path) -> list[Path]:
-    """Caption files sitting in the folder's `.backup` directory."""
     return list_folder_media(
         caption_backup_dir(folder), set(CAPTION_SIDECAR_EXTENSIONS), order="name"
     )
@@ -78,7 +71,7 @@ def _is_caption_file(entry: os.DirEntry) -> bool:
 
 
 def _media_for(folder: Path, sidecar: Path) -> Path | None:
-    """The media in ``folder`` a caption was written for, or ``None`` once it is gone."""
+    """``None`` once the media is gone."""
     for extension in MEDIA_EXTENSIONS:
         media = folder / f"{sidecar.stem}{extension}"
         if media.is_file():
@@ -119,7 +112,7 @@ def validate_restore_captions_folder(folder: Path) -> None:
 
 
 def _media_version(media: Path) -> str | None:
-    """Changes whenever the file does, so a thumbnail URL built from it never goes stale."""
+    """Changes with the file, so a thumbnail URL never goes stale."""
     try:
         stat = media.stat()
     except OSError:
@@ -132,11 +125,7 @@ def preview_restore_captions(
     *,
     selected_paths: list[Path] | None = None,
 ) -> dict[str, object]:
-    """Count what a restore would change, with every differing caption beside its backup.
-
-    Texts are compared stripped, so a backup that differs only in its line endings or
-    surrounding whitespace counts as unchanged.
-    """
+    """What a restore would change; whitespace-only differences count as unchanged."""
     validate_restore_captions_folder(folder)
 
     sidecars = _select_backup_sidecars(folder, selected_paths)

@@ -222,8 +222,7 @@ describe("Timeline", () => {
       [...view.container.querySelectorAll<HTMLElement>(".video-timeline__filmstrip")].map(
         (tile) => /start=([\d.]+)/.exec(tile.style.backgroundImage)?.[1],
       );
-    // The test layout is 1000 px wide: 8.16 s of lanes beside the headers, and a view more is
-    // fetched either side. The tiles are eight seconds long at this zoom.
+    // 1000 px wide: 8.16 s of lanes plus a view either side; tiles are eight seconds here.
     const lanes = (1000 - TRACK_HEADER_PX) / PPS;
     expect(lanes).toBeCloseTo(8.16);
 

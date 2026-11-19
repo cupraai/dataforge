@@ -59,8 +59,7 @@ describe("usePopupMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  // The three attributes are a set; a menu missing one is broken only for
-  // screen readers, so assert the whole contract rather than any one of them.
+  // The three attributes are one contract; assert them together.
   it("points the trigger at the panel only while it is mounted", () => {
     render(<MenuFixture />);
     expect(trigger()).toHaveAttribute("aria-haspopup", "menu");

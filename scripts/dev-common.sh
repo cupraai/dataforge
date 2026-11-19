@@ -1,16 +1,6 @@
-# Shared helpers for the DataForge Unix launchers (setup.sh, dev.sh, start.sh,
-# stop.sh). Source it, do not execute it:
-#
-#   . "$(dirname "$0")/scripts/dev-common.sh"
-#
-# The twin is scripts/dev-common.ps1. Port defaults, .env precedence, the stamp
-# filenames and the only-kill-our-own-runtimes rule are all deliberately identical,
-# so the two platforms behave the same. Process supervision is the one place they
-# diverge on purpose - see the note above start_server.
-#
-# Written for bash 3.2, which is still what macOS ships: no associative arrays, no
-# mapfile, no ${var,,}. The launchers also run without `set -u`, because bash 3.2
-# treats ${#arr[@]} on an empty array as an unbound variable.
+# Shared helpers for the Unix launchers; source it: . "$(dirname "$0")/scripts/dev-common.sh"
+# Mirrors scripts/dev-common.ps1 except for process supervision.
+# Written for bash 3.2 (macOS): no associative arrays, no mapfile, no ${var,,}, no `set -u`.
 
 # Resolved from this file's own location, so the launchers work from any cwd.
 DEV_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,12 +12,10 @@ DEV_VENV_PY="$DEV_BACKEND/.venv/bin/python"
 DEV_DEV_SERVER="$DEV_SCRIPTS/dev_server.py"
 DEV_PROD_SERVER="$DEV_SCRIPTS/prod_server.py"
 
-# Generated from backend/schemas.py and backend/constants.py, gitignored, and two of
-# them carry real values - so the frontend neither starts nor builds without them.
+# Generated and gitignored; the frontend neither starts nor builds without them.
 DEV_GENERATED_SOURCES="types.ts constants.ts wireGuards.ts"
 
-# Written only after a build that actually succeeded. Keying freshness off
-# dist/index.html instead would trust a half-finished or hand-made dist.
+# Written only after a successful build; dist/index.html alone could be half-finished.
 DEV_BUILD_STAMP_NAME=".dataforge-build-stamp"
 
 # Written by setup.sh, and by setup.ps1, after a successful pip install.
@@ -61,10 +49,7 @@ err()  { printf '%s[ERROR] %s%s\n' "$DEV_RED" "$*" "$DEV_RESET" >&2; }
 # .env, mirroring backend/env_file.py
 # ---------------------------------------------------------------------------
 
-# Same candidate order as env_file.py - project root first, then backend/ - and the
-# first existing file wins. Nothing here touches the process environment; these are
-# fallbacks that a real environment variable overrides, the way python-dotenv loads
-# with override=False.
+# Same candidate order as env_file.py, first file wins; real environment variables override.
 DEV_ENV_FILE=""
 for _dev_candidate in "$DEV_ROOT/.env" "$DEV_BACKEND/.env"; do
     if [ -f "$_dev_candidate" ]; then
@@ -126,9 +111,7 @@ dev_env_value() {
 }
 
 dev_port() {
-    # A port setting, with a real environment variable winning over the .env file.
-    # The unset-versus-empty distinction matters: an explicitly blank OS variable
-    # still wins and then falls back, same as _env_port in scripts/dev_server.py.
+    # A real environment variable beats .env; an explicitly blank one still wins, as in dev_server.py.
     local name="$1" default="$2" raw
 
     if [ -n "${!name+set}" ]; then
@@ -162,8 +145,7 @@ dev_port() {
     printf '%s\n' "$raw"
 }
 
-# frontend/vite.config.ts and backend/server_settings.py resolve the same two
-# variables from the same .env.
+# vite.config.ts and server_settings.py resolve the same two variables.
 DEV_API_PORT="$(dev_port DATAFORGE_API_PORT 18080)"
 DEV_UI_PORT="$(dev_port DATAFORGE_UI_PORT 18081)"
 DEV_API_URL="http://127.0.0.1:$DEV_API_PORT"
@@ -177,21 +159,12 @@ DEV_APP_HEALTH_URL="$DEV_UI_URL/api/health"
 # ---------------------------------------------------------------------------
 
 update_generated_sources() {
-    # Always regenerates rather than comparing timestamps. The three files are
-    # gitignored, so git leaves them untouched across a branch switch and they keep
-    # the other branch's shape with a perfectly plausible mtime - there is no
-    # freshness test that would catch it. The generator costs well under a second.
-    #
-    # A missing venv is not this function's error to report: check_prerequisites
-    # names it and points at ./setup.sh. Nor is a failed generation fatal - the
-    # previous files are still on disk, and a schemas.py broken enough to stop the
-    # generator stops the backend too, which the readiness wait reports far better.
+    # Always regenerates: gitignored files survive a branch switch with a plausible mtime.
+    # A missing venv or a failed generation is reported elsewhere.
     [ -x "$DEV_VENV_PY" ] || return 0
 
     printf '%s' "Generating the frontend API types..."
-    # The generator rewrites a file only when its content actually changed, so an
-    # unchanged shape leaves every mtime alone and dist_is_fresh still reports a
-    # dist built before this launch as fresh.
+    # Only changed files are rewritten, so dist freshness is unaffected.
     if "$DEV_VENV_PY" "$DEV_SCRIPTS/generate_types.py" >/dev/null 2>&1; then
         ok " done."
         return 0
@@ -255,13 +228,8 @@ sync_frontend_dependencies() {
 }
 
 check_backend_dependency_drift() {
-    # Warns when a git pull brought in backend dependencies that were never
-    # installed. Advisory only - it never blocks startup.
-    #
-    # There is no frontend arm. sync_frontend_dependencies reads the same lockfile
-    # mtimes and reinstalls from them, so by the time a launcher gets here the
-    # frontend has either been resynced or the launcher has already exited. Only
-    # pip has no equivalent, since nothing reinstalls it automatically.
+    # Warns when a pull brought in uninstalled backend dependencies; advisory only.
+    # No frontend arm: sync_frontend_dependencies already reinstalled from the lockfile.
     local name req
 
     if [ -f "$DEV_DEPS_STAMP" ]; then
@@ -282,20 +250,14 @@ check_backend_dependency_drift() {
 # ---------------------------------------------------------------------------
 
 dist_is_fresh() {
-    # Whether frontend/dist was built after the last source change.
-    #
-    # Uses find -newer rather than stat: BSD and GNU stat take incompatible flags,
-    # while -newer is POSIX and behaves identically on both. Unlike the PowerShell
-    # twin an exact mtime tie counts as fresh here, since -newer is strict, which
-    # only matters for a source saved in the same clock tick as the stamp.
+    # Whether frontend/dist is newer than every source; find -newer works on BSD and GNU alike.
     local stamp="$DEV_DIST/$DEV_BUILD_STAMP_NAME"
     local inputs name found
 
     [ -f "$stamp" ] || return 1
     [ -f "$DEV_DIST/index.html" ] || return 1
 
-    # Everything vite build reads. src/ is recursive and covers the generated
-    # src/shared files, so regenerating the API contract also marks the build stale.
+    # Everything vite build reads, generated src/shared files included.
     inputs=()
     for name in src public index.html package.json package-lock.json vite.config.ts; do
         if [ -e "$DEV_FRONTEND/$name" ]; then
@@ -316,9 +278,7 @@ dist_is_fresh() {
 }
 
 build_frontend() {
-    # Runs in the calling terminal rather than a spawned one: npm run build is
-    # typecheck plus vite build, so its failures are compiler errors the caller has
-    # to read before deciding to abort.
+    # In this terminal, so the caller reads the compiler errors.
     say "Building the frontend (npm run build)..."
     say ""
 
@@ -339,8 +299,7 @@ build_frontend() {
 # ---------------------------------------------------------------------------
 
 port_listener_pids() {
-    # PIDs listening on a port, one per line. Exit 2 means neither tool is present,
-    # which is a different thing from nothing listening.
+    # PIDs listening on a port; exit 2 means neither tool is present.
     local port="$1"
 
     if command -v lsof >/dev/null 2>&1; then
@@ -362,11 +321,8 @@ process_name() {
 }
 
 clear_port() {
-    # Frees a dev port held by a leftover python or node process.
-    #
-    # Only our own runtimes are killed. Anything else gets named and left alone -
-    # force-killing an unrelated process because it happens to sit on a dev port is
-    # a far worse outcome than refusing to start. Returns 0 when the port is free.
+    # Frees a dev port held by a leftover python or node process; returns 0 when free.
+    # Anything else is named and left alone, never killed.
     local port="$1" label="$2"
     local pids pid name pgid deadline foreign rc
 
@@ -402,8 +358,7 @@ clear_port() {
         name="$(process_name "$pid")"
         printf '%s  Port %s: stopping leftover %s (PID %s) from a previous %s run...%s\n' \
             "$DEV_YELLOW" "$port" "$name" "$pid" "$label" "$DEV_RESET"
-        # The tree, not the leaf: a dev server is python -> uvicorn reload child, or
-        # npm -> node. Killing the listener alone can orphan the rest of the group.
+        # Kill the tree: python -> uvicorn reload child, npm -> node.
         pgid="$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')"
         if [ -n "$pgid" ]; then
             kill -TERM "-$pgid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
@@ -412,8 +367,7 @@ clear_port() {
         fi
     done
 
-    # The socket is released lazily, and Vite's strictPort makes a half-released
-    # port just as fatal as an occupied one.
+    # Lazily released sockets are as fatal as occupied ones under Vite's strictPort.
     deadline=$(( $(date +%s) + 5 ))
     while [ "$(date +%s)" -lt "$deadline" ]; do
         pids="$(port_listener_pids "$port")" || true
@@ -439,8 +393,7 @@ clear_port() {
 # ---------------------------------------------------------------------------
 
 wait_http_ready() {
-    # Polls a URL until it answers. Returns non-zero on timeout, or as soon as the
-    # watched process exits - a crashed server should not cost the full timeout.
+    # Returns non-zero on timeout, or as soon as the watched process exits.
     local url="$1" timeout="$2" watch_pid="$3"
     local deadline
 
@@ -470,8 +423,7 @@ wait_http_ready() {
 }
 
 wait_tcp_ready() {
-    # Polls until a TCP port accepts a connection. Used for Vite, which has no
-    # health endpoint of its own.
+    # For Vite, which has no health endpoint.
     local port="$1" timeout="$2" watch_pid="$3"
     local host="127.0.0.1" deadline
 
@@ -499,11 +451,8 @@ wait_tcp_ready() {
 # Supervision
 # ---------------------------------------------------------------------------
 #
-# This is where the Unix launchers deliberately diverge from the PowerShell ones.
-# Windows spawns detached cmd windows and needs a Win32 console-control handler to
-# keep a closed launcher from orphaning them (see Register-DevExitGuard). Here the
-# servers are ordinary background children, each in its own process group, and one
-# shell trap covers Ctrl+C, kill, and a closed terminal alike.
+# Unlike Windows, servers are background children in their own process groups,
+# and one shell trap covers Ctrl+C, kill and a closed terminal.
 
 DEV_SUPERVISED=""
 DEV_LAST_PID=""
@@ -514,15 +463,11 @@ start_server() {
     local label="$1" workdir="$2"
     shift 2
 
-    # Job control puts each background job in its own process group, which is what
-    # makes killing the group reap uvicorn's reload child instead of orphaning it.
+    # Its own process group, so killing the group reaps uvicorn's reload child.
     set -m
     (
         cd "$workdir" || exit 1
-        # Without this python block-buffers stdout once it is a pipe rather than a
-        # terminal, and a starting server looks hung until enough output piles up.
-        # The tag is what keeps two interleaved server logs readable, now that
-        # there are no separate windows to keep them apart.
+        # Unbuffered, or a piped server looks hung; the tag keeps interleaved logs readable.
         PYTHONUNBUFFERED=1 "$@" 2>&1 |
             awk -v tag="[$label] " '{ print tag $0; fflush() }'
     ) &
@@ -535,8 +480,7 @@ supervise() {
 }
 
 supervise_release() {
-    # For the exits that intentionally leave servers running: --detach, and the
-    # readiness failure that keeps the error on screen.
+    # For --detach and readiness failures that keep the error on screen.
     DEV_SUPERVISED=""
 }
 
@@ -573,18 +517,13 @@ open_browser() {
 }
 
 wait_for_key() {
-    # Returns when a key is pressed. With no terminal on stdin there is nothing to
-    # wait on, so block instead and let the trap do the stopping - returning
-    # immediately would tear the servers down the moment they came up.
+    # Returns on a key press; without a terminal it blocks and leaves stopping to the trap.
     local unused
     if [ -t 0 ]; then
         # A builtin, so a trapped signal runs its handler at once.
         read -r -n 1 -s unused 2>/dev/null || read -r unused || true
     else
-        # Deliberately `sleep &` plus `wait`, never a bare `sleep`: bash defers a
-        # trap until the running foreground *external* command finishes, so a plain
-        # `sleep 3600` would sit on a SIGTERM for up to an hour before cleaning up.
-        # `wait` is a builtin and is interrupted immediately.
+        # `sleep &` plus `wait`: bash defers a trap until a foreground external command ends.
         while :; do
             sleep 3600 &
             wait $! || true

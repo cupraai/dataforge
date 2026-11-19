@@ -27,10 +27,7 @@ interface GalleryCardActionsProps {
   onAction?: (action: GalleryCardAction, item: GalleryItem) => void;
 }
 
-/**
- * A sibling of the card button, never inside it: interactive content cannot nest in a button.
- * One tab stop for the whole bar; arrows move between its buttons.
- */
+/** Beside the card button, never inside it; one tab stop, arrows move within. */
 export function GalleryCardActions({
   item,
   displayMode,

@@ -127,8 +127,7 @@ describe("AutoCaptionDialog", () => {
   });
 
   it("disables the reasoning controls in instruct mode", async () => {
-    // Instruct turns reasoning off, so the backend sends neither value there. The
-    // controls stay visible to say so rather than vanishing.
+    // Instruct turns reasoning off; the controls stay visible to say so.
     const user = userEvent.setup();
     renderDialog();
 

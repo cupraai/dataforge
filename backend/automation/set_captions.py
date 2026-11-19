@@ -1,5 +1,3 @@
-"""Utility job to set a fixed caption text on images and videos (creates or updates .txt sidecars)."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,7 +45,7 @@ def run_set_captions_job(
     def process(target: CaptionTarget) -> FileOutcome:
         reference = load_reference_caption(target.primary)
         if not overwrite:
-            # Unreadable is not absent: the bytes may be a caption in another encoding.
+            # Unreadable is not absent: it may be another encoding.
             if reference.status == CAPTION_READ_ERROR:
                 return FileOutcome.counted(CAPTION_READ_ERROR, "Existing caption could not be read")
             if reference.status != NO_CAPTION_STATUS:

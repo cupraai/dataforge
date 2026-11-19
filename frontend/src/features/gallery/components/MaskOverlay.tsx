@@ -169,8 +169,7 @@ export function MaskOverlay({
       style={style}
       role="group"
       aria-label="Blur regions"
-      // Only a press on the bare picture: a region's own press is the target, and deselecting
-      // under the remove button would unmount it before its click landed.
+      // Bare picture only, or deselecting would unmount the remove button before its click.
       onPointerDown={(event) => {
         if (interactive && event.target === event.currentTarget) onSelect(null);
       }}

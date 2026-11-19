@@ -45,8 +45,7 @@ export function useTrainingTemplateDraft(model: TrainingModel) {
     (template: string | null) => {
       setDrafts((current) => {
         const next = { ...current };
-        // `null` means "back to stock", so drop the entry rather than storing a copy of
-        // the shipped template — that is what keeps `edited` honest.
+        // `null` means back to stock, so drop the entry; that keeps `edited` honest.
         if (template === null) delete next[model];
         else next[model] = template;
         return next;

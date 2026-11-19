@@ -1,10 +1,4 @@
-"""Sound shaping shared by the gallery's audio edit and the editor's audio clips.
-
-The bands are RBJ-cookbook biquads at frequencies, Q and slopes the browser's
-``BiquadFilterNode`` uses too (``frontend/src/shared/lib/audioEffects.ts``), so the live preview
-plays the curves the render writes. Noise reduction and pitch have no browser equivalent: they are
-rendered into a proxy file that the preview plays and the render reads, so they have one renderer.
-"""
+"""Sound shaping shared by the gallery's audio edit and the editor; mirrors ``audioEffects.ts``."""
 
 from __future__ import annotations
 
@@ -33,21 +27,19 @@ from video_project_media import cache_path, cached_render
 #: afftdn takes no less.
 MIN_NOISE_REDUCTION_DB = 0.01
 AUDIO_PROXY_TIMEOUT_SECONDS = 1800
-#: Part of the cache key; bump it when a proxy is rendered differently.
+#: Bump when a proxy is rendered differently.
 AUDIO_PROXY_VERSION = 1
 PROBE_TIMEOUT_SECONDS = 15
-#: Where the delay probe's click sits, and how long the probe runs: well past any window.
 DELAY_CLICK_SECONDS = 0.1
 DELAY_PROBE_SECONDS = 0.4
-#: The noise profile is learned from the quietest stretch this long, found at a coarse rate.
+#: The quietest stretch this long teaches the noise profile.
 NOISE_SAMPLE_SECONDS = 0.5
 NOISE_SAMPLE_MARGIN_SECONDS = 0.02
 QUIET_SCAN_RATE = 8000
 QUIET_BLOCK_SECONDS = 0.05
 #: Mean power below about -100 dBFS: digital silence, not noise.
 DIGITAL_SILENCE_POWER = 1e-10
-#: afftdn's loudest floor. With a learned profile it reduces by ``nr`` dB at any noise level
-#: under this; a lower floor lets louder noise through untouched.
+#: afftdn's loudest floor; a lower one lets louder noise through untouched.
 NOISE_FLOOR_CEILING_DB = -20
 
 
@@ -65,14 +57,12 @@ def is_effects_identity(effects: AudioEffects) -> bool:
     return is_eq_identity(effects) and effects.noise_reduction < IDENTITY_EPSILON
 
 
-#: The EQ's gain bands, which a video project clip can animate, and the filter each one runs.
+#: The EQ's animatable gain bands and their filters.
 EQ_BAND_FILTERS = {"bass": "lowshelf", "mid": "equalizer", "treble": "highshelf"}
 
 
 def eq_filters(effects: AudioEffects, named: Mapping[str, str] | None = None) -> list[str]:
-    """Low to high. ``p=2`` is a Butterworth pole pair (Q 0.707); the shelves use slope 1 and the
-    peak a linear Q, which is how the browser's biquads read the same numbers. A gain band in
-    ``named`` stays in at 0 dB too, under that instance name, so commands can move its gain."""
+    """The shelves use slope 1 and the peak a linear Q, as the browser's biquads read them."""
     named = named or {}
     filters: list[str] = []
 
@@ -94,11 +84,10 @@ def eq_filters(effects: AudioEffects, named: Mapping[str, str] | None = None) ->
 
 @dataclass(frozen=True, slots=True)
 class AudioProbe:
-    """From ffmpeg's own stream summary; ``None`` wherever it reported nothing."""
+    """``None`` wherever ffmpeg reported nothing."""
 
     codec: str | None = None
     sample_rate: int | None = None
-    #: ``s16``, ``s32``, ``fltp`` and so on: what the decoder hands on.
     sample_format: str | None = None
     #: The stored depth when it differs from the format's, as in ``s32 (24 bit)``.
     bits: int | None = None
@@ -137,7 +126,7 @@ def parse_audio_probe(summary: str) -> AudioProbe:
 
 
 def probe_audio(executable: str, media: Path) -> AudioProbe:
-    """Read, not decoded. ffmpeg rather than mutagen, which cannot tell float WAV from integer."""
+    """ffmpeg, since mutagen cannot tell float WAV from integer."""
     try:
         result = subprocess.run(
             [executable, "-nostdin", "-hide_banner", "-i", str(media)],
@@ -151,14 +140,13 @@ def probe_audio(executable: str, media: Path) -> AudioProbe:
 
 
 def _afftdn(reduction: float) -> str:
-    """``tn`` follows the noise as it changes, so one strength suits a whole file."""
+    """``tn`` follows the noise as it changes."""
     return f"afftdn=nr={reduction:.3f}:tn=1"
 
 
 @lru_cache(maxsize=32)
 def denoise_delay(executable: str, sample_rate: int) -> int:
-    """Samples afftdn holds the sound back by, measured on a click: about 25 ms, rounded to its
-    window, which differs by rate. The length stays, so uncorrected the end would be cut off."""
+    """afftdn's delay in samples (about 25 ms), measured on a click."""
     click = round(sample_rate * DELAY_CLICK_SECONDS)
     source = f"aevalsrc=if(eq(n\\,{click})\\,0.9\\,0):s={sample_rate}:d={DELAY_PROBE_SECONDS}"
     command = [
@@ -179,8 +167,7 @@ def denoise_delay(executable: str, sample_rate: int) -> int:
 
 
 def quiet_stretch(executable: str, source: Path, sample_rate: int) -> tuple[int, int]:
-    """``(start, length)`` in samples of the quietest stretch that still holds sound: the noise
-    with as little else as the file has. Digital silence teaches the noise profile nothing."""
+    """``(start, length)`` of the quietest stretch that still holds sound, in samples."""
     decoded = subprocess.run(
         [
             *(executable, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", str(source)),
@@ -210,11 +197,7 @@ def quiet_stretch(executable: str, source: Path, sample_rate: int) -> tuple[int,
 def denoise_links(
     strength: float, delay: int, quiet: tuple[int, int], sample_rate: int, output: str
 ) -> list[str]:
-    """afftdn learns the noise from the quiet stretch, played once ahead of the file, then reduces
-    by ``strength`` of the maximum in dB. Its fixed floor (``nf``) would reduce only noise as
-    white and as loud as the floor. The stretch and the filter's delay are trimmed back off, and
-    the end padded by the delay, so the sound keeps its place to the sample and its whole length.
-    """
+    """Learn the noise from the quiet stretch, then trim it and the filter delay back off."""
     reduction = max(MIN_NOISE_REDUCTION_DB, strength * AUDIO_NOISE_REDUCTION_MAX_DB)
     start, length = quiet
     margin = min(NOISE_SAMPLE_MARGIN_SECONDS, length / sample_rate / 4)
@@ -231,13 +214,12 @@ def denoise_links(
 
 
 def pitch_ratio(semitones: int, sample_rate: int) -> float:
-    """What ``asetrate`` can actually do: it takes a whole rate, so the ratio is rounded to one."""
+    """``asetrate`` takes a whole rate."""
     return round(sample_rate * 2 ** (semitones / 12)) / sample_rate
 
 
 def pitch_filters(semitones: int, sample_rate: int) -> list[str]:
-    """Plays the samples faster or slower, which moves the pitch and the length together, then
-    stretches the length back with ``atempo``, which keeps the pitch."""
+    """Resample to move pitch and length, then ``atempo`` restores the length."""
     if semitones == 0:
         return []
     ratio = pitch_ratio(semitones, sample_rate)
@@ -275,7 +257,6 @@ def proxy_links(
     delay: int = 0,
     quiet: tuple[int, int] = (0, 0),
 ) -> list[str]:
-    """The proxy's graph, from the first sound stream to ``[proxy]``."""
     links: list[str] = []
     head = "[0:a:0]"
     if noise_reduction >= IDENTITY_EPSILON:
@@ -288,7 +269,7 @@ def proxy_links(
 def audio_proxy_command(
     executable: str, source: Path, destination: Path, links: list[str]
 ) -> list[str]:
-    """FLAC at 24 bits: lossless enough to stand in for the source, and the browser plays it."""
+    """Lossless, and the browser plays it."""
     return [
         *(executable, "-nostdin", "-hide_banner", "-loglevel", "error", "-y"),
         *("-i", str(source), "-filter_complex", ";".join(links), "-map", "[proxy]"),
@@ -297,9 +278,7 @@ def audio_proxy_command(
 
 
 def audio_proxy(executable: str, source: Path, *, noise_reduction: float, pitch: int = 0) -> Path:
-    """The whole file with its noise reduced and pitch moved, cached beside the timeline pictures
-    and keyed by the source's stat. Noise reduction keeps the source's timing to the sample; a
-    pitch move shifts it by a few milliseconds, which only the gallery's own edit takes."""
+    """The file with noise reduced and pitch moved, cached by stat; the preview plays it."""
     if not needs_proxy(noise_reduction, pitch):
         raise ValueError("This sound needs no proxy")
     destination = cache_path(

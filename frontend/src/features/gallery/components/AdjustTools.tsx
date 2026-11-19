@@ -327,8 +327,7 @@ function ToolRing() {
   );
 }
 
-/** The tool's hint follows the wand: off, measuring, or on. One status region, so the change
- * to measuring and back is read out. */
+/** One status region for the wand's hint, so measuring and back is announced. */
 function AdjustHint({ controls }: { controls: ColorAdjustControls }) {
   const measuring = controls.autoPending;
   const look = measuring

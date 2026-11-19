@@ -1,5 +1,4 @@
-"""Generate frontend/src/shared/{types,constants,wireGuards}.ts from schemas.py and constants.py,
-and the color parity cases the frontend port of ``color_adjust`` is tested against."""
+"""Generate frontend/src/shared/{types,constants,wireGuards}.ts and the color parity cases."""
 
 from __future__ import annotations
 
@@ -100,13 +99,7 @@ def _reachable(roots: list[Any], components: dict[str, Any]) -> set[str]:
 
 
 def _classify(spec: dict[str, Any]) -> tuple[set[str], set[str]]:
-    """Split the components into response-reachable and request-only.
-
-    A schema reachable from both is treated as a response: that is the direction whose
-    rule is stricter, and getting it wrong the other way would make an always-sent
-    field optional. Schemas on no route at all (the SSE events) fall out as responses
-    for the same reason.
-    """
+    """Split components into response-reachable and request-only; shared ones count as responses."""
     components = spec["components"]["schemas"]
     response_roots: list[Any] = []
     request_roots: list[Any] = []
@@ -203,12 +196,7 @@ def _render_alias(name: str, schema: dict[str, Any]) -> str:
 
 
 def _is_optional(prop: str, definition: dict[str, Any], required: set[str], is_response: bool) -> bool:
-    """Whether the emitted property carries a ``?``.
-
-    A default means "omit it" on the way in, which is what the API already means. On the
-    way out pydantic serializes every field, so only nullability can make one absent from
-    a caller's point of view.
-    """
+    """Whether the property carries ``?``: defaults on input, nullability on output."""
     if prop in required:
         return False
     if not is_response:

@@ -41,10 +41,7 @@ function formatRate(rate: number): string {
   return String(Number(rate.toFixed(3)));
 }
 
-/**
- * Canvas size, frame rate and background. The size and rate fields are the truth; the preset
- * selects are read back from them, so a typed value that no preset names shows as Custom.
- */
+/** Size and rate fields are the truth; an unnamed value shows its preset as Custom. */
 export function ProjectSettingsDialog({ project, onSave, onCancel }: ProjectSettingsDialogProps) {
   const savedRate = formatRate(project.frame_rate);
   const [width, setWidth] = useState(String(project.width));

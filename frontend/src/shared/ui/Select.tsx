@@ -12,8 +12,7 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "siz
 export function Select({ size = "md", className, children, ...props }: SelectProps) {
   const selectRef = useRef<HTMLSelectElement>(null);
 
-  // The wrap carries the padding that keeps the UA arrow off the border, so a click in that
-  // gutter lands on the div and never reaches the select. Open the picker by hand instead.
+  // Clicks on the wrap's padding miss the select, so open the picker by hand.
   const handleWrapMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     const select = selectRef.current;
     if (!select || select.disabled || event.target === select) return;

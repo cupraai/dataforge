@@ -52,7 +52,7 @@ def list_folder_roots() -> list[FolderRoot]:
 
 
 def looks_like_windows_path(path: str) -> bool:
-    """True for drive roots / absolute Windows paths (``C:\\...`` or ``C:/...``)."""
+    """``C:\\...`` or ``C:/...``."""
     text = path.strip()
     if not text:
         return False
@@ -62,7 +62,7 @@ def looks_like_windows_path(path: str) -> bool:
 
 
 def normalize_user_path(path: str) -> Path:
-    """Resolve a client path against the host filesystem. POSIX never converts ``/`` to ``\\``."""
+    """POSIX never converts ``/`` to ``\\``."""
     text = path.strip()
     if not text:
         return Path.cwd().resolve()
@@ -77,7 +77,7 @@ def normalize_user_path(path: str) -> Path:
 
 
 def path_leaf_name(path: str | Path) -> str:
-    """Last path segment. ``Path(r"C:\\\\a\\\\b").name`` is wrong on POSIX."""
+    """``Path(r"C:\\a\\b").name`` is wrong on POSIX."""
     text = str(path).strip()
     if not text:
         return ""
@@ -92,7 +92,7 @@ def path_leaf_name(path: str | Path) -> str:
 
 
 def preference_folder_key(path: str) -> str:
-    """Stable preference-map key. Windows-style strings stay Windows-shaped so keys match on Linux CI."""
+    """Windows-style strings keep their shape so keys match on Linux."""
     text = path.strip()
     if not text:
         return text
@@ -177,8 +177,8 @@ def list_child_folders(folder: Path) -> list[dict[str, str | bool]]:
 
 
 def sanitize_entry_name(name: str) -> str | None:
-    """``name`` if a folder, or a file's stem, may carry it on every platform; else ``None``."""
-    # Surrounding whitespace is refused rather than trimmed, so the entry gets the name typed.
+    """``name`` if a folder or file stem may carry it on every platform; else ``None``."""
+    # Surrounding whitespace is refused rather than trimmed.
     if name != name.strip() or name in {"", ".", ".."} or name.endswith("."):
         return None
 
@@ -206,7 +206,7 @@ def create_subfolder(parent: Path, name: str) -> dict[str, str | int]:
 
 
 def _empty_folder_parent(folder: Path, action: str) -> Path:
-    """The parent of ``folder``, once it is a non-root folder with no entries, hidden ones too."""
+    """The parent of an empty non-root ``folder``; hidden entries count."""
     parent = folder.parent
     if parent == folder:
         raise HTTPException(status_code=400, detail=f"Cannot {action} a drive root")
@@ -228,7 +228,7 @@ def _empty_folder_parent(folder: Path, action: str) -> Path:
 
 
 def delete_empty_folder(folder: Path) -> Path:
-    """Delete ``folder`` only if it has no entries, hidden ones included; returns the parent."""
+    """Delete ``folder`` only if empty, hidden entries included; returns the parent."""
     parent = _empty_folder_parent(folder, "delete")
 
     try:
@@ -240,7 +240,7 @@ def delete_empty_folder(folder: Path) -> Path:
 
 
 def rename_empty_folder(folder: Path, name: str) -> Path:
-    """Rename ``folder`` only if it has no entries, hidden ones included; returns the new path."""
+    """Rename ``folder`` only if empty, hidden entries included; returns the new path."""
     new_name = sanitize_entry_name(name)
     if new_name is None:
         raise HTTPException(status_code=400, detail="Invalid folder name")
@@ -248,7 +248,7 @@ def rename_empty_folder(folder: Path, name: str) -> Path:
     destination = _empty_folder_parent(folder, "rename") / new_name
     if new_name == folder.name:
         return folder
-    # On a case-insensitive disk a change of case names the folder itself, which is no clash.
+    # A change of case on a case-insensitive disk is no clash.
     if destination.exists() and not destination.samefile(folder):
         raise HTTPException(status_code=409, detail="Folder already exists")
 
@@ -274,11 +274,11 @@ def list_subfolders(folder: Path) -> list[dict[str, str | int]]:
 
 
 class FolderExplorerError(Exception):
-    """Raised when the folder cannot be opened in the OS file manager."""
+    """The OS file manager could not open the folder."""
 
 
 class MediaPreviewError(Exception):
-    """Raised when a file cannot be opened in the OS default viewer."""
+    """The OS viewer could not open the file."""
 
 
 def _open_with_os_handler(
@@ -288,7 +288,6 @@ def _open_with_os_handler(
     unavailable: str,
     failed: str,
 ) -> None:
-    """Hand a path to the OS default handler, reporting failures as ``error``."""
     path = str(target)
 
     try:

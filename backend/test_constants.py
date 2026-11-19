@@ -66,8 +66,7 @@ class MediaExtensionInvariantTests(unittest.TestCase):
         self.assertLessEqual(COMFY_WORKFLOW_EXTENSIONS, MEDIA_EXTENSIONS)
 
     def test_every_media_extension_has_a_mime_type(self) -> None:
-        # A missing entry falls through to `mimetypes.guess_type`, which answers
-        # from the Windows registry and can return text/plain for real media.
+        # Otherwise `mimetypes.guess_type` asks the Windows registry and may say text/plain.
         self.assertEqual(GALLERY_EXTENSIONS - set(MEDIA_MIME_TYPES), set())
 
     def test_jobs_never_see_audio(self) -> None:
@@ -118,7 +117,7 @@ class SharedConstantsTests(unittest.TestCase):
 
 class CandidateFactsParityTests(unittest.TestCase):
     def test_every_measured_fact_has_a_sidecar_field(self) -> None:
-        """The sidecar is built by splatting the facts; a field only on one side is dropped in silence."""
+        """The sidecar splats the facts; a field on only one side is dropped in silence."""
         from dataclasses import fields
 
         from automation.comfy_process import CandidateFacts

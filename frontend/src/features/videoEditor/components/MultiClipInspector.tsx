@@ -46,10 +46,7 @@ function shared(clips: Clip[], read: (clip: Clip) => number): { value: number; m
   return { value, mixed: clips.some((clip) => Math.abs(read(clip) - value) > 1e-6) };
 }
 
-/**
- * One setting changed here is set on every selected clip it applies to, as one undo step.
- * A value the clips do not share shows the first clip's, marked as mixed.
- */
+/** Sets every selected clip it applies to as one undo step; differing values show as mixed. */
 export function MultiClipInspector({
   project,
   selection,

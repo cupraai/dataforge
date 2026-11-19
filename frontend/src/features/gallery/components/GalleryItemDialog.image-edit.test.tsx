@@ -97,8 +97,7 @@ describe("GalleryItemDialog", () => {
     async function openEditMode(user: ReturnType<typeof userEvent.setup>, name = "sunset.png") {
       const dialog = await screen.findByRole("dialog", { name: `Viewing ${name}` });
       await user.click(within(dialog).getByRole("button", { name: `Edit ${name}` }));
-      // jsdom decodes nothing, so `load` never fires on its own - and the panel stays
-      // locked until the image has reported a size.
+      // jsdom never fires `load`, and the panel stays locked until a size is known.
       fireEvent.load(dialog.querySelector("img")!);
       return dialog;
     }
@@ -452,8 +451,7 @@ describe("GalleryItemDialog", () => {
           effect: null,
         });
         await waitFor(() => expect(props.onCopied).toHaveBeenCalled());
-        // Nothing about the surface changes: the editor was already showing the original,
-        // which the spec is expressed against, so there is nothing to swap back to.
+        // The editor already shows the original, so nothing swaps back.
         expect(within(dialog).getByRole("group", { name: "Image editing" })).toBeInTheDocument();
         expect(dialog.querySelector("img")?.getAttribute("src")).toContain("original=1");
       });

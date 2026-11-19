@@ -1,18 +1,6 @@
 #!/usr/bin/env bash
-#
-# Stops DataForge by freeing the configured ports. Covers both launchers.
-#
-# The escape hatch for when nothing is supervising and a server is still holding its
-# port: after --detach, or after a terminal that was closed in a way the launcher's
-# trap could not survive. A launcher stopped normally cleans up after itself.
-#
-# Both ports are cleared either way: ./dev.sh uses one per server, and ./start.sh
-# serves everything on the UI port.
-#
-# Only leftover python and node processes are stopped; anything else on those ports
-# is reported and left alone.
-#
-# The Windows twin is stop.ps1.
+# Frees both configured ports, for when nothing supervises a leftover server.
+# Only leftover python and node processes are stopped. Windows twin: stop.ps1.
 #
 # Usage: ./stop.sh
 
@@ -23,8 +11,7 @@ set -eo pipefail
 
 say "Stopping DataForge servers..."
 
-# Neither port has a fixed occupant here: 18081 is Vite under ./dev.sh and the whole
-# app under ./start.sh, so the label names the product rather than a half of it.
+# 18081 serves Vite under ./dev.sh and the whole app under ./start.sh.
 API_FREED=0
 UI_FREED=0
 clear_port "$DEV_API_PORT" "DataForge" && API_FREED=1

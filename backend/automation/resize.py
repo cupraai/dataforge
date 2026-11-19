@@ -1,6 +1,4 @@
-"""Fit a folder's images and videos to a megapixel budget on a pixel grid, or reset their size,
-rendering each from its original. The rule is stored in the edit sidecar, so the editor shows it and
-a revert undoes it."""
+"""Fit to a megapixel budget or reset; the rule lives in the edit sidecar."""
 
 from __future__ import annotations
 
@@ -30,11 +28,11 @@ RESIZE_EXTENSIONS = IMAGE_EDIT_EXTENSIONS | VIDEO_EDIT_EXTENSIONS
 
 
 class AlreadyResizedError(Exception):
-    """Raised when the rule or reset is already stored, or would leave the file's size as it is."""
+    """The rule is already stored, or would not change the size."""
 
 
 class TooSmallToResizeError(Exception):
-    """Raised when a side is shorter than one grid cell, which only an upscale could fill."""
+    """A side is shorter than one grid cell."""
 
 
 def list_resize_files(folder: Path) -> list[Path]:
@@ -52,7 +50,7 @@ def validate_resize_folder(folder: Path, selected_paths: list[Path] | None = Non
 def _with_fit[SpecT: (ImageEditSpec, VideoEditSpec)](
     spec: SpecT, fit: SizeFit, frame: tuple[int, int] | None, *, even: bool
 ) -> SpecT:
-    """``frame`` is what the scale step receives; ``None`` when it could not be read."""
+    """``None`` when it could not be read."""
     if spec.fit == fit:
         raise AlreadyResizedError
 
@@ -62,7 +60,7 @@ def _with_fit[SpecT: (ImageEditSpec, VideoEditSpec)](
             raise TooSmallToResizeError(
                 f"{frame[0]} x {frame[1]} px is smaller than one {fit.multiple} px cell"
             )
-        # Storing a rule that changes nothing would re-encode the file for no gain.
+        # A no-op rule would re-encode for nothing.
         if target == frame and spec.fit is None and spec.scale == 1.0:
             raise AlreadyResizedError
 
@@ -80,11 +78,11 @@ def resize_image(media: Path, fit: SizeFit, *, reset: bool = False) -> None:
     if reset:
         resized = _reset_size(spec)
     else:
-        # Loaded as the render loads it: EXIF orientation decides which side is the width.
+        # EXIF orientation decides which side is the width.
         image, _, _ = load_image_for_edit(original_path_for(media))
         resized = _with_fit(spec, fit, fit_input_size(image.size, spec), even=False)
 
-    # Nothing left to render: restore the original, so the file no longer reads as edited.
+    # Restore the original so the file no longer reads as edited.
     if is_identity_image_spec(resized):
         revert_image_edit(media)
     else:
@@ -100,7 +98,7 @@ def resize_video(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> None:
-    """``frame_rate`` ``None`` leaves the stored rate alone; a reset never touches it."""
+    """``None`` leaves the stored rate alone."""
     spec = read_edit_spec(media) or VideoEditSpec()
     probe = None
     if reset:
@@ -133,8 +131,7 @@ def resize_file(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> str:
-    """Store and render ``fit``, or clear the fit and scale when ``reset``; returns ``image`` or
-    ``video``. Images ignore ``frame_rate``."""
+    """Returns ``image`` or ``video``; images ignore ``frame_rate``."""
     if media.suffix.lower() in VIDEO_EDIT_EXTENSIONS:
         resize_video(
             media,
@@ -212,7 +209,7 @@ def run_resize_job(
         on_progress=on_progress,
         should_cancel=should_cancel,
         claim_activity="render",
-        # image_success and video_success are sub-stats of success and must not be counted.
+        # Sub-stats of success, which must not be counted twice.
         processed_stat_keys=(
             "success",
             "unchanged",

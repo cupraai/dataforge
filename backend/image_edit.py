@@ -1,4 +1,4 @@
-"""Fill, obscure, crop, mirror, rotate and rescale one image in place from its untouched original. Odd dimensions are kept: a still has no yuv420p chroma plane."""
+"""Edit one image in place from its original; odd dimensions are kept."""
 
 from __future__ import annotations
 
@@ -42,10 +42,10 @@ from size_fit import fitted_size
 
 IDENTITY_EPSILON = 1e-9
 
-#: A mosaic block hides about as much as a Gaussian a quarter its size; one strength serves both.
+#: A block hides about as much as a Gaussian a quarter its size.
 BLUR_RADIUS_DIVISOR = 4
 
-#: Pillow's ``ROTATE_*`` are counter-clockwise; the spec's ``rotate`` is clockwise.
+#: Pillow rotates counter-clockwise; the spec is clockwise.
 _CLOCKWISE_TRANSPOSE = {
     90: Image.Transpose.ROTATE_270,
     180: Image.Transpose.ROTATE_180,
@@ -79,7 +79,7 @@ def resolve_image_format(media: Path) -> str:
 
 
 def crop_box(size: tuple[int, int], crop: EditCropRect) -> tuple[int, int, int, int]:
-    """Rounded per edge so a rect that reaches the frame still reaches it in pixels."""
+    """A rect that reaches the frame still reaches it in pixels."""
     width, height = size
     left = min(round(width * crop.x), width - 1)
     top = min(round(height * crop.y), height - 1)
@@ -89,13 +89,13 @@ def crop_box(size: tuple[int, int], crop: EditCropRect) -> tuple[int, int, int, 
 
 
 def scaled_size(size: tuple[int, int], scale: float) -> tuple[int, int]:
-    """At least one pixel on each axis: a 5% scale of a thumbnail can round to zero."""
+    """A 5% scale of a thumbnail can round to zero."""
     width, height = size
     return max(1, round(width * scale)), max(1, round(height * scale))
 
 
 def fit_input_size(size: tuple[int, int], spec: ImageEditSpec) -> tuple[int, int]:
-    """The frame the scale step receives: cropped, then turned."""
+    """Cropped, then turned."""
     if spec.crop is not None:
         left, top, right, bottom = crop_box(size, spec.crop)
         size = (right - left, bottom - top)
@@ -105,7 +105,7 @@ def fit_input_size(size: tuple[int, int], spec: ImageEditSpec) -> tuple[int, int
 def blurred_region(
     image: Image.Image, box: tuple[int, int, int, int], radius: float
 ) -> Image.Image:
-    """Blurred against real neighbours: a bare patch clamps at its own edge and leaves a seam."""
+    """Blurred with real neighbours, or a bare patch leaves a seam."""
     left, top, right, bottom = box
     pad = ceil(radius * 2)
     outer = (
@@ -119,7 +119,7 @@ def blurred_region(
 
 
 def pixelated_region(image: Image.Image, box: tuple[int, int, int, int], block: int) -> Image.Image:
-    """BOX down then NEAREST up: averaged blocks with hard edges, aligned to the region."""
+    """Averaged blocks with hard edges."""
     patch = image.crop(box)
     width, height = patch.size
     reduced = (max(1, width // block), max(1, height // block))
@@ -127,19 +127,19 @@ def pixelated_region(image: Image.Image, box: tuple[int, int, int, int], block: 
 
 
 def blacked_region(image: Image.Image, box: tuple[int, int, int, int]) -> Image.Image:
-    """Filled opaque: a zero in an alpha band is a hole rather than a black rectangle."""
+    """A zero alpha would be a hole, not a black rectangle."""
     size = (box[2] - box[0], box[3] - box[1])
     fill = (0, 0, 0, 255) if "A" in image.getbands() else 0
     return Image.new(image.mode, size, fill)
 
 
 def mask_extent(size: tuple[int, int], strength: float) -> float:
-    """Strength is a fraction of the frame's shorter side, never the region's."""
+    """A fraction of the frame's shorter side, never the region's."""
     return strength * min(size)
 
 
 def masked_image(image: Image.Image, regions: list[MaskRegion]) -> Image.Image:
-    """Copied first: the caller's image is the loaded original and stays untouched."""
+    """The caller's image is the loaded original."""
     masked = image.copy()
 
     for region in regions:
@@ -163,7 +163,7 @@ def masked_image(image: Image.Image, regions: list[MaskRegion]) -> Image.Image:
 def adjusted_image(
     image: Image.Image, adjust: ColorAdjust, effect: StyleEffect | None = None
 ) -> Image.Image:
-    """Detail first, then the LUT. Alpha and ``info`` (ICC, DPI) survive the round trip."""
+    """Alpha and ``info`` (ICC, DPI) survive."""
     if not is_detail_identity(adjust):
         pixels = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
         detailed = Image.fromarray(np.round(apply_detail(pixels, adjust) * 255.0).astype(np.uint8))
@@ -224,7 +224,7 @@ def describe_edited(
 
 
 def apply_image_edit(media: Path, spec: ImageEditSpec) -> ImageEditResponse:
-    """Render ``spec`` from the original. On failure the live file is left byte-identical."""
+    """On failure the live file is left byte-identical."""
     with claim([media], "render"):
         return _apply_claimed(media, spec)
 
@@ -233,7 +233,7 @@ def _apply_claimed(media: Path, spec: ImageEditSpec) -> ImageEditResponse:
     suffix = resolve_image_format(media)
     start = begin_edit(media)
     temp_path = temp_path_for(media)
-    # Read after begin_edit: an adopted replacement has no saved fills left to keep.
+    # An adopted replacement has no saved fills left.
     saved = read_image_edit_spec(media)
 
     try:
@@ -242,8 +242,7 @@ def _apply_claimed(media: Path, spec: ImageEditSpec) -> ImageEditResponse:
             resolve_fill_chain(media, spec.fills, file_digest(start.source)) if spec.fills else []
         )
         if fills or saved is not None:
-            # The saved spec's fills stay in the archive until this publish has succeeded, so a
-            # failure below leaves that edit reopenable; the next apply drops them.
+            # Saved fills stay archived until this publish succeeds, so a failure stays reopenable.
             kept = {asset.fill.id for asset in fills}
             previous = [
                 asset

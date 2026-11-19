@@ -58,7 +58,6 @@ class GalleryItemSchemaTests(unittest.TestCase):
             _gallery_item(caption_status="bogus")
 
     def test_rejects_the_no_caption_job_stat_key_as_a_caption_status(self) -> None:
-        """``no_caption`` is a job stat key, not a caption status."""
         with self.assertRaises(ValidationError):
             _gallery_item(caption_status="no_caption")
 

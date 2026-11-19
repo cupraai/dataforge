@@ -71,7 +71,7 @@ class DeleteSidecarsTests(unittest.TestCase):
             )
             self.assertFalse(duplicate_file_path(first).exists())
             self.assertFalse(duplicate_file_path(second).exists())
-            # The media a finding pointed at, and the other kind of sidecar, both stay.
+            # The media and the other sidecar kind both stay.
             self.assertTrue(first.is_file())
             self.assertTrue(second.is_file())
             self.assertTrue(issue_file_path(first).is_file())
@@ -166,7 +166,7 @@ class DeleteSidecarsTests(unittest.TestCase):
 
             payload = delete_sidecars(root, "issue")
 
-            # The listing does not read this as a sidecar, so it was never in the confirmation count.
+            # Not a sidecar to the listing, so never in the confirmation count.
             self.assertEqual(payload["deleted"], [])
             self.assertTrue(odd.is_file())
 
@@ -198,9 +198,9 @@ class DeleteSidecarsTests(unittest.TestCase):
             self.assertFalse(blank.exists())
             self.assertTrue((root / "blank.png").is_file())
             self.assertTrue(texted.is_file())
-            # An unreadable caption also lists as empty, but its text may be worth keeping.
+            # Its text may be worth keeping.
             self.assertTrue(unreadable.is_file())
-            # The gallery never showed it, so the confirmation never counted it.
+            # The confirmation never counted it.
             self.assertTrue(orphan.is_file())
 
     def test_reports_a_caption_shared_by_two_media_once(self) -> None:

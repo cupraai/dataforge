@@ -39,7 +39,7 @@ class JobManagerQueueTests(unittest.TestCase):
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
-            # The patch outlives the job so its worker never reaches a real model server.
+            # The patch outlives the job so its worker never reaches a real server.
             with patch("automation.auto_caption.complete_caption", return_value=None):
                 job = job_manager.queue_job("auto_caption", root, mode="instruct")
                 status = job.status
@@ -231,7 +231,7 @@ def _finished(**stats: int) -> dict[str, object]:
 
 
 class _Gate:
-    """A runner that holds its job running until released, then returns ``result``."""
+    """Holds its job running until released, then returns ``result``."""
 
     def __init__(self, result: dict[str, object] | None = None) -> None:
         self.started = threading.Event()
@@ -572,7 +572,7 @@ class JobRevisionTests(unittest.TestCase):
         self.assertEqual(self._pushed("jobs_removed"), [])
 
     def test_recovering_stale_jobs_stamps_a_newer_revision(self) -> None:
-        """A tab holding the pre-restart "running" frame must not outrank the recovered row."""
+        """A pre-restart "running" frame must not outrank the recovered row."""
         self._save(status="running")
 
         jobs_store.recover_stale_jobs()
@@ -588,7 +588,7 @@ class JobOutcomeNotificationTests(unittest.TestCase):
         reset_job_manager()
         init_notifications_table()
         clear_notifications_for_tests()
-        # Deleted ids are never written again, so each test needs a job id of its own.
+        # Deleted ids are never written again.
         self.job_id = uuid.uuid4().hex
 
     def _snapshot(self, status: str) -> dict[str, object]:

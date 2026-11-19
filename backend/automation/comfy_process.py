@@ -1,5 +1,3 @@
-"""Run every file in a folder through a ComfyUI workflow, staging the results for review."""
-
 from __future__ import annotations
 
 import uuid
@@ -70,7 +68,7 @@ from video_frames import (
     validate_candidate_media,
 )
 
-# Terminal per-file statuses. Omit ``cancelled`` or a cancelled run looks complete.
+# Omit ``cancelled`` and a cancelled run looks complete.
 PROCESSED_STAT_KEYS = (
     "success",
     "skipped",
@@ -79,18 +77,18 @@ PROCESSED_STAT_KEYS = (
     "write_error",
 )
 
-#: Container rounding and a re-encode move the last frame; inside this, two clips match.
+#: Container rounding and a re-encode move the last frame.
 CANDIDATE_DURATION_TOLERANCE_SECONDS = 0.25
 CANDIDATE_DURATION_TOLERANCE_FRACTION = 0.02
 
 
 class CandidateConflictError(Exception):
-    """The name this candidate would take is claimed by another source in the folder."""
+    """Another source in the folder claims this candidate's name."""
 
 
 @dataclass(frozen=True, slots=True)
 class CandidateFacts:
-    """What review needs to judge a candidate, measured while both files are already open."""
+    """Measured while both files are already open."""
 
     difference_percent: float | None = None
     frame_rate: float | None = None
@@ -119,7 +117,7 @@ def validate_comfy_process_folder(
     inputs: Mapping[str, object] | None = None,
     selected_paths: list[Path] | None = None,
 ) -> None:
-    """Refuse at queue time what would otherwise fail on the first file. Does not probe ComfyUI."""
+    """Refuse at queue time what would fail on the first file; does not probe ComfyUI."""
     if not folder.is_dir():
         raise ValueError(f"Folder not found: {folder}")
 
@@ -140,7 +138,7 @@ def validate_comfy_process_folder(
         require_source_input(workflow)
         resolve_custom_inputs(workflow, inputs or {})
     except ComfyWorkflowError as exc:
-        # ValueError is a 400; ComfyWorkflowError would escape the route as a 500.
+        # ComfyWorkflowError would escape the route as a 500.
         raise ValueError(str(exc)) from exc
 
     # Refuse rather than drop a prompt when the preset has no prompt node.
@@ -156,7 +154,7 @@ def validate_comfy_process_folder(
 
 
 def _stage_image_candidate(source: Path, temp_path: Path, destination: Path) -> CandidateFacts:
-    """Stage ComfyUI's PNG bytes untouched; accept publishes them in that same format."""
+    """Stage ComfyUI's PNG bytes untouched."""
     try:
         try:
             with Image.open(temp_path) as opened:
@@ -176,14 +174,14 @@ def _stage_image_candidate(source: Path, temp_path: Path, destination: Path) -> 
 
 
 def _frame_count(probe: SourceProbe) -> int | None:
-    """Frames from rate and length, which is what the probe measures; it counts neither directly."""
+    """The probe measures rate and length, not frames."""
     if probe.frame_rate is None or probe.seconds is None:
         return None
     return round(probe.seconds * probe.frame_rate)
 
 
 def _lengths_disagree(produced: float | None, original: float | None) -> bool:
-    """Both known and apart by more than rounding. Unknown never flags: review would cry wolf."""
+    """Known and apart by more than rounding; unknown never flags."""
     if produced is None or original is None:
         return False
     tolerance = max(
@@ -205,7 +203,7 @@ def _has_audio(media: Path, *, suffix: str | None = None) -> bool | None:
 def _measure_video_candidate(
     source: Path, candidate: Path, *, suffix: str | None = None
 ) -> CandidateFacts:
-    """``suffix`` is the produced format: the file is still named ``.comfy-tmp`` here."""
+    """The file is still named ``.comfy-tmp`` here."""
     produced = probe_source(candidate)
     original = probe_source(source)
 
@@ -231,7 +229,7 @@ def _measure_video_candidate(
 def _stage_video_candidate(
     source: Path, temp_path: Path, destination: Path, *, suffix: str
 ) -> CandidateFacts:
-    """Validate and measure before publishing, so a bad clip never replaces a staged candidate."""
+    """Validate before publishing, so a bad clip never replaces a staged candidate."""
     try:
         try:
             validate_candidate_media(temp_path, suffix=suffix)
@@ -269,7 +267,7 @@ def _process_one(
         media_ref=media_ref,
         filename_prefix=f"DataForge/{job_tag}/{media_path.stem}",
         seed=seed,
-        # Empty box means run the graph as saved, not write "" into the prompt node.
+        # Empty means run the graph as saved.
         prompt_text=prompt_text or None,
         custom_values=custom_values,
     )
@@ -293,7 +291,7 @@ def _process_one(
             )
 
         destination = candidate_write_path(media_path, suffix)
-        # Before the transfer: a contested name is worth catching without downloading a clip first.
+        # Before the transfer, so a contested name costs no download.
         try:
             validate_candidate_destination(media_path, destination)
         except ValueError as error:
@@ -302,7 +300,7 @@ def _process_one(
         temp_path = temp_path_for(destination)
         download_view_to(client, ref, temp_path)
 
-    # Not across the ComfyUI wait: only staging competes with an accept, rename or delete.
+    # Only staging competes with an accept, rename or delete.
     with claim([media_path, destination], "stage"):
         if _is_motion(suffix):
             facts = _stage_video_candidate(media_path, temp_path, destination, suffix=suffix)
@@ -312,8 +310,6 @@ def _process_one(
         discard_stale_candidate(media_path, keeping=destination)
         write_candidate_sidecar(
             destination,
-            # Splatted: every field measured is a field recorded, with no third place to keep
-            # in step.
             ComfyCandidateSidecar(
                 source_name=media_path.name,
                 preset=workflow.preset,
@@ -396,7 +392,7 @@ def run_comfy_process_job(
         except OSError as exc:
             return FileOutcome.counted("write_error", exc)
 
-        # The destination that was written, not the default: a video candidate is not a PNG.
+        # The destination actually written: a video candidate is not a PNG.
         return FileOutcome.counted("success", preview=str(destination))
 
     try:

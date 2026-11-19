@@ -157,7 +157,7 @@ _OPTIONAL_DESCRIPTION = (
 
 
 def _gone() -> Response:
-    """A 404 on `<img>` cannot be silenced, so an `optional` request gets a 204 instead."""
+    """A 404 on `<img>` cannot be silenced, so this is a 204."""
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
 
 
@@ -167,12 +167,12 @@ def _served_file(
     required: Callable[[str], Path],
     when_present: Callable[[str], Path | None],
 ) -> Path | None:
-    """The requested file, or ``None`` when an ``optional`` request finds it gone."""
+    """``None`` when an ``optional`` request finds it gone."""
     return when_present(path) if optional else required(path)
 
 
 def _cache_control(version: str | None) -> str:
-    """A versioned URL can be cached hard; without one, revalidate or browsers keep old bytes."""
+    """Unversioned URLs revalidate, or browsers keep old bytes."""
     return "public, max-age=31536000, immutable" if version else "no-cache, must-revalidate"
 
 
@@ -185,7 +185,7 @@ def _http_error(
     *,
     missing_tool: str | None = None,
 ) -> HTTPException:
-    """The first matching entry wins; ``missing_tool`` is the RuntimeError text that means 503."""
+    """``missing_tool`` is the RuntimeError text that means 503."""
     if missing_tool is not None and isinstance(exc, RuntimeError) and str(exc) == missing_tool:
         return HTTPException(status_code=503, detail=str(exc))
     for kind, status in statuses.items():
@@ -235,15 +235,15 @@ def serve_media(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except OSError as exc:
             raise HTTPException(status_code=500, detail=f"Failed to read image: {exc}") from exc
-        # MediaFileResponse: cache pruning deletes these .webp files mid-stream.
+        # Cache pruning deletes these files mid-stream.
         return MediaFileResponse(
             rendition, media_type="image/webp", headers={"Cache-Control": _cache_control(v)}
         )
 
-    # Content type comes from the media path; the backup suffix is deliberately non-media.
+    # The backup suffix is deliberately non-media.
     served_path = original_path_for(file_path) if original else file_path
 
-    # MediaFileResponse: share-delete open + cancel on disconnect so Windows cannot lock deletes.
+    # Windows cannot lock deletes on a share-delete handle.
     return MediaFileResponse(
         served_path,
         media_type=MEDIA_MIME_TYPES.get(file_path.suffix.lower()),
@@ -296,7 +296,7 @@ def delete_media(
 
 @router.post("/media/cleanup", response_model=MediaDeleteResponse)
 def clean_up_after_delete(body: MediaCleanupRequest) -> MediaDeleteResponse:
-    """Retry deleting what a deleted file left behind, such as a caption another program held."""
+    """Such as a caption another program held."""
     requested = Path(body.path)
     folder = resolve_folder(str(requested.parent))
     media = folder / requested.name
@@ -313,7 +313,7 @@ def clean_up_after_delete(body: MediaCleanupRequest) -> MediaDeleteResponse:
 
 @router.post("/media/restore", response_model=MediaRestoreResponse)
 def restore_deleted_media(body: MediaRestoreRequest) -> MediaRestoreResponse:
-    """Bring a deleted file and its own sidecars back from the Recycle Bin."""
+    """Restore a deleted file and its own sidecars from the Recycle Bin."""
     requested = Path(body.path)
     folder = resolve_folder(str(requested.parent))
     media = folder / requested.name
@@ -372,7 +372,7 @@ def preview_transfer_media(
     destination: str = Query(..., description="Absolute path to destination folder"),
     body: MediaTransferPreviewRequest = ...,
 ) -> MediaTransferPreviewResponse:
-    """Move and copy collide on the same names, so both previews are one question."""
+    """Move and copy collide on the same names."""
     source_paths, _missing = _resolve_transfer_sources(body.paths)
     return MediaTransferPreviewResponse.model_validate(
         preview_media_transfer(resolve_folder(destination), source_paths)
@@ -426,7 +426,7 @@ def serve_gif_frame(
     ),
     optional: bool = Query(False, description=_OPTIONAL_DESCRIPTION),
 ) -> Response:
-    """One GIF frame as a JPEG; not written to the thumbnail cache."""
+    """Not written to the thumbnail cache."""
     file_path = _served_file(path, optional, resolve_gif_file, resolve_optional_gif_file)
     if file_path is None:
         return _gone()
@@ -451,7 +451,6 @@ def serve_gif_frame(
 def read_gif_to_mp4(
     path: str = Query(..., description="Absolute path to a GIF file"),
 ) -> GifToMp4StateResponse:
-    """What the convert button needs to know before it writes anything."""
     return read_gif_to_mp4_state(resolve_gif_file(path))
 
 
@@ -460,7 +459,7 @@ def convert_gif(
     path: str = Query(..., description="Absolute path to a GIF file"),
     overwrite: bool = Query(False, description="Replace an MP4 that already holds the name"),
 ) -> GifToMp4Response:
-    """Write the GIF out as an MP4 beside it, at the fixed conversion frame rate."""
+    """At the fixed conversion frame rate."""
     media = resolve_gif_file(path)
     target = mp4_target_for(media)
 
@@ -486,7 +485,7 @@ def serve_thumbnail(
     ),
     optional: bool = Query(False, description=_OPTIONAL_DESCRIPTION),
 ) -> Response:
-    """Always cached hard: the cache key already changes with the source file."""
+    """The cache key changes with the source file."""
     file_path = _served_file(path, optional, resolve_media_file, resolve_optional_media_file)
     if file_path is None:
         return _gone()
@@ -494,7 +493,7 @@ def serve_thumbnail(
     try:
         thumbnail_path = get_or_create_thumbnail(file_path, w)
     except ThumbnailUnavailableError as exc:
-        # Same bargain as a missing file: the caller opted out of being told loudly.
+        # The caller opted out of being told loudly.
         if optional:
             return _gone()
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -506,7 +505,7 @@ def serve_thumbnail(
             detail=f"Failed to generate thumbnail: {exc}",
         ) from exc
 
-    # MediaFileResponse: cache pruning deletes these .webp files mid-stream.
+    # Cache pruning deletes these files mid-stream.
     return MediaFileResponse(
         thumbnail_path,
         media_type="image/webp",
@@ -518,7 +517,7 @@ EDIT_EVENT_MIN_INTERVAL_SECONDS = 0.25
 
 
 def _edit_progress(tab: str, event: Callable[[float], dict[str, object]]):
-    """Throttled, and addressed to the tab that asked; ``None`` without one."""
+    """Throttled, addressed to the asking tab."""
     if not tab:
         return None
 
@@ -549,11 +548,9 @@ def _video_edit_progress(media: Path, tab: str, duration: float | None):
 def read_video_edit(
     path: str = Query(..., description="Absolute path to a video file"),
 ) -> VideoEditStateResponse:
-    """What the editor needs to re-open on a file it has already changed."""
     media = resolve_editable_video(path)
 
-    # The editor plays the original, so probe the file it shows: its rate is the grid the
-    # trim handles snap to.
+    # Probe the original the editor plays: its rate is the trim grid.
     return VideoEditStateResponse(
         path=str(media),
         has_backup=has_backup(media),
@@ -568,14 +565,12 @@ def edit_video(
     tab: str = Query("", description="Client tab id, so progress reaches the right stream"),
     body: VideoEditSpec = ...,
 ) -> VideoEditResponse:
-    """Render the spec from the untouched original and put it back under the same name."""
     media = resolve_editable_video(path)
 
     if is_identity_spec(body):
         raise HTTPException(status_code=400, detail="This edit would not change the video")
 
-    # The render reads the backup once it exists, so probe the same file apply_video_edit will,
-    # and hand the result on: an untrimmed retime has no end without it, and the bar goes blank.
+    # Probe the file the render reads; an untrimmed retime has no end without it.
     probe = probe_source(original_path_for(media))
     on_progress = _video_edit_progress(media, tab, expected_output_seconds(body, probe.seconds))
 
@@ -590,7 +585,7 @@ def auto_adjust_video(
     path: str = Query(..., description="Absolute path to a video file"),
     body: VideoEditSpec = ...,
 ) -> AutoAdjustResponse:
-    """Suggest Adjust positions for the kept range and crop. Takes no render slot: it only reads."""
+    """Read-only, so it takes no render slot."""
     source = original_path_for(resolve_editable_video(path))
 
     try:
@@ -611,7 +606,7 @@ def auto_adjust_video(
 def cancel_video_edit(
     path: str = Query(..., description="Absolute path to a video file"),
 ) -> Response:
-    """Stop an in-flight render. Silent when there is none: it may have just finished."""
+    """Silent when there is none."""
     cancel(resolve_editable_video(path), "render")
 
     return Response(status_code=204)
@@ -633,10 +628,9 @@ def revert_video(
 def read_audio_edit(
     path: str = Query(..., description="Absolute path to an audio file"),
 ) -> AudioEditStateResponse:
-    """What the editor needs to re-open on a file it has already changed."""
     media = resolve_editable_audio(path)
 
-    # The editor plays the original, and trims are measured against it.
+    # The editor plays the original; trims are measured against it.
     try:
         duration = audio_duration(original_path_for(media))
     except OSError:
@@ -655,7 +649,6 @@ def edit_audio(
     tab: str = Query("", description="Client tab id, so progress reaches the right stream"),
     body: AudioEditSpec = ...,
 ) -> AudioEditResponse:
-    """Render the spec from the untouched original and put it back under the same name."""
     media = resolve_editable_audio(path)
 
     if is_identity_audio_spec(body):
@@ -686,8 +679,7 @@ def measure_audio_loudness(
     path: str = Query(..., description="Absolute path to an audio file"),
     body: AudioEditSpec = ...,
 ) -> AudioLoudnessResponse:
-    """The loudness of the sound as the spec shapes it, before its level stage, so the preview
-    plays a normalize at the gain the render will use. Takes no render slot: it only reads."""
+    """Before the level stage, so the preview's normalize matches the render."""
     source = original_path_for(resolve_editable_audio(path))
 
     try:
@@ -702,7 +694,7 @@ def measure_audio_loudness(
 def cancel_audio_edit(
     path: str = Query(..., description="Absolute path to an audio file"),
 ) -> Response:
-    """Stop an in-flight render. Silent when there is none: it may have just finished."""
+    """Silent when there is none."""
     cancel(resolve_editable_audio(path), "render")
 
     return Response(status_code=204)
@@ -751,9 +743,8 @@ def serve_audio_proxy(
     original: bool = Query(False, description=_ORIGINAL_DESCRIPTION),
     v: str | None = Query(None, description="Client cache-busting token"),
 ) -> Response:
-    """The file's sound with its noise reduced and pitch moved, for the preview to play."""
     proxy = _audio_proxy_file(path, original, noise_reduction, pitch)
-    # MediaFileResponse: cache pruning deletes these files mid-stream.
+    # Cache pruning deletes these files mid-stream.
     return MediaFileResponse(
         proxy, media_type="audio/flac", headers={"Cache-Control": _cache_control(v)}
     )
@@ -771,8 +762,7 @@ def prepare_audio_proxy(
     ),
     original: bool = Query(False, description=_ORIGINAL_DESCRIPTION),
 ) -> Response:
-    """Render the proxy now and answer once it is ready, so the preview switches to it without a
-    stall."""
+    """So the preview switches without a stall."""
     _audio_proxy_file(path, original, noise_reduction, pitch)
     return Response(status_code=204)
 
@@ -781,7 +771,6 @@ def prepare_audio_proxy(
 def read_image_edit(
     path: str = Query(..., description="Absolute path to an image file"),
 ) -> ImageEditStateResponse:
-    """What the editor needs to re-open on a file it has already changed."""
     media = resolve_editable_image(path)
 
     return ImageEditStateResponse(
@@ -796,7 +785,6 @@ def edit_image(
     path: str = Query(..., description="Absolute path to an image file"),
     body: ImageEditSpec = ...,
 ) -> ImageEditResponse:
-    """Render the spec from the untouched original and put it back under the same name."""
     media = resolve_editable_image(path)
 
     if is_identity_image_spec(body):
@@ -813,7 +801,7 @@ def auto_adjust_image(
     path: str = Query(..., description="Absolute path to an image file"),
     body: ImageEditSpec = ...,
 ) -> AutoAdjustResponse:
-    """Suggest Adjust positions for the crop. Takes no render slot: it only reads."""
+    """Read-only, so it takes no render slot."""
     source = original_path_for(resolve_editable_image(path))
 
     try:
@@ -849,7 +837,7 @@ def _fill_operation_gone() -> HTTPException:
 
 @router.get("/media/image-fill/presets", response_model=FillPresetsResponse)
 def read_fill_presets() -> FillPresetsResponse:
-    """Whether Fast and Quality can run on the configured ComfyUI, and what each one lacks."""
+    """Whether Fast and Quality can run on ComfyUI, and what each lacks."""
     with open_comfy_client(COMFY_REQUEST_TIMEOUT_SECONDS) as client:
         return FillPresetsResponse(presets=describe_fill_presets(client))
 
@@ -859,7 +847,7 @@ def start_image_fill(
     path: str = Query(..., description="Absolute path to an image file"),
     body: ImageFillRequest = ...,
 ) -> ImageFillOperationResponse:
-    """Queue one generation on top of the draft's fills; poll the operation for its result."""
+    """Poll the operation for its result."""
     media = resolve_editable_image(path)
 
     try:
@@ -878,7 +866,7 @@ def read_image_fill(id: str = _FILL_OPERATION_ID) -> ImageFillOperationResponse:
 
 @router.post("/media/image-fill/operation/cancel", response_model=ImageFillOperationResponse)
 def cancel_image_fill(id: str = _FILL_OPERATION_ID) -> ImageFillOperationResponse:
-    """Stop a generation. Only its own ComfyUI prompt is interrupted or dropped from the queue."""
+    """Only its own ComfyUI prompt is touched."""
     operation = cancel_fill_operation(id)
     if operation is None:
         raise _fill_operation_gone()
@@ -890,7 +878,7 @@ def discard_image_fill(
     path: str = Query(..., description="Absolute path to the image the result was made for"),
     id: str = Query(..., description="The unkept result to drop"),
 ) -> Response:
-    """Drop a result the user discarded. Kept fills live in the edit's own archive once applied."""
+    """Applied fills live in the edit's archive."""
     media = resolve_editable_image(path)
     if not _FILL_ID.fullmatch(id):
         raise HTTPException(status_code=400, detail="Not a fill id")
@@ -910,11 +898,7 @@ def serve_image_fill_preview(
     path: str = Query(..., description="Absolute path to an image file"),
     fills: str = Query("", description="Comma-separated fill ids, oldest first"),
 ) -> Response:
-    """The original with these fills composited, losslessly: the picture the editor works on.
-
-    Ids are unique per generation and bound to the original's digest, so the bytes behind one URL
-    never change and the browser may keep them.
-    """
+    """Ids are bound to the original's digest, so the bytes behind a URL never change."""
     media = resolve_editable_image(path)
     fill_ids = _fill_ids(fills)
 
@@ -1003,7 +987,7 @@ def _settle_candidates(
 
 @router.post("/media/comfy-candidates/accept", response_model=ComfyCandidateBatchResponse)
 def accept_comfy_candidates(body: ComfyCandidateBatchRequest) -> ComfyCandidateBatchResponse:
-    """Discards unreverted edits, so the candidate becomes each file's new base."""
+    """Discards unreverted edits."""
     return _settle_candidates(
         body.paths,
         resolve_candidate_media,

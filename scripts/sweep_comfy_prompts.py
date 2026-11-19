@@ -1,11 +1,5 @@
-"""Measure ComfyUI prompt extraction over a media folder, optionally against a saved baseline.
-
-Run before and after touching backend/comfy_prompts.py:
-  backend/.venv/Scripts/python scripts/sweep_comfy_prompts.py <folder> --save before.json
-  backend/.venv/Scripts/python scripts/sweep_comfy_prompts.py <folder> --compare before.json
-
-Keep baselines outside the repository: they hold paths and node classes from real workflows.
-"""
+"""Measure ComfyUI prompt extraction over a folder, optionally against a saved baseline.
+Keep baselines outside the repository: they hold paths."""
 
 from __future__ import annotations
 

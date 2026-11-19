@@ -1,5 +1,3 @@
-"""SQLite persistence for background job summaries and progress."""
-
 from __future__ import annotations
 
 import json
@@ -18,7 +16,7 @@ _HISTORY_STATUSES: dict[JobHistoryStatus, tuple[str, ...]] = {
     "stopped": ("cancelled", "interrupted"),
 }
 
-# CREATE, SELECT and INSERT are all derived from this.
+# CREATE, SELECT and INSERT are derived from this.
 _JOB_SCHEMA: tuple[tuple[str, str], ...] = (
     ("id", "TEXT PRIMARY KEY"),
     ("folder", "TEXT NOT NULL"),
@@ -50,8 +48,7 @@ _JOB_SUMMARY_COLUMNS = ", ".join(_JOB_SUMMARY_COLUMN_NAMES)
 
 _IMMUTABLE_JOB_COLUMNS = frozenset({"id", "created_at"})
 
-# Undo records live in their own table: they can be large, are read once, and only caption jobs
-# have them. Every read appends whether a job has one, as the computed `undoable`.
+# Undo records are large and read once, so they live in their own table.
 _UNDOABLE = "EXISTS (SELECT 1 FROM job_undo WHERE job_undo.job_id = jobs.id)"
 _SELECT_JOB = f"{_JOB_COLUMNS}, {_UNDOABLE}"
 _SELECT_JOB_SUMMARY = f"{_JOB_SUMMARY_COLUMNS}, {_UNDOABLE}"
@@ -87,7 +84,6 @@ def init_jobs_table() -> None:
 
 
 def list_active_jobs() -> list[dict[str, object]]:
-    """Jobs still marked queued or running; reads the full column set for resume."""
     with get_connection() as conn:
         rows = conn.execute(
             f"""
@@ -101,8 +97,7 @@ def list_active_jobs() -> list[dict[str, object]]:
 
 
 def recover_stale_jobs() -> list[str]:
-    """Marks every job a previous process left active as interrupted; returns their ids."""
-    # A fresh revision, or a tab still holding the pre-restart "running" frame would keep it.
+    # A fresh revision, or a tab holding the pre-restart frame would keep it.
     with get_connection() as conn:
         cursor = conn.execute(
             """
@@ -126,7 +121,7 @@ def _normalize_folder(folder: str) -> str:
 
 
 def _decode_json[T: (dict, list)](raw: object, shape: type[T]) -> T:
-    """The decoded column, or an empty ``shape`` when it is missing, malformed or another type."""
+    """An empty ``shape`` when missing, malformed or another type."""
     if isinstance(raw, str | bytes | bytearray):
         try:
             decoded = json.loads(raw)
@@ -138,7 +133,6 @@ def _decode_json[T: (dict, list)](raw: object, shape: type[T]) -> T:
 
 
 def _row_to_dict(row: tuple, columns: tuple[str, ...] = _JOB_COLUMN_NAMES) -> dict[str, object]:
-    """Map one row to a job dict. ``results`` is absent (not empty) when ``columns`` omits the blob."""
     *stored, undoable = row
     values = dict(zip(columns, stored, strict=True))
 
@@ -178,7 +172,6 @@ _SAVE_JOB_SQL = f"""
 
 
 def _job_column_value(job: dict[str, object], column: str) -> object:
-    """The stored value for one column, applying the few per-column conversions."""
     if column == "folder":
         return _normalize_folder(str(job["folder"]))
     if column in {"total", "processed", "revision"}:
@@ -243,7 +236,7 @@ def list_jobs(
     status: JobHistoryStatus | None = None,
     folder: str | None = None,
 ) -> list[dict[str, object]]:
-    """Job summaries, most active then newest first. Carries no per-file results."""
+    """Most active, then newest first; no per-file results."""
     safe_limit = max(1, min(limit, 100))
     where, params = _history_where(job_types=job_types, status=status, folder=folder)
 
@@ -342,9 +335,9 @@ def delete_job(job_id: str) -> bool:
 
 
 def prune_finished_jobs(days: int) -> list[str]:
-    """Returns the ids removed. Queued and running jobs are never touched, however old."""
+    """Queued and running jobs are never removed."""
     with get_connection() as conn:
-        # julianday reads both stored spellings: ISO with an offset and sqlite's datetime('now').
+        # julianday reads both stored spellings.
         rows = conn.execute(
             "DELETE FROM jobs WHERE status NOT IN ('queued', 'running')"
             " AND julianday(COALESCE(finished_at, created_at)) < julianday('now', ?)"
@@ -375,7 +368,7 @@ def save_job_undo(job_id: str, records: list[dict[str, object]]) -> None:
 
 
 def take_job_undo(job_id: str) -> list[dict[str, object]] | None:
-    """The job's undo records, removed in the same step: an undo runs at most once."""
+    """Removed as read: an undo runs at most once."""
     with get_connection() as conn:
         row = conn.execute(
             "DELETE FROM job_undo WHERE job_id = ? RETURNING records_json", (job_id,)

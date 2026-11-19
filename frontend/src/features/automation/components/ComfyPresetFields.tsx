@@ -194,10 +194,7 @@ interface ComfyPresetFieldsProps {
   embedded?: EmbeddedGenerateWorkflow;
 }
 
-/**
- * Both ComfyUI dialogs, laid out like the workflow editor: the presets down the side, the
- * selected one drawn as a map in the middle, and the values its titled nodes take on the right.
- */
+/** Presets down the side, the selected one's map in the middle, its inputs on the right. */
 export function ComfyPresetFields({
   form,
   kind,

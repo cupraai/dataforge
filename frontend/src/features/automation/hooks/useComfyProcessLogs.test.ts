@@ -14,10 +14,7 @@ function comfyJob(overrides = {}) {
   return job({ job_type: "comfy_process", status: "running", ...overrides });
 }
 
-/**
- * One fake-clock window per test. `advanceFakeClock` restores real timers when it returns, which
- * discards any poll still pending, so mounting and advancing have to happen under the same clock.
- */
+/** Mount and advance under one fake clock: restoring real timers drops pending polls. */
 async function withFakeClock(run: (tick: (ms: number) => Promise<void>) => Promise<void>) {
   vi.useFakeTimers();
   try {

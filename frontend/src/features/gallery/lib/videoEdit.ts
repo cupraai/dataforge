@@ -86,11 +86,7 @@ export function emptyDraft(duration: number): VideoEditDraft {
   };
 }
 
-/**
- * Refits a draft to a corrected duration: an end at the old full length moves to the new one,
- * and no end may pass it. Browsers extend the duration of a stream that starts after zero once
- * they read its last frame.
- */
+/** Refits a draft to a corrected duration; browsers extend late-starting streams. */
 export function draftForDuration(
   draft: VideoEditDraft,
   previous: number,
@@ -126,10 +122,7 @@ export function clampTrimEnd(value: number, draft: TrimDraft, duration: number):
   return clamp(value, Math.min(draft.trimStart + MIN_TRIM_SECONDS, duration), duration);
 }
 
-/**
- * Trim points name frame boundaries, so a handle keeps the frame it shows. A clamp lands
- * between two, and its bound is hard, so a clamped value re-snaps inward: down here, up below.
- */
+/** A clamped trim re-snaps inward to a frame boundary. */
 export function snapTrimStart(
   value: number,
   draft: TrimDraft,
@@ -157,10 +150,7 @@ export function snapTrimEnd(
   return Math.min(duration, Math.ceil(clamped / frameDuration) * frameDuration);
 }
 
-/**
- * A trim keeping `seconds` of output from the in point, in whole frames. When the rest of the
- * clip is too short the range slides back to fit; `null` when the whole clip is too short.
- */
+/** `seconds` of output from the in point in whole frames; slides back or `null` if too short. */
 export function trimForLength(
   seconds: number,
   draft: TrimDraft,

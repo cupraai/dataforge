@@ -8,11 +8,7 @@ import {
 } from "@/shared/constants";
 import type { AudioEffects, VideoProjectFadeCurve } from "@/shared/types";
 
-/**
- * Sound shaping as the preview plays it, for the gallery's audio edit and the editor's audio
- * clips. The bands mirror backend/audio_effects.py `eq_filters`: the same RBJ biquads, so what
- * plays is what renders. Noise reduction is not here: the server renders it into a proxy.
- */
+/** Preview sound shaping; the bands mirror backend `eq_filters`; NR comes from a server proxy. */
 
 export const RESTING_EFFECTS: Readonly<AudioEffects> = {
   low_cut: 0,
@@ -77,10 +73,7 @@ export interface EffectsChain {
   /** Connect the sound into this, and this chain's output on; both stay put across updates. */
   input: AudioNode;
   output: AudioNode;
-  /**
-   * `held` gain bands stay in the path at 0 dB too: an animated band that passes through rest
-   * would otherwise be rewired mid-play, as the render keeps its filter throughout.
-   */
+  /** `held` bands stay in at 0 dB, so an animated band is never rewired mid-play. */
   update: (effects: AudioEffects, held?: readonly GainBand[]) => void;
   disconnect: () => void;
 }
@@ -94,10 +87,7 @@ interface Band {
   set: (effects: AudioEffects) => void;
 }
 
-/**
- * The five bands low to high, as in the render. Bands at rest are left out of the path, as the
- * render leaves out their filters: an idle cut is not quite flat at the bottom of the spectrum.
- */
+/** Bands at rest are left out, as the render leaves out their filters. */
 export function createEffectsChain(context: BaseAudioContext): EffectsChain {
   const input = context.createGain();
   const output = context.createGain();

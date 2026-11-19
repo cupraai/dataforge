@@ -1,5 +1,3 @@
-"""Stat-keyed memo for parsed caption and issue sidecars."""
-
 from __future__ import annotations
 
 import logging
@@ -33,11 +31,7 @@ def cached_by_stat[T](
     load: Callable[[], T],
     unreadable: Callable[[], T],
 ) -> T:
-    """``namespace`` separates readings of the same file (caption vs issue).
-
-    ``load`` raises ``OSError`` when the file cannot be read right now (locked, offline drive).
-    ``unreadable()`` answers then and is not kept, so a read under the same stat tries again.
-    """
+    """``namespace`` separates caption and issue reads; an ``OSError`` is not cached."""
     key: _CacheKey = (namespace, str(path), mtime_ns, size)
 
     with _lock:

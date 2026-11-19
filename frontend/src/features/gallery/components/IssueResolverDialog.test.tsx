@@ -503,8 +503,7 @@ describe("IssueResolverDialog", () => {
 
     function Harness() {
       const [index, setIndex] = useState(0);
-      // Mimic the parent: only a resolve clears has_issue_file, which drops the item
-      // from the live issue list (caption fetch updates do not).
+      // Only a resolve clears has_issue_file, dropping the item from the list.
       const [liveItems, setLiveItems] = useState(initialItems);
 
       return (
@@ -515,8 +514,7 @@ describe("IssueResolverDialog", () => {
           onIndexChange={setIndex}
           onCaptionSaved={(path, update) => {
             if (update.has_issue_file !== false) return;
-            // Re-fetching an item resolved earlier reports the same cleared state,
-            // so record the transition rather than every response carrying it.
+            // Record the transition, not every response repeating it.
             if (resolvedPaths.includes(path)) return;
             resolvedPaths.push(path);
             setLiveItems((current) => current.filter((entry) => entry.path !== path));
@@ -869,8 +867,7 @@ describe("IssueResolverDialog", () => {
 
     await user.keyboard("{Escape}");
 
-    // Escape belongs to DialogShell alone. This dialog used to register its own
-    // handler as well, which fired the close path twice on one keypress.
+    // Escape belongs to DialogShell alone; a second handler would close twice per keypress.
     expect(onClose).toHaveBeenCalledTimes(1);
   });
   it("highlights the wording each fix flags, not the wording it suggests", async () => {

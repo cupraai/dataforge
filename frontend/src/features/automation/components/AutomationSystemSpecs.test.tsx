@@ -53,8 +53,7 @@ describe("AutomationSystemSpecs", () => {
     expect(card("CPU")).toHaveTextContent("Intel Core i7-12700K");
     expect(card("CPU")).toHaveTextContent("16 cores");
     expect(meterFigure("CPU", "Load")).toHaveTextContent(/^38%$/);
-    // Memory reads used / total (matching Task Manager), never free / total,
-    // and the unit is written once, after the total.
+    // Used / total, as Task Manager shows it, with the unit once after the total.
     expect(meterFigure("RAM", "Used")).toHaveTextContent(/^8 \/ 32 GB$/);
     expect(card("GPU")).toHaveTextContent("NVIDIA GeForce RTX 3080");
     expect(meterFigure("GPU", "Load")).toHaveTextContent(/^41%$/);

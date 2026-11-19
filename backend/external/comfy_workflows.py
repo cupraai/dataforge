@@ -1,8 +1,4 @@
-"""Discover, validate and patch the ComfyUI workflow presets the ComfyUI jobs run.
-
-A preset with a source loader edits files (Edit with ComfyUI); one without makes new media from
-nothing (Generate with ComfyUI). The loader alone decides which, so one folder holds both.
-"""
+"""ComfyUI presets: a source loader makes an edit preset; without one it generates."""
 
 from __future__ import annotations
 
@@ -24,21 +20,21 @@ INPUT_NODE_TITLE = "DataForge Input"
 OUTPUT_NODE_TITLE = "DataForge Output"
 SEED_NODE_TITLE = "DataForge Seed"
 PROMPT_NODE_TITLE = "DataForge Prompt"
-#: A second uploaded image, kept apart from the source: white regenerates, black keeps.
+#: A second uploaded image: white regenerates, black keeps.
 MASK_NODE_TITLE = "DataForge Mask"
 
-#: Any other node titled with this prefix is a custom input, named by the rest of its title.
+#: Other nodes with this prefix are custom inputs, named by the rest of the title.
 CUSTOM_INPUT_TITLE_PREFIX = "DataForge "
 _ROLE_TITLES = frozenset(
     {INPUT_NODE_TITLE, OUTPUT_NODE_TITLE, SEED_NODE_TITLE, PROMPT_NODE_TITLE, MASK_NODE_TITLE}
 )
 
-#: The filename widget each known loader takes; the keys are also the inferrable input classes.
+#: The keys are also the inferrable input classes.
 INPUT_KEYS = {"LoadImage": "image", "LoadImageMask": "image", "VHS_LoadVideo": "video"}
-#: A mask loader is only ever the mask role, so it never stands in for an untitled source.
+#: A mask loader never stands in for an untitled source.
 INPUT_CLASSES = frozenset(INPUT_KEYS) - {"LoadImageMask"}
 
-#: These read a path off the filesystem, and DataForge only ever has an uploaded name to give them.
+#: DataForge only has an uploaded name to give these.
 PATH_LOADERS = frozenset({"VHS_LoadVideoPath", "VHS_LoadImagePath"})
 OUTPUT_CLASSES = frozenset(
     {
@@ -53,23 +49,21 @@ OUTPUT_CLASSES = frozenset(
     }
 )
 
-# PreviewImage has no filename_prefix; the output ref is read back out of history.
+# PreviewImage has no filename_prefix; its ref comes from history.
 _NO_PREFIX_CLASSES = frozenset({"PreviewImage", "SaveImageWebsocket"})
 
 INPUT_WIDGET_KEYS = ("image", "video")
 
-#: How a save node names what it writes. SaveImage and VHS_VideoCombine take a prefix ComfyUI
-#: completes; nodes that write the file themselves, like SwiftVRRestoreVideo, take a whole name.
+#: SaveImage takes a prefix ComfyUI completes; self-writing nodes take a whole name.
 OUTPUT_WIDGET_KEYS = ("filename_prefix", "filename")
 
-#: KSampler holds "seed", SamplerCustom "noise_seed", and the native Int node "value".
+#: KSampler "seed", SamplerCustom "noise_seed", Int "value".
 _SEED_INPUT_KEYS = ("seed", "noise_seed", "value")
 
-#: How a generation preset without a seed node has its samplers' seeds found. "value" is left
-#: out: an untitled Int node is as likely a width or a step count.
+#: Seed keys for presets without a seed node; "value" is out, as an Int may be a width.
 _SAMPLER_SEED_KEYS = ("seed", "noise_seed")
 
-#: CLIPTextEncode holds "text", Text (Multiline) "value", and Qwen's encoders "prompt".
+#: CLIPTextEncode "text", Text (Multiline) "value", Qwen encoders "prompt".
 _PROMPT_INPUT_KEYS = ("text", "value", "prompt")
 
 _KIND_NOUNS: dict[ComfyInputKind, str] = {
@@ -83,43 +77,39 @@ _EXPORT_HINT = "Use Save (API Format) in ComfyUI, not the editor's Save."
 
 
 class ComfyWorkflowError(Exception):
-    """A preset that cannot be run, with a message naming the fix."""
+    """Its message names the fix."""
 
 
 @dataclass(frozen=True)
 class ComfyPreset:
-    """One preset file, as listed for the dialog. Only its optional roles are read."""
+    """Only its optional roles are read."""
 
     name: str
     path: Path
     modified_at: float
-    #: None when the preset cannot be parsed: it still lists, and fails at queue time by name.
+    #: None when unparseable: it still lists, and fails at queue time.
     accepts_prompt: bool | None = None
     accepts_seed: bool | None = None
     custom_inputs: tuple[ComfyCustomInput, ...] = ()
-    #: True without a source loader. None when unparseable, so both dialogs list it.
+    #: True without a source loader; None when unparseable.
     generates: bool | None = None
 
 
 @dataclass(frozen=True)
 class ComfyCustomInput:
-    """A ``DataForge <name>`` node whose one widget the dialog can overwrite."""
-
     name: str
     node: str
     key: str
     kind: ComfyInputKind
-    #: What the preset was saved with, which runs when the field is left empty.
+    #: Runs when the field is left empty.
     default: ComfyInputValue
 
 
 @dataclass(frozen=True)
 class ComfyWorkflow:
-    """A parsed preset with its roles resolved."""
-
     preset: str
     prompt: dict[str, Any]
-    #: None for a generation preset, which loads no source file.
+    #: None for a generation preset.
     input_node: str | None
     input_key: str | None
     output_node: str
@@ -129,10 +119,10 @@ class ComfyWorkflow:
     prompt_node: str | None
     prompt_key: str | None = None
     custom_inputs: tuple[ComfyCustomInput, ...] = ()
-    #: The loader for an uploaded mask; None when the workflow takes none.
+    #: None when the workflow takes no mask.
     mask_node: str | None = None
     mask_key: str | None = None
-    #: The prompt node's own saved text, which runs when no prompt is supplied.
+    #: Runs when no prompt is supplied.
     saved_prompt_text: str | None = None
 
     @property
@@ -141,7 +131,6 @@ class ComfyWorkflow:
 
 
 def require_source_input(workflow: ComfyWorkflow) -> None:
-    """Refuse a generation preset where a file has to be loaded into the graph."""
     if workflow.generates:
         raise ComfyWorkflowError(
             f'The preset "{workflow.preset}" has no input node, so it cannot load a file. '
@@ -151,7 +140,6 @@ def require_source_input(workflow: ComfyWorkflow) -> None:
 
 
 def require_generation(workflow: ComfyWorkflow) -> None:
-    """Refuse an edit preset where new media is made from nothing."""
     if not workflow.generates:
         raise ComfyWorkflowError(
             f'The preset "{workflow.preset}" loads a source file, so it runs with Edit with '
@@ -181,7 +169,7 @@ def _node_inputs(node: dict[str, Any]) -> dict[str, Any]:
 
 
 def _is_editor_format(payload: object) -> bool:
-    """The editor's own save format, which ComfyUI's API cannot run."""
+    """ComfyUI's API cannot run the editor's save format."""
     return isinstance(payload, dict) and ("nodes" in payload or "last_node_id" in payload)
 
 
@@ -224,7 +212,7 @@ def _optional_titled_node(prompt: dict[str, Any], title: str) -> str | None:
 
 
 def _has_source_loader(prompt: dict[str, Any]) -> bool:
-    """A titled input, or any loader that could stand in for one, makes this an edit preset."""
+    """Any loader that could stand in for an input makes this an edit preset."""
     return any(
         _node_title(node) == INPUT_NODE_TITLE or node["class_type"] in INPUT_CLASSES
         for _, node in _nodes(prompt)
@@ -232,7 +220,7 @@ def _has_source_loader(prompt: dict[str, Any]) -> bool:
 
 
 def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
-    """The first key holding a number of its own. A linked input is a list and must not match."""
+    """A linked input is a list and must not match."""
     inputs = _node_inputs(node)
     for key in keys:
         if isinstance(inputs.get(key), int | float):
@@ -241,7 +229,7 @@ def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
 
 
 def prompt_input_key(node: dict[str, Any]) -> str | None:
-    """The first key holding text of its own. A linked input is a list and must not match."""
+    """A linked input is a list and must not match."""
     inputs = _node_inputs(node)
     for key in _PROMPT_INPUT_KEYS:
         if isinstance(inputs.get(key), str):
@@ -254,7 +242,7 @@ def _seed_key(node: dict[str, Any]) -> str | None:
 
 
 def _sampler_seed_nodes(prompt: dict[str, Any]) -> tuple[str, ...]:
-    """Every node holding its own sampler seed. Left alone, a generation run repeats one image."""
+    """Left alone, a generation run repeats one image."""
     return tuple(
         node_id
         for node_id, node in _nodes(prompt)
@@ -282,7 +270,7 @@ def _output_widget_key(node: dict[str, Any]) -> str | None:
 
 
 def _custom_input_key(node: dict[str, Any]) -> str | None:
-    """``value``, as every primitive node names it, else the node's only literal scalar."""
+    """``value``, else the node's only literal scalar."""
     inputs = _node_inputs(node)
     literals = [key for key, value in inputs.items() if isinstance(value, bool | int | float | str)]
     if "value" in literals:
@@ -295,7 +283,7 @@ def _custom_input_kind(node: dict[str, Any], value: ComfyInputValue) -> ComfyInp
         return "boolean"
     if isinstance(value, str):
         return "text"
-    # The editor exports a whole float such as 24.0 as 24, so the class has to say "float".
+    # The editor exports 24.0 as 24, so the class has to say "float".
     if isinstance(value, float) or "float" in node["class_type"].lower():
         return "number"
     return "integer"
@@ -312,7 +300,7 @@ def _custom_inputs(payload: dict[str, Any], source: str) -> tuple[ComfyCustomInp
 
     found: list[ComfyCustomInput] = []
     for name, node_ids in sorted(titled.items(), key=lambda item: item[0].lower()):
-        # Same rule as the seed and prompt nodes: ambiguous means no input, not a guess.
+        # Ambiguous means no input, not a guess.
         if len(node_ids) > 1:
             continue
         node = payload[node_ids[0]]
@@ -339,7 +327,7 @@ def _custom_inputs(payload: dict[str, Any], source: str) -> tuple[ComfyCustomInp
 def resolve_custom_inputs(
     workflow: ComfyWorkflow, values: Mapping[str, object]
 ) -> dict[str, ComfyInputValue]:
-    """Check each value against its input's kind, refusing names the preset has no node for."""
+    """Refuses names the preset has no node for."""
     by_name = {entry.name: entry for entry in workflow.custom_inputs}
     resolved: dict[str, ComfyInputValue] = {}
     for name, value in values.items():
@@ -354,7 +342,7 @@ def resolve_custom_inputs(
 
 
 def _coerce_custom_value(entry: ComfyCustomInput, value: object) -> ComfyInputValue:
-    # bool is an int subclass, so it is ruled out before either number check.
+    # bool is an int subclass, so it is ruled out first.
     if entry.kind == "boolean" and isinstance(value, bool):
         return value
     if entry.kind == "text" and isinstance(value, str):
@@ -367,7 +355,6 @@ def _coerce_custom_value(entry: ComfyCustomInput, value: object) -> ComfyInputVa
 
 
 def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
-    """Parse a preset and resolve its roles, or explain what is wrong with it."""
     if len(raw.encode("utf-8")) > MAX_WORKFLOW_BYTES:
         raise ComfyWorkflowError(f'The preset "{source}" is too large to be a workflow.')
 
@@ -476,15 +463,14 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
 
 
 def _preset_path(name: str) -> Path:
-    """Resolve a preset name to a file, refusing anything that is not a plain name."""
+    """Refuses anything that is not a plain name."""
     if not name or name in {".", ".."} or "/" in name or "\\" in name:
         raise ComfyWorkflowError("Choose a workflow preset to run.")
     return get_comfy_workflows_dir() / f"{name}{WORKFLOW_EXTENSION}"
 
 
 def _parse_preset_file(path: Path) -> ComfyWorkflow | None:
-    """None when unparseable. Never raises: the dialog lists a broken preset so queueing it can
-    name the fix."""
+    """Never raises: a broken preset still lists, and queueing it names the fix."""
     try:
         if path.stat().st_size > MAX_WORKFLOW_BYTES:
             return None
@@ -494,7 +480,7 @@ def _parse_preset_file(path: Path) -> ComfyWorkflow | None:
 
 
 def preset_roles(path: Path) -> tuple[bool | None, bool | None]:
-    """Whether this preset has a writable prompt and seed node, or ``(None, None)`` if unparseable."""
+    """``(None, None)`` if unparseable."""
     workflow = _parse_preset_file(path)
     if workflow is None:
         return None, None
@@ -502,7 +488,6 @@ def preset_roles(path: Path) -> tuple[bool | None, bool | None]:
 
 
 def list_comfy_presets() -> list[ComfyPreset]:
-    """Every preset file, by name, with the optional roles each one can take."""
     folder = get_comfy_workflows_dir()
     presets: list[ComfyPreset] = []
 
@@ -536,7 +521,6 @@ def list_comfy_presets() -> list[ComfyPreset]:
 
 
 def read_comfy_preset_text(name: str) -> str:
-    """The preset's raw JSON, for an editor or a diff."""
     path = _preset_path(name)
     try:
         return path.read_text(encoding="utf-8")
@@ -549,12 +533,7 @@ def load_comfy_workflow(name: str) -> ComfyWorkflow:
 
 
 def _output_name(key: str, saved: object, filename_prefix: str) -> str:
-    """What to write into the save node's name widget for this file.
-
-    A prefix node takes the path-shaped value ComfyUI completes itself. A node that writes the
-    file takes a whole name, so the run is scoped into it and the saved extension is kept: left
-    alone, every file in a job would land on the one name the preset was exported with.
-    """
+    """A prefix node takes a path ComfyUI completes; a self-writing node takes a whole name."""
     if key == "filename_prefix":
         return filename_prefix
 
@@ -572,12 +551,7 @@ def build_comfy_prompt(
     custom_values: Mapping[str, ComfyInputValue] | None = None,
     mask_ref: str | None = None,
 ) -> dict[str, Any]:
-    """A run-ready copy of the graph with this run's values filled in.
-
-    ``media_ref`` is the uploaded source, and None exactly when the preset generates.
-    ``custom_values`` must come from :func:`resolve_custom_inputs`; names missing from it run as
-    saved. ``mask_ref`` is refused by a workflow without a mask node rather than dropped.
-    """
+    """``media_ref`` is None exactly when the preset generates."""
     prompt = deepcopy(workflow.prompt)
 
     if workflow.input_node is None or workflow.input_key is None:
@@ -623,7 +597,7 @@ def with_custom_inputs(
     prompt: dict[str, Any],
     custom_values: Mapping[str, ComfyInputValue],
 ) -> dict[str, Any]:
-    """``prompt`` with each resolved custom value written into its node; returns ``prompt``."""
+    """Write each resolved custom value into its node; returns ``prompt``."""
     for entry in workflow.custom_inputs:
         if entry.name in custom_values:
             prompt[entry.node]["inputs"][entry.key] = custom_values[entry.name]

@@ -91,11 +91,8 @@ interface AdjustSlot {
 }
 
 /**
- * Plays a project into one canvas, as an editor's viewer does: playback and every seek during it
- * preroll, holding the clock until each picture and sound at the playhead can play, and then run
- * on the wall clock. A video that falls behind after that drops frames and is sent ahead to meet
- * the clock, so the sound never stutters for it. Each clip owns its media element: two clips of
- * one file can show at once in a dissolve.
+ * Plays a project into one canvas, prerolling before each start, then on the wall clock.
+ * A late video drops frames to catch up; each clip owns its element.
  */
 export class PreviewEngine {
   private project: Project | null = null;
@@ -261,10 +258,7 @@ export class PreviewEngine {
     if (!this.playing) return;
     this.playing = false;
     this.waiting = false;
-    // A paused playhead sits on a frame, so stepping and cutting start from one, but never past
-    // the end: rounding there can land on a frame the project does not reach. One that ran to the
-    // end stays there, or rounding down from it would leave `play` nothing to rewind from. It
-    // stops on the picture's frame, as an editor does, so the picture needs no seek to show it.
+    // A paused playhead sits on a frame, never past the end; one that ran to the end stays there.
     if (this.project && this.time < this.duration) {
       const at = this.shownTime() ?? this.time;
       const frame = Math.round(at * this.project.frame_rate) / this.project.frame_rate;
@@ -324,12 +318,7 @@ export class PreviewEngine {
     this.frameRequest = requestAnimationFrame(this.loop);
   };
 
-  /**
-   * Moves the clock on. Sound being heard leads it, as in an editor, so a sound slow to start
-   * holds the picture with it instead of drifting from it. The clock never runs back; with no
-   * sound playing, or one that strayed or stopped moving for longer than it is allowed, it runs
-   * on the wall clock, and the sound is put back on it like any late element.
-   */
+  /** Advances the clock, led by audible sound; never backwards, else on the wall clock. */
   private tick(): void {
     const now = performance.now();
     const wall = this.clockStart + (now - this.wallStart) / 1000;
@@ -527,8 +516,7 @@ export class PreviewEngine {
       element.preload = "auto";
       element.dataset.url = url;
       element.src = url;
-      // A paused element skips seeks while one is under way, so the one that lands catches up
-      // with the playhead before drawing: a fast scrub would otherwise stop on a stale frame.
+      // The seek that lands catches up with the playhead, so a fast scrub never ends stale.
       const settle = () => {
         if (this.playing) return;
         this.sync();
@@ -682,9 +670,7 @@ export class PreviewEngine {
     const frame = 1 / (sourceById(this.project as Project, clip.source_id)?.frame_rate ?? 30);
     const drift = Math.abs(element.currentTime - target);
     if (run) {
-      // Every seek costs a decode from the last keyframe: one already on the frame starts as is,
-      // and a late one is sent as far ahead as its seeks take, to land where the clock will be.
-      // A scrub has no clock to meet: its sound plays from the playhead.
+      // A late video is sent ahead by its seek cost; a scrub plays sound from the playhead.
       const late = drift > (element.paused ? frame / 2 : PLAYING_DRIFT_SECONDS);
       if (late && !element.seeking) {
         const behind = this.playing && element.currentTime < target;
@@ -707,8 +693,7 @@ export class PreviewEngine {
     const context = canvas.getContext("2d");
     if (!context) return;
     const layers = layersAt(project, pictureTime(project, this.time));
-    // A seek takes a shown video's frame away for a moment, and a late one has none while it
-    // catches up; drawing then would flash the placeholder, so the last picture stays up.
+    // The last picture stays while a video seeks, avoiding a placeholder flash.
     if (layers.some((layer) => this.isBetweenFrames(layer.clip))) return;
     const scale = canvas.width / project.width;
     context.setTransform(1, 0, 0, 1, 0, 0);
@@ -777,10 +762,7 @@ export class PreviewEngine {
     context.restore();
   }
 
-  /**
-   * A video with no frame to give right now: one that has shown a frame, as while it seeks, or
-   * any while playback runs, which drops its frames until it catches up.
-   */
+  /** Has no frame now: seeking after showing one, or catching up during playback. */
   private isBetweenFrames(clip: Clip): boolean {
     if (clip.kind !== "video" || !this.urlFor(clip) || this.failureFor(clip)) return false;
     const element = this.videos.get(clip.id);
@@ -903,11 +885,7 @@ export class PreviewEngine {
   }
 }
 
-/**
- * Whether a clip that is not playing yet gets its element now. No others keep one: each element
- * holds an open request even while paused, and the browser allows six per server, so one left
- * behind for a clip already played starves the clip under the playhead.
- */
+/** Elements only where needed: each holds a request, and browsers allow six per server. */
 function isUpcoming(clip: Clip, time: number): boolean {
   return clip.start > time && clip.start - time < CUE_AHEAD_SECONDS;
 }

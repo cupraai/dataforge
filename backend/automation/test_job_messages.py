@@ -36,7 +36,7 @@ class JobMessagesTests(unittest.TestCase):
     def test_exact_messages(self) -> None:
         cases = [
             (auto_caption_failure_message, {"success": 4, "skipped_long": 1}, None),
-            # These files never reached the server, so do not say to restart it.
+            # These files never reached the server.
             (
                 auto_caption_failure_message,
                 {"read_error": 1, "frame_error": 2},
@@ -129,7 +129,7 @@ class JobErrorResolutionTests(unittest.TestCase):
 
 class EditCaptionsFailureMessageTests(unittest.TestCase):
     def test_warnings_are_not_errors(self) -> None:
-        # The caption is intact; rejected and captionless are warnings, not a failed job.
+        # Rejected and captionless are warnings.
         for stats in (
             {"success": 12, "unchanged": 3},
             {"success": 8, "rejected": 4},

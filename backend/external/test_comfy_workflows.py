@@ -44,7 +44,7 @@ def parse(payload: dict, source: str = "upscale-2x"):
 
 
 def video_graph(**overrides: dict) -> dict:
-    """Shaped like the shipped video preset: every role titled, and the rate behind a math node."""
+    """Shaped like the shipped video preset."""
     base = {
         "8": node(
             "VHS_LoadVideo",
@@ -106,7 +106,7 @@ class VideoGraphTests(unittest.TestCase):
         self.assertIn("2 output nodes", str(caught.exception))
 
     def test_a_custom_input_whose_value_is_wired_in_is_refused(self) -> None:
-        # Writing over a link would be dropped without a word, exactly like the prompt node.
+        # Writing over a link would be dropped silently.
         payload = video_graph(
             **{"13": node("FloatConstant", {"value": ["9", 0]}, "DataForge Rate")}
         )
@@ -128,7 +128,7 @@ class VideoGraphTests(unittest.TestCase):
 
 
 class SelfNamingOutputTests(unittest.TestCase):
-    """Nodes that write the file themselves take a whole filename, not a prefix ComfyUI completes."""
+    """Self-writing nodes take a whole name."""
 
     def graph(self, **inputs: object) -> dict:
         return {
@@ -147,7 +147,7 @@ class SelfNamingOutputTests(unittest.TestCase):
         self.assertEqual(workflow.output_key, "filename")
 
     def test_the_run_is_scoped_into_the_name_and_the_container_kept(self) -> None:
-        """Left alone, every file in a job lands on the one name the preset was exported with."""
+        """Otherwise every file lands on the exported name."""
         workflow = parse(self.graph(filename="ComfyUI.mp4"))
 
         prompt = build_comfy_prompt(
@@ -183,7 +183,7 @@ class SelfNamingOutputTests(unittest.TestCase):
         self.assertIn("'filename_prefix' or 'filename'", str(caught.exception))
 
     def test_a_linked_name_is_not_a_writable_widget(self) -> None:
-        # A link is a list; writing over it would be dropped without a word.
+        # Writing over a link would be dropped silently.
         with self.assertRaises(ComfyWorkflowError):
             parse(self.graph(filename=["9", 0]))
 
@@ -273,7 +273,7 @@ class ResolveRolesTests(unittest.TestCase):
         self.assertTrue(workflow.generates)
 
     def test_a_generation_preset_seeds_its_untitled_samplers(self) -> None:
-        """Left alone, every run of a generation would sample the one saved seed."""
+        """Otherwise every run samples the saved seed."""
         workflow = parse(
             {
                 "3": node("KSampler", {"seed": 1, "steps": 20}),
@@ -284,7 +284,7 @@ class ResolveRolesTests(unittest.TestCase):
             }
         )
 
-        # A wired seed and a bare Int are not seeds; the Int is as likely a width.
+        # The Int is as likely a width.
         self.assertEqual(workflow.seed_nodes, ("3", "4"))
 
     def test_a_titled_seed_node_wins_over_the_samplers(self) -> None:
@@ -309,7 +309,7 @@ class ResolveRolesTests(unittest.TestCase):
             "3": node("PreviewImage", {"images": ["1", 0]}),
         }
 
-        # PreviewImage has no filename_prefix; the output is read back out of history.
+        # PreviewImage's output comes from history.
         self.assertEqual(parse(payload).output_node, "3")
 
     def test_an_optional_seed_node_is_found_by_title(self) -> None:
@@ -330,7 +330,7 @@ class ResolveRolesTests(unittest.TestCase):
 
 class ParseFailureTests(unittest.TestCase):
     def test_the_editor_format_is_named_as_such(self) -> None:
-        # The message has to name the right ComfyUI menu item rather than say "invalid".
+        # Must name the right ComfyUI menu item.
         raw = json.dumps({"last_node_id": 9, "nodes": [], "links": []})
 
         with self.assertRaises(ComfyWorkflowError) as caught:
@@ -369,7 +369,7 @@ class ParseFailureTests(unittest.TestCase):
 
 class PromptNodeTests(unittest.TestCase):
     def test_a_prompt_node_whose_text_is_wired_in_is_refused(self) -> None:
-        # A linked input is ["node", slot]; writing over it would be dropped without a word.
+        # Writing over a link would be dropped silently.
         payload = graph(**{"7": node("CLIPTextEncode", {"text": ["9", 0]}, "DataForge Prompt")})
 
         with self.assertRaises(ComfyWorkflowError) as caught:
@@ -382,7 +382,7 @@ class PromptNodeTests(unittest.TestCase):
         self.assertIsNone(parse(graph()).prompt_node)
 
     def test_two_nodes_with_the_title_leave_it_unresolved(self) -> None:
-        """Same rule the seed node follows: ambiguous means no node, not a guess."""
+        """Ambiguous means no node."""
         payload = graph(
             **{
                 "7": node("CLIPTextEncode", {"text": "one"}, "DataForge Prompt"),
@@ -411,7 +411,7 @@ class CustomInputTests(unittest.TestCase):
         )
 
     def test_a_float_node_saved_with_a_whole_value_is_still_a_number(self) -> None:
-        # The editor exports 24.0 as 24, so only the class tells a float from an int.
+        # Only the class tells a float from an int.
         payload = graph(**{"5": node("FloatConstant", {"value": 24}, "DataForge Strength")})
 
         self.assertEqual(parse(payload).custom_inputs[0].kind, "number")
@@ -520,7 +520,7 @@ class BuildPromptTests(unittest.TestCase):
 
         build_comfy_prompt(workflow, media_ref="new.png", filename_prefix="out")
 
-        # The parsed workflow is reused; a leaked patch would have image two inherit image one's values.
+        # A leaked patch would carry values between images.
         self.assertEqual(workflow.prompt["1"]["inputs"]["image"], "example.png")
 
     def test_the_presets_own_seed_is_left_alone_by_default(self) -> None:
@@ -648,7 +648,7 @@ class PresetDiscoveryTests(unittest.TestCase):
         )
 
     def test_a_broken_preset_still_lists(self) -> None:
-        # Listing does not parse; a broken preset is refused at queue time.
+        # Listing does not parse; a broken preset fails at queue time.
         self.write("broken", "{not json")
 
         self.assertEqual([preset.name for preset in list_comfy_presets()], ["broken"])
@@ -679,7 +679,7 @@ class PresetDiscoveryTests(unittest.TestCase):
 
 class ShippedExampleTests(unittest.TestCase):
     def test_the_example_preset_parses(self) -> None:
-        # The shipped example is the fixture; a broken one fails here first.
+        # The shipped example is the fixture.
         path = Path(__file__).resolve().parents[2] / "comfy_workflows" / "example_lanczos_2x.json"
         workflow = parse_comfy_workflow(path.read_text(encoding="utf-8"), source=path.stem)
 
@@ -695,7 +695,7 @@ class ShippedExampleTests(unittest.TestCase):
 
 
 class PresetRoleTests(unittest.TestCase):
-    """The dialog greys out a field the preset cannot take, so listing has to report both roles."""
+    """The dialog greys out fields the preset cannot take."""
 
     def write(self, folder: Path, name: str, payload: object) -> Path:
         path = folder / f"{name}.json"
@@ -726,7 +726,7 @@ class PresetRoleTests(unittest.TestCase):
             self.assertEqual(preset_roles(plain), (False, False))
 
     def test_an_unparseable_preset_reports_unknown_rather_than_no(self) -> None:
-        # None leaves the fields live, so the queue-time message is what names the fix.
+        # The queue-time message names the fix.
         with tempfile.TemporaryDirectory() as temp:
             broken = self.write(Path(temp), "broken", "{not json")
 

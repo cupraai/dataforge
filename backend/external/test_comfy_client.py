@@ -54,7 +54,7 @@ class SubmitPromptTests(unittest.TestCase):
         self.assertEqual(captured["body"]["prompt"], {"1": {}})
 
     def test_node_errors_on_a_200_are_still_a_rejection(self) -> None:
-        # Some builds report a rejected graph as a 200 with node_errors; do not wait on that.
+        # Some builds report a rejected graph as a 200 with node_errors.
         def handler(_request: httpx.Request) -> httpx.Response:
             return httpx.Response(
                 200,
@@ -101,7 +101,7 @@ class HistoryTests(unittest.TestCase):
         self.assertTrue(history_is_finished({"status": {"status_str": "success"}}))
         self.assertTrue(history_is_finished({"status": {"status_str": "error"}}))
         self.assertFalse(history_is_finished({"status": {"status_str": "running"}}))
-        # No status block at all, which older builds emit: outputs prove it finished.
+        # Older builds emit no status block.
         self.assertTrue(history_is_finished({"outputs": {"3": {}}}))
         self.assertFalse(history_is_finished({"outputs": {}}))
 
@@ -148,7 +148,7 @@ class HistoryTests(unittest.TestCase):
         )
 
     def test_an_output_under_an_unexpected_key_is_still_found(self) -> None:
-        # Matched by shape, so a save node filing under a key we have never seen still reports.
+        # A save node filing under an unknown key still reports.
         entry = {"outputs": {"3": {"clips": [{"filename": "out.mp4"}]}}}
 
         self.assertEqual(
@@ -329,7 +329,7 @@ class LogWindowTests(unittest.TestCase):
         self.assertEqual(entries, [{"t": "2026-09-14T18:56:48.651274", "m": "hello\n"}])
 
     def test_an_older_build_without_the_endpoint_is_unavailable(self) -> None:
-        # 404 and a refused connection are the same answer: nobody distinguishes them.
+        # 404 and a refused connection are the same answer.
         with mock_comfy_client(lambda _r: httpx.Response(404)) as client:
             with self.assertRaises(ComfyUnavailableError):
                 fetch_raw_log_entries(client)
@@ -353,7 +353,7 @@ class LogWindowTests(unittest.TestCase):
 
 class ReadLogLinesTests(unittest.TestCase):
     def test_an_unreachable_comfy_reads_as_none_rather_than_empty(self) -> None:
-        """None is "could not read"; [] is "read, nothing there". The panel says different things."""
+        """None is "could not read", [] is "read, nothing there"."""
         with patch(
             "external.comfy_client.fetch_raw_log_entries",
             side_effect=ComfyUnavailableError("down"),

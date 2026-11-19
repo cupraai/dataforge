@@ -35,8 +35,7 @@ vi.mock("@/features/gallery/api/media", async (importOriginal) => {
   };
 });
 
-// jsdom has neither a video decoder nor a 2D canvas context, which is exactly why
-// these two live in their own module: the flow around them stays testable.
+// jsdom has no video decoder or 2D canvas, hence these mocked modules.
 vi.mock("@/features/gallery/lib/videoFrameEncode", () => ({
   seekVideoTo: vi.fn<typeof seekVideoTo>(),
   encodeVideoFrame: vi.fn<typeof encodeVideoFrame>(),

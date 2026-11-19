@@ -118,10 +118,7 @@ async function fetchAutomationSettings(folderPath: string): Promise<AutomationSe
   return requestJson<AutomationSettings>(`/api/preferences/automation?${params}`);
 }
 
-/**
- * Never rejects: a preferences outage must not block a job start. Read afresh on every open and
- * never kept, because other tabs change these settings; the client only lends its retries.
- */
+/** Never rejects, so a preferences outage cannot block a job; read fresh on every open. */
 export function loadAutomationSettings(
   folderPath: string,
   queryClient: QueryClient,

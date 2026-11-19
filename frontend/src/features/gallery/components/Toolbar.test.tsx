@@ -357,8 +357,7 @@ describe("Toolbar", () => {
     expect(screen.getByRole("menu", { name: "Filters" })).toBeInTheDocument();
   });
 
-  // The reason the axis needed an All entry: two checkboxes could each switch themselves
-  // off, a lone radio could not.
+  // Two checkboxes could each switch off; a lone radio could not.
   it("clears the file filter through All", async () => {
     const user = userEvent.setup();
     renderToolbar({ fileFilter: "duplicates" });

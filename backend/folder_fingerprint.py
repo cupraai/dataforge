@@ -1,5 +1,3 @@
-"""Folder signatures for change detection."""
-
 from __future__ import annotations
 
 import hashlib
@@ -33,7 +31,7 @@ FileIdentity = tuple[str, int, int]
 
 _SIDECAR_EXTENSIONS = CAPTION_SIDECAR_EXTENSIONS
 
-#: Whole-filename sidecars. Every suffix must appear in the fingerprint and the item signature.
+#: Every suffix must appear in the fingerprint and the item signature.
 _FINDING_SIDECAR_SUFFIXES = (
     ISSUE_SIDECAR_SUFFIX,
     DUPLICATE_SIDECAR_SUFFIX,
@@ -44,14 +42,14 @@ MAX_REMEMBERED_SIGNATURES = 16
 
 
 def _entry_kind(kind: str, entry: ScannedEntry) -> str:
-    """Hiding a folder changes only its attributes, which its mtime does not show."""
+    """Hiding a folder changes only its attributes."""
     return "hidden_dir" if entry.hidden else kind
 
 
 def entry_signatures_from_scan(
     scan: FolderScan, tag_revisions: Mapping[str, int]
 ) -> tuple[EntrySignature, ...]:
-    """``tag_revisions`` come from the database: the tagger writes no file the scan could see."""
+    """The tagger writes no file the scan could see."""
     signatures: list[EntrySignature] = []
 
     for kind, entry in folder_entries_in_order(scan):
@@ -80,7 +78,7 @@ def entry_signatures_from_scan(
         if tag_revision is not None:
             signatures.append(("tags", entry.name, tag_revision, 0))
 
-    # Drafts are listed beside the media, so a draft added or deleted outside the app is news too.
+    # Drafts added or deleted outside the app count too.
     for name in sorted(scan.files):
         entry = scan.files[name]
         if is_draft_file(entry.path):
@@ -91,17 +89,13 @@ def entry_signatures_from_scan(
 
 @dataclass(frozen=True)
 class FolderFlags:
-    """Listing flags decided outside the folder's own entries, so no entry signature sees them.
-
-    The instruction files are the nearest ones, often a parent's: editing one must reach the
-    readers of this folder's instructions even when no flag here changes.
-    """
+    """Flags decided outside the folder's entries, such as a parent's instruction files."""
 
     sysprompt_applies: bool
     has_caption_backup: bool
     sysprompt_file: FileIdentity | None
     caption_rules_file: FileIdentity | None
-    #: Filters every item's tags, so a new value re-reads the whole listing.
+    #: A new value re-reads the whole listing.
     tag_min_confidence: float
 
 
@@ -146,11 +140,7 @@ def compute_folder_fingerprint(folder: Path) -> str | None:
 
 @dataclass(frozen=True)
 class FolderSignature:
-    """``items`` covers the file and its sidecars; a ``shell`` or ``flags`` change forces a full
-    refetch, since a delta carries neither.
-
-    ``staging`` covers every file in the staging folder, whose counts a delta must re-read.
-    """
+    """A ``shell`` or ``flags`` change forces a full refetch."""
 
     fingerprint: str
     items: dict[str, ItemSignature]
@@ -159,7 +149,7 @@ class FolderSignature:
     staging: tuple[tuple[str, int, int], ...]
 
 
-#: Stands in for a missing sidecar so gaining or losing one shows up as a change.
+#: So gaining or losing a sidecar shows as a change.
 _ABSENT_SIDECAR = (-1, -1)
 
 
@@ -180,7 +170,7 @@ def _item_signature(
         finding = scan.files.get(f"{name}{suffix}")
         parts.append(_ABSENT_SIDECAR if finding is None else (finding.mtime_ns, finding.size))
 
-    # A non-PNG source's candidate is staged as ``<stem>.png``, so pair it the way the listing does.
+    # A non-PNG source's candidate is staged as ``<stem>.png``.
     candidate_name = candidate_name_for(name, scan.candidates, scan.files)
     candidate = scan.candidates.get(candidate_name) if candidate_name else None
     parts.append(_ABSENT_SIDECAR if candidate is None else (candidate.mtime_ns, candidate.size))
@@ -190,7 +180,7 @@ def _item_signature(
 
 
 def folder_signature_from_scan(scan: FolderScan) -> FolderSignature:
-    """Reads the flags once, so a listing reports exactly the flags its fingerprint covers."""
+    """So a listing reports exactly the flags its fingerprint covers."""
     flags = read_folder_flags(scan.folder)
     tag_revisions = folder_tag_revisions(scan.folder)
     items = {
@@ -207,7 +197,7 @@ def folder_signature_from_scan(scan: FolderScan) -> FolderSignature:
     shell: list[EntrySignature] = []
     for entry in scan.dirs:
         if entry.name == STAGING_DIR_NAME:
-            # Staging files are tracked per-item; using this directory's mtime would full-reload on every write.
+            # Tracked per item; the directory mtime would full-reload on every write.
             shell.append((_entry_kind("dir", entry), entry.name, 0, 0))
         else:
             shell.append((_entry_kind("dir", entry), entry.name, entry.mtime_ns, entry.size))

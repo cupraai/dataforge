@@ -15,10 +15,7 @@ import {
 } from "./timeline";
 import { clipValueAt, duckLevel, transformAt } from "./keyframes";
 
-/**
- * The preview's half of `video_project_render.py`: which layers show at a time, how opaque, and
- * where. Both must agree or the export would not match what was watched.
- */
+/** The preview's half of `video_project_render.py`; both must agree. */
 
 export function even(value: number): number {
   return Math.max(2, Math.floor(Math.round(value) / 2) * 2);
@@ -67,10 +64,7 @@ const ESTIMATE_REFERENCE_PIXELS = 1920 * 1080;
 /** x264 spends fewer bits on each pixel of a bigger frame; sample clips fit pixels^-0.2. */
 const ESTIMATE_PIXEL_EXPONENT = -0.2;
 
-/**
- * A middle guess at the exported file's bytes. Rate-factor encodes follow the footage, so busy
- * or grainy video can come out several times larger. Silent audio encodes to almost nothing.
- */
+/** A middle guess at the export's size; busy footage can be several times larger. */
 export function estimateExportBytes(
   project: Project,
   settings: VideoProjectExportSettings,
@@ -87,10 +81,7 @@ export function estimateExportBytes(
   return (bitsPerSecond * projectDuration(project)) / 8;
 }
 
-/**
- * Seconds each clip fades in or out over: a dissolve's incoming picture, and both sides of each
- * sound overlap on an audio track, a dissolve's linked sound among them.
- */
+/** Seconds each clip fades over: dissolves, and both sides of each sound overlap. */
 export function transitionFades(project: Project): {
   fadeIn: Map<string, number>;
   fadeOut: Map<string, number>;
@@ -140,10 +131,7 @@ export function fadeLevel(clip: Clip, time: number, fades: Fades): number {
   return level;
 }
 
-/**
- * The instant whose picture shows at ``time``. A clip covers its start but not its end, so the
- * end itself has nothing on it; there the preview holds the last frame instead of going black.
- */
+/** The instant shown at ``time``; at the very end the last frame holds. */
 export function pictureTime(project: Project, time: number): number {
   const end = projectDuration(project);
   if (end <= 0 || time < end - EPSILON) return time;
@@ -267,10 +255,7 @@ export interface Placement {
   rotation: number;
 }
 
-/**
- * Fit or fill the canvas, then the clip's own scale and offset at ``time``. A title is drawn at
- * the canvas size, so it fits it exactly before its own transform.
- */
+/** Fit or fill the canvas, then the clip's own transform; titles fit the canvas exactly. */
 export function placement(project: Project, clip: Clip, time: number): Placement {
   const transform = transformAt(clip, time);
   const frame = croppedSize(project, clip);

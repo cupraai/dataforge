@@ -50,8 +50,6 @@ def png_bytes(size: tuple[int, int], colour: str = "blue") -> bytes:
 
 
 class Workspace:
-    """A folder of images plus a workflow preset the job can find."""
-
     def __init__(self, names: tuple[str, ...] = ("a.png", "b.png")) -> None:
         self._temp = tempfile.TemporaryDirectory()
         root = Path(self._temp.name)
@@ -82,7 +80,6 @@ class Workspace:
 
 
 def comfy_handler(*, fail_on: set[str] | None = None):
-    """A ComfyUI that accepts every prompt and returns one image per run."""
     failing = fail_on or set()
     state = {"count": 0}
 
@@ -163,8 +160,6 @@ VIDEO_WORKFLOW = {
 
 
 class VideoWorkspace(Workspace):
-    """A folder of clips plus a video preset, with an extra preview output the job must not stage."""
-
     def __init__(self, names: tuple[str, ...] = ("clip.mp4",), **kwargs: object) -> None:
         super().__init__(names=())
         (self.presets / "vfi.json").write_text(json.dumps(VIDEO_WORKFLOW), encoding="utf-8")
@@ -181,7 +176,6 @@ def video_handler(
     output_key: str = "gifs",
     subfolder: str = "",
 ):
-    """A ComfyUI whose graph writes a clip from node 11 and a preview still from node 9."""
     state = {"count": 0}
     body = playable_video_bytes() if content is None else content
     if content is None and filename.endswith(".gif"):
@@ -234,7 +228,7 @@ def video_handler(
 
 
 def probes(produced: SourceProbe, original: SourceProbe):
-    """probe_source for the candidate, then the source. The fixture MP4 has no decodable frames."""
+    """The fixture MP4 has no decodable frames."""
 
     def probe(media: Path) -> SourceProbe:
         return produced if media.parent.name == STAGING_DIR_NAME else original
@@ -243,9 +237,8 @@ def probes(produced: SourceProbe, original: SourceProbe):
 
 
 def run_with(handler, folder: Path, *, preset: str = "upscale", **kwargs: object) -> dict:
-    """Run the job against a mocked ComfyUI."""
 
-    # Bound before the patch: looking up `httpx.Client` inside the factory would recurse.
+    # Bound before the patch, or the factory would recurse.
     real_client = httpx.Client
 
     def make_client(
@@ -277,7 +270,7 @@ class ValidateTests(unittest.TestCase):
             self.assertIn("staging folder", str(caught.exception))
 
     def test_an_unknown_preset_surfaces_as_a_value_error(self) -> None:
-        # ValueError is a 400; a ComfyWorkflowError escaping here would be a 500.
+        # A ComfyWorkflowError escaping here would be a 500.
         with Workspace() as workspace, self.assertRaises(ValueError):
             validate_comfy_process_folder(workspace.folder, preset="nope")
 
@@ -306,7 +299,7 @@ class ValidateTests(unittest.TestCase):
         self.assertIn("No media", str(caught.exception))
 
     def test_a_prompt_is_refused_when_the_preset_has_nowhere_to_put_it(self) -> None:
-        # build_comfy_prompt has no node to write to and would drop the text in silence.
+        # It would drop the text in silence.
         with Workspace() as workspace, self.assertRaises(ValueError) as caught:
             validate_comfy_process_folder(
                 workspace.folder, preset="upscale", prompt_text="sharp photograph"
@@ -321,7 +314,7 @@ class ValidateTests(unittest.TestCase):
             )
 
     def test_a_blank_prompt_is_no_prompt_at_all(self) -> None:
-        """Whitespace is the empty box, so it must not refuse a preset without the node."""
+        """Whitespace is the empty box."""
         with Workspace() as workspace:
             validate_comfy_process_folder(workspace.folder, preset="upscale", prompt_text="   ")
 
@@ -366,7 +359,6 @@ class RunJobTests(unittest.TestCase):
                 prompt_text="  sharp studio photograph  ",
             )
 
-            # Trimmed on the way in: the padding is typing, not part of the prompt.
             self.assertEqual(submitted[0]["7"]["inputs"]["text"], "sharp studio photograph")
 
             stored = read_candidate_sidecar(candidate_write_path(workspace.folder / "a.png"))
@@ -374,7 +366,7 @@ class RunJobTests(unittest.TestCase):
             self.assertEqual(stored.prompt_text, "sharp studio photograph")
 
     def test_an_empty_prompt_leaves_the_graphs_own_text(self) -> None:
-        """Empty means "run it as saved", which is not the same as writing "" into it."""
+        """Empty is not the same as writing "" into it."""
         submitted: list[dict] = []
 
         def capturing(request: httpx.Request) -> httpx.Response:
@@ -418,7 +410,6 @@ class RunJobTests(unittest.TestCase):
                 self.assertTrue(candidate.is_file())
                 with Image.open(candidate) as staged:
                     self.assertEqual(staged.size, (32, 32))
-                # The dataset file still has its own pixels.
                 with Image.open(workspace.folder / name) as original:
                     self.assertEqual(original.size, (16, 16))
 
@@ -453,7 +444,7 @@ class RunJobTests(unittest.TestCase):
             self.assertEqual(stored.prompt_id, "p-1")
 
     def test_a_candidate_records_how_far_it_moved_from_the_source(self) -> None:
-        """Scored during the run, so the review queue never has to open two files."""
+        """Scored during the run, so review never opens two files."""
         with Workspace(names=("a.png",)) as workspace:
             run_with(comfy_handler(), workspace.folder)
 
@@ -490,7 +481,7 @@ class RunJobTests(unittest.TestCase):
             self.assertEqual(result["stats"]["skipped"], 1)
 
     def test_a_run_that_skips_everything_still_finishes_at_the_total(self) -> None:
-        """A skipped file was handled. Counting it as unprocessed stalls the bar."""
+        """Counting a skipped file as unprocessed stalls the bar."""
         with Workspace(names=("a.png", "b.png")) as workspace:
             run_with(comfy_handler(), workspace.folder)
             result = run_with(comfy_handler(), workspace.folder)
@@ -499,7 +490,7 @@ class RunJobTests(unittest.TestCase):
             self.assertEqual(result["processed"], result["total"])
 
     def test_a_partly_skipped_run_finishes_at_the_total(self) -> None:
-        # The run used to stop short of 100% by the count of already-staged candidates.
+        # Staged candidates count as processed.
         with Workspace(names=("a.png",)) as workspace:
             run_with(comfy_handler(), workspace.folder)
             Image.new("RGB", (16, 16), "red").save(workspace.folder / "b.png")
@@ -540,7 +531,6 @@ class RunJobTests(unittest.TestCase):
         with Workspace(names=("a.png", "b.png", "c.png")) as workspace:
             result = run_with(comfy_handler(), workspace.folder, should_cancel=lambda: True)
 
-            # Cancelled between files, before anything was sent.
             self.assertEqual(result["stats"]["cancelled"], 3)
             self.assertEqual(result["stats"].get("success", 0), 0)
             self.assertEqual(result["processed"], 0)
@@ -563,7 +553,7 @@ class VideoJobTests(unittest.TestCase):
             self.assertEqual(candidate.read_bytes(), playable_video_bytes())
 
     def test_the_output_node_wins_over_a_preview_the_graph_also_wrote(self) -> None:
-        """Scanning every node would stage preview.png, which is not what the graph is for."""
+        """Scanning every node would stage preview.png."""
         with VideoWorkspace() as workspace:
             self.run_video(workspace)
 
@@ -585,7 +575,7 @@ class VideoJobTests(unittest.TestCase):
             self.assertFalse(stored.length_mismatch)
 
     def test_a_short_clip_is_staged_but_flagged(self) -> None:
-        """A truncated render is still worth looking at; refusing throws away paid-for GPU time."""
+        """A truncated render is still worth reviewing."""
         with VideoWorkspace() as workspace:
             self.run_video(
                 workspace,
@@ -597,7 +587,7 @@ class VideoJobTests(unittest.TestCase):
             self.assertTrue(stored.length_mismatch)
 
     def test_a_slow_motion_clip_is_flagged(self) -> None:
-        # Twice the frames at the source rate: the output frame rate was never doubled.
+        # The output frame rate was never doubled.
         with VideoWorkspace() as workspace:
             self.run_video(
                 workspace,
@@ -620,7 +610,7 @@ class VideoJobTests(unittest.TestCase):
             self.assertFalse(stored.length_mismatch)
 
     def test_an_unmeasurable_clip_is_staged_without_a_flag(self) -> None:
-        """Flagging what could not be measured would cry wolf on every container we cannot read."""
+        """Unknown never flags."""
         with VideoWorkspace() as workspace:
             self.run_video(workspace, produced=SourceProbe(), original=SourceProbe())
 
@@ -674,11 +664,11 @@ class VideoJobTests(unittest.TestCase):
             self.assertEqual(staged, ["clip.gif"])
 
     def test_a_cancel_does_not_wait_out_the_file_ahead_of_it(self) -> None:
-        """The lock is held for a whole file, which for video is minutes; blocking on it ignores cancel."""
+        """Blocking on the lock would ignore cancel for minutes."""
         calls = {"n": 0}
 
         def should_cancel() -> bool:
-            # False once, so run_media_job's own pre-check lets the file start.
+            # False once, so run_media_job's pre-check lets the file start.
             calls["n"] += 1
             return calls["n"] > 1
 
@@ -700,7 +690,7 @@ class VideoJobTests(unittest.TestCase):
             self.assertEqual(outcome["result"]["stats"].get("cancelled"), 1)
 
     def test_a_clip_filed_under_the_images_key_is_still_staged_as_a_clip(self) -> None:
-        """SwiftVR writes the file itself and reports it under "images"; the suffix decides."""
+        """SwiftVR reports its file under "images"; the suffix decides."""
         with VideoWorkspace() as workspace:
             result = self.run_video(
                 workspace,

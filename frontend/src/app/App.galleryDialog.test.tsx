@@ -377,7 +377,7 @@ describe("App: gallery item dialog", () => {
   });
 
   it("reviews only the files the search shows, and says so", async () => {
-    // The audit's F13: with search showing one file, Review opened a hidden file's issue.
+    // With search showing one file, Review must not open a hidden file's issue.
     const user = userEvent.setup();
     const flagged = new Set(["sunset.png", "beach.jpg"]);
     const twoIssueFolder: FolderResponse = {

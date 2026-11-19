@@ -23,8 +23,7 @@ export function usePaintedBox<T extends HTMLElement>(
     if (!media) return;
 
     const measure = () => {
-      // containedBox is in media coords; add offsetLeft/Top so padding does not shift the rect.
-      // Layout offsets, not getBoundingClientRect: a rect is transformed and would apply it twice.
+      // Layout offsets, not getBoundingClientRect, which a transform would apply twice.
       if (!media.offsetParent) {
         setBox(EMPTY_BOX);
         return;

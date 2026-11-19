@@ -1,14 +1,4 @@
-"""The edit state an in-place media edit keeps beside the file it rewrites.
-
-A file's edit state is its ``<name>.bak`` original, its ``<name>.edit.json`` record and, once it
-has generative fills, the ``<name>.fills`` archive of their pixels, all keyed by the whole filename
-so same-stem siblings never share one. The record holds the spec the live file was rendered from
-and the fingerprint of the file that render published. A live file that no longer matches that
-fingerprint was replaced outside DataForge: the next apply or revert adopts it as the new original
-instead of rendering over it from the old backup.
-
-Every writer here must hold a :mod:`media_claims` claim on the media file.
-"""
+"""Edit state per whole filename: ``.bak`` original, ``.edit.json`` record, ``.fills`` archive."""
 
 from __future__ import annotations
 
@@ -41,7 +31,7 @@ NO_BACKUP_MESSAGE = "No original is stored for this file"
 
 
 class PublishedFingerprint(BaseModel):
-    """Microseconds, like video-project sources: nanosecond mtimes do not survive a browser."""
+    """Nanosecond mtimes do not survive a browser."""
 
     size: int
     modified_us: int
@@ -93,7 +83,7 @@ def _write_record(media: Path, record: EditRecord) -> None:
 
 
 def _is_replaced(media: Path, record: EditRecord | None) -> bool:
-    """Only a recorded fingerprint can say so; without a record the backup is trusted."""
+    """Without a record the backup is trusted."""
     if record is None:
         return False
     try:
@@ -103,7 +93,7 @@ def _is_replaced(media: Path, record: EditRecord | None) -> bool:
 
 
 def _kept_backup(media: Path) -> Path | None:
-    """The backup that still belongs to the live file, or ``None``."""
+    """``None`` when it no longer belongs to the live file."""
     backup = backup_path_for(media)
     if not backup.is_file() or _is_replaced(media, _read_record(media)):
         return None
@@ -115,7 +105,7 @@ def has_backup(media: Path) -> bool:
 
 
 def original_path_for(media: Path) -> Path:
-    """What an edit renders from: the kept backup, else the live file."""
+    """The kept backup, else the live file."""
     return _kept_backup(media) or media
 
 
@@ -137,15 +127,14 @@ def _require_claim(media: Path) -> None:
 
 
 def discard_edit_state(media: Path) -> None:
-    """Send the backup, record and fill pixels to the bin; what an adopt or an accept over an edit
-    wants."""
+    """Send the backup, record and fill pixels to the bin."""
     for path in (backup_path_for(media), edit_spec_path(media), fill_assets_path(media)):
         if path.is_file():
             delete_path(path)
 
 
 def adopt_if_replaced(media: Path) -> bool:
-    """Make an externally replaced live file the new original. True if it was replaced."""
+    """Make an externally replaced live file the new original; True if it was replaced."""
     _require_claim(media)
     if not backup_path_for(media).is_file() or not _is_replaced(media, _read_record(media)):
         return False
@@ -155,8 +144,7 @@ def adopt_if_replaced(media: Path) -> bool:
 
 
 def refresh_published(media: Path) -> None:
-    """Record an in-app rewrite of the live file that kept its edit lineage. A file with no
-    edit state, such as a job's temp output, needs no claim."""
+    """Record an in-app rewrite that kept its edit lineage; no edit state needs no claim."""
     record = _read_record(media)
     if record is None:
         return
@@ -165,12 +153,7 @@ def refresh_published(media: Path) -> None:
 
 
 def publish_with_spec(temp_path: Path, media: Path, spec: BaseModel) -> None:
-    """Publish a render and the spec it was made from, so neither outlives a failure of the other.
-
-    The record goes first: a failed write leaves the live file untouched, and a failed publish
-    puts the previous record back. ``os.replace`` keeps the temp file's size and mtime, so its
-    fingerprint is the published file's.
-    """
+    """The record goes first, so a failure leaves either the old or the new pair."""
     _require_claim(media)
     spec_path = edit_spec_path(media)
     try:
@@ -200,16 +183,12 @@ def sweep_edit_temp_files(folder: Path) -> None:
 class EditStart:
     #: The file to render from.
     source: Path
-    #: The live file had been replaced outside DataForge and is now the original.
+    #: Replaced outside DataForge and now the original.
     adopted: bool
 
 
 def begin_edit(media: Path) -> EditStart:
-    """Adopt a replaced file, then make sure an untouched original exists to render from.
-
-    The backup is a copy, never a rename: a rename would make a streamed path vanish for the
-    length of the render.
-    """
+    """The backup is a copy, never a rename, so a streamed path never vanishes."""
     adopted = adopt_if_replaced(media)
     sweep_edit_temp_files(media.parent)
 
@@ -227,11 +206,7 @@ def begin_edit(media: Path) -> EditStart:
 
 
 def restore_backup(media: Path) -> bool:
-    """Copy the backup back; it is only removed once the live file matches it.
-
-    False when the live file had been replaced outside DataForge: it is adopted instead, so
-    there is nothing left to revert to.
-    """
+    """False when the live file was replaced outside DataForge and adopted."""
     if adopt_if_replaced(media):
         return False
 

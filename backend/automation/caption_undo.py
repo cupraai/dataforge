@@ -1,8 +1,4 @@
-"""Taking back what a bulk caption job wrote, caption by caption.
-
-Each record is the bytes a write replaced and the revision it left. A caption that is no longer
-that revision was edited after the job, so it is reported as changed and left alone.
-"""
+"""Undo a bulk caption job; a caption edited since is left alone."""
 
 from __future__ import annotations
 
@@ -14,7 +10,7 @@ from media_claims import MediaBusyError
 
 
 def undo_records(undos: list[CaptionUndo]) -> list[dict[str, object]]:
-    """The stored form: JSON, so the replaced bytes travel as base64."""
+    """JSON, with the replaced bytes as base64."""
     return [
         {
             "path": str(undo.media_path),
@@ -38,7 +34,7 @@ def _from_record(record: dict[str, object]) -> CaptionUndo:
 def undo_caption_writes(
     records: list[dict[str, object]],
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
-    """The outcome per caption, and the records of failed restores, which a retry can take again."""
+    """Failed restores are returned so a retry can take them again."""
     restored: list[str] = []
     changed: list[str] = []
     failed: list[dict[str, str]] = []

@@ -8,15 +8,12 @@ function countWrapped(element: HTMLElement): number {
 }
 
 /**
- * How many children of a single-line wrapping row are out of sight, kept current as it resizes.
- * `contents` is what the row renders, so a new list is counted afresh. A "+N more" beside the
- * row narrows it and can wrap one more child; the recount settles on the next notification
- * instead of resizing the row inside this one.
+ * Children of a one-line wrapping row out of sight, recounted for new `contents`.
+ * The "+N more" can wrap one more child; that settles on the next notification.
  */
 export function useWrappedCount(ref: RefObject<HTMLElement | null>, contents: unknown): number {
   const [wrapped, setWrapped] = useState(0);
-  // Only real changes reach state: even a same-value update queues a render, and every gallery
-  // card mounts this, where one extra render each is the whole visible grid repainting.
+  // Only real changes: every card mounts this, so extra renders repaint the grid.
   const lastRef = useRef(0);
 
   useLayoutEffect(() => {

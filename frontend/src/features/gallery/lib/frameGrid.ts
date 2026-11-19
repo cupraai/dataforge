@@ -4,10 +4,7 @@ export const FALLBACK_FPS = 30;
 /** Matches backend/video_edit.py: past this a probe is reading a broken header, not a rate. */
 const MAX_PLAUSIBLE_FPS = 1000;
 
-/**
- * Seconds a frame occupies. Frame `k` runs `[k * fd, (k + 1) * fd)`, so trim points are
- * boundaries and a frame is addressed by the index below it.
- */
+/** Frame `k` spans `[k * fd, (k + 1) * fd)`; trim points are boundaries. */
 export function frameDurationFor(frameRate: number | null | undefined): number {
   const usable =
     frameRate != null &&

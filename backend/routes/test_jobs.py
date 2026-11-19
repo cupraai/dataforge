@@ -17,7 +17,7 @@ from testing_fixtures import (
     write_txt_caption,
 )
 
-# Longer than ``DRAFT_CAPTION_THRESHOLD``, or the runner counts it as ``too_short``.
+# Longer than ``DRAFT_CAPTION_THRESHOLD``.
 CAPTION = (
     "A red car is parked on a gravel driveway beside a low stone wall, with a row of "
     "birch trees behind it and a wooden gate standing open at the far end. Late "
@@ -48,7 +48,7 @@ class JobsEndpointTests(unittest.TestCase):
             payload = listed.json()
             matching = next(job for job in payload["jobs"] if job["id"] == job_id)
             self.assertEqual(matching["status"], "failed")
-            # Global active count must ignore this finished job and any stale rows.
+            # Must ignore this finished job and stale rows.
             self.assertEqual(payload["active_count"], 0)
 
     def test_the_list_revision_is_above_every_listed_job(self) -> None:
@@ -62,7 +62,7 @@ class JobsEndpointTests(unittest.TestCase):
         self.assertTrue(all(job["revision"] < payload["revision"] for job in payload["jobs"]))
 
     def test_job_list_omits_per_file_results(self) -> None:
-        """Results ride ``/jobs/{id}/results``, never the polled list."""
+        """Results never ride the polled list."""
         with TempMediaFolder() as root:
             write_sysprompt(root, "# Describe the scene.")
             write_txt_caption(write_media(root, "photo.png"), "Draft.")
@@ -99,7 +99,7 @@ class JobsEndpointTests(unittest.TestCase):
             )
 
     def test_job_results_come_from_the_store_when_memory_has_no_such_job(self) -> None:
-        """History outlives the process that wrote it, so a stored-only job still answers."""
+        """A stored-only job still answers."""
         save_job(
             {
                 "id": "stored-only",
@@ -126,7 +126,7 @@ class JobsEndpointTests(unittest.TestCase):
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
 
-            # Finished under the patch so its worker never reaches a real model server.
+            # Finished under the patch, so no real server is reached.
             with patch("automation.auto_caption.complete_caption", return_value=CAPTION):
                 started = client.post(f"/api/automation/auto-caption?path={quote(str(root))}")
                 job_id = started.json()["id"]
@@ -270,7 +270,7 @@ class JobHistoryTests(unittest.TestCase):
         self.assertEqual(client.get("/api/jobs?status=cancelled").status_code, 422)
 
 
-#: CRLF and no trailing newline: only a byte-exact undo gives these back.
+#: Only a byte-exact undo gives these back.
 LEGACY_CAPTION_BYTES = b"A lake.\r\nAt dawn."
 
 
@@ -352,7 +352,7 @@ class JobUndoTests(unittest.TestCase):
             self.assertEqual([entry["path"] for entry in first["failed"]], [str(locked)])
             self.assertTrue(client.get(f"/api/jobs/{job_id}").json()["undoable"])
 
-            # Edited after the first undo: the retry must not take this back again.
+            # Edited after the first undo.
             write_txt_caption(free, "Edited by hand.")
             retry = client.post(f"/api/jobs/{job_id}/undo").json()
 

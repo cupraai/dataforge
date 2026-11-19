@@ -1,11 +1,7 @@
 import type { HistoryLocation, RegisteredRouter } from "@tanstack/react-router";
 import { editorFolder, editorRequestAt } from "@/features/videoEditor/lib/editorLocation";
 
-/**
- * The folder view's side of the router: which folder a history entry shows, and the key its
- * scroll offset is remembered under. Entries the folder view did not push, like the video
- * editor's, show the folder of what they open and carry the key of the entry they cover.
- */
+/** Which folder a history entry shows and its scroll key; foreign entries show what they open. */
 
 // Random prefix plus a counter: `crypto.randomUUID` is absent over plain HTTP on a LAN address.
 const ENTRY_KEY_PREFIX = `fs-${Math.random().toString(36).slice(2, 8)}`;
@@ -33,11 +29,7 @@ export function entryKeyOf(location: HistoryLocation): string | undefined {
 
 export type HistoryMode = "push" | "replace" | "swap" | "none";
 
-/**
- * Records ``path`` as the folder shown and returns the entry's key. A replace keeps the entry's
- * key and, over the editor, its address: the editor's file names the folder there. A swap turns
- * the current entry, the editor's included, into a new folder entry with a key of its own.
- */
+/** Records ``path`` and returns the entry's key; a replace keeps the key, a swap mints one. */
 export function syncFolderHistory(
   router: RegisteredRouter,
   path: string | undefined,

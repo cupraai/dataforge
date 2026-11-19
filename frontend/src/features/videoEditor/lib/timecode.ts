@@ -1,8 +1,4 @@
-/**
- * Typed times for exact entry. A field accepts the timecode it shows (``HH:MM:SS:FF``, or its
- * shorter tails such as ``SS:FF``), a frame count (``36f``), seconds (``1.5s``), or a change of
- * the current value in frames (``+12``, ``-3``). Results land on the project's frame grid.
- */
+/** Typed times (``HH:MM:SS:FF``, ``36f``, ``1.5s``, ``+12``), snapped to the frame grid. */
 export function parseTimecode(text: string, frameRate: number, current = 0): number | null {
   const value = text.trim().toLowerCase();
   if (!value) return null;

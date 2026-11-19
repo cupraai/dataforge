@@ -54,8 +54,7 @@ export function ComfyProcessLog({ job }: ComfyProcessLogProps) {
             )}
 
             {lines.length > 0 && (
-              // No aria-live and no role="log": this repaints every second, and a polite region
-              // queues rather than drops, so a screen reader would fall behind and never catch up.
+              // No live region: this repaints every second, and a screen reader would fall behind.
               <div
                 ref={outputRef}
                 className="comfy-process-log__output"

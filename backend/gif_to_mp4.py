@@ -1,4 +1,4 @@
-"""Write an MP4 beside a GIF. Rate is an ``fps`` filter, not an input rate, so per-frame delays still set duration."""
+"""Rate is an ``fps`` filter, so per-frame delays still set duration."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def build_gif_to_mp4_command(
     executable: str,
     frame_rate: float = GIF_MP4_FRAME_RATE,
 ) -> list[str]:
-    """``scale`` is unconditional: ``yuv420p`` cannot express an odd dimension."""
+    """``yuv420p`` cannot express an odd dimension."""
     return [
         executable,
         "-nostdin",
@@ -58,7 +58,7 @@ def build_gif_to_mp4_command(
         str(source),
         "-vf",
         f"fps={frame_rate:.6f},scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        # A GIF has no audio; `-an` keeps a mislabelled file from producing one the GIF never had.
+        # `-an`, so a mislabelled file gains no audio track.
         "-an",
         "-c:v",
         "libx264",
@@ -82,13 +82,13 @@ def convert_gif_to_mp4(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> GifToMp4Response:
-    """Encode beside the GIF. Failure leaves an existing MP4 byte-identical."""
+    """Failure leaves an existing MP4 byte-identical."""
     executable = ffmpeg or ffmpeg_path()
     if not executable:
         raise RuntimeError(FFMPEG_MISSING_MESSAGE)
 
     target = mp4_target_for(media)
-    # The write target: two GIFs in one folder can never share a destination.
+    # Two GIFs can never share a destination.
     with claim([target], "render") as held:
         sweep_edit_temp_files(target.parent)
 
@@ -106,8 +106,7 @@ def convert_gif_to_mp4(
             with suppress(OSError):
                 temp_path.unlink(missing_ok=True)
 
-        # A replaced MP4's backup and spec describe a file that is gone; the next edit would
-        # render from that backup.
+        # Otherwise the next edit would render from a gone file's backup.
         discard_edit_state(target)
 
     stat = target.stat()

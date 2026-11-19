@@ -32,12 +32,12 @@ from testing_fixtures import (
     write_mp4_video,
 )
 
-#: A provenance tag; Orientation stays through a strip, so it cannot stand in for EXIF here.
+#: Orientation survives a strip, so it cannot stand in for EXIF.
 CAMERA_MAKE_TAG = 0x010F
 
 
 def jpeg_scan(data: bytes) -> bytes:
-    """The entropy-coded tail from SOS onward. Searching for the bytes would match APP payloads."""
+    """Searching for the bytes would match APP payloads."""
     index = 2
     while index + 1 < len(data):
         marker = data[index + 1]
@@ -101,7 +101,7 @@ class StripMetadataFileTests(unittest.TestCase):
             write_mp4_video(root, "clip.mp4")
             write_mp4_video(root, "clip.mov")
             (root / "notes.txt").write_text("ignore", encoding="utf-8")
-            # Re-encoding an animated GIF through Pillow risks palette and timing loss.
+            # Pillow re-encoding risks palette and timing loss.
             write_gif(root, "loop.gif")
 
             files = list_strip_metadata_files(root)
@@ -155,7 +155,7 @@ class StripJpegMetadataTests(unittest.TestCase):
                 self.assertEqual(dict(opened.getexif()), {})
 
         self.assertLess(len(stripped), len(original))
-        # The whole point of the marker rewrite: the compressed pixels are untouched.
+        # The compressed pixels are untouched.
         self.assertEqual(jpeg_scan(stripped), jpeg_scan(original))
 
     def test_keeps_the_colour_critical_segments(self) -> None:
@@ -218,7 +218,7 @@ class StripPngMetadataTests(unittest.TestCase):
             Image.new("RGB", (64, 48), (30, 60, 90)).save(
                 buffer, format="PNG", icc_profile=profile, dpi=(72, 72), exif=exif.tobytes()
             )
-            # gAMA has no Pillow save option, so it is injected as a raw chunk.
+            # gAMA has no Pillow save option.
             media.write_bytes(
                 insert_after_ihdr(buffer.getvalue(), png_chunk(b"gAMA", b"\x00\x00\xb1\x8f"))
             )
@@ -229,7 +229,7 @@ class StripPngMetadataTests(unittest.TestCase):
             after = [chunk_type for chunk_type, _ in png_chunks(media.read_bytes())]
             with Image.open(media) as opened:
                 self.assertIsNotNone(opened.info.get("icc_profile"))
-                # pHYs stores pixels-per-metre as an integer, so 72 dpi round-trips to ~72.009.
+                # pHYs stores pixels-per-metre as an integer.
                 self.assertAlmostEqual(opened.info["dpi"][0], 72, delta=0.1)
 
         for kept in (b"iCCP", b"pHYs", b"gAMA"):
@@ -263,7 +263,7 @@ class StripPngMetadataTests(unittest.TestCase):
             self.assertFalse(media_has_comfy_workflow(media))
 
         self.assertEqual(_parse_png_text_chunks(stripped), {})
-        # The whole point of the chunk rewrite: the compressed pixels are untouched.
+        # The compressed pixels are untouched.
         self.assertEqual(png_idat(stripped), original_idat)
 
 
@@ -297,7 +297,7 @@ class StripFileMetadataDispatchTests(unittest.TestCase):
                 with self.assertRaises(UnidentifiedImageError):
                     strip_file_metadata(media)
 
-                # The refusal must not have published a half-written temp over the original.
+                # No half-written temp over the original.
                 self.assertEqual(media.read_bytes(), data)
                 self.assertEqual(list(root.glob("*.strip-meta.*")), [])
 
@@ -308,7 +308,7 @@ class StripFileMetadataDispatchTests(unittest.TestCase):
 
             self.assertEqual(strip_file_metadata(media), "image")
 
-            # BMP has no metadata container, so a rewrite would only risk the pixels.
+            # A rewrite would only risk the pixels.
             self.assertEqual(media.read_bytes(), original)
 
     def test_the_whole_mp4_family_routes_to_ffmpeg(self) -> None:
@@ -352,9 +352,9 @@ class StripIsobmffMetadataTests(unittest.TestCase):
 
             self.assertFalse(_parse_isobmff_metadata(media.read_bytes()))
 
-        # Without bitexact the muxer writes its own encoder tag over the stripped file.
+        # Without bitexact the muxer writes its own encoder tag.
         self.assertIn("+bitexact", commands[0])
-        # +faststart keeps a plain streamable MP4; use_metadata_tags left a shell some players refused.
+        # +faststart keeps a plain streamable MP4.
         self.assertIn("+faststart", commands[0])
         self.assertNotIn("use_metadata_tags", commands[0])
 
@@ -366,7 +366,7 @@ class StripIsobmffMetadataTests(unittest.TestCase):
             fake_ffmpeg.write_text("", encoding="utf-8")
 
             def fake_run(command, *_args, **_kwargs):
-                # A real cancel can land after ffmpeg has begun writing the temp.
+                # A real cancel can land after ffmpeg began writing.
                 Path(command[-1]).write_bytes(b"partial")
                 raise FfmpegCancelled
 
@@ -397,12 +397,12 @@ class StripIsobmffMetadataTests(unittest.TestCase):
 
 
 class StripKeepsOrientationTests(unittest.TestCase):
-    """Orientation decides how the pixels display; dropping it would turn the training image."""
+    """Dropping Orientation would turn the training image."""
 
     def _photo(self, root: Path, suffix: str, orientation: int) -> Path:
         exif = Image.Exif()
         exif[0x0112] = orientation
-        exif[0x010F] = "Example Camera"  # Make: provenance, which must still go.
+        exif[0x010F] = "Example Camera"
         media = root / f"photo{suffix}"
         Image.new("RGB", (32, 16), (200, 40, 40)).save(media, exif=exif.tobytes())
         return media

@@ -1,7 +1,4 @@
-"""SSE fan-out from worker threads. Queues are bounded; a full queue drops the oldest event.
-
-A subscriber that lost events is told so with a ``resync`` frame before the next one it reads.
-"""
+"""SSE fan-out; a full queue drops the oldest event and the reader gets ``resync``."""
 
 from __future__ import annotations
 
@@ -62,7 +59,7 @@ def publish(event: Event) -> None:
 
 
 def publish_to_tabs(tab_ids: Iterable[str], event: Event) -> None:
-    """Send ``event`` only to streams belonging to ``tab_ids``. Safe from any thread."""
+    """Send ``event`` only to ``tab_ids``' streams. Safe from any thread."""
     wanted = set(tab_ids)
     if not wanted:
         return

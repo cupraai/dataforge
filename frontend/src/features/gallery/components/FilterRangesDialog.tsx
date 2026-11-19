@@ -72,10 +72,7 @@ function covers(range: GalleryRange | null, bucket: GalleryRange): boolean {
   return isActiveRange(range) && lower(range) <= lower(bucket) && upper(bucket) <= upper(range);
 }
 
-/**
- * A bar click picks its bucket, extends a span to reach it, or, on the only picked bucket, clears.
- * Inside a wider span it narrows to that bucket, the quickest way back to one.
- */
+/** A bar picks its bucket, extends the span, narrows inside it, or clears the only pick. */
 function rangeAfterBarClick(range: GalleryRange | null, bucket: GalleryRange): GalleryRange | null {
   if (!isActiveRange(range)) return bucket;
   if (lower(range) === lower(bucket) && upper(range) === upper(bucket)) return null;

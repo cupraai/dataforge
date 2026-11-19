@@ -1,9 +1,4 @@
-"""Drive letters worth offering on Windows, found without blocking on a drive or prompting.
-
-``Path("E:\\").exists()`` asks the drive itself: an empty card reader can raise a "no disk"
-prompt and a disconnected network drive blocks for the SMB timeout. The drive type comes from
-the mount table instead, so only a local drive is ever asked for its volume.
-"""
+"""Drive letters found from the mount table, so a card reader never prompts and SMB never blocks."""
 
 from __future__ import annotations
 
@@ -55,8 +50,7 @@ class DriveApi(Protocol):
         ...
 
 
-# Every Win32 function opens with its own platform guard rather than sharing one in a constructor:
-# CI type-checks from Linux, where code after the guard is unreachable and is not checked.
+# Each Win32 function has its own platform guard so CI type-checks from Linux.
 _NEEDS_WINDOWS = "Drive letters need Windows"
 
 
@@ -152,8 +146,7 @@ class _Win32DriveApi:
 
 
 def list_windows_drives(api: DriveApi | None = None) -> list[Drive]:
-    """Drives that can be opened now: removable and optical ones only with media inserted,
-    network ones only while connected (and never asked for their volume)."""
+    """Removable and optical drives only with media; network drives only while connected."""
     api = api or _Win32DriveApi()
     mask = api.logical_drives()
     drives: list[Drive] = []

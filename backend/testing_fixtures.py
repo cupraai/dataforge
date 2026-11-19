@@ -114,7 +114,7 @@ def _cleanup_test_database() -> None:
 
 
 def isolate_test_database() -> Path:
-    """Call before importing modules that read preferences. Also disables project ``.env`` loading."""
+    """Call before importing modules that read preferences; also disables project ``.env``."""
     global _test_database_dir
 
     os.environ["DATAFORGE_DISABLE_DOTENV"] = "1"
@@ -585,8 +585,7 @@ def write_edit_backup(media: Path, data: bytes | None = None) -> Path:
 
 @contextmanager
 def claimed_elsewhere(*paths: Path, activity: ClaimActivity = "render") -> Generator[None]:
-    """Hold a claim from another thread, as a concurrent request would; this thread's own
-    claims are reentrant and would not collide."""
+    """From another thread, since this thread's own claims are reentrant."""
     import threading
 
     from media_claims import claim

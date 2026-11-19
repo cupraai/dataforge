@@ -1,8 +1,4 @@
-"""YOLO-World tagging: open-vocabulary detections folded into one tag list per file.
-
-``torch`` and ``ultralytics`` are optional (``requirements-tagging.txt``); without them the
-background worker reports tagging as unavailable and nothing else changes.
-"""
+"""YOLO-World tagging into one tag list per file; ``torch`` and ``ultralytics`` are optional."""
 
 from __future__ import annotations
 
@@ -66,10 +62,7 @@ def tagging_requirements_installed() -> bool:
 
 @functools.cache
 def select_model_name() -> str:
-    """The model this machine runs: the large one on CUDA, the small one anywhere else.
-
-    Setup asks this too, so it downloads the model the app will load.
-    """
+    """The large model on CUDA, the small one elsewhere; setup asks this too."""
     try:
         cuda = importlib.import_module("torch").cuda.is_available()
     except ImportError:
@@ -139,8 +132,7 @@ def vocabulary_counts(path: Path | None = None) -> tuple[int, int]:
 
 
 def vocabulary_id(terms: Iterable[str], model_name: str) -> str:
-    """Names the model and vocabulary behind a file's tags; a change reloads the model, and
-    only files tagged from then on use it."""
+    """Model and vocabulary behind a file's tags; a change applies to files tagged later."""
     return hashlib.sha256("\n".join([model_name, *terms]).encode("utf-8")).hexdigest()[:16]
 
 

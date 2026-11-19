@@ -29,7 +29,7 @@ def get_connection():
     db_path = get_db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
-    # Unlike journal_mode, synchronous is per-connection and not stored in the file.
+    # Per-connection, unlike journal_mode.
     conn.execute("PRAGMA synchronous=NORMAL")
     with _connections_lock:
         _connections.append(conn)
@@ -44,7 +44,7 @@ def get_connection():
 
 def init_db() -> None:
     with get_connection() as conn:
-        # WAL lets the UI keep reading while a job writes. Journal mode is stored in the file.
+        # WAL lets the UI read while a job writes; stored in the file.
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute(
             """

@@ -245,7 +245,7 @@ class SoundEffectTests(unittest.TestCase):
         self.assertLess(chain.index("highpass"), chain.index("highshelf=g=4"))
 
     def test_noise_reduction_reads_the_sound_from_its_source(self) -> None:
-        """The export hands in the proxy the preview played; the plan only reads what it is given."""
+        """The export hands in the proxy the preview played; the plan reads only what it gets."""
         with TempMediaFolder() as root:
             proxy = root / "proxy.flac"
             asked: list[tuple[Path, float]] = []

@@ -1,4 +1,4 @@
-"""Saved Edit captions instructions, shared by every folder."""
+"""Shared by every folder."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def list_snippets() -> InstructionSnippetsResponse:
 
 
 def save_snippet(snippet: InstructionSnippet) -> InstructionSnippetsResponse:
-    """Adds ``snippet``, or replaces the one whose name matches it ignoring case."""
+    """Replaces a match ignoring case."""
     key = snippet.name.casefold()
     others = [kept for kept in _store.get().snippets if kept.name.casefold() != key]
     if len(others) >= MAX_INSTRUCTION_SNIPPETS:
@@ -42,7 +42,7 @@ def save_snippet(snippet: InstructionSnippet) -> InstructionSnippetsResponse:
 
 
 def delete_snippet(name: str) -> InstructionSnippetsResponse:
-    """Removing a name that is not saved changes nothing."""
+    """Removing an unsaved name changes nothing."""
     key = name.strip().casefold()
     kept = [snippet for snippet in _store.get().snippets if snippet.name.casefold() != key]
     return _store.save(_sorted(kept))

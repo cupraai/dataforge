@@ -1,16 +1,5 @@
-"""Bump the patch version in the commit being made; run by the pre-commit and post-commit hooks.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/bump_version.py pre-commit
-
-Only the index and the version line change, so other unstaged edits stay out of the
-commit. A staged version that already differs from the commit's parent is kept: that is
-how minor and major bumps are made, and it keeps a retried or amended commit from bumping
-twice. A version edited by hand in the working tree but left unstaged is never overwritten.
-
-`git commit <paths>` runs pre-commit on a temporary index, so post-commit carries the
-bumped version line over into the real one.
-"""
+"""Bump the patch version in the commit being made; run by the git hooks.
+A staged version that already differs from the parent is kept, for minor and major bumps."""
 
 from __future__ import annotations
 

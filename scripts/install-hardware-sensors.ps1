@@ -3,14 +3,10 @@
   Shows CPU temperature and CPU power in the system specifications panel under Windows.
 
 .DESCRIPTION
-  Windows exposes none of these to a normal process. The PawnIO driver
-  (https://pawnio.eu) can read them, but only for administrators. This installs PawnIO
-  if it is missing, downloads the signed PawnIO module for this CPU, and registers a
-  hidden scheduled task that uses it as SYSTEM to write the readings to %ProgramData%\DataForge\sensors\sensors.json, which
-  the unelevated backend reads. DataForge itself keeps running without elevation.
-
-  The task only runs code from admin-only locations: copies of sensor-loop.ps1 and
-  the module in the locked-down sensors folder, and PawnIO's own installation.
+  Windows hides these from normal processes; the PawnIO driver can read them as admin.
+  This installs PawnIO and its module and registers a hidden SYSTEM task that writes
+  %ProgramData%\DataForge\sensors\sensors.json for the unelevated backend.
+  The task runs only code from admin-only locations.
 
 .PARAMETER Uninstall
   Stops and removes the task and the sensors folder. PawnIO stays installed, because

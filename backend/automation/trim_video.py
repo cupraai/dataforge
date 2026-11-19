@@ -1,8 +1,4 @@
-"""Shorten a folder's videos to a longest played length, or clear their trims, rendering each from
-its original. The trim is stored in the edit sidecar, so the editor shows it and a revert undoes it.
-
-Only ever shortens, and only within the trim a video already has: a manual in or out point stands.
-"""
+"""Shorten videos to a played length via the edit sidecar; never past an existing trim."""
 
 from __future__ import annotations
 
@@ -26,12 +22,12 @@ from video_edit import (
     revert_video_edit,
 )
 
-#: Float noise in ``seconds * fps`` must not drop a whole frame from the take.
+#: Float noise must not drop a whole frame.
 _FRAME_EPSILON = 1e-6
 
 
 class AlreadyTrimmedError(Exception):
-    """Raised when the video already plays no longer than the length, or has no trim to clear."""
+    """Already within the length, or no trim to clear."""
 
 
 def list_trim_video_files(folder: Path) -> list[Path]:
@@ -49,9 +45,7 @@ def validate_trim_video_folder(folder: Path, selected_paths: list[Path] | None =
 def trimmed_spec(
     spec: VideoEditSpec, probe: SourceProbe, max_seconds: float, keep: TrimVideoKeep
 ) -> VideoEditSpec:
-    """``spec`` with its trim shortened to ``max_seconds`` of output, on the source's frame grid.
-
-    Trim values are frame boundaries; the half-frame seek margin belongs to the ffmpeg command."""
+    """Trim values are frame boundaries; the half-frame margin belongs to the command."""
     fps = probe.frame_rate
     if fps is None:
         raise ValueError("The video's frame rate could not be read")
@@ -64,7 +58,7 @@ def trimmed_spec(
     else:
         raise ValueError("The video's length could not be read")
 
-    # The rendered length is the source span over the speed.
+    # The source span over the speed.
     frames = max(1, math.floor(max_seconds * spec.speed * fps + _FRAME_EPSILON))
     if end - first <= frames:
         raise AlreadyTrimmedError
@@ -76,10 +70,10 @@ def trimmed_spec(
     else:
         start = end - frames
 
-    # A kept edge stays exactly as stored, so the editor reads the same in or out point back.
+    # A kept edge stays exactly as stored.
     trim_start = spec.trim_start if start == first else start / fps
     trim_end = spec.trim_end if spec.trim_end is not None and start + frames == end else None
-    # Validated, so a take below the minimum trim is the file's read error, not a bad sidecar.
+    # A take below the minimum trim is the file's read error, not a bad sidecar.
     return VideoEditSpec.model_validate(
         {
             **spec.model_dump(),
@@ -112,7 +106,7 @@ def trim_video(
         probe = probe_source(original_path_for(media))
         trimmed = trimmed_spec(spec, probe, max_seconds, keep)
 
-    # Nothing left to render: restore the original, so the file no longer reads as edited.
+    # Restore the original so the file no longer reads as edited.
     if is_identity_spec(trimmed):
         revert_video_edit(media)
     else:

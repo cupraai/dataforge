@@ -1,10 +1,4 @@
-"""The fonts installed on this machine, by family and style, for titles to choose from.
-
-Pillow reads each face's own name table, so a family is listed under the name a font program
-would show, whatever its file is called. A project names a family rather than a file, so it can
-move between machines; a family that is not installed draws in the default font, in the preview
-and the export alike, since both use the same title image.
-"""
+"""Installed fonts by family and style, from each face's name table."""
 
 from __future__ import annotations
 

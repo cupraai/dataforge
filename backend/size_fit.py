@@ -1,4 +1,4 @@
-"""Target frame sizes for a megapixel budget on a pixel grid; mirrored in the frontend's editSpec."""
+"""Target frame sizes for a megapixel budget on a pixel grid; mirrored by the frontend."""
 
 from __future__ import annotations
 
@@ -21,9 +21,7 @@ def grid_multiple(fit: SizeFit, *, even: bool = False) -> int:
 def fitted_size(
     size: tuple[int, int], fit: SizeFit, *, even: bool = False
 ) -> tuple[int, int] | None:
-    """The budget at ``size``'s aspect, each side rounded to the grid and never past the source.
-
-    ``None`` when a side is shorter than one grid cell: reaching it would mean upscaling."""
+    """The budget at ``size``'s aspect on the grid; ``None`` below one cell."""
     width, height = size
     multiple = grid_multiple(fit, even=even)
     if width <= 0 or height <= 0:
@@ -44,9 +42,7 @@ def fitted_size(
 
 
 def cover_size(size: tuple[int, int], target: tuple[int, int]) -> tuple[int, int]:
-    """The even size that covers an even ``target`` at ``size``'s aspect, for a center crop.
-
-    Floored, so an odd source at scale 1 is never stretched by a pixel."""
+    """The even size covering ``target`` at ``size``'s aspect, for a center crop; floored."""
     width, height = size
     scale = max(target[0] / width, target[1] / height)
     return (

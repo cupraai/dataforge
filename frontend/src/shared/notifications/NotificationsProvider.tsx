@@ -65,9 +65,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     [providers],
   );
 
-  // Nothing replays the frames a disconnected tab missed, so every way back in re-reads the
-  // feed: mount, a reconnect or reported loss (push-fed), the tab being looked at again
-  // (focus), and the panel opening (refreshHistory).
+  // Missed frames are not replayed, so re-read on mount, reconnect, focus and panel open.
   const historyQuery = useQuery({
     queryKey: HISTORY_QUERY_KEY,
     queryFn: ({ signal }) => fetchNotifications(signal),

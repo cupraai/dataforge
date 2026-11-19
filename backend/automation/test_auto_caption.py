@@ -64,12 +64,10 @@ def _part_types(client: FakeChatClient) -> list[str]:
 
 
 def _user_text(client: FakeChatClient) -> str:
-    """The instruction; any text part before it is a timestamp label."""
     return [part["text"] for part in _user_parts(client) if part["type"] == "text"][-1]
 
 
 def _audio_payloads(request: dict) -> list[bytes]:
-    """The decoded audio of every ``input_audio`` part in one recorded request."""
     return [
         base64.b64decode(part["input_audio"]["data"])
         for part in request["messages"][1]["content"]
@@ -114,7 +112,7 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
 
             prompt = build_system_prompt(root, media_kind="video")
 
-        # Phrase, not the bare number: output-length guidance says "80-120 words".
+        # Output-length guidance says "80-120 words".
         self.assertNotIn(f"{VIDEO_KEYFRAME_COUNT} keyframes", prompt)
 
     def test_complete_caption_sends_all_video_keyframes(self) -> None:
@@ -152,8 +150,6 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
 
 
 class AutoCaptionGifTests(unittest.TestCase):
-    """A GIF is captioned as a still, from its opening frame."""
-
     def test_the_user_text_is_the_image_prompt_with_no_frame_count(self) -> None:
         with TempMediaFolder() as root:
             media = write_gif(root, "short.gif", frames=5)
@@ -165,7 +161,6 @@ class AutoCaptionGifTests(unittest.TestCase):
 
         self.assertIn("Caption the image", _user_text(client))
         self.assertNotIn("keyframes", _user_text(client))
-        # One frame and one instruction, with no timestamp labels between them.
         self.assertEqual(_part_types(client), ["image_url", "text"])
 
     def test_reading_the_first_frame_leaves_the_gif_movable(self) -> None:
@@ -237,7 +232,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
         self.assertEqual(mock_complete.call_count, MAX_MODEL_ATTEMPTS)
 
     def test_run_job_separates_unreadable_media_from_model_failures(self) -> None:
-        # A file that never decoded never reached the model; do not count it as api_error.
+        # A file that never decoded is not an api_error.
         with TempMediaFolder() as root:
             write_sysprompt(root, "# Describe the scene.")
             broken = root / "broken.png"
@@ -294,7 +289,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
         self.assertEqual(mock_complete.call_count, MAX_MODEL_ATTEMPTS)
 
     def test_a_lowered_threshold_accepts_a_caption_the_default_calls_too_short(self) -> None:
-        # Output gate is read per call; bound at import, this caption is rejected until attempts run out.
+        # Read per call; bound at import, the caption is rejected until attempts run out.
         with TempMediaFolder() as root:
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
@@ -315,7 +310,7 @@ class AutoCaptionJobRunTests(unittest.TestCase):
         self.assertEqual(mock_complete.call_count, 1)
 
     def test_a_lowered_threshold_leaves_a_draft_the_default_would_complete(self) -> None:
-        # Input gate reads the same knob; a low threshold skips the draft without asking the model.
+        # A low threshold skips the draft without asking the model.
         with TempMediaFolder() as root:
             media = write_media(root, "photo.png")
             write_txt_caption(media, "Draft.")
@@ -388,7 +383,6 @@ class AutoCaptionJobRunTests(unittest.TestCase):
         self.assertEqual(result["stats"]["caption_changed"], 1)
 
     def test_a_file_without_a_caption_is_captioned_from_scratch(self) -> None:
-        """The audit's F12: a fresh dataset used to get no model request at all."""
         with TempMediaFolder() as root:
             write_sysprompt(root, "# Describe the scene.")
             media = write_media(root, "photo.png")
@@ -455,8 +449,6 @@ class AutoCaptionJobRunTests(unittest.TestCase):
 
 
 class AutoCaptionAudioPromptTests(unittest.TestCase):
-    """What the prompts say once audio captioning is on."""
-
     def test_video_prompt_asks_about_audio_only_when_enabled(self) -> None:
         with TempMediaFolder() as root:
             write_sysprompt(root, "# Focus on the subject.")
@@ -466,11 +458,11 @@ class AutoCaptionAudioPromptTests(unittest.TestCase):
 
         self.assertNotIn(AUDIO_OBJECTIVE_SENTENCE, without)
         self.assertIn(AUDIO_OBJECTIVE_SENTENCE, with_audio)
-        # The rest of a calibrated prompt must be untouched by the option.
+        # The rest of a calibrated prompt must be untouched.
         self.assertEqual(with_audio.replace(f" {AUDIO_OBJECTIVE_SENTENCE}", ""), without)
 
     def test_image_prompt_never_mentions_audio(self) -> None:
-        """A still has no track, so asking about one only invites invention."""
+        """A still has no track, so asking about one invites invention."""
         with TempMediaFolder() as root:
             write_sysprompt(root, "# Focus on the subject.")
 
@@ -489,8 +481,6 @@ class AutoCaptionAudioPromptTests(unittest.TestCase):
 
 
 class AutoCaptionAudioRequestTests(unittest.TestCase):
-    """What actually reaches the model when audio rides along with the keyframes."""
-
     def _caption(self, media, *, audio_wav: bytes | None = None, mode: str = "thinking"):
         client = FakeChatClient(POLISHED_CAPTION)
         complete_caption(
@@ -514,7 +504,7 @@ class AutoCaptionAudioRequestTests(unittest.TestCase):
         )
 
     def test_audio_part_uses_the_exact_openai_shape(self) -> None:
-        """A misspelled key is accepted and then ignored, so the caption silently lies."""
+        """A misspelled key is silently ignored."""
         with TempMediaFolder() as root:
             client = self._caption(write_mp4_video(root, "clip.mp4"), audio_wav=FAKE_WAV)
 
@@ -559,7 +549,7 @@ class AutoCaptionAudioRequestTests(unittest.TestCase):
         self.assertEqual(_part_types(client)[-1], "text")
 
     def test_sampling_is_identical_with_and_without_audio(self) -> None:
-        """Attaching audio must not perturb decoding; only the payload changes."""
+        """Attaching audio must not change decoding."""
         with TempMediaFolder() as root:
             video = write_mp4_video(root, "clip.mp4")
 
@@ -579,8 +569,6 @@ class AutoCaptionAudioRequestTests(unittest.TestCase):
 
 
 class AutoCaptionAudioJobTests(unittest.TestCase):
-    """How an audio run counts what it captioned."""
-
     def _folder_with_clip(self, root):
         write_sysprompt(root, "# Describe the scene.")
         media = write_mp4_video(root, "clip.mp4")
@@ -608,7 +596,7 @@ class AutoCaptionAudioJobTests(unittest.TestCase):
         self.assertEqual(result["stats"]["too_short"], 1)
         extract.assert_called_once()
         self.assertEqual(extract.call_args.args[0], media)
-        # Decoded once, sent three times: a retry must not re-read the clip.
+        # Decoded once, sent three times.
         self.assertEqual(len(client.requests), MAX_MODEL_ATTEMPTS)
         for request in client.requests:
             self.assertEqual(_audio_payloads(request), [FAKE_WAV])
@@ -691,7 +679,6 @@ class AutoCaptionAudioJobTests(unittest.TestCase):
                     validate_auto_caption_folder(root, caption_audio=True)
 
                 self.assertIn("ffmpeg", str(caught.exception))
-                # The same folder is fine when nothing needs ffmpeg.
                 validate_auto_caption_folder(root)
 
 

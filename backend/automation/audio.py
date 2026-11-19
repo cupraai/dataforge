@@ -1,5 +1,3 @@
-"""Pull a clip's audio track out for a vision request."""
-
 from __future__ import annotations
 
 import logging
@@ -12,7 +10,7 @@ from ffmpeg_bin import ffmpeg_path
 
 logger = logging.getLogger(__name__)
 
-# Uncapped audio is inlined with the keyframes and rejected (then retried) by the server.
+# Uncapped audio is rejected by the server.
 AUDIO_MAX_SECONDS = 15
 AUDIO_SAMPLE_RATE = 16_000
 AUDIO_CHANNELS = 1
@@ -21,12 +19,12 @@ AUDIO_FORMAT = "wav"
 
 FFMPEG_TIMEOUT_SECONDS = 60
 
-# A 44-byte RIFF header with no samples is an empty track.
+# A 44-byte RIFF header is an empty track.
 MIN_WAV_BYTES = 64
 
 
 def _ffmpeg_command(executable: str, source: Path, destination: Path) -> list[str]:
-    """Decode the first audio stream to a small mono WAV; ``-map 0:a:0`` fails if there is none."""
+    """``-map 0:a:0`` fails if there is no audio stream."""
     return [
         executable,
         "-y",
@@ -53,7 +51,7 @@ def _ffmpeg_command(executable: str, source: Path, destination: Path) -> list[st
 
 
 def extract_audio_wav(media_path: Path, *, ffmpeg: str | None = None) -> bytes | None:
-    """The clip's opening ``AUDIO_MAX_SECONDS`` of audio as WAV, or ``None`` (never raises)."""
+    """The opening ``AUDIO_MAX_SECONDS`` as WAV, or ``None``; never raises."""
     if media_path.suffix.lower() not in VIDEO_EXTENSIONS:
         return None
 
@@ -62,7 +60,7 @@ def extract_audio_wav(media_path: Path, *, ffmpeg: str | None = None) -> bytes |
         logger.warning("ffmpeg is unavailable; captioning %s without audio", media_path.name)
         return None
 
-    # Temp dir, not a pipe: WAV-to-stdout uses an unknown-size RIFF header some decoders reject.
+    # WAV to stdout has an unknown-size header some decoders reject.
     with tempfile.TemporaryDirectory(prefix="dataforge-audio-") as workspace:
         destination = Path(workspace) / f"audio.{AUDIO_FORMAT}"
         try:

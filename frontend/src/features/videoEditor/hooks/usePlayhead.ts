@@ -5,10 +5,7 @@ import type {
   PreviewFidelity,
 } from "@/features/videoEditor/lib/previewEngine";
 
-/**
- * Readouts redraw a few times a second while playing; the playhead line itself is moved without
- * React. A paused seek shows at once, since the inspector keys the time it shows.
- */
+/** Readouts redraw a few times a second; the line moves without React. */
 const READOUT_INTERVAL_MS = 100;
 
 export function usePlayheadTime(engine: PreviewEngine): number {

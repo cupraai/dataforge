@@ -21,10 +21,7 @@ export interface AudioProxies {
   preparing: ReadonlySet<string>;
 }
 
-/**
- * Renders the noise-reduced proxies the project's sound clips ask for. The export reads the same
- * proxies, so the preview plays what the file will hold.
- */
+/** Renders the noise-reduced proxies the sound clips need; the export reads the same ones. */
 export function useAudioProxies(
   project: Project,
   locations: ReadonlyMap<string, SourceLocation>,

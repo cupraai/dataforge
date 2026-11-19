@@ -1,4 +1,4 @@
-"""One directory scan. Imports nothing but ``constants`` so it cannot cycle with ``filesystem``/``media_listing``."""
+"""Imports only ``constants``, so it cannot cycle."""
 
 from __future__ import annotations
 
@@ -23,8 +23,6 @@ from constants import (
 
 @dataclass(frozen=True)
 class ScannedEntry:
-    """Both ``mtime`` and ``mtime_ns``: deriving one from the other loses precision and busts caches."""
-
     name: str
     path: Path
     mtime: float
@@ -47,7 +45,7 @@ class FolderScan:
     note: ScannedEntry | None
 
     def sidecar(self, prefix: str, extension: str) -> ScannedEntry | None:
-        """Captions hang off the stem; findings hang off the whole filename so ``clip.mp4`` and ``clip.png`` cannot share one."""
+        """Captions hang off the stem; findings off the whole filename."""
         return self.files.get(f"{prefix}{extension}")
 
 
@@ -81,8 +79,7 @@ def _is_hidden_dir(path: str, name: str) -> bool:
         return True
     if os.name != "nt":
         return False
-    # The link's own attributes, as Explorer reads them: Windows hides its legacy junctions
-    # (``My Documents`` and the like) while their targets stay visible.
+    # As Explorer reads them, so legacy junctions stay hidden.
     try:
         attributes = os.lstat(path).st_file_attributes
     except OSError:
@@ -91,7 +88,7 @@ def _is_hidden_dir(path: str, name: str) -> bool:
 
 
 def _sort_key(entry: ScannedEntry) -> tuple[str, str]:
-    # Secondary key: two names that differ only by case would otherwise be filesystem-order.
+    # Secondary key, so names differing only by case sort stably.
     return (entry.name.lower(), entry.name)
 
 
@@ -99,8 +96,7 @@ def _entry_from_dir_entry(
     entry: os.DirEntry, folder: Path, *, is_dir: bool = False
 ) -> ScannedEntry | None:
     try:
-        # Windows serves a DirEntry's times from the parent's index, which NTFS updates lazily
-        # for directories: a file added inside would leave the subfolder's mtime unchanged.
+        # NTFS updates a subfolder's index mtime lazily, missing files added inside.
         stat = os.stat(entry.path) if is_dir else entry.stat()
     except OSError:
         return None
@@ -110,7 +106,7 @@ def _entry_from_dir_entry(
         mtime=stat.st_mtime,
         mtime_ns=stat.st_mtime_ns,
         size=stat.st_size,
-        # ctime is a metadata-change time on Unix, so it cannot substitute for birthtime.
+        # ctime is not birthtime on Unix.
         birthtime=getattr(stat, "st_birthtime", None),
         hidden=is_dir and _is_hidden_dir(entry.path, entry.name),
     )
@@ -202,7 +198,7 @@ def scan_folder(folder: Path) -> FolderScan | None:
 
 
 def folder_entries_in_order(scan: FolderScan) -> list[tuple[str, ScannedEntry]]:
-    """Merged in directory order; concatenating the three collections would not match the fingerprint."""
+    """In directory order, as the fingerprint reads them."""
     tagged: list[tuple[str, ScannedEntry]] = [("dir", entry) for entry in scan.dirs]
     tagged.extend(("media", entry) for entry in scan.media)
     if scan.sysprompt is not None:

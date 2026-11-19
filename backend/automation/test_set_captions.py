@@ -26,7 +26,7 @@ class SetCaptionsMediaListingTests(unittest.TestCase):
         with TempMediaFolder() as root:
             write_media(root, "photo.png")
             write_mp4_video(root, "clip.mp4")
-            # Listed in the gallery, but no job takes audio yet.
+            # No job takes audio yet.
             write_wav(root, "voice.wav")
             (root / "notes.txt").write_text("ignore", encoding="utf-8")
 

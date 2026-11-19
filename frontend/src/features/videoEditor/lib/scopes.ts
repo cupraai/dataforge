@@ -1,8 +1,4 @@
-/**
- * What the monitor's picture holds, read from its pixels: a luma waveform, an RGB histogram and
- * how much of it is crushed or clipped. They describe the preview as drawn, so a clip drawn from a
- * reduced copy is measured at that size.
- */
+/** Waveform, histogram and clipping read from the monitor's pixels as drawn. */
 
 /** Rows of the waveform, one per luma level band from black at the bottom to white at the top. */
 export const WAVEFORM_ROWS = 64;

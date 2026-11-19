@@ -74,8 +74,7 @@ describe("VideoEditTimeline", () => {
   });
 
   it("takes focus on pointerdown, which the drag guard would otherwise suppress", () => {
-    // Focus is what exempts the handle from the dialog's next/prev arrows. Without it a
-    // nudge moves to the next gallery item instead of the trim point.
+    // Focus exempts the handle from the dialog's arrows.
     renderTimeline();
     Element.prototype.setPointerCapture = vi.fn<(pointerId: number) => void>();
 

@@ -248,10 +248,8 @@ interface InspectorSliderProps {
 }
 
 /**
- * A label, a typed value and its reset over a full-width track. Previews while dragged; the
- * release, or a key, records one undo step. Only a moved slider commits: the input reports its
- * value rounded to ``step``, so settling an untouched one would round the clip's value, e.g. on
- * the key-up of the Ctrl+Z that undid it, and clear redo.
+ * Label, typed value and reset over a track; a release or key records one undo step.
+ * Only a moved slider commits, or rounding would change the value and clear redo.
  */
 export function InspectorSlider({
   label,
@@ -343,11 +341,7 @@ function snap(value: number, min: number, max: number, step: number): number {
   return Number(Math.min(max, Math.max(min, stepped)).toFixed(10));
 }
 
-/**
- * A value as text to type over: Enter or leaving the field applies it, clamped to `min`–`max`
- * on the `step` grid; Escape puts it back, and the arrow keys step (ten steps with Shift). Each
- * applied value is one undo step. A slider's head shows one; it also stands alone.
- */
+/** Typed value: Enter or blur applies, clamped to the `step` grid; Escape reverts; arrows step. */
 export function ValueField({
   label,
   value,

@@ -1,10 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { ClipboardContent } from "./clipboard";
 
-/**
- * Held for the whole session, outside any one editor, so clips copied in one project can be
- * pasted into another opened afterwards. Not the system clipboard: clips are not text.
- */
+/** Held for the session, outside any editor; not the system clipboard, since clips are not text. */
 let held: ClipboardContent | null = null;
 const listeners = new Set<() => void>();
 

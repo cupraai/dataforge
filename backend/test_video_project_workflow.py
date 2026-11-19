@@ -1,9 +1,4 @@
-"""Representative checks for the editor's target workflow: 1080p, 24 fps generated media.
-
-They render with the real ffmpeg and read frames back, so one-frame placements, source-in
-alignment, the export's own frame renderer, audio protection and save/reopen are verified on the
-delivered file rather than on the graph text.
-"""
+"""The editor's 1080p/24 workflow, rendered with real ffmpeg and read back."""
 
 from __future__ import annotations
 
@@ -180,8 +175,7 @@ def project(root: Path, names: list[str], clips: list[VideoProjectClip], **field
 
 
 def placement_project(root: Path) -> VideoProject:
-    """Frames 0-23 the red half of the shot; 24 one blue frame; 25 the shot's last red frame
-    (source-in 23/24); 26 a green one-frame overlay above yellow; 27 yellow."""
+    """Frames 0-23 red, 24 blue, 25 the shot's last red, 26 a green overlay on yellow, 27 yellow."""
     write_shot(root)
     write_still(root, "blue.png", BLUE)
     write_still(root, "green.png", GREEN)
@@ -600,8 +594,7 @@ def client() -> TestClient:
 
 class SaveAndReopenTests(unittest.TestCase):
     def representative(self, root: Path) -> VideoProject:
-        """Every clip kind, a dissolve with linked sound, a grade, a crop, a transform, a
-        retimed clip and a title, at 1080p/24."""
+        """Every clip kind at 1080p/24."""
         edit = placement_project(root)
         clips = [
             clip("a", "v1", "video", 0, 24, source_id="shot.mp4", link_id="l1"),

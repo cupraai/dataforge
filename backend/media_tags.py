@@ -1,9 +1,4 @@
-"""Tags the background tagger found per file, kept in SQLite rather than beside the media.
-
-A row is keyed by folder and file name and remembers the file's ``mtime_ns`` and size, so an edited
-or replaced file stops showing its old tags until it is tagged again. ``revision`` moves on every
-write and feeds the folder fingerprint, which is what pushes new tags to an open gallery.
-"""
+"""Tagger results in SQLite, keyed by file name and dropped when the file's stat changes."""
 
 from __future__ import annotations
 
@@ -18,10 +13,10 @@ from db import get_connection
 from revisions import next_revision
 from ui_settings import tagging_enabled
 
-#: One stored tag: the vocabulary term and its best detection score, from 0 to 1.
+#: Term and best detection score, 0 to 1.
 StoredTag = tuple[str, float]
 
-#: Stands in for the vocabulary of a row queued by Re-tag everything; no real id is empty.
+#: Stands in for a Re-tag everything row; no real id is empty.
 RETAG_VOCABULARY = ""
 
 
@@ -29,8 +24,7 @@ RETAG_VOCABULARY = ""
 class TagRow:
     mtime_ns: int
     size: int
-    #: Which model and vocabulary produced the tags. A new vocabulary leaves them be: only
-    #: Re-tag everything sends a tagged file back to the model.
+    #: Only Re-tag everything sends a tagged file back to the model.
     vocabulary: str
     revision: int
     tags_json: str
@@ -57,7 +51,7 @@ class TagRow:
 
 
 def folder_key(folder: Path) -> str:
-    """Case-folded like the OS compares paths, so a favorite and a listing agree on one folder."""
+    """Case-folded like the OS compares paths."""
     return os.path.normcase(str(folder))
 
 
@@ -93,15 +87,12 @@ def folder_tag_rows(folder: Path) -> dict[str, TagRow]:
 
 
 def listed_tag_rows(folder: Path) -> dict[str, TagRow]:
-    """The rows a listing shows: none while tagging is off, though they are kept for turning on."""
+    """None while tagging is off; rows are kept."""
     return folder_tag_rows(folder) if tagging_enabled() else {}
 
 
 def folder_tag_revisions(folder: Path) -> dict[str, int]:
-    """Only what the fingerprint needs; it runs on every watch pass, so the tags stay unparsed.
-
-    Empty while tagging is off, like the listing it fingerprints.
-    """
+    """Only what the fingerprint needs, unparsed; empty while tagging is off."""
     if not tagging_enabled():
         return {}
     with get_connection() as conn:
@@ -140,7 +131,7 @@ def save_media_tags(
 
 
 def forget_media_tags(folder: Path, names: Iterable[str]) -> int:
-    """Drops rows for files that left the folder; a renamed file is tagged again under its new name."""
+    """A renamed file is tagged again under its name."""
     key = folder_key(folder)
     with get_connection() as conn:
         removed = conn.executemany(
@@ -152,7 +143,7 @@ def forget_media_tags(folder: Path, names: Iterable[str]) -> int:
 
 
 def queue_all_for_retag() -> int:
-    """The old tags stay listed until the model replaces them, so no file goes blank meanwhile."""
+    """Old tags stay listed until replaced."""
     with get_connection() as conn:
         queued = conn.execute(
             "UPDATE media_tags SET vocabulary = ? WHERE vocabulary != ?",
@@ -169,7 +160,7 @@ def get_tag_min_confidence() -> float:
 def listed_tags(
     row: TagRow | None, mtime_ns: int, size: int, min_confidence: float
 ) -> list[dict[str, str | float]]:
-    """Tags for the gallery: none once the file changed, and only those at the setting or above."""
+    """None once the file changed; only those at the setting or above."""
     if row is None or not row.matches(mtime_ns, size):
         return []
     return [

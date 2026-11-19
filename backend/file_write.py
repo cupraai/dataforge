@@ -8,8 +8,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 
-#: Antivirus and search indexers open a file as soon as a new name appears; Windows reports that
-#: open handle as a sharing violation until they let go.
+#: Antivirus and indexers briefly hold new names open on Windows.
 LOCKED_RETRY_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8, 1.6)
 
 
@@ -47,10 +46,7 @@ def write_bytes_atomic(destination: Path, data: bytes) -> None:
 
 
 def publish_new_file(temporary: Path, destination: Path) -> bool:
-    """Give ``temporary`` the name ``destination`` only while no file holds it; False if one does.
-
-    On POSIX the temporary name survives as a second link, so the caller still removes it.
-    """
+    """Rename only while no file holds the name; on POSIX the temp survives as a link."""
     try:
         if os.name == "nt":
             os.rename(temporary, destination)

@@ -152,7 +152,8 @@
     background-color: transparent;
   }
 
-  // Beat light/dark baseTheme yellow-cyan / orange-magenta defaults. `.cm-query-match` is gallery toolbar search, distinct from Ctrl+F.
+  // Beats the base theme's yellow-cyan / orange-magenta. `.cm-query-match` is the gallery toolbar
+  // search, distinct from Ctrl+F.
   .cm-editor.cm-light .cm-searchMatch,
   .cm-editor.cm-dark .cm-searchMatch,
   .cm-searchMatch,
@@ -322,7 +323,8 @@
     }
   }
 
-  // Short captions do not always fill CM's contentHeight, so gutters would stop with the text. Stretch the scroller and force gutter min-height past CM's inline contentHeight.
+  // A short caption can leave CM's contentHeight short of the box, and the gutters stop with the
+  // text; the scroller stretches and the gutters' min-height overrides CM's inline one.
   &--caption {
     display: flex;
     flex-direction: column;
@@ -379,7 +381,8 @@
       background-color: transparent;
       border-right-color: var(--border);
       color: var(--text-muted);
-      // Short caption: stretch past CM's inline minHeight=contentHeight. Scrolled: leave min-height alone so the rule spans contentHeight. !important on height (CM's 100% cannot resolve here) and align-self (ties CM's flex-start !important); not on min-height, or an !important percentage caps the gutter at one viewport.
+      // Short caption: stretch past CM's inline minHeight; scrolled: span contentHeight.
+      // `!important` on height and align-self, not on min-height (it would cap at one viewport).
       height: auto !important;
       min-height: 100%;
       align-self: stretch !important;

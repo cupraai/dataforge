@@ -16,10 +16,7 @@ export interface ZoomRect {
   height: number;
 }
 
-/**
- * Unzoomed layout, relative to the viewport's top-left: the viewport clips, the canvas carries the
- * transform, and the content is the painted image inside the canvas (letterboxing excluded).
- */
+/** Unzoomed layout from the viewport's top-left; content is the painted image. */
 export interface ZoomGeometry {
   viewport: { width: number; height: number };
   canvas: ZoomRect;
@@ -67,8 +64,7 @@ export function measureZoomGeometry(viewport: HTMLElement): ZoomGeometry | null 
   const viewportRect = viewport.getBoundingClientRect();
   if (viewportRect.width <= 0 || viewportRect.height <= 0) return null;
 
-  // Rects are visual pixels; the transform is CSS pixels. They differ under an ancestor
-  // transform (such as a dialog's scale-in) or CSS zoom.
+  // Rects are visual pixels and the transform CSS pixels; they differ under scaling.
   const unit = viewport.offsetWidth > 0 ? viewport.offsetWidth / viewportRect.width : 1;
   const relative = (rect: DOMRect): ZoomRect => ({
     x: (rect.left - viewportRect.left) * unit,

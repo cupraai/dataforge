@@ -17,8 +17,7 @@ def _load_dev_server() -> ModuleType:
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Cannot load {DEV_SERVER_PATH}")
     module = importlib.util.module_from_spec(spec)
-    # Running the script puts scripts/ on sys.path, which is how its `from py_version
-    # import` resolves. Loading it by path does not, so put it there for the exec.
+    # Running the script puts scripts/ on sys.path for `py_version`; loading by path does not.
     scripts_dir = str(DEV_SERVER_PATH.parent)
     added = scripts_dir not in sys.path
     if added:

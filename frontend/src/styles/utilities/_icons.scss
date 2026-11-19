@@ -9,7 +9,7 @@
   fill: none;
 }
 
-// `non-scaling-stroke` keeps the stroke in CSS pixels, so a 16px box draws 2px rather than a smeared 1.333px.
+// `non-scaling-stroke` keeps the stroke in CSS pixels: a 16px box draws 2px, not a smeared 1.333px.
 .lucide :is(path, circle, line, rect, polyline, polygon, ellipse) {
   vector-effect: non-scaling-stroke;
   stroke-width: var(--icon-stroke, 2px);

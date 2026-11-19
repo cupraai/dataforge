@@ -76,8 +76,7 @@ describe("visibleMasonryCards", () => {
   });
 
   it("finds each lane's own window when the lanes are at very different depths", () => {
-    // Lane 0 carries one very tall card, so at 5000px lane 0 is still on its
-    // first card while lanes 1 and 2 are dozens of cards deep.
+    // Lane 0 holds one very tall card while lanes 1 and 2 run deep.
     const items = [item("tall.png", 20_000), ...ladder(300, 100)];
     const layout = packColumnMasonry(items, {
       columnCount: 3,

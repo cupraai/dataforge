@@ -62,8 +62,7 @@ class ThumbnailUnavailableError(ThumbnailError):
     """Raised when a thumbnail cannot be produced (for example, ffmpeg missing)."""
 
 
-#: Part of the cache key; bump it when rendering changes so stale thumbnails are not served.
-#: 2: EXIF Orientation applied.
+#: Part of the cache key; bump when rendering changes. 2: EXIF Orientation applied.
 THUMBNAIL_RENDER_VERSION = 2
 
 #: The width a display rendition is cached under; no thumbnail is ever this narrow.
@@ -196,7 +195,7 @@ def _video_thumbnail_commands(source: Path, destination: Path, width: int) -> li
 
 
 def _audio_thumbnail_command(source: Path, destination: Path, width: int) -> list[str]:
-    """White wave on a clear ground: the frontend uses it as a mask, so the theme picks the color."""
+    """White wave on a clear ground: the frontend masks with it, so the theme picks the color."""
     height = round(width / WAVEFORM_ASPECT)
     waveform = (
         f"aformat=channel_layouts=mono,"
@@ -287,7 +286,7 @@ def _render_audio_thumbnail(source: Path, destination: Path, width: int) -> None
 
 
 def _cached_thumbnails() -> list[tuple[float, int, Path]]:
-    """``(last use, size, path)``, oldest first. Uses max(atime, mtime) because many mounts use ``noatime``."""
+    """``(last use, size, path)``, oldest first; max(atime, mtime), as mounts may be noatime."""
     entries: list[tuple[float, int, Path]] = []
 
     root = get_thumbnail_cache_dir()
@@ -303,7 +302,7 @@ def _cached_thumbnails() -> list[tuple[float, int, Path]]:
 
 
 def _evict(entries: list[tuple[float, int, Path]], keep_bytes: int) -> tuple[int, int]:
-    """Deletes oldest first until at most ``keep_bytes`` remain. Returns ``(files, bytes)`` freed."""
+    """Deletes oldest first until at most ``keep_bytes`` remain; returns ``(files, bytes)``."""
     remaining = sum(size for _, size, _ in entries)
     removed = 0
     freed = 0
@@ -388,8 +387,7 @@ def get_or_create_thumbnail(source: Path, width: int) -> Path:
 
 
 def get_or_create_display_image(source: Path) -> Path:
-    """The whole picture as WebP, for an image format browsers cannot decode. Cached and evicted
-    with the thumbnails."""
+    """The whole picture as WebP for formats browsers cannot decode; cached with the thumbnails."""
     source = source.resolve()
     if source.suffix.lower() not in DISPLAY_RENDITION_EXTENSIONS:
         raise ThumbnailError("This format is served as it is")

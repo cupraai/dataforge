@@ -32,10 +32,7 @@ export function applyRememberedSound(video: HTMLMediaElement): void {
   video.volume = sound.volume;
 }
 
-/**
- * Call from `volumechange`: remembers what changed on the native controls. Events from this
- * module's or React's own assignments arrive later and carry the values already recorded.
- */
+/** From `volumechange`; our own assignments arrive later with values already recorded. */
 export function rememberSound(video: HTMLMediaElement): void {
   const last = applied.get(video) ?? MOUNTED;
   const { muted, volume } = video;

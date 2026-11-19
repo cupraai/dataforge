@@ -120,8 +120,7 @@ class ClaimTests(unittest.TestCase):
 
 
 class DeleteDuringRenderTests(unittest.TestCase):
-    """The audit's F01: a delete during a render used to report success, after which the render
-    published the file back with no original to revert to."""
+    """The render would publish the file back with no original to revert to."""
 
     def test_a_render_in_flight_refuses_the_delete_and_keeps_every_file(self) -> None:
         with TempMediaFolder() as root:

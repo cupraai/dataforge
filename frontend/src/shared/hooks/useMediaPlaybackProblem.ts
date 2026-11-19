@@ -6,12 +6,8 @@ import {
 } from "@/shared/lib/mediaProblems";
 
 /**
- * Why a `<video>` is not showing `src`, or null while it plays or may still load. An error,
- * metadata with no picture, or nothing loaded after `MEDIA_STALL_MS` each name a problem, so
- * a file the browser cannot decode never looks like one still loading.
- *
- * Spread `mediaProps` onto the element, call `noteMetadata` from its `loadedmetadata`, and
- * include `retryKey` in its `key`: a retry remounts it.
+ * Why a `<video>` is not showing `src`, so an undecodable file never looks like it is loading.
+ * Spread `mediaProps`, call `noteMetadata` on load, and put `retryKey` in its `key`.
  */
 export function useMediaPlaybackProblem(src: string | undefined) {
   const [failure, setFailure] = useState<{ src: string; kind: MediaProblemKind } | null>(null);

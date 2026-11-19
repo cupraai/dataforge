@@ -1,10 +1,4 @@
-"""Refuse requests that a web page in the user's browser could forge against the local API.
-
-CORS only stops a foreign page from *reading* a response. A multipart upload or a POST with
-query parameters alone is a "simple" request, which the browser sends without asking first.
-So a site the user visits could import files into, or delete from, any folder. A DNS-rebound
-name reaches every route. Neither carries a foreign Origin or Host that a real client would.
-"""
+"""Refuse requests a web page could forge against the local API (simple requests, DNS rebinding)."""
 
 from __future__ import annotations
 
@@ -18,23 +12,23 @@ API_HOST_ENV = "DATAFORGE_API_HOST"
 DEFAULT_API_HOST = "127.0.0.1"
 
 LOOPBACK_HOST_NAMES = frozenset({"localhost", "127.0.0.1", "[::1]"})
-# Bound to every interface: the user chose to serve other machines, whose names are unknown.
+# Bound to every interface: other machines' names are unknown.
 _WILDCARD_BINDS = frozenset({"0.0.0.0", "::", "[::]"})
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 def allowed_host_names() -> frozenset[str] | None:
-    """Host header names the API answers to, or ``None`` to accept any."""
+    """``None`` to accept any."""
     bind = os.environ.get(API_HOST_ENV, "").strip().lower() or DEFAULT_API_HOST
     if bind in _WILDCARD_BINDS:
         return None
-    # An IPv6 literal is bracketed in a Host header.
+    # An IPv6 literal is bracketed.
     named = f"[{bind}]" if ":" in bind and not bind.startswith("[") else bind
     return LOOPBACK_HOST_NAMES | {named}
 
 
 def _host_name(host: str) -> str:
-    """``host`` without its port: ``[::1]:8000`` is ``[::1]``, ``localhost:8000`` is ``localhost``."""
+    """``host`` without its port: ``[::1]:8000`` is ``[::1]``."""
     host = host.strip().lower()
     if host.startswith("["):
         return host[: host.find("]") + 1] if "]" in host else host
@@ -42,7 +36,7 @@ def _host_name(host: str) -> str:
 
 
 class LocalRequestGuard:
-    """Refuse an unknown Host, and any state-changing request from a foreign Origin."""
+    """Refuse an unknown Host, and state changes from a foreign Origin."""
 
     def __init__(
         self,

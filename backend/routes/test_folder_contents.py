@@ -73,13 +73,13 @@ class FolderContentsEndpointTests(unittest.TestCase):
         self.assertTrue(payload["home"])
         self.assertEqual(payload["breadcrumbs"][-1]["name"], root.name)
         self.assertEqual(payload["subfolder_count"], 2)
-        # Hidden folders are listed and flagged; the client decides whether to show them.
+        # The client decides whether to show hidden folders.
         self.assertEqual(
             [(entry["name"], entry["hidden"]) for entry in payload["subfolders"]],
             [(".cache", True), ("album", False)],
         )
 
-        # Counts are deferred to /api/folders/subfolder-stats so the grid can render first.
+        # Counts are deferred so the grid renders first.
         album = payload["subfolders"][1]
         self.assertEqual(album["name"], "album")
         self.assertIsNone(album["file_count"])
@@ -95,7 +95,7 @@ class FolderContentsEndpointTests(unittest.TestCase):
         self.assertEqual(counted["duplicate_count"], 1)
 
     def test_lists_video_without_reading_its_header(self) -> None:
-        # The listing reports what the directory scan already knows; nothing parses a video.
+        # Nothing parses a video.
         with TempMediaFolder() as root:
             write_mp4_video(root, sample_count=120, timescale=30_000, sample_delta=1_000)
 
@@ -117,7 +117,7 @@ class FolderContentsEndpointTests(unittest.TestCase):
         self.assertFalse(by_name["plain.mp4"]["has_backup"])
 
     def test_lists_gif_without_decoding_its_frames(self) -> None:
-        # Walking each GIF's frames here would turn opening a folder into hundreds of decodes.
+        # Otherwise opening a folder decodes every GIF.
         with TempMediaFolder() as root:
             write_gif(root, "loop.gif", frames=8)
 
@@ -175,7 +175,7 @@ class FolderContentsEndpointTests(unittest.TestCase):
                 )
 
             self.assertEqual(response.status_code, 200)
-            # The watch keeps only a few folders per tab; a hover must not push the open one out.
+            # A hover must not push the open folder out.
             touch.assert_not_called()
             self.assertEqual(get_preference(LAST_FOLDER_KEY), str(opened.resolve()))
 
@@ -311,7 +311,7 @@ class FolderReviewCountsEndpointTests(unittest.TestCase):
             write_media(root, "photo.jpg")
             write_media(root, "plain.png")
             (root / STAGING_DIR_NAME).mkdir()
-            # Paired by stem, as the listing pairs it; an unpaired staged file is not counted.
+            # An unpaired staged file is not counted.
             write_media(root / STAGING_DIR_NAME, "photo.png")
             write_media(root / STAGING_DIR_NAME, "orphan.png")
 

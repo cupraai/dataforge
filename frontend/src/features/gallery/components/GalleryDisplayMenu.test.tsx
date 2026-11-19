@@ -25,8 +25,7 @@ describe("GalleryDisplayMenu", () => {
     await user.click(screen.getByRole("menuitemradio", { name: "List" }));
 
     expect(onChange).toHaveBeenCalledWith("list");
-    // Choosing closes the menu; leaving it open over the grid it just relaid out
-    // would cover the change the user asked for.
+    // Choosing closes the menu so the relaid grid shows.
     expect(screen.queryByRole("menu")).toBeNull();
   });
 

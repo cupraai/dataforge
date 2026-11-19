@@ -55,8 +55,7 @@ describe("JOB_START_CONFIRM", () => {
     expect(confirmable).not.toContain("backup_captions");
     expect(confirmable).not.toContain("restore_captions");
 
-    // `confirm` is optional on the registry entry, so a confirm job could otherwise
-    // reach the dialog with nothing to render.
+    // `confirm` is optional, so a confirm job could reach the dialog empty.
     for (const type of confirmable) {
       const copy = JOB_START_CONFIRM[type];
       expect(copy?.title).toBeTruthy();

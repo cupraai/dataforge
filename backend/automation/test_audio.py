@@ -26,7 +26,6 @@ def _completed(returncode: int = 0, stderr: bytes = b"") -> subprocess.Completed
 
 
 def _writes(payload: bytes, returncode: int = 0):
-    """Stand in for ffmpeg by writing ``payload`` to the output path it was given."""
 
     def run(command, **_kwargs):
         Path(command[-1]).write_bytes(payload)
@@ -47,7 +46,6 @@ class ExtractAudioTests(unittest.TestCase):
                 self.assertEqual(extract_audio_wav(video), WAV_BYTES)
 
     def test_decodes_one_short_mono_track(self) -> None:
-        """The cap and the resample are what keep the request tractable."""
         with TempMediaFolder() as root:
             video = write_mp4_video(root, "clip.mp4")
 
@@ -61,7 +59,7 @@ class ExtractAudioTests(unittest.TestCase):
 
             command = run_ffmpeg.call_args.args[0]
             self.assertEqual(command[0], "ffmpeg")
-            # ``-map 0:a:0`` fails if there is no audio stream, instead of yielding an empty track.
+            # ``-map 0:a:0`` fails without an audio stream.
             self.assertIn("-map", command)
             self.assertEqual(command[command.index("-map") + 1], "0:a:0")
             self.assertEqual(command[command.index("-t") + 1], str(AUDIO_MAX_SECONDS))
@@ -74,7 +72,6 @@ class ExtractAudioTests(unittest.TestCase):
             self.assertEqual(run_ffmpeg.call_args.kwargs.get("check"), False)
 
     def test_writes_outside_the_dataset_folder(self) -> None:
-        """A job must never leave working files next to the user's media."""
         with TempMediaFolder() as root:
             video = write_mp4_video(root, "clip.mp4")
             before = {path.name for path in root.iterdir()}

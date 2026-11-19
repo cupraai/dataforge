@@ -18,11 +18,7 @@ function captions(count: number): string {
   return count === 1 ? "1 caption" : `${formatCount(count)} captions`;
 }
 
-/**
- * A caption job's outcome offers to take its writes back while the server still can. The
- * job's `undoable` flag goes false once used, which drops the button from toast and history;
- * the server keeps the restores that failed, so their toast offers a retry.
- */
+/** Offers to undo a caption job while the server can; failed restores offer a retry. */
 export function useJobUndoNotifications() {
   const queryClient = useQueryClient();
   const notify = useNotify();

@@ -445,8 +445,7 @@ describe("CandidateReviewDialog", () => {
   });
 
   it("will not settle the same candidate twice", async () => {
-    // The index is owned by the caller, so a decision that leaves the dialog on the same
-    // entry must not let a second click act on a file already settled.
+    // The caller owns the index, so a second click must not act on a settled file.
     const user = userEvent.setup();
     renderDialog();
 

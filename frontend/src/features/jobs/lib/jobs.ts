@@ -37,8 +37,7 @@ export function selectFolderJob(
   );
   if (folderJobs.length === 0) return null;
 
-  // A queued job is newer than the one running ahead of it, but the running one is what the
-  // folder is doing; between two jobs, the next to start.
+  // The running job is what the folder is doing; between jobs, the next to start.
   const running = folderJobs.filter((job) => job.status === "running");
   if (running.length > 0) return newestJob(running);
   const queued = queuedFolderJobs(folderJobs, folderPath);

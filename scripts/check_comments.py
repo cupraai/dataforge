@@ -1,8 +1,9 @@
-"""Check comment line widths in backend and frontend sources."""
+"""Check comment and docstring line widths in backend and frontend sources."""
 
 from __future__ import annotations
 
 import argparse
+import ast
 import io
 import re
 import sys
@@ -18,6 +19,7 @@ PYTHON_ROOTS = ("backend", "scripts")
 TYPESCRIPT_ROOT = Path("frontend") / "src"
 SKIP_DIRS = {".venv", "__pycache__", "node_modules", "dist", "coverage", "data"}
 TYPESCRIPT_SUFFIXES = {".ts", ".tsx"}
+STYLE_ROOT = Path("frontend") / "src" / "styles"
 
 _BLOCK_COMMENT = re.compile(r"/\*[\s\S]*?\*/")
 _TRAILING_LINE_COMMENT = re.compile(r"(?<!:)//(.*)$")
@@ -50,7 +52,26 @@ def _python_comments(source: str) -> list[Comment]:
         own_line = token.line.strip().startswith("#")
         text = token.line.strip() if own_line else token.string.strip()
         comments.append(Comment(token.start[0], text))
-    return comments
+    return comments + _python_docstrings(source)
+
+
+def _python_docstrings(source: str) -> list[Comment]:
+    # Whole physical lines: a docstring line is a code line, held to the formatter's width.
+    lines = source.splitlines()
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        docstring = node.body[0] if node.body else None
+        if not (
+            isinstance(docstring, ast.Expr)
+            and isinstance(docstring.value, ast.Constant)
+            and isinstance(docstring.value.value, str)
+        ):
+            continue
+        for number in range(docstring.lineno, (docstring.end_lineno or docstring.lineno) + 1):
+            found.append(Comment(number, lines[number - 1].rstrip()))
+    return found
 
 
 def _block_content_line(raw: str) -> str | None:
@@ -155,6 +176,8 @@ def collect_problems(scope: str = "all") -> list[str]:
     if scope != "backend":
         paths = _walk(ROOT / TYPESCRIPT_ROOT, TYPESCRIPT_SUFFIXES)
         found.extend(_check(paths, _typescript_comments))
+        # SCSS shares the TypeScript comment syntax.
+        found.extend(_check(_walk(ROOT / STYLE_ROOT, {".scss"}), _typescript_comments))
     return found
 
 

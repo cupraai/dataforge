@@ -3,7 +3,7 @@
 .tooltip {
   display: contents;
 
-  // Portalled to the body by `AnchoredLayer`, so this is styled on its own, not as a descendant of the wrapper.
+  // Portalled to the body by `AnchoredLayer`, so styled on its own, not inside the wrapper.
   &__bubble {
     width: max-content;
     max-width: 14rem;
@@ -21,7 +21,8 @@
     // File names joined by `_` hold no break opportunity and would run past the bubble.
     overflow-wrap: anywhere;
     pointer-events: none;
-    // Animation, not transition: the bubble mounts on show, so there is no earlier value to transition from. No fill mode on the way in: a tab that never runs the animation must still show the tooltip rather than holding the transparent first keyframe.
+    // Animation, not transition: the bubble mounts on show, so nothing precedes it. No fill mode on
+    // the way in: a tab that never runs the animation must still show the tooltip.
     animation: tooltip-in 0.15s ease;
 
     &[data-side="top"] {
@@ -45,7 +46,7 @@
   &__arrow {
     position: absolute;
     top: -0.3125rem;
-    // Travels back by however far the bubble was nudged off centre, stopping short of the rounded corners.
+    // Offset back by however far the bubble was nudged off centre, short of the rounded corners.
     left: clamp(0.75rem, calc(50% - var(--anchored-shift, 0px)), calc(100% - 0.75rem));
     width: 0.5rem;
     height: 0.5rem;

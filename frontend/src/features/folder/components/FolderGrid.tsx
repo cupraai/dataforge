@@ -83,8 +83,7 @@ function countLabel(count: number, singular: string, plural: string): string {
 function FolderCard({ folder, onOpen }: { folder: Subfolder; onOpen: (path: string) => void }) {
   const prefetch = useFolderPrefetch();
   const openInNewTab = useOpenFolderInNewTab();
-  // Read on every hover rather than once, so a job that ran meanwhile is reflected; the
-  // bubble's delay leaves the request time to land before anything shows.
+  // Read on every hover, so a job that ran meanwhile shows.
   const {
     data: counts,
     isError: failed,
@@ -156,8 +155,7 @@ interface FolderGridProps {
 }
 
 export function FolderGrid({ folders, folderPath, totalCount, onOpen }: FolderGridProps) {
-  // Seeded once per mount, and the call site remounts on navigation, so the stored choice is
-  // read for the folder being opened rather than carried over from the previous one.
+  // Seeded per mount, and navigation remounts, so the stored choice matches the folder.
   const [expanded, setExpanded] = useState(() => readFolderExpanded(folderPath));
   const gridId = useId();
   const clamp = useMemo(() => clampFolders(folders), [folders]);

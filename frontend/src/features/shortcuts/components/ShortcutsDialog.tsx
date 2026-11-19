@@ -19,8 +19,7 @@ import { ShortcutKeys } from "@/shared/ui/ShortcutKeys";
 
 const SHORTCUT_LIST: readonly ShortcutDefinition[] = Object.values(SHORTCUTS);
 
-// Ordered so the column flow balances: short groups share a column, the item viewer has its own.
-// The video editor lists its own keys in its inspector.
+// Ordered to balance the columns; the video editor lists its keys in its inspector.
 const LISTED_GROUPS: readonly { id: ShortcutGroup; icon: AppIcon }[] = [
   { id: "global", icon: iconKeyboard },
   { id: "folders", icon: iconFolder },

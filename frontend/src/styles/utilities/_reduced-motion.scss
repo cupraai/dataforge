@@ -1,7 +1,9 @@
-// Loaded last so these equal-specificity selectors beat the component layer. Not a blanket `*` reset: that would also stop the infinite `spin` on loading indicators.
+// Loaded last so these equal-specificity selectors beat the component layer. No blanket `*` reset:
+// loading indicators keep their infinite `spin`.
 
 @media (prefers-reduced-motion: reduce) {
-  // `:not()`s: an exiting element still carries its entrance class, so `animation: none` would wipe the exit name and never fire `animationend`.
+  // `:not()`s: an exiting element still carries its entrance class, and `animation: none` would wipe
+  // the exit animation, so `animationend` would never fire.
   .dialog-panel--enter,
   [class*="__backdrop"]:not(.dialog-backdrop--exit),
   .jobs-dialog__panel:not(.dialog-panel--exit),

@@ -141,11 +141,8 @@ export function buildFavoriteItems(
 }
 
 /**
- * A job row navigates to its folder, so it shares the folder id: `orderQuickActionItems` then
- * collapses a folder's job history to its newest run and yields to a plainer row for that folder.
- *
- * No keywords: the row shows the folder's leaf name, so matching it on the full path (or on an
- * external run's name) put rows on screen with nothing to highlight and no reason to be there.
+ * Shares the folder id, so a folder's job history collapses to its newest run.
+ * No keywords: matching the full path showed rows with nothing to highlight.
  */
 export function buildJobItems(
   jobs: Job[],

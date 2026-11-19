@@ -25,11 +25,8 @@ interface StageHintProps {
 }
 
 /**
- * How the open tool is used, over the bottom of the media where the work happens. Shown in the
- * dialog's stage slot, so without one, as in a panel rendered alone, it shows nothing.
- *
- * It never takes the pointer, or it would block the handles and brush under it; so it watches
- * the pointer over the stage instead, and clears while the pointer is over its box.
+ * How the open tool is used, over the media in the stage slot.
+ * It never takes the pointer; it clears while the pointer is over its box.
  */
 export function StageHint({
   icon,

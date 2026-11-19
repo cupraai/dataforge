@@ -262,8 +262,7 @@ describe("GallerySelectionControls", () => {
     );
     const selectedPaths = new Set([`${HOME_PATH}\\sunset.png`]);
 
-    // The busy window under test is held open by `onDeleted`'s pending promise,
-    // not by the delete call, so this resolves straight away.
+    // `onDeleted`'s pending promise holds the busy window, so this resolves at once.
     deleteSelectedMediaMock.mockResolvedValue({
       succeeded: Array.from(selectedPaths),
       failed: [],

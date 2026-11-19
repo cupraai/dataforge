@@ -3,16 +3,8 @@
   Stops DataForge by freeing the configured ports. Covers both launchers.
 
 .DESCRIPTION
-  The escape hatch for when no launcher is supervising and a server is still holding
-  its port: after -Detach, or after closing a *server* console with the X button,
-  which leaves the uvicorn reload child running. Closing a launcher window is
-  handled by the launchers themselves (see Register-DevExitGuard).
-
-  Both ports are cleared either way: dev.ps1 uses one per server, and start.ps1
-  serves everything on the UI port.
-
-  Only leftover python/node processes are stopped; anything else on those ports
-  is reported and left alone.
+  For a server left holding its port: after -Detach, or after closing a server console.
+  Only leftover python/node processes are stopped; anything else is left alone.
 #>
 
 [CmdletBinding()]
@@ -26,8 +18,7 @@ $Host.UI.RawUI.WindowTitle = 'DataForge - Stop'
 
 Write-Host 'Stopping DataForge servers...'
 
-# Neither port has a fixed occupant here: 18081 is Vite under dev.ps1 and the whole
-# app under start.ps1, so the label names the product rather than a half of it.
+# 18081 serves Vite under dev.ps1 and the whole app under start.ps1.
 $apiFreed = Clear-DevPort -Port $DevApiPort -Label 'DataForge'
 $uiFreed = Clear-DevPort -Port $DevUiPort -Label 'DataForge'
 

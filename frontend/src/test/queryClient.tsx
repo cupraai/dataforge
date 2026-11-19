@@ -21,11 +21,7 @@ export function createTestQueryClient({ retry = true }: { retry?: boolean } = {}
   return client;
 }
 
-/**
- * A `renderHook`/`render` wrapper around a fresh client and router; reuse `client` to seed or
- * inspect, and `router` to move through history.
- * StrictMode sits at the root: nested under a non-strict root it would not double-invoke effects.
- */
+/** Wraps renders in a fresh client and router under a StrictMode root. */
 export function queryWrapper(
   client: QueryClient = createTestQueryClient(),
   router = createTestRouter(),

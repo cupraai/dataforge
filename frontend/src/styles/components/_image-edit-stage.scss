@@ -68,7 +68,8 @@
     visibility: hidden;
   }
 
-  // On its side the constraints swap: layout width becomes painted height (the cap) and layout height becomes painted width (100cqi).
+  // On its side the constraints swap: layout width is painted height (the cap) and layout height is
+  // painted width (100cqi).
   &--turned &__img {
     width: 100cqb;
     max-height: 100cqi;

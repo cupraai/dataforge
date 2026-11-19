@@ -189,7 +189,7 @@ class VideoTests(unittest.TestCase):
 
             self.assertEqual(changed["stats"]["video_success"], 1)
             self.assertEqual(apply.call_args.args[1].frame_rate, 16)
-            # Keep leaves the stored rate alone, so the same fit changes nothing.
+            # Keep leaves the stored rate alone.
             self.assertEqual(kept["stats"]["unchanged"], 1)
 
     def test_reset_size_keeps_the_frame_rate(self, _probe) -> None:

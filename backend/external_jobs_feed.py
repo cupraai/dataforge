@@ -1,4 +1,4 @@
-"""Polls AI-Toolkit while anyone is listening and pushes what changes."""
+"""Polls AI-Toolkit while anyone listens and pushes changes."""
 
 from __future__ import annotations
 
@@ -23,11 +23,7 @@ _observed_at = 0.0
 
 
 def observe_external_jobs(jobs: list[dict[str, object]], available: bool) -> dict[str, object]:
-    """Record one AI-Toolkit read and return the current snapshot, pushing it when it changed.
-
-    REST reads and the feed both land here, so whichever sees a change first announces it and
-    the other cannot announce it a second time with an older revision.
-    """
+    """REST reads and the feed both land here, so a change is announced once."""
     global _snapshot, _observed_at
 
     content = ExternalJobsEvent(
@@ -44,13 +40,13 @@ def observe_external_jobs(jobs: list[dict[str, object]], available: bool) -> dic
 
         snapshot = {**content, "revision": next_revision()}
         _snapshot = snapshot
-        # Under the lock, so two concurrent changes go out in revision order.
+        # So concurrent changes go out in revision order.
         events.publish(snapshot)
         return snapshot
 
 
 def read_external_jobs() -> dict[str, object]:
-    """The newest snapshot, asking AI-Toolkit again only when it is older than one poll."""
+    """Asks AI-Toolkit again only when older than one poll."""
     with _lock:
         if _snapshot is not None and monotonic() - _observed_at < POLL_INTERVAL_SECONDS:
             return _snapshot

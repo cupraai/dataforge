@@ -4,10 +4,7 @@ function hasCounts(subfolder: Subfolder): boolean {
   return subfolder.file_count != null;
 }
 
-/**
- * `fresh` with the counts it left out taken from `previous`, so a recount shows the old numbers
- * instead of flashing placeholders. `carried` says whether a recount is owed.
- */
+/** `fresh` with missing counts from `previous`; `carried` says a recount is owed. */
 export function carrySubfolderCounts(
   previous: Subfolder[],
   fresh: Subfolder[],

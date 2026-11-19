@@ -1,11 +1,8 @@
-# Starts only the backend API server in this terminal.
-# Use this (or start-frontend.ps1) in separate terminals when you want fully
-# independent control. For both dev servers at once, use dev.bat / dev.ps1.
+# Starts only the backend API server in this terminal; for both, use dev.bat / dev.ps1.
 
 [CmdletBinding()]
 param(
-    # Run without uvicorn's reloader - useful while a long job is running, since
-    # a reload re-runs job recovery and re-spawns worker threads mid-flight.
+    # No reloader, so a reload never re-spawns job workers mid-flight.
     [switch]$NoReload
 )
 

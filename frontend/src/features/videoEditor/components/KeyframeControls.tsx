@@ -47,10 +47,7 @@ interface KeyedSliderProps {
   onEdit: ClipEdit;
 }
 
-/**
- * A slider for a property that can be animated. It shows the value at the playhead; once the
- * property has a keyframe, moving it keys the playhead instead of the static value.
- */
+/** Shows the value at the playhead; with a keyframe, moving it keys the playhead. */
 export function KeyedSlider({ clip, property, time, label, onEdit, ...slider }: KeyedSliderProps) {
   const at = timeOnClip(clip, time);
   const animated = clip.keyframes[property].length > 0;

@@ -29,7 +29,7 @@ TAB_QUERY = Query("", description="Caller's tab id, so this folder is watched fo
 
 
 def _folder_payload(folder: Path, remember_last: bool) -> str:
-    # Serialize on a worker thread so a large folder does not stall thumbnail requests.
+    # Off the event loop, so a large folder does not stall thumbnails.
     return build_folder_response(folder, remember_last=remember_last).model_dump_json()
 
 
@@ -46,10 +46,10 @@ async def read_folder_contents(
         description="A speculative read: neither watched nor remembered as the last folder",
     ),
 ) -> Response:
-    # Resolving stats the path, which blocks for the SMB timeout on a dead network drive.
+    # Stat blocks for the SMB timeout on a dead network drive.
     folder = await asyncio.to_thread(resolve_initial_folder, path)
     if not prefetch:
-        # Registers interest, keyed off the resolved path because ``path`` may be absent.
+        # Keyed off the resolved path because ``path`` may be absent.
         folder_watch.touch(tab, str(folder))
     payload = await asyncio.to_thread(_folder_payload, folder, not prefetch)
     return Response(content=payload, media_type=JSON_MEDIA_TYPE)
@@ -97,7 +97,7 @@ async def read_folder_changes(
         description="The user opened this folder, so it is the one to start in next time",
     ),
 ) -> FolderChangesResponse:
-    # Watch a vanished folder long enough for the client to be told it is gone.
+    # Long enough for the client to be told it is gone.
     folder_watch.touch(tab, path)
     folder = await asyncio.to_thread(resolve_folder, path)
     return await asyncio.to_thread(build_folder_changes, folder, since, remember_last=opened)

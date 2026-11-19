@@ -1,4 +1,4 @@
-"""SQLite persistence for the notification feed. Only the newest rows are kept."""
+"""Only the newest rows are kept."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from datetime import UTC, datetime
 
 from db import get_connection
 
-#: The feed is a tail, not an archive: anything older is dropped on write.
+#: Older rows are dropped on write.
 MAX_NOTIFICATIONS = 50
 
-# CREATE, SELECT and INSERT are all derived from this.
+# CREATE, SELECT and INSERT are derived from this.
 _NOTIFICATION_SCHEMA: tuple[tuple[str, str], ...] = (
     ("id", "TEXT PRIMARY KEY"),
     ("message", "TEXT NOT NULL"),
@@ -26,7 +26,7 @@ _COLUMN_NAMES = tuple(name for name, _ in _NOTIFICATION_SCHEMA)
 _COLUMNS = ", ".join(_COLUMN_NAMES)
 _PLACEHOLDERS = ", ".join("?" for _ in _COLUMN_NAMES)
 
-#: ISO timestamps sort lexicographically; rowid breaks ties inside the same microsecond.
+#: rowid breaks ties inside the same microsecond.
 _NEWEST_FIRST = "ORDER BY created_at DESC, rowid DESC"
 
 
@@ -58,7 +58,7 @@ def insert_notification(
     source: str,
     job_id: str | None = None,
 ) -> dict[str, object]:
-    """Record one notification, collapsing an immediate repeat, and trim to the newest 50."""
+    """Collapses an immediate repeat and trims to the newest 50."""
     now = datetime.now(tz=UTC).isoformat()
 
     with get_connection() as conn:

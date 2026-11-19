@@ -28,7 +28,7 @@ from testing_fixtures import (
 
 
 def write_patterned_image(root: Path, name: str, *, seed: int, size: int = 64) -> Path:
-    """An image with real structure; a flat colour fixture hashes to zero."""
+    """A flat colour fixture hashes to zero."""
     from PIL import Image
 
     image = Image.new("RGB", (size, size))
@@ -92,7 +92,7 @@ class GroupDuplicatesTests(unittest.TestCase):
         self.assertEqual(_group_duplicates(hashes, max_distance=0), [])
 
     def test_grouping_is_transitive(self) -> None:
-        """A chains to B and B to C, so all three group even though A and C are further apart."""
+        """A chains to B and B to C, so all three group."""
         hashes = {Path("a.png"): 0b0000, Path("b.png"): 0b0001, Path("c.png"): 0b0011}
 
         groups = _group_duplicates(hashes, max_distance=1)
@@ -140,7 +140,6 @@ class FindDuplicatesJobTests(unittest.TestCase):
             self.assertEqual(result["stats"]["duplicate"], 2)
             self.assertEqual(result["stats"]["group"], 1)
 
-            # The shared group id is the only thing linking the two files.
             self.assertEqual(group_of(first), group_of(second))
             self.assertEqual(group_of(first), group_id_for(["one.png", "two.png"]))
 
@@ -156,7 +155,7 @@ class FindDuplicatesJobTests(unittest.TestCase):
             self.assertFalse(duplicate_file_path(second).exists())
 
     def test_identical_files_read_as_exact_under_a_loose_threshold(self) -> None:
-        """The distance describes the files, not the slack the run happened to allow."""
+        """The distance describes the files, not the run's slack."""
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "one.png", seed=7)
             shutil.copyfile(first, root / "two.png")
@@ -169,7 +168,6 @@ class FindDuplicatesJobTests(unittest.TestCase):
             self.assertEqual(finding.threshold, "loose")
 
     def test_caption_issues_are_untouched(self) -> None:
-        """Separate sidecars: neither job can reach the other's findings."""
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "one.png", seed=7)
             shutil.copyfile(first, root / "two.png")
@@ -184,7 +182,7 @@ class FindDuplicatesJobTests(unittest.TestCase):
             self.assertIsNotNone(load_duplicate_finding(first))
 
     def test_rerunning_leaves_the_sidecar_byte_identical(self) -> None:
-        """The group id is derived, so an unchanged folder does not churn mtimes."""
+        """An unchanged folder does not churn mtimes."""
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "one.png", seed=7)
             shutil.copyfile(first, root / "two.png")
@@ -234,7 +232,7 @@ class FindDuplicatesJobTests(unittest.TestCase):
             self.assertEqual(result["stats"]["hashed"], 1)
 
     def test_cancellation_writes_nothing(self) -> None:
-        """A half-hashed folder cannot tell a unique file from an unexamined one."""
+        """A half-hashed folder cannot tell unique from unexamined."""
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "one.png", seed=7)
             shutil.copyfile(first, root / "two.png")
@@ -270,19 +268,17 @@ class FindDuplicatesJobTests(unittest.TestCase):
 
             payload = json.loads(duplicate_file_path(first).read_text(encoding="utf-8"))
             self.assertEqual(sorted(payload), ["group", "max_distance", "threshold"])
-            # Deliberately no member list - see the duplicates module docstring.
+            # Group id only, never member names.
             self.assertNotIn("members", payload)
 
 
 class StemSharingTests(unittest.TestCase):
-    """A generated folder holds a video beside the still that previews it, sharing one stem."""
-
     def test_a_still_sharing_a_stem_does_not_clear_the_media_finding(self) -> None:
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "clip.jpg", seed=11)
             second = root / "clip-copy.jpg"
             shutil.copy(first, second)
-            # Same stem as the duplicate, nothing like it to look at, sorted after it.
+            # Same stem as the duplicate, unlike it, sorted after it.
             write_patterned_image(root, "clip.png", seed=29)
 
             run_find_duplicates_job(root, threshold="exact")
@@ -291,7 +287,6 @@ class StemSharingTests(unittest.TestCase):
             self.assertIsNone(load_duplicate_finding(root / "clip.png"))
 
     def test_the_group_survives_a_second_run(self) -> None:
-        """The clobber was reproducible, so repairing it has to be too."""
         with TempMediaFolder() as root:
             first = write_patterned_image(root, "clip.jpg", seed=11)
             second = root / "clip-copy.jpg"
@@ -304,7 +299,7 @@ class StemSharingTests(unittest.TestCase):
             self.assertEqual(group_of(first), group_of(second))
 
     def test_two_stem_sharers_can_each_hold_their_own_finding(self) -> None:
-        """One sidecar per stem could only ever record one of the two groups."""
+        """One sidecar per stem could record only one group."""
         with TempMediaFolder() as root:
             video_like = write_patterned_image(root, "clip.jpg", seed=11)
             still_like = write_patterned_image(root, "clip.png", seed=29)
@@ -319,7 +314,7 @@ class StemSharingTests(unittest.TestCase):
 
 
 class ExactMeansIdenticalTests(unittest.TestCase):
-    """dHash reads luminance gradients only; "Exact" promises files that look identical."""
+    """ "Exact" promises files that look identical."""
 
     def test_two_flat_images_of_different_colours_are_not_exact(self) -> None:
         with TempMediaFolder() as root:
@@ -363,7 +358,7 @@ class GroupingCancellationTests(unittest.TestCase):
             calls = {"count": 0}
 
             def cancel_once_hashed() -> bool:
-                # The runner asks once per file; anything later is the grouping phase.
+                # Calls after the files are the grouping phase.
                 calls["count"] += 1
                 return calls["count"] > 2
 

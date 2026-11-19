@@ -228,8 +228,7 @@ class CandidatePathTests(unittest.TestCase):
             self.assertFalse(list(folder.glob(f"*{COMFY_TEMP_SUFFIX}")))
 
     def test_none_of_the_markers_end_in_a_media_suffix(self) -> None:
-        # A marker whose last suffix is a media one would surface as a phantom gallery
-        # item, because folder_scan classifies on the last suffix alone.
+        # folder_scan classifies on the last suffix, so a media suffix would show a phantom item.
         for marker in (COMFY_TEMP_SUFFIX, COMFY_STALE_SUFFIX):
             with self.subTest(marker=marker):
                 self.assertNotIn(Path(f"photo.png{marker}").suffix, MEDIA_EXTENSIONS)
@@ -303,7 +302,7 @@ class VideoCandidateTests(unittest.TestCase):
                 self.assertFalse(candidate.exists())
 
     def test_a_clip_corrupt_after_its_first_frame_is_refused(self) -> None:
-        """Accept keeps no backup, so a candidate must decode to the end before it replaces a clip."""
+        """Accept keeps no backup, so a candidate must decode fully before it replaces a clip."""
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)
             source = folder / "clip.mp4"
@@ -439,8 +438,7 @@ class AcceptCandidateTests(unittest.TestCase):
                 self.assertEqual(opened.size, (128, 128))
 
     def test_accepting_is_refused_while_an_editor_backup_exists(self) -> None:
-        # The trap this refusal exists for: image_edit renders every crop from the .bak,
-        # so an accepted candidate would be silently discarded by the next edit.
+        # image_edit renders every crop from the .bak, so the accept would be silently discarded.
         with CandidateFolder() as fixture:
             # Contents are irrelevant: the refusal is on the backup existing at all.
             backup_path_for(fixture.media).write_bytes(b"the untouched original")
@@ -596,8 +594,7 @@ class DifferenceScoreTests(unittest.TestCase):
         self.assertEqual(difference_percent(image, image), 0.0)
 
     def test_an_upscale_of_the_same_content_barely_registers(self) -> None:
-        # The whole point of the metric: a prep run that only added pixels has to score
-        # near nothing, or every clean result looks as suspect as a broken one.
+        # A run that only added pixels must score near nothing.
         original = noise_image(1)
         upscaled = original.resize((512, 512), Image.Resampling.LANCZOS)
 

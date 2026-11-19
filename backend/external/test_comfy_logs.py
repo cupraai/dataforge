@@ -8,7 +8,7 @@ from external.comfy_logs import assemble_log_lines
 
 
 def writes(*fragments: str) -> list[dict[str, str]]:
-    """The window's shape: one entry per stdout write, with a timestamp nothing reads."""
+    """One entry per stdout write."""
     return [{"t": "2026-09-14T18:56:48.651274", "m": fragment} for fragment in fragments]
 
 
@@ -30,13 +30,13 @@ class AssembleLogLinesTests(unittest.TestCase):
         self.assertNotIn("50%", lines[0])
 
     def test_the_unterminated_last_line_is_kept(self) -> None:
-        """It is the bar still being drawn, which is the whole point of watching mid-run."""
+        """The bar still being drawn."""
         self.assertEqual(
             assemble_log_lines(writes("EulerSampler:  37%|███")), ["EulerSampler:  37%|███"]
         )
 
     def test_ansi_colour_is_stripped(self) -> None:
-        # ComfyUI's real sign-off line, which would otherwise render its escapes verbatim.
+        # ComfyUI's real sign-off line, escapes included.
         lines = assemble_log_lines(
             writes("\x1b[32m[INFO]\x1b[0m \x1b[32mPrompt executed in 00:11:52\x1b[0m", "\n")
         )
@@ -44,7 +44,7 @@ class AssembleLogLinesTests(unittest.TestCase):
         self.assertEqual(lines, ["[INFO] Prompt executed in 00:11:52"])
 
     def test_an_erase_before_the_newline_keeps_its_line(self) -> None:
-        """Pins the ANSI strip ahead of the newline pass; the other order eats the line."""
+        """The other order eats the line."""
         self.assertEqual(
             assemble_log_lines(writes("Prompt executed\r\x1b[K\n")), ["Prompt executed"]
         )
@@ -63,7 +63,7 @@ class AssembleLogLinesTests(unittest.TestCase):
         self.assertEqual(lines, ["a", "", "b"])
 
     def test_leading_whitespace_survives_and_trailing_does_not(self) -> None:
-        # The phase banners are indented, and a traceback's shape is its indentation.
+        # A traceback's shape is its indentation.
         lines = assemble_log_lines(writes("  [18:56:55.945]  Phase 3   \n"))
 
         self.assertEqual(lines, ["  [18:56:55.945]  Phase 3"])

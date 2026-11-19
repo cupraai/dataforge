@@ -1,15 +1,15 @@
 from typing import Final, TypedDict
 
-# Written back in their own format by edits, the watermark and metadata stripping.
+# Written back in their own format.
 NATIVE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
-# Browsers decode none of these, so `/media` serves a WebP rendition of the picture instead.
+# Browsers decode none of these; `/media` serves a WebP rendition.
 DISPLAY_RENDITION_EXTENSIONS = {".heic", ".tif", ".tiff"}
-# Everything Pillow reads as a still: listed, captioned and given to jobs that read pixels.
+# Everything Pillow reads as a still.
 IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | DISPLAY_RENDITION_EXTENSIONS | {".avif"}
 GIF_EXTENSION = ".gif"
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".m4v", ".flv", ".webm"}
 
-# GIF is still for decode/caption and motion for frames/LoRA; keep the two sets separate.
+# GIF is still for decode/caption and motion for frames/LoRA.
 PILLOW_EXTENSIONS = IMAGE_EXTENSIONS | {GIF_EXTENSION}
 MOTION_EXTENSIONS = VIDEO_EXTENSIONS | {GIF_EXTENSION}
 
@@ -17,37 +17,33 @@ MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | MOTION_EXTENSIONS
 
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".opus"}
 
-# Model weights: listed, inspected and moved around, never captioned. Pickled checkpoints stay
-# out because reading one runs code.
+# Pickled checkpoints stay out: reading one runs code.
 MODEL_EXTENSIONS = {".safetensors"}
 
-# What a stem caption can belong to; jobs list MEDIA_EXTENSIONS, so audio is captioned by hand.
+# Jobs list MEDIA_EXTENSIONS, so audio is captioned by hand.
 CAPTIONED_EXTENSIONS = MEDIA_EXTENSIONS | AUDIO_EXTENSIONS
 
-# Listed, served and moved around.
 GALLERY_EXTENSIONS = CAPTIONED_EXTENSIONS | MODEL_EXTENSIONS
 
-# The safetensors library refuses longer headers; so does the header reader.
+# The safetensors library refuses longer headers.
 SAFETENSORS_MAX_HEADER_BYTES = 100_000_000
 
-# Header/metadata readers only; ffmpeg accepts a wider set.
+# Header readers only; ffmpeg accepts more.
 ISOBMFF_EXTENSIONS = {".mp4", ".mov", ".m4v"}
 
 COMFY_WORKFLOW_EXTENSIONS = {".png"} | ISOBMFF_EXTENSIONS
 
-# `-movflags`/`-c:a copy` only work on the MP4 family; GIFs take their own palette-rebuild path.
+# `-movflags`/`-c:a copy` only work on the MP4 family.
 WATERMARK_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTENSION}
 
-# Browser-decodable only: the editor reads size from `<video>`. Muxers here all accept `-movflags`.
+# Browser-decodable; all accept `-movflags`.
 VIDEO_EDIT_EXTENSIONS = ISOBMFF_EXTENSIONS
 VIDEO_EDIT_MUXERS = {".mp4": "mp4", ".m4v": "mp4", ".mov": "mov"}
 
-# Edited in place, so each keeps its own format: the muxer is the one it was written with.
+# Edited in place, so each keeps its own format.
 AUDIO_EDIT_MUXERS = {".wav": "wav", ".mp3": "mp3", ".flac": "flac"}
 
-# Sound shaping, shared by the gallery's audio edit and the editor's audio clips. The bands are
-# RBJ biquads: ffmpeg's filters and the browser's BiquadFilterNode draw the same curves from
-# these numbers, which is what lets the preview play what the render writes.
+# Shared with the browser's BiquadFilterNode so preview and render agree.
 AUDIO_EQ_BASS_HZ = 120.0
 AUDIO_EQ_MID_HZ = 1000.0
 AUDIO_EQ_TREBLE_HZ = 6000.0
@@ -57,11 +53,11 @@ AUDIO_LOW_CUT_MIN_HZ = 20.0
 AUDIO_LOW_CUT_MAX_HZ = 500.0
 AUDIO_HIGH_CUT_MIN_HZ = 2000.0
 AUDIO_HIGH_CUT_MAX_HZ = 20000.0
-# Noise reduction at full strength: afftdn's reduction in dB. More starts to sound underwater.
+# afftdn's reduction in dB; more sounds underwater.
 AUDIO_NOISE_REDUCTION_MAX_DB = 30.0
 AUDIO_PITCH_MAX_SEMITONES = 12
 
-# The multi-track editor previews in the browser and renders with ffmpeg; GIF stays out.
+# GIF stays out of the multi-track editor.
 VIDEO_PROJECT_VIDEO_EXTENSIONS = ISOBMFF_EXTENSIONS
 VIDEO_PROJECT_IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS
 VIDEO_PROJECT_AUDIO_EXTENSIONS = set(AUDIO_EDIT_MUXERS)
@@ -69,36 +65,34 @@ VIDEO_PROJECT_SOURCE_EXTENSIONS = (
     VIDEO_PROJECT_VIDEO_EXTENSIONS | VIDEO_PROJECT_IMAGE_EXTENSIONS | VIDEO_PROJECT_AUDIO_EXTENSIONS
 )
 
-# Two suffixes deep. A draft is `<stem>-edit<suffix>`; an export's snapshot keeps the whole
-# video name, `<name>.mp4<suffix>`, so file operations carry it like `.bak`.
+# A draft is `<stem>-edit<suffix>`; an export snapshot is `<name>.mp4<suffix>`.
 VIDEO_PROJECT_SUFFIX = ".video-project.json"
 VIDEO_PROJECT_DRAFT_TAG = "-edit"
 VIDEO_PROJECT_EXPORT_TAG = "-edited"
 VIDEO_PROJECT_EXPORT_EXTENSION = ".mp4"
 VIDEO_PROJECT_FORMAT_VERSION = 1
 
-# Must not end in a media suffix or `folder_scan` would list a half-written export.
+# Must not end in a media suffix or `folder_scan` lists it.
 VIDEO_PROJECT_EXPORT_TEMP_SUFFIX = ".export-tmp"
 
-# Shorter clips cannot hold one frame at the slowest rate a project accepts.
+# Shorter clips cannot hold one frame at the slowest rate.
 VIDEO_PROJECT_MIN_CLIP_SECONDS = 0.04
-# Overlap tolerance for float noise from a drag; well under one frame at any rate.
+# Well under one frame at any rate.
 VIDEO_PROJECT_TIME_EPSILON = 1e-4
 VIDEO_PROJECT_MAX_TRACKS = 16
-# A still placed on the timeline starts this long; its duration is edited from there.
+# A still's default length on the timeline.
 VIDEO_PROJECT_STILL_SECONDS = 5.0
-# A project opened without a video; the first video added names it after itself.
+# The first video added names it.
 VIDEO_PROJECT_UNTITLED_NAME = "Untitled project"
-# A browser-playable H.264 copy of a source the preview cannot decode: `<stem>-h264.mp4`.
+# A playable H.264 copy: `<stem>-h264.mp4`.
 VIDEO_PROJECT_COMPATIBLE_TAG = "-h264"
-# Export audio protection: the limiter's ceiling and the loudness normalization aims at.
-# -1 dBTP leaves room for lossy encoders; -14 LUFS is the common streaming playback level.
+# -1 dBTP leaves room for lossy encoders; -14 LUFS is the streaming norm.
 VIDEO_PROJECT_TRUE_PEAK_CEILING_DB = -1.0
 VIDEO_PROJECT_LOUDNESS_TARGET_LUFS = -14.0
-# Saves keep an automatic checkpoint at most this often, and only the newest few of them.
+# Automatic checkpoints: at most this often, newest few kept.
 VIDEO_PROJECT_CHECKPOINT_SECONDS = 600
 VIDEO_PROJECT_MAX_CHECKPOINTS = 30
-# Ducking lowers the other tracks over this ramp before speech starts and after it ends.
+# Ducking ramps the other tracks down over this before and after speech.
 VIDEO_PROJECT_DUCK_RAMP_SECONDS = 0.3
 VIDEO_PROJECT_MAX_KEYFRAMES = 200
 
@@ -107,20 +101,18 @@ class VideoExportQuality(TypedDict):
     crf: int
     preset: str
     audio_kbps: int
-    #: What the export dialog's size estimate assumes at 1080p, a middle reading of sample
-    #: clips: rate-factor output varies with the footage, several times over.
+    #: The export size estimate at 1080p; real output varies several times over.
     bits_per_pixel: float
 
 
-#: Keyed by the wire ``VideoProjectQuality``; x264 rate factor and speed, AAC bitrate.
+#: x264 rate factor and speed, AAC bitrate.
 VIDEO_PROJECT_QUALITY_PRESETS: dict[str, VideoExportQuality] = {
     "standard": {"crf": 20, "preset": "fast", "audio_kbps": 192, "bits_per_pixel": 0.08},
     "high": {"crf": 16, "preset": "slow", "audio_kbps": 256, "bits_per_pixel": 0.13},
     "small": {"crf": 27, "preset": "medium", "audio_kbps": 128, "bits_per_pixel": 0.03},
 }
 
-#: Keyed by the wire ``VideoProjectSizePreset``: the short side of the frame. The long side keeps
-#: the project's own aspect, and the project dialog offers the same resolutions.
+#: The frame's short side; the long side keeps the project's aspect.
 VIDEO_PROJECT_SIZE_PRESET_SHORT_SIDES: dict[str, int] = {
     "480p": 480,
     "720p": 720,
@@ -129,35 +121,35 @@ VIDEO_PROJECT_SIZE_PRESET_SHORT_SIDES: dict[str, int] = {
     "2160p": 2160,
 }
 
-# GIF delays are per-frame, not a rate; 24 matches the rest of the video tooling.
+# GIF delays are per-frame; 24 matches the rest of the video tooling.
 GIF_MP4_FRAME_RATE = 24.0
 GIF_MP4_EXTENSION = ".mp4"
 
-# The tagger stores detections down to this score; the confidence setting cannot go lower.
+# The confidence setting cannot go lower.
 TAG_SCORE_FLOOR = 0.1
 
 # GIF excluded: a Pillow round-trip flattens the animation.
 IMAGE_EDIT_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS
 
-# Appended to the whole filename so `clip.mp4` and `clip.mov` keep distinct backups.
+# On the whole filename, so `clip.mp4` and `clip.mov` keep distinct backups.
 EDIT_BACKUP_SUFFIX = ".bak"
 
-# Two suffixes deep; read through `edit_sidecars.edit_spec_path`, not `with_suffix`.
+# Two suffixes deep; use `edit_sidecars.edit_spec_path`, not `with_suffix`.
 EDIT_SIDECAR_SUFFIX = ".edit.json"
 
-# Must not end in a media suffix or `folder_scan` would list the temp as a gallery item.
+# Must not end in a media suffix or `folder_scan` lists it.
 EDIT_TEMP_SUFFIX = ".edit-tmp"
 EDIT_STALE_SUFFIX = ".edit-stale"
 
-# The pixels of an edit's generative fills, one archive per whole filename like the backup.
+# Generative fill pixels, one archive per whole filename.
 FILL_ASSETS_SUFFIX = ".fills"
 
-#: A spec's fills form one chain: each was generated from the original plus every fill before it.
+#: Each fill was generated from the original plus every fill before it.
 MAX_IMAGE_FILLS = 16
 
 MAX_FILL_INSTRUCTION_LENGTH = 1000
 
-# Explicit types: Windows `mimetypes.guess_type` can fall through to `text/plain`.
+# Windows `mimetypes.guess_type` can fall back to `text/plain`.
 MEDIA_MIME_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -186,19 +178,19 @@ MEDIA_MIME_TYPES = {
     ".safetensors": "application/octet-stream",
 }
 
-# Only .txt is a caption; leftover Ideogram .json next to media is not.
+# Leftover Ideogram .json is not a caption.
 CAPTION_SIDECAR_EXTENSIONS = (".txt",)
 SIDECAR_EXTENSIONS = set(CAPTION_SIDECAR_EXTENSIONS)
-# Model weights run to many GB, more than one upload request should carry.
+# Model weights run to many GB.
 IMPORT_EXTENSIONS = CAPTIONED_EXTENSIONS | SIDECAR_EXTENSIONS
 
-# Two suffixes deep; `Path.stem`/`Path.suffix` both mis-read it.
+# Two suffixes deep.
 ISSUE_SIDECAR_SUFFIX = ".issue.json"
 
-# Own file so a caption-issue resolver cannot clear a duplicate finding, and vice versa.
+# Own file, so neither resolver clears the other's findings.
 DUPLICATE_SIDECAR_SUFFIX = ".duplicate.json"
 
-# Prompt states this cap; the parser enforces it.
+# The prompt states this cap.
 MAX_ISSUE_FIXES = 3
 
 MAX_RULE_FINDINGS = 5
@@ -208,37 +200,35 @@ ISSUE_FIX_SENTINELS = frozenset({"none", "n/a", "no issues", "no changes"})
 
 CAPTION_BACKUP_DIR_NAME = ".backup"
 
-# A caption write waits this long for another write to the same file instead of failing;
-# both are short, and a job writing the caption a user is typing into should not cost them
-# their save.
+# A caption write waits this long for another write to the same file instead of failing.
 CAPTION_CLAIM_WAIT_SECONDS = 2.0
 
-# Absent from SKIP_DIR_NAMES: the user browses these results.
+# Absent from SKIP_DIR_NAMES: the user browses these.
 WATERMARK_DIR_NAME = "watermarked"
 
-# Same as WATERMARK_DIR_NAME: the review queue pairs candidates with sources by name.
+# The review queue pairs candidates with sources by name.
 STAGING_DIR_NAME = "staging"
 
-# ComfyUI saves PNG for stills; a candidate pairs by stem and keeps its own format on accept.
+# A candidate pairs by stem and keeps its own format on accept.
 COMFY_CANDIDATE_SUFFIX = ".png"
 
-# Order decides which staged file a source claims; every entry must be listable media.
+# Order decides which staged file a source claims.
 COMFY_CANDIDATE_SUFFIXES = (COMFY_CANDIDATE_SUFFIX, ".mp4", ".mov", GIF_EXTENSION)
 
-# Two suffixes deep, like issue and duplicate findings.
+# Two suffixes deep.
 COMFY_CANDIDATE_SIDECAR_SUFFIX = ".comfy.json"
 
-# Not EDIT_ markers: image_edit sweeps every *.edit-tmp and would delete an in-flight accept.
+# Not EDIT_ markers: image_edit sweeps every *.edit-tmp.
 COMFY_TEMP_SUFFIX = ".comfy-tmp"
 COMFY_STALE_SUFFIX = ".comfy-stale"
 
-# Accepting decodes the whole candidate clip; staging only checks its first frame.
+# Staging only checks a candidate clip's first frame.
 COMFY_ACCEPT_DECODE_TIMEOUT_SECONDS = 300
 
-# The workflow decides what it can read; a file its loader refuses fails with ComfyUI's own error.
+# A file the loader refuses fails with ComfyUI's own error.
 COMFY_PROCESS_EXTENSIONS = MEDIA_EXTENSIONS
 
-# Any media file can hold a candidate, so the settle endpoints gate on this, not on editability.
+# Any media file can hold a candidate, so settle endpoints gate on this.
 CANDIDATE_SOURCE_EXTENSIONS = MEDIA_EXTENSIONS
 
 SKIP_DIR_NAMES = {
@@ -263,16 +253,15 @@ SYSPROMPT_FILENAME = ".sysprompt"
 
 CAPTION_RULES_FILENAME = ".captionrules"
 
-#: A free-text note shown above the folder's gallery; unlike instructions, it is never inherited.
+#: Never inherited, unlike instructions.
 NOTE_FILENAME = ".note"
 
 CAPTION_EDIT_PREVIEW_LIMIT = 3
 
-# One caption's find-and-replace may take this long. A valid pattern can backtrack for
-# minutes, and a job only checks for cancellation between files.
+# A pattern can backtrack for minutes; jobs only check cancel between files.
 CAPTION_REGEX_TIMEOUT_SECONDS = 1.0
 
-#: User-facing job names, shared so the UI and job notifications cannot drift apart.
+#: Shared so the UI and job notifications cannot drift apart.
 JOB_TYPE_LABELS: dict[str, str] = {
     "auto_caption": "Auto-caption",
     "set_captions": "Set captions",
@@ -295,15 +284,15 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "comfy_generate": "Generate with ComfyUI",
 }
 
-#: Adjust tools rest at 0: tones and colors span ±1, detail tools 0..1, hue is degrees.
+#: Tones and colors span ±1, detail tools 0..1, hue is degrees.
 ADJUST_MAX_HUE = 180.0
 
-#: Curve constants of ``color_adjust``; the TS port reads the same numbers.
+#: ``color_adjust`` curve constants; the TS port reads the same numbers.
 COLOR_ADJUST: dict[str, float] = {
     "exposure_stops": 2.0,
     "warmth_gain": 0.35,
     "tint_gain": 0.25,
-    # Above 4 (lift) or 1 (crush) the shadow and highlight curves stop being monotonic.
+    # Above 4 (lift) or 1 (crush) the curves stop being monotonic.
     "shadow_lift": 2.0,
     "shadow_crush": 0.8,
     "highlight_recover": 2.0,
@@ -319,7 +308,7 @@ COLOR_ADJUST: dict[str, float] = {
     "tone_chroma_cap": 4.0,
 }
 
-#: Noise reduction is a self-guided filter; definition a local-contrast boost on luma.
+#: Self-guided filter; local-contrast boost on luma.
 COLOR_DETAIL: dict[str, float] = {
     "noise_luma_radius": 2,
     "noise_luma_std": 0.06,
@@ -335,36 +324,33 @@ ADJUST_PREVIEW_LUT_SIZE = 33
 #: Pillow's Color3DLUT stops at 65.
 ADJUST_RENDER_LUT_SIZE = 65
 
-#: The wand's dial position that applies its reading once; the far end applies it twice.
+#: Applies the reading once; the far end applies it twice.
 AUTO_ADJUST_DEFAULT_AMOUNT = 0.5
 
-#: One "MP" of a resize target is 1024², the unit ComfyUI's resolution nodes use.
+#: One "MP" is 1024², as in ComfyUI's resolution nodes.
 MEGAPIXEL = 1024 * 1024
 DEFAULT_RESIZE_MEGAPIXELS = 2.0
 DEFAULT_RESIZE_MULTIPLE = 32
 MAX_RESIZE_MEGAPIXELS = 64.0
 MAX_RESIZE_MULTIPLE = 256
 
-#: Split into clips writes here, beside the source videos.
 CLIPS_DIR_NAME = "clips"
-#: Frame rates a split or a video edit can convert to; mirrored by ``VideoFrameRate`` in schemas.
+#: Mirrored by ``VideoFrameRate`` in schemas.
 VIDEO_FRAME_RATES = (16, 24, 25, 30)
 DEFAULT_SPLIT_INTERVAL_SECONDS = 5.0
 DEFAULT_SPLIT_LONGEST_SECONDS = 5.0
 DEFAULT_SPLIT_SHORTEST_SECONDS = 1.0
 MIN_SPLIT_CLIP_SECONDS = 0.5
 MAX_SPLIT_CLIP_SECONDS = 600.0
-#: Trim to length caps each video's played length, in seconds.
+#: Seconds of played length.
 DEFAULT_TRIM_LENGTH_SECONDS = 5.0
 MIN_TRIM_LENGTH_SECONDS = 0.5
 MAX_TRIM_LENGTH_SECONDS = 3600.0
-#: Generate with ComfyUI runs its preset this many times per job.
 DEFAULT_COMFY_GENERATE_COUNT = 1
 MAX_COMFY_GENERATE_COUNT = 100
-#: Generated files are named ``<prefix>_0001``; the prefix is a stem, so it stays short.
+#: Files are named ``<prefix>_0001``, so the prefix stays short.
 MAX_COMFY_GENERATE_PREFIX_LENGTH = 80
 
-#: Saved Edit captions instructions: how many, and how long a name and a text may be.
 MAX_INSTRUCTION_SNIPPETS = 100
 MAX_INSTRUCTION_SNIPPET_NAME_LENGTH = 80
 MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH = 8000
@@ -373,13 +359,12 @@ MAX_WORKFLOWS = 50
 MAX_WORKFLOW_STEPS = 12
 MAX_WORKFLOW_NAME_LENGTH = 80
 
-#: The gallery order until the user picks one: the newest files are the ones being worked on.
+#: The newest files are the ones being worked on.
 DEFAULT_GALLERY_SORT: Final = "date-desc"
 
-#: The card actions shown until the user picks others.
 DEFAULT_GALLERY_CARD_ACTIONS: Final = ("open", "copy_caption", "delete")
 
-# Each look is a second color grade, blended over the user's manual grade in the LUT.
+# Blended over the manual grade in the LUT.
 STYLE_PRESETS: dict[str, dict[str, float]] = {
     "vivid": {"vibrance": 0.55, "contrast": 0.32, "brilliance": 0.24},
     "golden": {"warmth": 0.78, "tint": 0.14, "shadows": 0.28, "highlights": -0.24},
@@ -410,14 +395,14 @@ STYLE_PRESETS: dict[str, dict[str, float]] = {
     "noir": {"saturation": -1.0, "contrast": 0.72, "black_point": 0.2},
 }
 
-# Additive sRGB casts peak in the midtones and taper to zero at black and white.
+# Additive sRGB casts peak in the midtones.
 STYLE_TINTS: dict[str, tuple[float, float, float]] = {
     "glacier": (-0.06, 0.025, 0.1),
     "blue_hour": (-0.11, 0.015, 0.15),
     "moonlight": (-0.035, -0.025, 0.13),
 }
 
-#: Emitted into ``frontend/src/shared/constants.ts``. Sets are sorted; sequences keep walk order.
+#: Emitted into ``frontend/src/shared/constants.ts``.
 SHARED_CONSTANTS: dict[str, object] = {
     "IMPORT_EXTENSIONS": sorted(IMPORT_EXTENSIONS),
     "CAPTION_SIDECAR_EXTENSIONS": list(CAPTION_SIDECAR_EXTENSIONS),

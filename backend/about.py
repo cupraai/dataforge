@@ -1,4 +1,4 @@
-"""Facts about this installation, for the Settings dialog and for bug reports."""
+"""Facts about this installation, for the Settings dialog and bug reports."""
 
 from __future__ import annotations
 

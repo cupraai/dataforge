@@ -10,9 +10,7 @@ $control-height: 2.25rem;
 $control-height-sm: 2rem;
 $control-height-xs: 1.5rem;
 $panel-padding: 1.125rem;
-// The focus ring sits inside the control's edge (base/_focus.scss), so nothing clips it. Small
-// marks take a detached ring `$focus-ring-gap` outside instead; a scroller holding them reserves
-// `$focus-ring-space`: the ring and its gap plus a pixel of slack for fractional widths.
+// The ring sits inside the edge; small marks get a detached ring and reserve `$focus-ring-space`.
 $focus-ring-width: 2px;
 $focus-ring-gap: 2px;
 $focus-ring-space: 0.3125rem;
@@ -40,7 +38,8 @@ $disabled-opacity: 0.5;
 $icon-muted-opacity: 0.7;
 $icon-muted-strong-opacity: 0.8;
 
-// Whole multiples of Lucide's 24-unit grid land on whole pixels. `base` is off-grid on purpose: 12px is sharper but too small as the default control icon.
+// Whole multiples of Lucide's 24-unit grid land on whole pixels. `base` is off-grid: 12px is
+// sharper but too small as the default control icon.
 $icon-size-sm: 0.75rem; // 12px — half the grid
 $icon-size-base: 1rem; // 16px — off-grid, kept for legibility
 $icon-size-lg: 1.5rem; // 24px — the grid itself
@@ -50,7 +49,8 @@ $icon-size-xl: 2.25rem; // 36px — one and a half
 $icon-stroke: 2px;
 $icon-stroke-sm: 1.5px;
 
-// Not visual-order: the drawer outranks base dialogs because its header trigger sits behind every 1000-level backdrop. Sticky section headers dock above gallery cards (z up to 2).
+// Not visual order: the drawer outranks base dialogs because its header trigger sits behind every
+// 1000-level backdrop. Sticky section headers dock above gallery cards (z up to 2).
 $z-index-sticky-section-header: 14;
 $z-index-drawer: 1050;
 $z-index-dialog: 1000;

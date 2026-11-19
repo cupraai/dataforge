@@ -16,8 +16,7 @@ export function comfyPresetsQueryOptions() {
   return queryOptions({
     queryKey: ["comfy-presets"],
     queryFn: ({ signal }) => fetchComfyPresets(signal),
-    // An unreachable ComfyUI answers `available: false`; the backend being down is a failure
-    // each reader reports at once.
+    // An unreachable ComfyUI answers `available: false`; a down backend fails at once.
     retry: false,
   });
 }

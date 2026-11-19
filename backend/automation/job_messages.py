@@ -1,5 +1,3 @@
-"""User-facing job failure messages. Single source of truth for API responses."""
-
 from __future__ import annotations
 
 
@@ -21,7 +19,7 @@ def _auto_caption_server_message(count: int) -> str:
 
 
 def auto_caption_failure_message(stats: dict[str, int]) -> str | None:
-    """Blame the model server only for ``api_error``; decode failures never reached it."""
+    """Decode failures never reached the model server."""
     api_errors = _count(stats, "api_error")
     if api_errors:
         return _auto_caption_server_message(api_errors)
@@ -122,7 +120,7 @@ def rename_media_error_message(stats: dict[str, int]) -> str | None:
 
 
 def comfy_process_error_message(stats: dict[str, int]) -> str | None:
-    """Blame ComfyUI only for ``comfy_error``; read/write failures never reached the graph."""
+    """Read/write failures never reached the graph."""
     comfy_errors = _count(stats, "comfy_error")
     read_errors = _count(stats, "read_error")
     error_count = _count(stats, "comfy_error", "read_error", "write_error")
@@ -151,7 +149,7 @@ def comfy_process_error_message(stats: dict[str, int]) -> str | None:
 
 
 def comfy_generate_error_message(stats: dict[str, int]) -> str | None:
-    """Per run, not per file: one run of a batch preset writes several files."""
+    """Per run: one run of a batch preset writes several files."""
     comfy_errors = _count(stats, "comfy_error")
     error_count = _count(stats, "comfy_error", "write_error")
     if error_count == 0:
@@ -323,7 +321,7 @@ def verify_captions_failure_message(stats: dict[str, int]) -> str | None:
 
 
 def edit_captions_failure_message(stats: dict[str, int]) -> str | None:
-    """Errors only; ``rejected`` and ``no_caption`` are warnings, not failures."""
+    """``rejected`` and ``no_caption`` are warnings, not failures."""
     api_errors = _count(stats, "api_error")
     read_errors = _count(stats, "read_error")
     frame_errors = _count(stats, "frame_error")

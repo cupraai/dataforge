@@ -1,4 +1,4 @@
-"""Pixel size and video or audio length from a media file header, not its sample data. Non-MP4-family video containers return empty."""
+"""Size and length from headers; non-MP4-family video returns empty."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 _NAMESPACE = "media-info"
 
-#: A `moov` box past this is not a header any more.
+#: A `moov` box past this is not a header.
 _MAX_MOOV_BYTES = 8 << 20
 
 type Dimensions = tuple[int, int] | None
@@ -33,14 +33,12 @@ class MediaInfo:
     width: int | None = None
     height: int | None = None
     duration: float | None = None
-    #: None outside the MP4 family, where no track table is read. Never guess from the extension.
+    #: None outside the MP4 family; never guessed from the extension.
     has_audio: bool | None = None
 
 
 @dataclass(frozen=True)
 class TrackInfo:
-    """One ``trak``, as read from its header boxes."""
-
     dimensions: Dimensions = None
     duration: float | None = None
     is_audio: bool = False
@@ -51,7 +49,7 @@ def _checked(width: int, height: int) -> Dimensions:
 
 
 def _image_dimensions(path: Path) -> Dimensions:
-    """Raises ``OSError`` when the file cannot be read, or PIL fails partway through it."""
+    """Raises ``OSError`` when unreadable, even partway through."""
     try:
         with Image.open(path) as image:
             return _checked(*displayed_size(image))
@@ -61,7 +59,7 @@ def _image_dimensions(path: Path) -> Dimensions:
 
 
 def _read_moov(handle: BinaryIO, file_size: int) -> bytes | None:
-    """The `moov` box, seeking over every box before it. Size 1 is 64-bit; size 0 runs to the end."""
+    """Size 1 is 64-bit; 0 runs to the end."""
     position = 0
 
     while position + 8 <= file_size:
@@ -128,11 +126,11 @@ def _find_box(data: bytes, start: int, end: int, box_type: bytes) -> tuple[int, 
 
 
 def _track_dimensions(data: bytes, start: int, end: int) -> Dimensions:
-    """A `tkhd` box's display size, which is 16.16 fixed point."""
+    """A `tkhd` box's display size, in 16.16 fixed point."""
     if start >= end:
         return None
     version = data[start]
-    # Version 1 widens the creation, modification, and duration fields to 64 bits.
+    # Version 1 widens the time fields to 64 bits.
     offset = start + 4 + (32 if version == 1 else 20) + 52
     if offset + 8 > end:
         return None
@@ -143,7 +141,7 @@ def _track_dimensions(data: bytes, start: int, end: int) -> Dimensions:
 
 
 def _timescale_duration(data: bytes, start: int, end: int) -> float | None:
-    """Seconds from an ``mdhd`` or ``mvhd`` full box, or ``None`` when unreadable."""
+    """``None`` when unreadable."""
     if start >= end:
         return None
 
@@ -164,7 +162,7 @@ def _timescale_duration(data: bytes, start: int, end: int) -> float | None:
 
 
 def _handler_type(data: bytes, start: int, end: int) -> bytes | None:
-    """An ``hdlr`` full box: 4 version/flags then 4 pre_defined, and only then the handler type."""
+    """4 version/flags, 4 pre_defined, then the handler type."""
     offset = start + 8
     if offset + 4 > end:
         return None
@@ -199,7 +197,7 @@ def _video_info(path: Path, file_size: int) -> MediaInfo:
         logger.debug("No video header for %s: no moov box", path)
         return MediaInfo()
 
-    # Largest picture track, not the first: a sound track is 0x0. ``mvhd`` is the length fallback.
+    # Largest picture track: a sound track is 0x0.
     largest: Dimensions = None
     track_duration: float | None = None
     movie_duration: float | None = None
@@ -232,7 +230,7 @@ def _image_info(path: Path) -> MediaInfo:
 
 
 def media_info(path: Path, media_type: str, mtime_ns: int, size: int) -> MediaInfo:
-    """Pixel size and, for MP4-family video and audio, length in seconds. Missing facts are ``None``."""
+    """Pixel size and, for MP4-family media, length; missing facts are ``None``."""
     loaders: dict[str, Callable[[], MediaInfo]] = {
         "video": lambda: _video_info(path, size),
         "image": lambda: _image_info(path),
@@ -246,7 +244,7 @@ def media_info(path: Path, media_type: str, mtime_ns: int, size: int) -> MediaIn
 
 
 def media_dimensions(path: Path, media_type: str, mtime_ns: int, size: int) -> Dimensions:
-    """``(width, height)``, or ``None`` when they cannot be read."""
+    """``None`` when unreadable."""
     info = media_info(path, media_type, mtime_ns, size)
     if info.width is None or info.height is None:
         return None

@@ -1,11 +1,7 @@
 import { screenDeltaToSource, type Orientation, type Size } from "./crop";
 import { swapsAxes } from "./imageEdit";
 
-/**
- * The Fill tool's selection: brush strokes in pixels of the EXIF-oriented original, the frame the
- * stage shows before any crop or turn. Strokes stay vectors until Generate, which rasterizes them
- * at the original's full size; undo is popping a stroke.
- */
+/** Brush strokes in EXIF-oriented original pixels, rasterized at Generate; undo pops a stroke. */
 
 export type BrushMode = "paint" | "erase";
 
@@ -38,13 +34,7 @@ export interface ScreenRect {
   height: number;
 }
 
-/**
- * Where a pointer lands on the upright frame, as fractions of it.
- *
- * `rect` is the overlay's on-screen bounding box. A quarter turn and the mirrors map the box's
- * centre onto itself, so the offset from the centre is undone like any screen delta and measured
- * against the frame's sides as they lie on screen.
- */
+/** Pointer position on the upright frame, as fractions; turns and mirrors keep the box centre. */
 export function clientPointToFraction(
   clientX: number,
   clientY: number,
@@ -73,16 +63,12 @@ export function fractionToSource(point: FillPoint, source: Size): FillPoint {
   return { x: point.x * source.width, y: point.y * source.height };
 }
 
-/** Whether anything is left to fill: erasing everything painted still counts as painted here,
- * and the server refuses an empty raster with its own message. */
+/** Erasing everything still counts; the server refuses an empty raster. */
 export function hasPaint(strokes: readonly FillStroke[]): boolean {
   return strokes.some((stroke) => stroke.mode === "paint");
 }
 
-/**
- * Draw `strokes` scaled by `scale`. Paint adds `color`; erase cuts back to transparent, so the
- * same pass serves the tinted overlay and the black-and-white raster.
- */
+/** Paint adds `color`, erase clears; one pass serves the overlay and the raster. */
 export function drawStrokes(
   context: CanvasRenderingContext2D,
   strokes: readonly FillStroke[],

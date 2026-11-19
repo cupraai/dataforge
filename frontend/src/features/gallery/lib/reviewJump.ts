@@ -6,11 +6,7 @@ export function isUncaptionedItem(item: GalleryItem): boolean {
   return !item.has_description && isCaptionable(item);
 }
 
-/**
- * The nearest other item that matches, walking from `index` in `direction` and wrapping past
- * either end; -1 when no other item matches. The current item never counts: a jump that lands
- * where it started reads as a key that did nothing.
- */
+/** The nearest other match, wrapping; -1 when none. The current item never counts. */
 export function nextIndexWhere(
   items: readonly GalleryItem[],
   index: number,

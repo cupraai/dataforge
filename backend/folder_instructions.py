@@ -1,4 +1,4 @@
-"""Per-folder instruction files: a folder without its own uses the nearest parent's."""
+"""A folder without its own file uses the nearest parent's."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def find_instruction_file(folder: Path, filename: str) -> Path | None:
 
 
 def instruction_file_reaches(folder: Path, job_folder: Path, filename: str) -> bool:
-    """Whether writing ``folder``'s own file changes which one ``job_folder`` resolves to."""
+    """Whether ``folder``'s own file changes what ``job_folder`` resolves to."""
     for directory in (job_folder, *job_folder.parents):
         if directory == folder:
             return True
@@ -39,7 +39,7 @@ def describe_instruction_file(
     locked_by_job_id: str | None,
     validate: Callable[[str], object] | None = None,
 ) -> InstructionFileResponse:
-    """Keep source errors separate; the nearest file wins even when it cannot be used."""
+    """The nearest file wins even when it cannot be used."""
     own = folder / filename
     has_file = own.is_file()
     parent = None if folder.parent == folder else find_instruction_file(folder.parent, filename)

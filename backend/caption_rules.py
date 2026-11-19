@@ -1,4 +1,4 @@
-"""Deterministic caption checks read from the nearest ``.captionrules`` file."""
+"""Caption checks from the nearest ``.captionrules`` file."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def _validation_message(exc: ValidationError) -> str:
 
 
 def parse_caption_rules(text: str) -> CaptionRules:
-    """Raise ``ValueError`` with a message fit to show beside the editor."""
+    """The message shows beside the editor."""
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError as exc:
@@ -146,7 +146,7 @@ def _count_non_overlapping(words: list[str], phrase: list[str]) -> int:
 
 
 class CaptionRuleChecker:
-    """Compiles the patterns once so a job can check every caption with them."""
+    """The patterns, compiled once per job."""
 
     def __init__(self, rules: CaptionRules) -> None:
         self._rules = rules
@@ -268,7 +268,7 @@ def load_caption_rules_for(folder: Path) -> CaptionRules:
 
 
 def save_caption_rules(folder: Path, text: str) -> None:
-    """Validate, then save ``folder``'s own file; blank text removes it."""
+    """Blank text removes the file."""
     if text.strip():
         parse_caption_rules(text)
     save_instruction_file(folder, CAPTION_RULES_FILENAME, text)

@@ -41,10 +41,7 @@ function useThrottled(run: () => void, intervalMs: number) {
   return { schedule, cancel };
 }
 
-/**
- * Keeps the open folder's listing current: server pushes, a slow poll as a safety net, and a
- * check when the tab comes back. Each re-read asks for changes since the listing it holds.
- */
+/** Keeps the listing current via pushes, a slow poll and tab return, asking for changes since. */
 export function useFolderChangeDetection(folderPath: string | undefined) {
   const queryClient = useQueryClient();
   const live = Boolean(folderPath);
@@ -101,10 +98,7 @@ export function useFolderChangeDetection(folderPath: string | undefined) {
     if (event.fingerprint !== held.fingerprint) schedule();
   });
 
-  /**
-   * After writing to the folder itself: re-read what changed. Adopting the server's fingerprint
-   * instead would also absorb whatever else changed meanwhile, such as a running job's files.
-   */
+  /** After writing to the folder, re-read; adopting the fingerprint would hide other changes. */
   const syncBaseline = useCallback(async () => {
     if (!folderPath) return;
     await queryClient.invalidateQueries({ queryKey: key, exact: true });

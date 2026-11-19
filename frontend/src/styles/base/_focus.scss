@@ -1,6 +1,5 @@
-// Keyboard focus, app-wide: a ring whose outer edge is the control's own edge. Drawn inside the
-// box, so no scroll container or flush neighbour can clip it, and it follows the border radius.
-// Components only change where it is drawn, through the focus-ring mixins.
+// App-wide keyboard focus: a ring inside the control's edge, so nothing clips it.
+// Components only move it, through the focus-ring mixins.
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color, var(--focus-ring));
   outline-offset: calc(-1 * var(--focus-ring-width));

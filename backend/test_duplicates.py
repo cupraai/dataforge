@@ -161,7 +161,7 @@ class GroupingTests(unittest.TestCase):
 
 
 class SidecarNamingTests(unittest.TestCase):
-    """One sidecar per media file, not per stem, so ``clip.mp4`` and ``clip.png`` cannot share one."""
+    """One sidecar per media file, not per stem: ``clip.mp4`` and ``clip.png`` never share one."""
 
     def test_the_name_carries_the_media_extension(self) -> None:
         with TempMediaFolder() as root:
@@ -182,7 +182,7 @@ class SidecarNamingTests(unittest.TestCase):
             self.assertEqual(load_duplicate_finding(second), other)
 
     def test_clearing_one_leaves_the_other_alone(self) -> None:
-        """The bug itself: the unique file's clear took the duplicate's finding with it."""
+        """Clearing the unique file must not take the duplicate's finding with it."""
         with TempMediaFolder() as root:
             flagged = write_media(root, "clip.png")
             unique = write_media(root, "clip.jpg")

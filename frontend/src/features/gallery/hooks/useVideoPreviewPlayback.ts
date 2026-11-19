@@ -34,10 +34,7 @@ export interface VideoPreviewPlayback<Media extends HTMLMediaElement = HTMLVideo
   syncFrom: (video: Media) => void;
 }
 
-/**
- * Keeps preview playback inside the trim band and drives the marker, on frames rather than on
- * `timeupdate`: four events a second overshoot the out point and step the marker.
- */
+/** Keeps playback in the trim band on frames; `timeupdate` overshoots. */
 export function useVideoPreviewPlayback<Media extends HTMLMediaElement = HTMLVideoElement>(
   options: UseVideoPreviewPlaybackOptions<Media>,
 ): VideoPreviewPlayback<Media> {

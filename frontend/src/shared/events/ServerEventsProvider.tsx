@@ -25,8 +25,7 @@ export function ServerEventsProvider({ children }: { children: ReactNode }) {
   const keepAliveRef = useLatestRef(keepAlive);
   const applyVisibilityRef = useRef(() => {});
 
-  // Nothing replays frames sent while the stream was down or dropped, so re-read whatever
-  // pushes keep current, on every (re)connect and on every reported loss.
+  // Missed frames are not replayed, so re-read on every (re)connect and reported loss.
   const resync = useCallback(() => {
     void queryClient.invalidateQueries({ predicate: isPushFed });
   }, [queryClient]);

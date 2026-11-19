@@ -1,8 +1,4 @@
-"""Keyframes, crossfades, track and master levels, and ducking, rendered with the real ffmpeg.
-
-Pictures are read back frame by frame and sound in short windows, and compared with what
-``video_project_animation`` says the value is at that time: the rule the preview also follows.
-"""
+"""Keyframes, crossfades, levels and ducking, rendered with real ffmpeg."""
 
 from __future__ import annotations
 

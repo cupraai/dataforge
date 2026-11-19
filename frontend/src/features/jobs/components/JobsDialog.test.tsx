@@ -432,8 +432,7 @@ describe("JobsDialog", () => {
     const { rerender } = renderDrawer([captionJob]);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-    // Must re-render the same tree: a fresh mount would start with
-    // `drawerOpen` already false and never enter the closing phase.
+    // Re-render the same tree, or the closing phase never starts.
     jobsContext.drawerOpen = false;
     rerender(
       <JobsDialog

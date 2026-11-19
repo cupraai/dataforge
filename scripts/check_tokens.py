@@ -1,13 +1,4 @@
-"""Check that stylesheets size type and round corners from the scale tokens.
-
-Run from the project root:
-  backend/.venv/Scripts/python scripts/check_tokens.py
-
-A literal font size or corner radius drifts off the scale and is invisible to a later retune of
-it. Sizes come from ``var(--text-*)`` and radii from ``var(--radius-*)``; a file-level SCSS
-variable is accepted for a deliberate one-off, so its reason sits beside its definition. A
-radius may also be ``0``, a circle's ``50%``, or a hairline of at most 2px on a thin mark.
-"""
+"""Check that stylesheets size type and round corners from the scale tokens."""
 
 from __future__ import annotations
 

@@ -33,13 +33,11 @@ export function BackendUnavailable() {
     void refetch();
   }, [connected, refetch]);
 
-  // A refetch of a query without data clears its error, so a probe of an API that never answered
-  // would otherwise lift the cover, and re-read every failed view, on each poll.
+  // A refetch without data clears its error, so a never-answering API would lift the cover.
   const [down, setDown] = useState(false);
   if (!isFetching && isUnreachable(error) !== down) setDown(isUnreachable(error));
 
-  // Views show nothing for an unreachable backend, so whatever failed that way must be re-read
-  // once it answers; the push stream may reconnect later than this probe.
+  // Views show nothing while the backend is down, so re-read them once it answers.
   const wasDownRef = useRef(down);
   useEffect(() => {
     if (wasDownRef.current === down) return;

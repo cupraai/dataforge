@@ -1,10 +1,4 @@
-"""Tags the media in favorite folders in the background, never their subfolders.
-
-One daemon thread owns the model. Each step rescans the favorites, then tags for a short budget
-before looking again, so a new favorite or a new file is picked up within one step. A result
-lands in ``media_tags``, whose revision moves the folder fingerprint and so reaches open tabs.
-Off until the user turns it on; turned off, the step only reports so.
-"""
+"""Tags favorite folders' media in the background on one daemon thread; off by default."""
 
 from __future__ import annotations
 
@@ -60,9 +54,7 @@ class PendingFile:
 
 
 def pending_in_folder(folder: Path) -> list[PendingFile]:
-    """New, changed and queued files; a new vocabulary alone queues nothing, since re-tagging
-    a whole favorite takes long. Rows for files that left the folder are dropped on the way.
-    """
+    """New, changed and queued files; a new vocabulary alone queues nothing."""
     scan = scan_folder(folder)
     if scan is None:
         return []

@@ -11,10 +11,7 @@ interface ToolbarSortMenuProps {
   onChange: (value: SortOption) => void;
 }
 
-/**
- * An icon, not a dropdown: a select is as wide as its longest order. The icon shows the
- * direction; the menu picks a field, then one of that field's two directions.
- */
+/** An icon showing direction; the menu picks a field, then a direction. */
 export function ToolbarSortMenu({ value, onChange }: ToolbarSortMenuProps) {
   const menu = usePopupMenu();
   const { rootRef, triggerProps } = menu;

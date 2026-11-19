@@ -43,8 +43,7 @@ describe("GalleryListRow", () => {
       <GalleryListRow item={captionedItem} onSelect={vi.fn<(path: string) => void>()} />,
     );
 
-    // A caption paragraph would swamp a single-line row, and so would the word
-    // for its state - the label survives as the tooltip.
+    // Captions and state words would swamp a one-line row; the label is the tooltip.
     expect(screen.queryByText("Golden hour over the harbour")).toBeNull();
     expect(screen.queryByText("Captioned")).toBeNull();
 
