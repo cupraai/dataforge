@@ -119,151 +119,147 @@ export const GalleryCard = memo(function GalleryCard({
 
   return (
     <div className="card-cell">
-      <Tooltip content={item.name}>
-        <button
-          data-inspected={inspected || undefined}
-          type="button"
+      <button
+        data-inspected={inspected || undefined}
+        type="button"
+        className={classNames(
+          "card",
+          `card--${displayMode}`,
+          getCardModifierClass(item),
+          isMotion(item) && "card--video",
+          selected && "card--selected",
+        )}
+        {...hoverHandlers}
+        onClick={handleClick}
+        onDragStart={(event) => event.preventDefault()}
+        aria-label={
+          selectionMode ? `${selected ? "Deselect" : "Select"} ${item.name}` : `View ${item.name}`
+        }
+        aria-pressed={selectionMode ? selected : undefined}
+      >
+        <div
           className={classNames(
-            "card",
-            `card--${displayMode}`,
-            getCardModifierClass(item),
-            isMotion(item) && "card--video",
-            selected && "card--selected",
+            "card__media",
+            displayMode === "large" &&
+              (item.width ?? 0) > 0 &&
+              (item.height ?? 0) > 0 &&
+              "card__media--fitted",
           )}
-          {...hoverHandlers}
-          onClick={handleClick}
-          onDragStart={(event) => event.preventDefault()}
-          aria-label={
-            selectionMode ? `${selected ? "Deselect" : "Select"} ${item.name}` : `View ${item.name}`
-          }
-          aria-pressed={selectionMode ? selected : undefined}
         >
-          <div
-            className={classNames(
-              "card__media",
-              displayMode === "large" &&
-                (item.width ?? 0) > 0 &&
-                (item.height ?? 0) > 0 &&
-                "card__media--fitted",
-            )}
-          >
-            <GalleryCardMedia item={item} previewing={previewing} />
-            {selectionMode && (
-              <span className="card__selection-indicator" aria-hidden="true">
-                {selected && <Icon icon={iconCheck} className="card__selection-indicator-icon" />}
-              </span>
-            )}
-            {/* The file's own facts on the left; caption and dataset findings on the right. */}
-            {(itemIsVideo || itemIsAudio || itemIsGif || item.has_backup) && (
-              <span className="card__file-badges">
-                {itemIsVideo && (
-                  <CardBadge
-                    icon={iconVideo}
-                    compact={compactBadges && !mediaLength}
-                    label={mediaLength || "Video"}
-                    variant="video"
-                    numeric={!!mediaLength}
-                  />
-                )}
-                {itemIsAudio && (
-                  <CardBadge
-                    icon={iconAudioLines}
-                    compact={compactBadges && !mediaLength}
-                    label={mediaLength || "Audio"}
-                    variant="audio"
-                    numeric={!!mediaLength}
-                  />
-                )}
-                {itemIsGif && (
-                  <CardBadge icon={iconFileImage} compact={false} label="GIF" variant="gif" />
-                )}
-                {item.has_backup && (
-                  <CardBadge
-                    icon={iconPencil}
-                    compact={compactBadges}
-                    label="Edited"
-                    variant="edited"
-                  />
-                )}
-              </span>
-            )}
-            {(item.has_issue_file || item.has_candidate || item.has_duplicate_file) && (
-              <span className="card__badge-stack">
-                {item.has_issue_file && (
-                  <CardBadge
-                    icon={iconMessageWarning}
-                    compact={compactBadges}
-                    label="Issue"
-                    variant="issue"
-                  />
-                )}
-                {item.has_candidate && (
-                  <CardBadge
-                    icon={iconScanSquare}
-                    compact={compactBadges}
-                    label="Candidate"
-                    variant="candidate"
-                  />
-                )}
-                {item.has_duplicate_file && (
-                  <CardBadge
-                    icon={iconFiles}
-                    compact={compactBadges}
-                    label="Duplicate"
-                    variant="duplicate"
-                  />
-                )}
-              </span>
-            )}
-          </div>
-          <div className="card__body">
-            <span className="card__head">
-              <span className="card__title">{item.name}</span>
-              {meta && <span className="card__meta">{meta}</span>}
+          <GalleryCardMedia item={item} previewing={previewing} />
+          {selectionMode && (
+            <span className="card__selection-indicator" aria-hidden="true">
+              {selected && <Icon icon={iconCheck} className="card__selection-indicator-icon" />}
             </span>
-            {tagsShown && (
-              <span className="card__tags">
-                {/* Every tag, strongest first: the ones that do not fit wrap out of sight. */}
-                <span ref={tagListRef} className="card__tag-list">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag.label} uppercase={false} className="card__tag">
-                      {tag.label}
-                    </Badge>
-                  ))}
-                </span>
-                {hiddenTags > 0 && (
-                  <Tooltip
-                    content={item.tags
-                      .slice(item.tags.length - hiddenTags)
-                      .map((tag) => tag.label)
-                      .join(", ")}
-                    placement="top"
-                  >
-                    <Badge tone="placeholder" uppercase={false} className="card__tags-more">
-                      +{hiddenTags} more
-                    </Badge>
-                  </Tooltip>
-                )}
+          )}
+          {/* The file's own facts on the left; caption and dataset findings on the right. */}
+          {(itemIsVideo || itemIsAudio || itemIsGif || item.has_backup) && (
+            <span className="card__file-badges">
+              {itemIsVideo && (
+                <CardBadge
+                  icon={iconVideo}
+                  compact={compactBadges && !mediaLength}
+                  label={mediaLength || "Video"}
+                  variant="video"
+                  numeric={!!mediaLength}
+                />
+              )}
+              {itemIsAudio && (
+                <CardBadge
+                  icon={iconAudioLines}
+                  compact={compactBadges && !mediaLength}
+                  label={mediaLength || "Audio"}
+                  variant="audio"
+                  numeric={!!mediaLength}
+                />
+              )}
+              {itemIsGif && (
+                <CardBadge icon={iconFileImage} compact={false} label="GIF" variant="gif" />
+              )}
+              {item.has_backup && (
+                <CardBadge
+                  icon={iconPencil}
+                  compact={compactBadges}
+                  label="Edited"
+                  variant="edited"
+                />
+              )}
+            </span>
+          )}
+          {(item.has_issue_file || item.has_candidate || item.has_duplicate_file) && (
+            <span className="card__badge-stack">
+              {item.has_issue_file && (
+                <CardBadge
+                  icon={iconMessageWarning}
+                  compact={compactBadges}
+                  label="Issue"
+                  variant="issue"
+                />
+              )}
+              {item.has_candidate && (
+                <CardBadge
+                  icon={iconScanSquare}
+                  compact={compactBadges}
+                  label="Candidate"
+                  variant="candidate"
+                />
+              )}
+              {item.has_duplicate_file && (
+                <CardBadge
+                  icon={iconFiles}
+                  compact={compactBadges}
+                  label="Duplicate"
+                  variant="duplicate"
+                />
+              )}
+            </span>
+          )}
+        </div>
+        <div className="card__body">
+          <span className="card__head">
+            <span className="card__title">{item.name}</span>
+            {meta && <span className="card__meta">{meta}</span>}
+          </span>
+          {tagsShown && (
+            <span className="card__tags">
+              {/* Every tag, strongest first: the ones that do not fit wrap out of sight. */}
+              <span ref={tagListRef} className="card__tag-list">
+                {item.tags.map((tag) => (
+                  <Badge key={tag.label} uppercase={false} className="card__tag">
+                    {tag.label}
+                  </Badge>
+                ))}
               </span>
-            )}
-            {captionLines === 0 ? null : item.description ? (
-              <p
-                className="card__description"
-                style={{ "--card-caption-lines": captionLines } as CSSProperties}
-              >
-                {item.description}
-              </p>
-            ) : captionDisplay ? (
-              <div
-                className={`card__caption-status card__caption-status--${captionDisplay.variant}`}
-              >
-                <Icon icon={statusIcon} className="card__caption-status__icon" />
-                <span>{captionDisplay.message}</span>
-              </div>
-            ) : null}
-          </div>
-        </button>
-      </Tooltip>
+              {hiddenTags > 0 && (
+                <Tooltip
+                  content={item.tags
+                    .slice(item.tags.length - hiddenTags)
+                    .map((tag) => tag.label)
+                    .join(", ")}
+                  placement="top"
+                >
+                  <Badge tone="placeholder" uppercase={false} className="card__tags-more">
+                    +{hiddenTags} more
+                  </Badge>
+                </Tooltip>
+              )}
+            </span>
+          )}
+          {captionLines === 0 ? null : item.description ? (
+            <p
+              className="card__description"
+              style={{ "--card-caption-lines": captionLines } as CSSProperties}
+            >
+              {item.description}
+            </p>
+          ) : captionDisplay ? (
+            <div className={`card__caption-status card__caption-status--${captionDisplay.variant}`}>
+              <Icon icon={statusIcon} className="card__caption-status__icon" />
+              <span>{captionDisplay.message}</span>
+            </div>
+          ) : null}
+        </div>
+      </button>
       <GalleryCardActions
         item={item}
         displayMode={displayMode}

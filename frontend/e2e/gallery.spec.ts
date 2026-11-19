@@ -317,12 +317,23 @@ test("large cards show whole tags only and count the rest", async ({ page }) => 
     expect(card.heightOff).toBeLessThan(1);
   }
 
-  // The pill's tooltip replaces the card's name, and the name returns once the pointer does.
+  // The card itself has no tooltip; only the pill names the hidden tags.
   const card = page.getByRole("button", { name: "View photo.png", exact: true });
   await card.locator(".card__title").hover();
-  await expect(page.getByRole("tooltip")).toHaveText("photo.png");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
   await card.locator(".card__tags-more").hover();
   await expect(page.getByRole("tooltip")).toHaveText(/^tag number \d+(, tag number \d+)*$/);
   await card.locator(".card__title").hover();
-  await expect(page.getByRole("tooltip")).toHaveText("photo.png");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+});
+
+test("hovering a card lifts it like the folder cards", async ({ page }) => {
+  await openWorkspace(page);
+  const card = page.getByRole("button", { name: "View photo.png", exact: true });
+  const rest = await card.evaluate((node) => getComputedStyle(node).boxShadow);
+  await card.hover();
+  await expect
+    .poll(() => card.evaluate((node) => getComputedStyle(node).transform))
+    .not.toBe("none");
+  expect(await card.evaluate((node) => getComputedStyle(node).boxShadow)).not.toBe(rest);
 });

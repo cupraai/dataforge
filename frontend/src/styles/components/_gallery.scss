@@ -22,7 +22,7 @@
 .card[data-inspected] {
   // The hover form matches the cell-keyed hover lift, which would otherwise outrank it.
   &,
-  .card-cell:hover > .card-cell__tip > & {
+  .card-cell:hover > & {
     border-color: var(--text);
   }
 
@@ -103,7 +103,6 @@
   align-items: stretch;
   width: 100%;
 
-  // Inside its tooltip's trigger span, which draws no box.
   .card {
     flex: 1;
     min-width: 0;
@@ -259,10 +258,11 @@
   // Gated so a tap on touch screens does not leave a card stuck lifted. Keyed to the cell, so
   // the card stays raised while the pointer is on its actions bar.
   @media (hover: hover) {
-    .card-cell:hover > .card-cell__tip > & {
+    .card-cell:hover > & {
       transform: translateY(-2px);
-      border-color: var(--border-strong);
+      border-color: var(--accent-border);
       box-shadow: var(--elevation-2);
+      @include fade-bg(var(--bg-elevated));
 
       .card__img,
       .card__video-preview {
@@ -275,7 +275,7 @@
   @include focus-ring-overlay(before, 4, $border: 1px);
 
   @media (hover: hover) {
-    .card-cell:hover > .card-cell__tip > &:focus-visible {
+    .card-cell:hover > &:focus-visible {
       border-color: var(--focus-ring-color, var(--focus-ring));
     }
   }
@@ -302,11 +302,12 @@
     @include fade-bg(color-mix(in srgb, var(--accent) 10%, var(--bg-card)));
 
     // Keyed like the lift above, whose specificity would otherwise replace the ring.
-    .card-cell:hover > .card-cell__tip > & {
+    .card-cell:hover > & {
       border-color: var(--accent);
       box-shadow:
         0 0 0 1px var(--accent),
         var(--elevation-2);
+      @include fade-bg(color-mix(in srgb, var(--accent) 10%, var(--bg-elevated)));
     }
 
     // Solid, so the check reads over light and dark media in both themes.

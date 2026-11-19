@@ -589,8 +589,6 @@ describe("GalleryCard", () => {
   });
 
   describe("name tooltip", () => {
-    const longName = "a file name long enough to be truncated on its card.png";
-
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -599,40 +597,19 @@ describe("GalleryCard", () => {
       vi.useRealTimers();
     });
 
-    it("shows the full file name after the usual tooltip delay", () => {
-      render(
-        <GalleryCard
-          item={{ ...captionedItem, name: longName }}
-          onSelect={vi.fn<(path: string) => void>()}
-        />,
-      );
-
-      fireEvent.mouseEnter(screen.getByRole("button", { name: `View ${longName}` }));
-      act(() => {
-        vi.advanceTimersByTime(399);
-      });
-      expect(screen.queryByRole("tooltip")).toBeNull();
-
-      act(() => {
-        vi.advanceTimersByTime(1);
-      });
-      expect(screen.getByRole("tooltip")).toHaveTextContent(longName);
-    });
-
-    it("shows the name to keyboard users too, in place of the native title", () => {
+    it("shows no tooltip or native title on hover or focus", () => {
       const { container } = render(
-        <GalleryCard
-          item={{ ...captionedItem, name: longName }}
-          onSelect={vi.fn<(path: string) => void>()}
-        />,
+        <GalleryCard item={captionedItem} onSelect={vi.fn<(path: string) => void>()} />,
       );
+      const card = screen.getByRole("button", { name: `View ${captionedItem.name}` });
 
-      act(() => screen.getByRole("button", { name: `View ${longName}` }).focus());
+      fireEvent.mouseEnter(card);
+      act(() => card.focus());
       act(() => {
-        vi.advanceTimersByTime(400);
+        vi.advanceTimersByTime(1000);
       });
 
-      expect(screen.getByRole("tooltip")).toHaveTextContent(longName);
+      expect(screen.queryByRole("tooltip")).toBeNull();
       expect(container.querySelector("[title]")).toBeNull();
     });
   });
