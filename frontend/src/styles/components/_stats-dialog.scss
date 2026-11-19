@@ -23,15 +23,15 @@ $hero-font-size: 3rem;
     flex-direction: column;
     width: min(100%, 24rem);
     height: 100%;
-    background: var(--bg-elevated);
+    background: var(--surface-sheen), var(--bg-elevated);
     border-left: 1px solid var(--border);
     box-shadow: var(--shadow-drawer);
     pointer-events: auto;
-    animation: drawer-slide-in 0.22s ease;
+    animation: drawer-slide-in var(--duration-moderate) var(--ease-emphasized);
 
     // Two classes beat `.dialog-panel--exit` fade on specificity, so load order does not matter.
     &.dialog-panel--exit {
-      animation: drawer-slide-out 0.18s ease-in both;
+      animation: drawer-slide-out var(--duration-base) var(--ease-exit) both;
     }
   }
 

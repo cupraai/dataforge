@@ -20,14 +20,30 @@ function layoutBox(element: Element): Element {
   return box;
 }
 
+/**
+ * How much wider the buttons are with their labels shown than with them hidden. A hidden label
+ * keeps its text width as scrollWidth, and a compact button also tightens its gap and padding,
+ * so the size's own spacing comes from `--button-gap` / `--button-padding` (registered lengths).
+ */
 function labelSavings(actions: HTMLElement): number {
+  const buttons = new Set<HTMLElement>();
+  for (const label of actions.querySelectorAll(`.${COLLAPSIBLE_LABEL_CLASS}`)) {
+    if (label.parentElement) buttons.add(label.parentElement);
+  }
   let total = 0;
-  for (const label of actions.querySelectorAll<HTMLElement>(`.${COLLAPSIBLE_LABEL_CLASS}`)) {
-    const button = label.parentElement;
-    if (!button) continue;
-    // A hidden label keeps its text width as scrollWidth; dropping it also drops one flex gap.
-    const gap = px(getComputedStyle(button).columnGap);
-    total += label.scrollWidth + gap;
+  for (const button of buttons) {
+    const style = getComputedStyle(button);
+    const gap = px(style.columnGap);
+    const fullGap = px(style.getPropertyValue("--button-gap")) || gap;
+    const fullPadding = px(style.getPropertyValue("--button-padding")) || px(style.paddingLeft);
+    const items = button.children.length;
+    const labels = [...button.children].filter((child) =>
+      child.classList.contains(COLLAPSIBLE_LABEL_CLASS),
+    );
+    const text = labels.reduce((sum, label) => sum + label.scrollWidth, 0);
+    const full = text + Math.max(0, items - 1) * fullGap + 2 * fullPadding;
+    const bare = Math.max(0, items - labels.length - 1) * gap + px(style.paddingLeft);
+    total += full - bare - px(style.paddingRight);
   }
   return total;
 }

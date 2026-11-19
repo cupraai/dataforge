@@ -54,9 +54,23 @@
   --marker: #d9730d;
 
   --elevation-1: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --elevation-2: 0 1px 3px rgba(15, 23, 42, 0.06), 0 6px 16px rgba(15, 23, 42, 0.08);
-  --elevation-3: 0 2px 6px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.12);
-  --elevation-4: 0 4px 12px rgba(15, 23, 42, 0.08), 0 24px 64px rgba(15, 23, 42, 0.16);
+  --elevation-2:
+    0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 10px rgba(15, 23, 42, 0.05),
+    0 12px 24px -8px rgba(15, 23, 42, 0.1);
+  --elevation-3:
+    0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 20px rgba(15, 23, 42, 0.08),
+    0 20px 40px -12px rgba(15, 23, 42, 0.16);
+  --elevation-4:
+    0 2px 4px rgba(15, 23, 42, 0.05), 0 12px 32px rgba(15, 23, 42, 0.1),
+    0 32px 72px -16px rgba(15, 23, 42, 0.22);
+  // White chrome on a light page needs no light from above.
+  --surface-sheen: none;
+  --shell-wash: radial-gradient(
+    60rem 28rem at 72% -6rem,
+    rgba(63, 95, 217, 0.06),
+    rgba(63, 95, 217, 0) 70%
+  );
+  --accent-glow: 0 0 0 1px rgba(63, 95, 217, 0.32), 0 0 18px -4px rgba(63, 95, 217, 0.32);
   --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.12);
 
   // Monokai Pro Light.

@@ -34,11 +34,12 @@ export function useAnchoredPosition(
     floating.style.maxHeight = "";
 
     const anchorRect = anchor.getBoundingClientRect();
-    const floatingRect = floating.getBoundingClientRect();
 
     const { left, top, side, shift, maxWidth, maxHeight } = computeAnchoredPosition({
       anchor: anchorRect,
-      floating: { width: floatingRect.width, height: floatingRect.height },
+      // The layout box: a client rect would include the entrance's scale, and the surface
+      // would sit off by that much until the next placement snapped it back.
+      floating: { width: floating.offsetWidth, height: floating.offsetHeight },
       viewport: { width: window.innerWidth, height: window.innerHeight },
       placement,
       offset,

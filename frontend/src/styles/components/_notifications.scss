@@ -31,11 +31,11 @@
     backdrop-filter: blur(var(--dialog-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--dialog-backdrop-blur));
     box-shadow: var(--elevation-3);
-    animation: notification-enter 0.28s var(--ease-emphasized) both;
+    animation: notification-enter var(--duration-moderate) var(--ease-spring) both;
     will-change: opacity, transform;
 
     &--exiting {
-      animation: notification-exit 0.22s var(--ease-exit) both;
+      animation: notification-exit var(--duration-base) var(--ease-exit) both;
       pointer-events: none;
     }
 
@@ -126,7 +126,7 @@
     color: var(--accent);
     // Swings from the bell's hanger, not its middle.
     transform-origin: 50% 10%;
-    animation: bell-ring 0.7s ease-in-out;
+    animation: bell-ring $attention ease-in-out;
   }
 
   &--urgent &__icon {

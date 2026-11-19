@@ -359,6 +359,18 @@ describe("Tooltip placement", () => {
     vi.useFakeTimers();
     vi.spyOn(window, "innerWidth", "get").mockReturnValue(1000);
     vi.spyOn(window, "innerHeight", "get").mockReturnValue(800);
+    const bubbleSize = (element: HTMLElement, key: "width" | "height") =>
+      element.classList.contains("tooltip__bubble") ? (bubble[key] ?? 0) : 0;
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return bubbleSize(this, "width");
+    });
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return bubbleSize(this, "height");
+    });
     vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
       this: Element,
     ) {

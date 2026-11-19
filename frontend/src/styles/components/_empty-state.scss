@@ -53,6 +53,12 @@
     border-radius: 50%;
     background: var(--accent-soft);
     border: 1px solid var(--accent-border);
+    // A faint halo in the wrap's own tone, so success and error states glow their colour.
+    box-shadow: 0 0 2rem -0.25rem var(--accent-soft);
+
+    @include motion-safe {
+      animation: settle-in var(--duration-slow) var(--ease-spring) backwards;
+    }
   }
 
   &__icon {

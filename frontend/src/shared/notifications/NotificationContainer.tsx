@@ -1,6 +1,6 @@
 import { IconButton } from "@/shared/ui/IconButton";
 import { Button } from "@/shared/ui/Button";
-import { useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { iconX } from "@/shared/icons";
 import { variantIcons, type NotificationVariant, type Toast } from "./notifications";
@@ -28,6 +28,15 @@ function NotificationToast({
   onResumeAutoDismiss,
 }: { toast: Toast } & Omit<NotificationContainerProps, "toasts">) {
   const [paused, setPaused] = useState(false);
+  const toastRef = useRef<HTMLDivElement>(null);
+
+  // The exit folds the toast's own height away, so the stack closes up instead of jumping.
+  useLayoutEffect(() => {
+    const element = toastRef.current;
+    if (toast.exiting && element) {
+      element.style.setProperty("--toast-height", `${element.offsetHeight}px`);
+    }
+  }, [toast.exiting]);
 
   const hold = () => {
     if (toast.exiting) return;
@@ -43,6 +52,7 @@ function NotificationToast({
 
   return (
     <div
+      ref={toastRef}
       className={classNames(
         "notifications__toast",
         `notifications__toast--${toast.variant}`,

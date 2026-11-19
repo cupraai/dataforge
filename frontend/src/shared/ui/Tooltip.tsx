@@ -15,14 +15,18 @@ import {
 } from "react";
 import type { AnchoredSide } from "@/shared/lib/anchoredPosition";
 import { classNames } from "@/shared/lib/classNames";
+import { DURATION_FAST_MS } from "@/shared/lib/motion";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 
 /** Gap kept between a bubble and the window edge. Tighter than a menu's, by design. */
 const VIEWPORT_GUTTER = 8;
 /** Matches the bubble's fade in `_tooltip.scss`; it stays mounted until that ends. */
-const FADE_MS = 150;
+const FADE_MS = DURATION_FAST_MS;
+/** Sweeping along a toolbar: a bubble closed this recently lets the next one skip its delay. */
+const WARM_MS = 300;
 
 let dismissShownTooltip: (() => void) | null = null;
+let warmUntil = 0;
 
 function claimShownTooltip(dismiss: () => void) {
   if (dismissShownTooltip !== dismiss) dismissShownTooltip?.();
@@ -30,6 +34,7 @@ function claimShownTooltip(dismiss: () => void) {
 }
 
 function releaseShownTooltip(dismiss: () => void) {
+  warmUntil = Date.now() + WARM_MS;
   if (dismissShownTooltip === dismiss) dismissShownTooltip = null;
 }
 
@@ -111,7 +116,8 @@ export function Tooltip({
   const show = useCallback((): boolean => {
     if (disabled || childExpanded || content == null || content === "") return false;
     clearShowTimeout();
-    showTimeoutRef.current = setTimeout(() => setVisible(true), delay);
+    const wait = Date.now() < warmUntil ? 0 : delay;
+    showTimeoutRef.current = setTimeout(() => setVisible(true), wait);
     return true;
   }, [childExpanded, clearShowTimeout, content, delay, disabled]);
 

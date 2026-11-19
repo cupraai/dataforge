@@ -7,6 +7,7 @@ import {
   uiSettingsQueryOptions,
   updateUiSettings,
 } from "@/shared/preferences/uiPreferences";
+import { prefersReducedMotion } from "@/shared/lib/motion";
 import type { ThemePreference } from "@/shared/types";
 
 export type ResolvedTheme = "light" | "dark";
@@ -22,7 +23,30 @@ export function resolveTheme(value: ThemePreference): ResolvedTheme {
 }
 
 function applyTheme(): void {
-  document.documentElement.dataset.theme = resolveTheme(preview ?? saved.get());
+  const root = document.documentElement;
+  const next = resolveTheme(preview ?? saved.get());
+  if (root.dataset.theme === next) return;
+  const swap = () => {
+    root.dataset.theme = next;
+  };
+  // The first paint, a hidden tab and reduced motion take the new colours at once.
+  if (
+    !root.dataset.theme ||
+    typeof document.startViewTransition !== "function" ||
+    document.visibilityState === "hidden" ||
+    prefersReducedMotion()
+  ) {
+    swap();
+    return;
+  }
+  // One crossfade of the whole window; per-element colour fades would run out of step under it.
+  root.classList.add("theme-switching");
+  document
+    .startViewTransition(swap)
+    .finished.catch(() => {
+      // A transition skipped by another one still ran the swap.
+    })
+    .finally(() => root.classList.remove("theme-switching"));
 }
 
 saved.subscribe(applyTheme);

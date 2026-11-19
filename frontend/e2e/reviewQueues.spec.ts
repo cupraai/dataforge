@@ -1,7 +1,7 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import type { FolderResponse } from "../src/shared/types";
-import { WORKSPACE } from "./workspace";
+import { WORKSPACE, settleAnimations } from "./workspace";
 
 for (const width of [1440, 768]) {
   test(`candidate and duplicate comparisons use the available space at ${width}px`, async ({
@@ -67,6 +67,7 @@ for (const width of [1440, 768]) {
     await page.getByRole("menuitem", { name: /^Pending candidates/ }).click();
     const candidate = page.locator(".candidate-review-dialog__panel");
     await expect(candidate).toBeVisible();
+    await settleAnimations(page);
     const candidateStage = (await candidate
       .locator(".candidate-review-dialog__stage")
       .first()

@@ -20,7 +20,7 @@
   z-index: 20;
   padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: var(--surface-sheen), var(--bg-elevated);
   // Path, stats and controls are chrome throughout; the search field opts back in.
   user-select: none;
   box-shadow: var(--elevation-1);
@@ -45,13 +45,13 @@
       inset: 0 auto 0 0;
       width: 35%;
       background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      animation: nav-refresh-sweep 1.1s ease-in-out infinite;
+      animation: nav-refresh-sweep $loop-sweep ease-in-out infinite;
     }
 
     // Slower and green: background tagging is not the folder itself changing.
     &--tagging::after {
       background: linear-gradient(90deg, transparent, var(--success), transparent);
-      animation-duration: 2.4s;
+      animation-duration: $loop-pulse;
     }
   }
 }
@@ -67,6 +67,8 @@
   grid-row: 3;
   min-height: 0;
   overflow-y: auto;
+  // Content gliding in beside the sidebar (`useSidebarMotion`) must not flash a scrollbar.
+  overflow-x: hidden;
   padding: 1rem 0 2rem;
   background: var(--bg);
   @include app-scrollbar;

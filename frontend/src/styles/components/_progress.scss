@@ -1,3 +1,6 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
 // A thin pill track. The fill runs accent to success while working, and turns danger or warning
 // once a job fails, warns or is cancelled.
 .progress {
@@ -13,6 +16,28 @@
     border-radius: inherit;
     background: linear-gradient(90deg, var(--accent), var(--success));
     transition: width var(--duration-slow) var(--ease-standard);
+
+    // A light glint travels the filled part while the work goes on.
+    &--working {
+      position: relative;
+      overflow: hidden;
+
+      @include motion-safe {
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          width: 40%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            color-mix(in srgb, var(--media-text) 35%, transparent),
+            transparent
+          );
+          animation: progress-glint $loop-shimmer var(--ease-standard) infinite;
+        }
+      }
+    }
 
     &--error {
       background: linear-gradient(90deg, var(--danger), var(--danger-deep));

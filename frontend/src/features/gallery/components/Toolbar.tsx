@@ -37,6 +37,8 @@ import { ToolbarFilterMenu, type RangeControls } from "./ToolbarFilterMenu";
 import { ToolbarSortMenu } from "./ToolbarSortMenu";
 import type { FolderInstructionsResponse } from "@/shared/types";
 import { instructionFileSummary } from "@/shared/lib/instructionFileState";
+import { RollingNumber } from "@/shared/ui/RollingNumber";
+import { SystemSpecsButton } from "@/features/automation/components/SystemSpecsButton";
 
 interface ToolbarProps {
   /** Folder actions placed between the stats and the view controls. */
@@ -229,7 +231,11 @@ function StatValue({ loading, value }: { loading?: boolean; value: number }) {
     return <span className="stat__value-skeleton skeleton-shimmer" aria-hidden="true" />;
   }
 
-  return <strong>{value}</strong>;
+  return (
+    <strong>
+      <RollingNumber value={value} />
+    </strong>
+  );
 }
 
 function FolderMarker({
@@ -337,7 +343,8 @@ export function Toolbar({
             <StatValue loading={statsLoading} value={captionedCount} />
             {captionPercent != null && (
               <span className="stat__percent" aria-hidden="true">
-                ({captionPercent}%)
+                (<RollingNumber value={captionPercent} />
+                %)
               </span>
             )}
           </button>
@@ -388,35 +395,38 @@ export function Toolbar({
       )}
 
       <div className="toolbar__controls">
-        <ToolbarSearch
-          value={searchQuery}
-          regex={searchRegex}
-          names={searchNames}
-          tags={searchTags}
-          onQueryChange={onSearchQueryChange}
-          onRegexChange={onSearchRegexChange}
-          onNamesChange={onSearchNamesChange}
-        />
+        <div className="toolbar__group">
+          <ToolbarSearch
+            value={searchQuery}
+            regex={searchRegex}
+            names={searchNames}
+            tags={searchTags}
+            onQueryChange={onSearchQueryChange}
+            onRegexChange={onSearchRegexChange}
+            onNamesChange={onSearchNamesChange}
+          />
 
-        <ToolbarSortMenu value={sort} onChange={onSortChange} />
+          <ToolbarSortMenu value={sort} onChange={onSortChange} />
 
-        <ToolbarFilterMenu
-          searchQuery={searchQuery}
-          filter={filter}
-          filterCounts={filterCounts}
-          mediaTypeFilter={mediaTypeFilter}
-          mediaTypeFilterCounts={mediaTypeFilterCounts}
-          fileFilter={fileFilter}
-          fileFilterCounts={fileFilterCounts}
-          onFilterChange={onFilterChange}
-          onMediaTypeFilterChange={onMediaTypeFilterChange}
-          onFileFilterChange={onFileFilterChange}
-          {...rangeControls}
-        />
+          <ToolbarFilterMenu
+            searchQuery={searchQuery}
+            filter={filter}
+            filterCounts={filterCounts}
+            mediaTypeFilter={mediaTypeFilter}
+            mediaTypeFilterCounts={mediaTypeFilterCounts}
+            fileFilter={fileFilter}
+            fileFilterCounts={fileFilterCounts}
+            onFilterChange={onFilterChange}
+            onMediaTypeFilterChange={onMediaTypeFilterChange}
+            onFileFilterChange={onFileFilterChange}
+            {...rangeControls}
+          />
 
-        <StatsButton open={statsOpen} onToggle={onToggleStats} />
+          <StatsButton open={statsOpen} onToggle={onToggleStats} />
+        </div>
 
-        <div className="toolbar__global">
+        <div className="toolbar__group toolbar__global">
+          <SystemSpecsButton />
           <NotificationsButton />
           <JobsButton />
         </div>

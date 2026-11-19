@@ -312,6 +312,7 @@
       }
 
       &:has(input:checked)::after {
+        scale: 1;
         opacity: 1;
       }
 

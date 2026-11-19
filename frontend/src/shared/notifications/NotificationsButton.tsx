@@ -8,6 +8,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { useNotificationHistory } from "./notifications";
+import { DURATION_INSTANT_MS } from "@/shared/lib/motion";
 
 export function NotificationsButton() {
   const {
@@ -63,6 +64,7 @@ export function NotificationsButton() {
         anchorRef={rootRef}
         floatingRef={panelRef}
         open={open}
+        exitDuration={DURATION_INSTANT_MS}
         id={menuId}
         className="notifications-panel"
         role="group"

@@ -17,6 +17,7 @@ import type { InstructionSnippetsResponse } from "@/shared/types";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 import { TextInput } from "@/shared/ui/Field";
 import { Icon } from "@/shared/ui/Icon";
+import { DURATION_INSTANT_MS } from "@/shared/lib/motion";
 
 interface InstructionSnippetMenuProps {
   /** The instruction as typed; saving stores it trimmed. */
@@ -154,6 +155,7 @@ export function InstructionSnippetMenu({
         anchorRef={rootRef}
         floatingRef={panelRef}
         open={open}
+        exitDuration={DURATION_INSTANT_MS}
         id={menuId}
         className="instruction-snippets__panel"
         placement="bottom-end"

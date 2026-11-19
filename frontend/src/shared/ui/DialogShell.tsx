@@ -13,6 +13,8 @@ import { useScrollLock } from "@/shared/hooks/useScrollLock";
 import type { ScrollLockClass } from "@/shared/hooks/scrollLockManager";
 import { classNames } from "@/shared/lib/classNames";
 import { closeCodeEditorSearchPanel } from "@/shared/lib/codeEditorSearch";
+import { snapshotDialogExit } from "@/shared/lib/dialogExitGhost";
+import { EXIT_FALLBACK_MS } from "@/shared/lib/motion";
 import { registerModalDialog } from "@/shared/lib/modalDialogs";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import type { GuardedAction } from "@/shared/hooks/useDiscardChanges";
@@ -23,8 +25,25 @@ import { DialogSubmissionContext } from "./dialogSubmissionContext";
 
 export type DialogEscape = "close" | "editor" | "none";
 
-/** Backstop if `animationend` never fires, such as in a hidden tab. */
-const EXIT_FALLBACK_MS = 400;
+/** Each dialog element's latest opening, so StrictMode's rehearsal close plays no exit. */
+const openings = new WeakMap<HTMLDialogElement, number>();
+
+/** How far off the panel's centre the opener may pull its scale origin. */
+const OPENER_REACH = 600;
+
+/** Points the panel's scale-in at the control that opened it, so it grows from where it came. */
+function aimAtOpener(dialog: HTMLDialogElement, opener: Element | null) {
+  const panel = dialog.querySelector<HTMLElement>(":scope > .dialog-panel");
+  if (!panel || !(opener instanceof HTMLElement) || opener === document.body) return;
+  if (dialog.contains(opener)) return;
+  const from = opener.getBoundingClientRect();
+  if (from.width === 0 && from.height === 0) return;
+  const box = panel.getBoundingClientRect();
+  const reach = (offset: number) => Math.max(-OPENER_REACH, Math.min(OPENER_REACH, offset));
+  const x = panel.offsetWidth / 2 + reach(from.left + from.width / 2 - box.left - box.width / 2);
+  const y = panel.offsetHeight / 2 + reach(from.top + from.height / 2 - box.top - box.height / 2);
+  panel.style.transformOrigin = `${Math.round(x)}px ${Math.round(y)}px`;
+}
 
 interface DialogShellProps {
   block: string;
@@ -83,6 +102,8 @@ export function DialogShell({
   const initialFocus = useLatestRef(initialFocusRef);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const wasSuspendedRef = useRef(suspended);
+  // A shell that animates its own exit (`onExited`), or never fades in, plays no exit copy.
+  const fadesOut = useLatestRef(enterAnimation === "fade-lift" && !onExited);
 
   useScrollLock(true, scrollLock);
 
@@ -91,6 +112,10 @@ export function DialogShell({
     if (!dialog) return;
     let active = true;
     let unregister: (() => void) | undefined;
+    const opening = (openings.get(dialog) ?? 0) + 1;
+    openings.set(dialog, opening);
+    // Read at cleanup: whether the dialog still fades out by the time it closes.
+    const exitAllowed = fadesOut;
     const open = () => {
       if (!active || dialog.open) return;
       // Descendant effects run first, including when several dialog levels mount together.
@@ -98,17 +123,26 @@ export function DialogShell({
         queueMicrotask(open);
         return;
       }
+      const opener = document.activeElement;
       dialog.showModal();
       unregister = registerModalDialog(dialog);
+      if (fadesOut.current) aimAtOpener(dialog, opener);
       (initialFocus.current?.current ?? dialog).focus({ preventScroll: true });
     };
     open();
     return () => {
       active = false;
+      const playExit = exitAllowed.current ? snapshotDialogExit(dialog) : null;
       dialog.close();
       unregister?.();
+      // StrictMode's rehearsal unmount keeps the node and opens again; only a real removal plays.
+      if (playExit) {
+        queueMicrotask(() => {
+          if (!dialog.isConnected && openings.get(dialog) === opening) playExit();
+        });
+      }
     };
-  }, [initialFocus, parentDialog]);
+  }, [fadesOut, initialFocus, parentDialog]);
 
   useLayoutEffect(() => {
     const resumed = wasSuspendedRef.current && !suspended;

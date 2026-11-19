@@ -62,6 +62,7 @@ from image_fill_jobs import cancel_fill_operation, get_fill_operation, start_fil
 from image_fill_workflow import describe_fill_presets
 from image_io import ImageReadError, load_image_for_edit
 from media_claims import MediaBusyError, cancel
+from media_colors import remember_thumbnail_color
 from media_delete import (
     MediaReappearedError,
     delete_leftovers,
@@ -505,6 +506,7 @@ def serve_thumbnail(
             detail=f"Failed to generate thumbnail: {exc}",
         ) from exc
 
+    remember_thumbnail_color(file_path, thumbnail_path)
     # Cache pruning deletes these files mid-stream.
     return MediaFileResponse(
         thumbnail_path,

@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 import type { FolderResponse } from "../src/shared/types";
-import { WORKSPACE, openWorkspace } from "./workspace";
+import { WORKSPACE, openWorkspace, settleAnimations } from "./workspace";
 
 async function screenshotPixels(
   page: Page,
@@ -95,6 +95,7 @@ test("rounded video thumbnails fill large previews to the bottom edge", async ({
   const card = page.getByRole("button", { name: "View clip.mp4", exact: true });
   await expect(card.locator(".card__img--ready")).toBeVisible();
   await card.evaluate((node) => node.style.setProperty("--bg-media", "black"));
+  await settleAnimations(page);
   const media = (await card.locator(".card__media").boundingBox())!;
   const pixels = await screenshotPixels(page, [
     [media.x + media.width / 2, Math.ceil(media.y + media.height) - 1],
@@ -269,12 +270,14 @@ test("entering selection mode keeps the gallery in place", async ({ page }) => {
   // The loading skeleton also renders .card placeholders; measure the loaded gallery.
   await expect(page.getByRole("button", { name: "View photo.png", exact: true })).toBeVisible();
   await expect(page.locator(".gallery--skeleton")).toHaveCount(0);
-  const offset = () =>
-    page.evaluate(() => {
+  const offset = async () => {
+    await settleAnimations(page);
+    return page.evaluate(() => {
       const header = document.querySelector(".gallery-section__header")!.getBoundingClientRect();
       const card = document.querySelector(".card")!.getBoundingClientRect();
       return { height: header.height, gap: Math.round(card.y - header.y) };
     });
+  };
   const before = await offset();
   await page.getByRole("button", { name: "Select", exact: true }).click();
   await expect(page.getByRole("button", { name: "Exit selection mode" })).toBeVisible();

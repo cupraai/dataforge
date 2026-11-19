@@ -14,7 +14,7 @@ $jobs-content-pad-top: 0.75rem;
   &--running &__icon {
     color: var(--accent);
     transform-origin: 50% 80%;
-    animation: job-bot-work 1.6s ease-in-out infinite;
+    animation: job-bot-work $loop-bob ease-in-out infinite;
   }
 
   // The drawer already shows the work in detail; the button stops moving while it is open.
@@ -28,6 +28,10 @@ $jobs-content-pad-top: 0.75rem;
     padding-inline: 0.3125rem;
     color: var(--bg);
     background: var(--accent);
+
+    @include motion-safe {
+      animation: count-bump var(--duration-moderate) var(--ease-standard);
+    }
 
     &--danger {
       background: var(--danger);
@@ -54,15 +58,15 @@ $jobs-content-pad-top: 0.75rem;
     flex-direction: column;
     width: min(100%, 34rem);
     height: 100%;
-    background: var(--bg-elevated);
+    background: var(--surface-sheen), var(--bg-elevated);
     border-left: 1px solid var(--border);
     box-shadow: var(--shadow-drawer);
     pointer-events: auto;
-    animation: drawer-slide-in 0.22s ease;
+    animation: drawer-slide-in var(--duration-moderate) var(--ease-emphasized);
 
     // Two classes beat `.dialog-panel--exit` fade on specificity, so load order does not matter.
     &.dialog-panel--exit {
-      animation: drawer-slide-out 0.18s ease-in both;
+      animation: drawer-slide-out var(--duration-base) var(--ease-exit) both;
     }
   }
 
@@ -726,6 +730,19 @@ $jobs-content-pad-top: 0.75rem;
       color: var(--text-muted);
       margin: 0 -0.375rem;
       transform: translateY(0);
+    }
+  }
+}
+
+// The first cards rise in one after another as the drawer opens; a card added later rises alone.
+.jobs-dialog__list > * {
+  @include motion-safe {
+    animation: content-enter var(--duration-moderate) var(--ease-emphasized) backwards;
+
+    @for $i from 2 through 6 {
+      &:nth-child(#{$i}) {
+        animation-delay: calc(#{$i - 1} * 2 * var(--stagger-step));
+      }
     }
   }
 }

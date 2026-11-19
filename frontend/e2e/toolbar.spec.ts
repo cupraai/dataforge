@@ -31,7 +31,8 @@ test("a crowded toolbar keeps one row by showing the folder actions as icons", a
   await openWorkspace(page);
   const toolbar = page.locator(".toolbar");
   const tools = page.getByRole("button", { name: "Tools", exact: true });
-  const label = tools.locator(".toolbar__collapsible-label");
+  // The chevron folds with the label too; this is the text.
+  const label = tools.locator(".toolbar__collapsible-label", { hasText: "Tools" });
   // Relative to each other: a notice or banner above the toolbar may move both rows together.
   const rowOffset = () =>
     toolbar.evaluate((element) => {

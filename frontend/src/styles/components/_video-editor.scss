@@ -36,6 +36,18 @@ $lane-inset: 4px;
     background: var(--bg-media);
     color: var(--text);
     outline: none;
+
+    // The workspace mounts twice, loading then loaded: the window fades in over the gallery once,
+    // and the loaded tools rise into the window that is already there.
+    @include motion-safe {
+      &:has(> .video-editor__loading) {
+        animation: dialog-backdrop-enter var(--duration-base) var(--ease-standard);
+      }
+
+      &:not(:has(> .video-editor__loading)) > * {
+        animation: content-enter var(--duration-moderate) var(--ease-emphasized);
+      }
+    }
   }
 
   &__loading {

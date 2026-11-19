@@ -1,4 +1,4 @@
-"""Check that no stylesheet transitions a background or hard-codes a transition time."""
+"""Check that no stylesheet transitions a background or hard-codes a motion time."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 STYLES = ROOT / "frontend" / "src" / "styles"
 
 _TRANSITION = re.compile(r"\btransition(?:-property)?\s*:([^;{}]*);")
-_TIMING = re.compile(r"\btransition-(?:duration|delay)\s*:([^;{}]*);")
+_TIMING = re.compile(r"\b(?:transition|animation)-(?:duration|delay)\s*:([^;{}]*);")
+_ANIMATION = re.compile(r"\banimation\s*:([^;{}]*);")
 _FORBIDDEN = {"background", "background-color", "all"}
 # A bare nonzero time outside `var()`/`calc()`; zero means no transition.
 _LITERAL_TIME = re.compile(r"(?<![\w.$-])(?![0.]+m?s\b)\d*\.?\d+m?s\b")
@@ -51,7 +52,7 @@ def problems_in(relative: str, source: str) -> list[str]:
                 )
         if literal := _literal_time(match.group(1)):
             found.append(f"{relative}:{line}: literal time {literal!r}; use a motion token")
-    for match in _TIMING.finditer(code):
+    for match in [*_TIMING.finditer(code), *_ANIMATION.finditer(code)]:
         if literal := _literal_time(match.group(1)):
             line = code.count("\n", 0, match.start()) + 1
             found.append(f"{relative}:{line}: literal time {literal!r}; use a motion token")

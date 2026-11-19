@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/Button";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { FolderErrorState } from "@/features/folder/components/FolderErrorState";
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
@@ -20,6 +20,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { SectionHeader } from "@/shared/ui/SectionHeader";
 import { VideoProjectGrid } from "@/features/videoEditor/components/VideoProjectGrid";
+import { useFolderEntrance } from "@/app/hooks/useFolderEntrance";
 import { AppInitialLoading } from "./AppInitialLoading";
 
 type AppFolderContentProps = {
@@ -92,6 +93,9 @@ export function AppFolderContent({
   // On the section, so the headings in its sticky header and the rows below share the widths.
   const [mediaSection, setMediaSection] = useState<HTMLElement | null>(null);
   const listColumns = useGalleryListColumns(mediaSection, filteredItems, showListHeader);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Keyed on loading too: a folder that shows its skeleton first enters when the content mounts.
+  useFolderEntrance(contentRef, `${folder?.path ?? ""}:${loading}`);
   const folderNotFound = error?.kind === "folder-not-found";
   const globalError = error?.kind === "other" ? error : null;
   const showEmptyFolder = !error && items.length === 0 && models.length === 0;
@@ -123,7 +127,7 @@ export function AppFolderContent({
             onDragLeave={fileDrop.enabled ? fileDrop.onDragLeave : undefined}
             onDrop={fileDrop.enabled ? fileDrop.onDrop : undefined}
           >
-            <div className="gallery-drop-zone__content">
+            <div ref={contentRef} className="gallery-drop-zone__content">
               {!folderNotFound && subfolders.length > 0 && (
                 <FolderGrid
                   key={folder.path}

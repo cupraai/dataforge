@@ -1,7 +1,7 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import type { FolderResponse, Job, JobFileResult, SystemSpecs } from "../src/shared/types";
-import { WORKSPACE, openWorkspace } from "./workspace";
+import { WORKSPACE, openWorkspace, settleAnimations } from "./workspace";
 
 const specs: SystemSpecs = {
   cpu_name: "Intel Core i7-12700K",
@@ -257,6 +257,8 @@ for (const theme of ["dark", "light"]) {
       await page.getByRole("button", { name: "Tools", exact: true }).click();
       const tools = page.getByRole("menu", { name: "Tools" });
       await expect(tools).toBeVisible();
+      // The menu scales in; measured mid-entrance, its rows can sit a pixel apart.
+      await settleAnimations(page);
       const toolsBox = (await tools.boundingBox())!;
       expect(toolsBox.x).toBeGreaterThanOrEqual(0);
       expect(toolsBox.x + toolsBox.width).toBeLessThanOrEqual(width);

@@ -325,7 +325,9 @@ describe("Gallery", () => {
       const main = container.querySelector("main.main") as HTMLElement;
       Object.defineProperty(main, "scrollTop", { value: 300, writable: true, configurable: true });
       const cardTop = () => {
-        const title = screen.getByText(inspected.name, { selector: ".card__title" });
+        const title = [...container.querySelectorAll(".card__title")].find(
+          (candidate) => candidate.textContent === inspected.name,
+        )!;
         return Number.parseFloat((title.closest(".gallery-masonry-item") as HTMLElement).style.top);
       };
       const before = cardTop();
@@ -362,7 +364,9 @@ describe("Gallery", () => {
       const main = container.querySelector("main.main") as HTMLElement;
       Object.defineProperty(main, "scrollTop", { value: 300, writable: true, configurable: true });
       const cardTop = () => {
-        const title = screen.getByText(inspected.name, { selector: ".card__title" });
+        const title = [...container.querySelectorAll(".card__title")].find(
+          (candidate) => candidate.textContent === inspected.name,
+        )!;
         return Number.parseFloat((title.closest(".gallery-masonry-item") as HTMLElement).style.top);
       };
       const before = cardTop();

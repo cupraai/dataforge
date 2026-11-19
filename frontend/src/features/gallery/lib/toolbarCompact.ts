@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-/** Marks a toolbar action's text, which a crowded toolbar hides to leave the icon. */
+/** Marks a toolbar action's text and chevron, which a crowded toolbar hides to leave the icon. */
 export const COLLAPSIBLE_LABEL_CLASS = "toolbar__collapsible-label";
 
 export const ToolbarCompactContext = createContext(false);

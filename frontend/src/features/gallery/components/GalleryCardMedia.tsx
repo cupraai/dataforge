@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
 import { useGalleryCardMedia } from "@/features/gallery/hooks/useGalleryCardMedia";
 import {
@@ -16,7 +16,10 @@ import { AudioWaveform } from "./AudioWaveform";
 
 const PREVIEW_PLAYBACK_RATE = 2;
 
-type MediaItem = Pick<GalleryItem, "path" | "modified_at" | "size" | "media_type" | "name">;
+type MediaItem = Pick<
+  GalleryItem,
+  "path" | "modified_at" | "size" | "media_type" | "name" | "placeholder_color"
+>;
 
 const PLACEHOLDER_ICONS: Record<GalleryItem["media_type"], AppIcon> = {
   image: iconImage,
@@ -40,10 +43,18 @@ export function GalleryCardMedia({ item, previewing = false }: GalleryCardMediaP
     useGalleryCardMedia(item);
   // The store only reports a source once its own preload has decoded it, so a mask needs no onLoad.
   const painted = showImage && (ready || itemIsAudio);
+  // On the surface, not the placeholder: it stays under the thumbnail while that fades in.
+  const color = item.placeholder_color;
+  const surfaceStyle = color ? ({ "--placeholder-color": color } as CSSProperties) : undefined;
 
   return (
-    <div ref={containerRef} className="card__media-surface" aria-hidden="true">
-      {!painted && (
+    <div
+      ref={containerRef}
+      className={classNames("card__media-surface", color && "card__media-surface--colored")}
+      style={surfaceStyle}
+      aria-hidden="true"
+    >
+      {!painted && !color && (
         <div className="card__media-placeholder">
           <Icon
             icon={PLACEHOLDER_ICONS[item.media_type]}

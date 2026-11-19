@@ -1,0 +1,26 @@
+@use "../abstracts/mixins" as *;
+
+// `MiddleTruncate`: the head gives way with an ellipsis, the tail never shrinks. `pre` on each
+// part keeps a space at either side of the cut, which a flex item would otherwise trim.
+.middle-truncate {
+  display: flex;
+  @include filename-type;
+  min-width: 0;
+  overflow: hidden;
+
+  &__head,
+  &__tail {
+    white-space: pre;
+  }
+
+  &__head {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tail {
+    flex: 0 0 auto;
+  }
+}

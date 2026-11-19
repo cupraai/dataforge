@@ -1,6 +1,6 @@
 import { Button } from "@/shared/ui/Button";
 import { IconButton } from "@/shared/ui/IconButton";
-import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { useFavoriteDragOrder } from "@/features/folder/hooks/useFavoriteDragOrder";
 import {
   useFolderFavorites,
@@ -16,6 +16,7 @@ import { folderLeafName, folderPathsEqual } from "@/features/folder/lib/folderPa
 import { FolderNoteDialog } from "@/features/folder/components/FolderNoteDialog";
 import { useTaggingFolder } from "@/features/tagging/hooks/useTaggingFolder";
 import { useEscapeKey } from "@/shared/hooks/useEscapeKey";
+import { useSidebarMotion } from "@/app/hooks/useSidebarMotion";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { readStored, writeStored } from "@/shared/lib/storage";
 import { classNames } from "@/shared/lib/classNames";
@@ -92,7 +93,13 @@ export function WorkspaceSidebar({
   const collapsed = medium ? collapsedMedium : collapsedWide;
   const hidden = narrow ? !showNarrow : collapsed;
   const overlay = narrow && !hidden;
-  useEscapeKey(() => setShowNarrow(false), overlay);
+  const asideRef = useRef<HTMLElement>(null);
+  const beforeToggle = useSidebarMotion(asideRef, hidden);
+  const closeOverlay = () => {
+    beforeToggle();
+    setShowNarrow(false);
+  };
+  useEscapeKey(closeOverlay, overlay);
   const favorites = useFolderFavorites().data ?? [];
   const taggingFolder = useTaggingFolder();
   const toggleFavorite = useToggleFolderFavorite();
@@ -113,6 +120,7 @@ export function WorkspaceSidebar({
   const noteLabel = note ? "Edit note" : "Add note";
   const instructionsLabel = hasInstructions ? "Edit instructions" : "Create instructions";
   const toggle = () => {
+    beforeToggle();
     if (narrow) setShowNarrow(!showNarrow);
     else if (medium) {
       setCollapsedMedium(!collapsed);
@@ -197,6 +205,7 @@ export function WorkspaceSidebar({
   };
   return (
     <aside
+      ref={asideRef}
       className={classNames(
         "workspace-sidebar",
         hidden && "workspace-sidebar--collapsed",
@@ -210,7 +219,7 @@ export function WorkspaceSidebar({
           className="workspace-sidebar__backdrop"
           aria-hidden="true"
           tabIndex={-1}
-          onClick={() => setShowNarrow(false)}
+          onClick={closeOverlay}
         />
       )}
       <div className="workspace-sidebar__panel">

@@ -41,6 +41,8 @@
     border-color: var(--accent-border);
   }
 
+  @include press-feedback(0.88, "&:active &__input:not(:disabled) + &__box");
+
   &__label {
     line-height: 1rem;
   }

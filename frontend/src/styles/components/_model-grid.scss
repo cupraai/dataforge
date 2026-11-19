@@ -39,7 +39,9 @@
     color var(--transition),
     border-color var(--transition),
     box-shadow var(--transition),
-    transform var(--transition);
+    transform var(--transition),
+    scale var(--duration-instant) var(--ease-standard);
+  @include press-feedback(0.985);
 
   @media (hover: hover) {
     &:hover:not(:disabled) {

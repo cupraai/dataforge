@@ -33,6 +33,7 @@ import { GalleryCardActions } from "./GalleryCardActions";
 import { GalleryCardMedia } from "./GalleryCardMedia";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
+import { MiddleTruncate } from "@/shared/ui/MiddleTruncate";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 type GalleryCardMode = Exclude<GalleryDisplayMode, "list">;
@@ -217,7 +218,7 @@ export const GalleryCard = memo(function GalleryCard({
         </div>
         <div className="card__body">
           <span className="card__head">
-            <span className="card__title">{item.name}</span>
+            <MiddleTruncate text={item.name} className="card__title" />
             {meta && <span className="card__meta">{meta}</span>}
           </span>
           {tagsShown && (

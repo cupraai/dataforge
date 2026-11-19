@@ -1,0 +1,45 @@
+@use "../abstracts/mixins" as *;
+
+// Digits drawn from `--digit` by `RollingNumber`; the real value is the visually hidden text.
+.rolling-number {
+  display: inline-flex;
+  @include tabular-nums;
+
+  &__text {
+    @include visually-hidden;
+  }
+
+  &__digits {
+    display: inline-flex;
+  }
+
+  // A hidden in-flow zero gives the column its width and baseline; the stack rolls over it.
+  &__digit {
+    position: relative;
+    display: inline-block;
+    clip-path: inset(0);
+
+    &::after {
+      content: "0";
+      visibility: hidden;
+    }
+
+    &::before {
+      content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+      position: absolute;
+      top: 0;
+      inset-inline: 0;
+      text-align: center;
+      white-space: pre;
+      translate: 0 calc(var(--digit, 0) * -1lh);
+
+      @include motion-safe {
+        transition: translate var(--duration-moderate) var(--ease-spring);
+      }
+    }
+  }
+
+  &__char::before {
+    content: attr(data-char);
+  }
+}

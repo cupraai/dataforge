@@ -12,11 +12,15 @@ import {
   buildRunJobItems,
   quickActionRunJobId,
 } from "@/features/quickAction/lib/buildQuickActionItems";
-import { ToolbarCompactContext } from "@/features/gallery/lib/toolbarCompact";
+import {
+  COLLAPSIBLE_LABEL_CLASS,
+  ToolbarCompactContext,
+} from "@/features/gallery/lib/toolbarCompact";
 import { job } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
 import { WorkspaceActions, WorkspaceActivity } from "./WorkspaceActions";
+import { SystemSpecsButton } from "@/features/automation/components/SystemSpecsButton";
 import type { JobType } from "@/shared/types";
 
 function renderActions(
@@ -57,6 +61,8 @@ function renderActions(
   const tree = (current: AutomationActions) => (
     <ToolbarCompactContext.Provider value={compact}>
       <WorkspaceActions panel={current} />
+      {/* Lives in the toolbar's app-wide group; the strip it opens is part of the activity. */}
+      <SystemSpecsButton />
       <WorkspaceActivity panel={current} />
     </ToolbarCompactContext.Provider>
   );
@@ -73,6 +79,26 @@ describe("Workspace tools", () => {
     const tools = screen.getByRole("button", { name: "Tools" });
     await user.hover(tools);
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Tools");
+  });
+
+  it("folds Review with the other menus, keeping its count, and drops every chevron with the labels", async () => {
+    const user = userEvent.setup();
+    renderActions({ issueCount: 2, onResolveIssues: vi.fn<() => void>() }, {}, true);
+
+    const review = screen.getByRole("button", { name: "Review 2" });
+    expect(review.querySelector(`.${COLLAPSIBLE_LABEL_CLASS}`)).toHaveTextContent(/^Review$/);
+    expect(review.querySelector(".workspace-actions__count")).not.toHaveClass(
+      COLLAPSIBLE_LABEL_CLASS,
+    );
+    await user.hover(review);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Review");
+
+    for (const name of ["Tools", "Workflows", "Review 2"]) {
+      const button = screen.getByRole("button", { name });
+      // The trailing chevron is the button's last child, inside a label the compact toolbar hides.
+      expect(button.lastElementChild).toHaveClass(COLLAPSIBLE_LABEL_CLASS);
+      expect(button.lastElementChild?.querySelector("svg")).not.toBeNull();
+    }
   });
 
   it("does not repeat the Tools label in a tooltip while it is shown", async () => {

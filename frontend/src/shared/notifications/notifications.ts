@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect } from "react";
+import { DURATION_BASE_MS } from "@/shared/lib/motion";
 import { iconCircleAlert, iconCircleCheck, iconTriangleAlert, type AppIcon } from "@/shared/icons";
 import type { NotificationRecord, NotificationVariant } from "@/shared/types";
 
@@ -35,7 +36,8 @@ export const UNDO_TOAST_DURATION_MS = 8000;
 /** The follow-up for a server notification, such as opening the file an export wrote. */
 export type NotificationActionFor = (record: NotificationRecord) => ToastAction | undefined;
 
-export const NOTIFICATION_EXIT_MS = 220;
+/** Matches the toast exit in `_notifications.scss`. */
+export const NOTIFICATION_EXIT_MS = DURATION_BASE_MS;
 
 export const variantIcons: Record<NotificationVariant, AppIcon> = {
   danger: iconCircleAlert,

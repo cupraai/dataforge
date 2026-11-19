@@ -23,7 +23,7 @@
     pointer-events: none;
     // Animation, not transition: the bubble mounts on show, so nothing precedes it. No fill mode on
     // the way in: a tab that never runs the animation must still show the tooltip.
-    animation: tooltip-in 0.15s ease;
+    animation: tooltip-in var(--duration-fast) var(--ease-standard);
 
     &[data-side="top"] {
       animation-name: tooltip-in-from-below;

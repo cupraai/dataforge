@@ -3,6 +3,7 @@ import { useStickyFloating } from "@/shared/hooks/useStickyFloating";
 import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "./Icon";
+import { RollingNumber } from "./RollingNumber";
 
 interface SectionHeaderProps {
   section: "folder" | "gallery";
@@ -63,11 +64,11 @@ export function SectionHeader({
             aria-label={showTotal ? `${count} of ${total}` : undefined}
           >
             {countIcon && <Icon icon={countIcon} className="section-header__count-icon" />}
-            <span className="section-header__count-value">{count}</span>
-            {showTotal && (
+            <RollingNumber value={count} className="section-header__count-value" />
+            {showTotal && total !== undefined && (
               <>
                 <span className="section-header__count-divider">/</span>
-                <span className="section-header__count-total">{total}</span>
+                <RollingNumber value={total} className="section-header__count-total" />
               </>
             )}
           </span>

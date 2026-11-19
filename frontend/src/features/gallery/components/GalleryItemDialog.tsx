@@ -128,6 +128,7 @@ import { ImageEditStage } from "./ImageEditStage";
 import { VideoEditPanel } from "./VideoEditPanel";
 import { AudioEditPanel } from "./AudioEditPanel";
 import { ZoomableImage } from "./ZoomableImage";
+import { useStagePaging } from "@/features/gallery/hooks/useStagePaging";
 import { AudioWaveform } from "./AudioWaveform";
 import { transcodeVideo, videoOriginalUrl } from "@/features/gallery/api/videoEdit";
 import { useMediaPlaybackProblem } from "@/shared/hooks/useMediaPlaybackProblem";
@@ -668,6 +669,8 @@ export function GalleryItemDialog({
   // The docked panel is narrow; its actions match the step buttons beside the counter.
   const headerActionSize = inline ? "xs" : "md";
   const editExpanded = editing || frameCapture.frameMode;
+  const stageRef = useRef<HTMLDivElement>(null);
+  useStagePaging(stageRef, item?.path, index, items.length, !editExpanded);
 
   useEffect(() => {
     if (!editExpanded || !onEditExpandedChange) return;
@@ -1126,6 +1129,7 @@ export function GalleryItemDialog({
         </header>
 
         <div
+          ref={stageRef}
           className={classNames(
             "gallery-item-dialog__stage",
             editing && "gallery-item-dialog__stage--editing",

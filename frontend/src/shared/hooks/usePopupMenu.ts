@@ -49,11 +49,14 @@ function usePanelFocus(
     if (!open) return;
 
     const root = rootRef.current;
-    panelRef.current?.focus();
+    const panel = panelRef.current;
+    panel?.focus();
 
     return () => {
-      // The removed panel drops focus to body; anything else is a user choice, not ours.
-      if (document.activeElement !== document.body) return;
+      // A removed panel drops focus to body and a fading one still holds it; anything else is a
+      // user choice, not ours.
+      const active = document.activeElement;
+      if (active !== document.body && !panel?.contains(active)) return;
       root?.querySelector<HTMLElement>('[aria-haspopup="menu"]')?.focus();
     };
   }, [open, panelRef, rootRef]);

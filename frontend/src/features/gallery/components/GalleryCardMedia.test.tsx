@@ -42,6 +42,24 @@ describe("GalleryCardMedia", () => {
     expect(container.querySelector(".card__media-placeholder")).toBeNull();
   });
 
+  it("paints the listed colour under the thumbnail instead of the icon placeholder", () => {
+    vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue(visible);
+    const { container } = renderWithThumbnails(
+      <GalleryCardMedia item={{ ...item, placeholder_color: "#336699" }} />,
+    );
+    const surface = container.querySelector<HTMLElement>(".card__media-surface")!;
+    expect(surface).toHaveClass("card__media-surface--colored");
+    expect(surface.style.getPropertyValue("--placeholder-color")).toBe("#336699");
+    expect(container.querySelector(".card__media-placeholder")).toBeNull();
+
+    act(() => {
+      loads.load();
+    });
+    fireEvent.load(container.querySelector("img")!);
+    // Still there while the thumbnail fades in over it.
+    expect(surface).toHaveClass("card__media-surface--colored");
+  });
+
   it("recognizes already complete browser-cached images", () => {
     vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue(visible);
     vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);

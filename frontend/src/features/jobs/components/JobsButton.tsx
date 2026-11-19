@@ -3,6 +3,7 @@ import { useJobs } from "@/features/jobs/context/JobsContext";
 import { iconBot } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
+import { RollingNumber } from "@/shared/ui/RollingNumber";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 function describeJobs(running: boolean, unseenCount: number, unseenFailed: boolean): string[] {
@@ -53,7 +54,7 @@ export function JobsButton() {
             )}
             aria-hidden="true"
           >
-            {unseenCount > 99 ? "99+" : unseenCount}
+            <RollingNumber value={unseenCount > 99 ? "99+" : unseenCount} />
           </span>
         )}
       </Button>

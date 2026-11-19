@@ -27,7 +27,11 @@ export function ProgressBar({ value, label, tone, className }: ProgressBarProps)
         : { "aria-hidden": true })}
     >
       <span
-        className={classNames("progress__fill", tone && `progress__fill--${tone}`)}
+        className={classNames(
+          "progress__fill",
+          tone && `progress__fill--${tone}`,
+          !tone && percent < 100 && "progress__fill--working",
+        )}
         style={{ width: `${percent}%` }}
       />
     </span>

@@ -6,6 +6,7 @@ import { iconAudioLines, iconCheck, iconImage, iconVideo } from "@/shared/icons"
 import type { GalleryItem } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
+import { MiddleTruncate } from "@/shared/ui/MiddleTruncate";
 import { GalleryCardMedia } from "./GalleryCardMedia";
 
 interface GalleryListRowProps {
@@ -78,7 +79,7 @@ export const GalleryListRow = memo(function GalleryListRow({
           icon={isVideo(item) ? iconVideo : isAudio(item) ? iconAudioLines : iconImage}
           className="gallery-list-row__name-icon"
         />
-        <span className="gallery-list-row__name-text">{item.name}</span>
+        <MiddleTruncate text={item.name} className="gallery-list-row__name-text" />
         {captionPreview && item.description && (
           <span className="gallery-list-row__caption" title={item.description}>
             {item.description}

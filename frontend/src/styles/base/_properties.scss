@@ -5,3 +5,16 @@
   inherits: false;
   initial-value: transparent;
 }
+
+// A button size's own spacing; see `.button--md`.
+@property --button-gap {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --button-padding {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}

@@ -1,18 +1,20 @@
 import { render } from "@testing-library/react";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as toolbarCompact from "@/features/gallery/lib/toolbarCompact";
 import { classNames } from "@/shared/lib/classNames";
 import { useToolbarCompactMode } from "./useToolbarCompactMode";
 
-const needsCompact = vi.hoisted(() => vi.fn<() => boolean>(() => false));
+const needsCompact = vi.hoisted(() =>
+  vi.fn<typeof toolbarCompact.toolbarNeedsCompact>(() => false),
+);
 
 vi.mock("@/features/gallery/lib/toolbarCompact", async (importOriginal) => ({
   ...(await importOriginal<typeof toolbarCompact>()),
   toolbarNeedsCompact: needsCompact,
 }));
 
-function ToolbarProbe({ label = "Auto-caption" }: { label?: string }) {
+function ToolbarProbe({ label = "Auto-caption" }: { label?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const compact = useToolbarCompactMode(ref);
   return (
@@ -76,6 +78,38 @@ describe("useToolbarCompactMode", () => {
     // The toolbar's height and the actions' width both change with the compact mode.
     expect(watched).not.toContain(container.querySelector(".toolbar"));
     expect(watched).not.toContain(container.querySelector(".toolbar__actions"));
+  });
+
+  it("adds back the spacing a compact button tightens, not only its hidden text", () => {
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.textContent === "Tools" ? 30 : 10;
+    });
+    // As a compact toolbar draws it: 7px gaps and 14px sides tightened to 4px and 9px.
+    render(
+      <ToolbarProbe
+        label={
+          <button
+            type="button"
+            style={{
+              columnGap: "4px",
+              paddingLeft: "9px",
+              paddingRight: "9px",
+              ["--button-gap" as string]: "7px",
+              ["--button-padding" as string]: "14px",
+            }}
+          >
+            <svg />
+            <span className="toolbar__collapsible-label">Tools</span>
+            <span className="toolbar__collapsible-label">v</span>
+          </button>
+        }
+      />,
+    );
+
+    // Text 30 + 10, two full gaps 14, full sides 28; less the bare icon's sides 18.
+    expect(needsCompact.mock.lastCall?.[0]).toMatchObject({ labels: 64 });
   });
 
   it("checks again when an action's label changes", async () => {

@@ -34,15 +34,39 @@
 
 .dialog-panel {
   &--enter {
-    animation: dialog-panel-enter 0.16s ease-out;
+    animation: dialog-panel-enter var(--duration-moderate) var(--ease-emphasized);
   }
 
   // `both` holds the end frame so the panel cannot flash back before unmount on `animationend`.
   &--exit {
-    animation: dialog-panel-exit 0.14s ease-in both;
+    animation: dialog-panel-exit var(--duration-fast) var(--ease-exit) both;
   }
 }
 
-.dialog-backdrop--exit {
-  animation: dialog-backdrop-exit 0.14s ease-in both;
+// Two classes: each `__backdrop` rule sets the entrance, and several load after this file.
+.dialog-backdrop.dialog-backdrop--exit {
+  animation: dialog-backdrop-exit var(--duration-fast) var(--ease-exit) both;
+}
+
+// A closed dialog's inert copy (`dialogExitGhost.ts`), playing the exit over whatever follows. A
+// manual popover reaches the top layer without taking focus; these undo its UA box.
+.dialog-exit-ghost {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  pointer-events: none;
+
+  > .dialog-surface {
+    position: fixed;
+    inset: 0;
+  }
 }

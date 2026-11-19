@@ -36,10 +36,8 @@ import { Tooltip } from "@/shared/ui/Tooltip";
 import {
   iconHammer,
   iconMessageWarning,
-  iconCpu,
   iconFiles,
   iconScanSquare,
-  iconChevronDown,
   iconBan,
   iconListOrdered,
   iconCircleAlert,
@@ -54,6 +52,7 @@ import { AutomationSystemSpecs } from "@/features/automation/components/Automati
 import { useAutomationSpecsVisible } from "@/features/automation/hooks/useAutomationSpecsVisible";
 import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
 import { ScopeNote } from "@/features/gallery/components/ScopeNote";
+import { ToolbarMenuChevron } from "@/features/gallery/components/ToolbarMenuChevron";
 
 interface ToolsMenuProps {
   panel: AutomationActions;
@@ -153,8 +152,9 @@ function ToolsMenu(props: ToolsMenuProps) {
     <>
       <div ref={rootRef}>
         <Tooltip content="Tools" disabled={!compact}>
-          <Button icon={iconHammer} iconEnd={iconChevronDown} {...triggerProps}>
+          <Button icon={iconHammer} {...triggerProps}>
             <span className={COLLAPSIBLE_LABEL_CLASS}>Tools</span>
+            <ToolbarMenuChevron />
           </Button>
         </Tooltip>
       </div>
@@ -175,6 +175,7 @@ function ToolsMenu(props: ToolsMenuProps) {
 function ReviewMenu({ panel }: { panel: AutomationActions }) {
   const menu = usePopupMenu();
   const { close, rootRef, triggerProps } = menu;
+  const compact = useToolbarCompact();
   const queues = [
     {
       label: "Caption issues",
@@ -204,9 +205,14 @@ function ReviewMenu({ panel }: { panel: AutomationActions }) {
   return (
     <>
       <div ref={rootRef}>
-        <Button icon={iconSearchCheck} iconEnd={iconChevronDown} {...triggerProps}>
-          Review <span className="workspace-actions__count">{total}</span>
-        </Button>
+        <Tooltip content="Review" disabled={!compact}>
+          {/* The count stays when compact: it is why the button is there at all. */}
+          <Button icon={iconSearchCheck} {...triggerProps}>
+            <span className={COLLAPSIBLE_LABEL_CLASS}>Review</span>{" "}
+            <span className="workspace-actions__count">{total}</span>
+            <ToolbarMenuChevron />
+          </Button>
+        </Tooltip>
       </div>
       <Menu menu={menu} label="Review queues" placement="bottom-start" className="workspace-review">
         {queues.map((queue) => (
@@ -233,7 +239,6 @@ function ReviewMenu({ panel }: { panel: AutomationActions }) {
 
 /** Folder actions that sit in the toolbar row. */
 export function WorkspaceActions({ panel }: ToolsMenuProps) {
-  const { showSpecs, toggleSpecs } = useAutomationSpecsVisible();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const job = panel.job;
   const active = Boolean(job && isActiveJobStatus(job.status));
@@ -253,15 +258,6 @@ export function WorkspaceActions({ panel }: ToolsMenuProps) {
       <ToolsMenu panel={panel} />
       <WorkflowsMenu actions={panel.workflows} scope={panel.reviewScope} />
       <ReviewMenu panel={panel} />
-      <IconButton
-        icon={iconCpu}
-        label="Toggle system specifications"
-        shape="round"
-        tooltip={showSpecs ? "Hide system specifications" : "Show system specifications"}
-        onClick={toggleSpecs}
-        aria-expanded={showSpecs}
-        aria-controls={showSpecs ? "workspace-system-specs" : undefined}
-      />
       {confirmingCancel && job && active && (
         <CancelJobDialog
           job={job}

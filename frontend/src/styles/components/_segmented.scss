@@ -3,6 +3,8 @@
 // A pill track; the checked option takes the accent surface every chosen filter or toggle uses.
 .segmented {
   --segmented-inset: 0.1875rem;
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   flex-shrink: 0;
   padding: var(--segmented-inset);
@@ -37,6 +39,7 @@
     font-weight: var(--font-medium);
     line-height: 1;
     white-space: nowrap;
+    @include press-feedback(0.95, "&:active:not(:has(:disabled))");
 
     &:hover:not(:disabled, :has(:disabled)) {
       @include fade-bg(var(--surface-hover));
@@ -89,6 +92,38 @@
     &:has(:disabled) {
       @include disabled-state;
     }
+  }
+
+  // One accent surface slides to the chosen option (`useSlidingIndicator`). Until it is placed, or
+  // with nothing chosen, the checked option paints the same surface itself.
+  &__thumb {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: var(--indicator-w);
+    height: var(--indicator-h);
+    translate: var(--indicator-x) var(--indicator-y);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    pointer-events: none;
+
+    @include motion-safe {
+      transition:
+        translate var(--duration-moderate) var(--ease-spring),
+        width var(--duration-moderate) var(--ease-emphasized);
+    }
+  }
+
+  &[data-indicator="ready"] > &__thumb {
+    display: block;
+  }
+
+  &[data-indicator="ready"] &__option:has(:checked) {
+    @include fade-bg(transparent);
+    border-color: transparent;
   }
 
   &--stretch &__option {

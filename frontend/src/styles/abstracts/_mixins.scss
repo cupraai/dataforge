@@ -65,6 +65,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+@mixin filename-type {
+  font-feature-settings: var(--font-features-filename);
+}
+
 // Panels that hang under a running job: per-file results, ComfyUI output, training samples.
 // Sits on a job card that may already carry a danger or warning gradient, so the surface stays
 // translucent.
@@ -238,6 +242,24 @@
   background: var(--fade-bg);
 }
 
+/// Decorative motion only: under reduced motion the block is simply absent. Exits are not
+/// decorative (`animationend` unmounts them); those stay in utilities/_reduced-motion.scss.
+@mixin motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    @content;
+  }
+}
+
+/// A pressed control dips. `scale` composes with any `transform` the element already has, and
+/// `control-interactive` transitions it; large targets take a shallower dip.
+@mixin press-feedback($scale: 0.96, $state: "&:active:not(:disabled, [aria-disabled='true'])") {
+  @include motion-safe {
+    #{$state} {
+      scale: $scale;
+    }
+  }
+}
+
 @mixin control-interactive {
   cursor: pointer;
   background: var(--fade-bg);
@@ -245,7 +267,9 @@
     --fade-bg var(--transition),
     color var(--transition),
     border-color var(--transition),
-    transform var(--transition);
+    box-shadow var(--transition),
+    transform var(--transition),
+    scale var(--duration-instant) var(--ease-standard);
 }
 
 // Appearance only: `.anchored` owns geometry, so a panel that declared its own would fight it.
@@ -259,16 +283,26 @@
   // Scrolls when `useAnchoredPosition` caps max-height.
   overflow-y: auto;
   padding: 0.375rem;
-  background: var(--bg-card);
+  background: var(--surface-sheen), var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--elevation-3);
-  // No fill mode: a tab that never runs the animation must still show the panel.
-  animation: menu-drop-in var(--duration-fast) ease;
+  transform-origin: top center;
 
-  // Kept beside the animation, like the skeleton shimmer: every dropdown panel mixes it in.
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  // No fill mode on the way in: a tab that never runs the animation must still show the panel.
+  @include motion-safe {
+    animation: menu-drop-in var(--duration-base) var(--ease-emphasized);
+  }
+
+  &[data-side="top"] {
+    transform-origin: bottom center;
+    animation-name: menu-rise-in;
+  }
+
+  // Held by `AnchoredLayer`'s `exitDuration`; reduced motion keeps only a 1ms exit.
+  &[data-state="closed"] {
+    pointer-events: none;
+    animation: menu-drop-out var(--duration-instant) var(--ease-exit) forwards;
   }
 }
 
@@ -287,6 +321,7 @@
   font-weight: var(--font-medium);
   line-height: 1;
   text-align: left;
+  @include press-feedback(0.985);
 
   &:hover {
     color: var(--text);
@@ -302,7 +337,7 @@
 }
 
 @mixin spin {
-  animation: spin 0.9s linear infinite;
+  animation: spin $loop-spin linear infinite;
 }
 
 /// Trims the text box to its capitals so centring centres the letters.
@@ -469,7 +504,8 @@
   color: var(--bg);
   transition:
     --fade-bg var(--transition),
-    border-color var(--transition);
+    border-color var(--transition),
+    scale var(--duration-instant) var(--ease-standard);
 }
 
 @mixin custom-checkbox-mark {
@@ -479,10 +515,14 @@
   height: 0.5rem;
   border: solid currentColor;
   border-width: 0 2px 2px 0;
-  // Optical lift: the L sits slightly low after rotate.
+  // Optical lift: the L sits slightly low after rotate. Unchecked it waits shrunk, so checking
+  // springs it out of the box's centre.
   transform: translateY(-0.05rem) rotate(45deg);
+  scale: 0.3;
   opacity: 0;
-  transition: opacity var(--transition);
+  transition:
+    opacity var(--duration-instant) var(--ease-standard),
+    scale var(--duration-moderate) var(--ease-spring);
 }
 
 @mixin custom-checkbox-box {
@@ -498,6 +538,7 @@
   border-color: var(--accent);
 
   &::after {
+    scale: 1;
     opacity: 1;
   }
 }
@@ -638,7 +679,7 @@
   backdrop-filter: blur($dialog-backdrop-blur);
   -webkit-backdrop-filter: blur($dialog-backdrop-blur);
   cursor: pointer;
-  animation: dialog-backdrop-enter 0.16s ease-out;
+  animation: dialog-backdrop-enter var(--duration-base) var(--ease-standard);
 
   &--nested {
     backdrop-filter: none;
@@ -654,7 +695,7 @@
 }
 
 @mixin dialog-panel-surface {
-  background: var(--bg-elevated);
+  background: var(--surface-sheen), var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-4);
@@ -752,6 +793,7 @@
   font-size: var(--text-md);
   font-weight: var(--font-semibold);
   line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
 }
 
 @mixin dialog-editor-subtitle {
@@ -828,7 +870,7 @@
     var(--bg-elevated) 100%
   );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  animation: skeleton-shimmer $loop-shimmer ease-in-out infinite;
 
   // Kept beside the animation: the shimmer is mixed into many selectors, too many to list in
   // utilities/_reduced-motion.scss. The still gradient keeps reading as a placeholder.

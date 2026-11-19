@@ -7,6 +7,18 @@ import { runDirectory } from "./runDirectory";
 /** Built by scripts/e2e_backend.py inside this run's own folder. */
 export const WORKSPACE = path.join(runDirectory(), "workspace");
 
+/**
+ * Runs every entrance and fade to its end, so a measurement reads the resting layout: a folder's
+ * cards rise in after it loads and dialogs scale in. Loops such as spinners keep running.
+ */
+export async function settleAnimations(page: Page) {
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      if (animation.effect?.getComputedTiming().endTime !== Infinity) animation.finish();
+    }
+  });
+}
+
 /** Opens the workspace trimmed to one image and one video, with no subfolders. */
 export async function openWorkspace(page: Page) {
   await page.route("**/api/folders/contents?**", async (route) => {

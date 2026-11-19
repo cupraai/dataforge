@@ -21,6 +21,11 @@
     max-height: 100%;
     overflow: hidden;
     @include dialog-panel-surface;
+
+    // A palette drops from the top of the window rather than growing out of a trigger.
+    &.dialog-panel--enter {
+      animation-name: dialog-panel-drop;
+    }
   }
 
   &__search {

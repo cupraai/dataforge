@@ -1,3 +1,5 @@
+@use "../abstracts/variables" as *;
+
 // Loaded last so these equal-specificity selectors beat the component layer. No blanket `*` reset:
 // loading indicators keep their infinite `spin`.
 
@@ -28,6 +30,7 @@
 
   // The fade and the drop line still show; they just appear at once.
   .workspace-sidebar__folder,
+  .workspace-sidebar__folder::before,
   .workspace-sidebar__row-actions {
     transition: none;
   }
@@ -54,7 +57,7 @@
   // A busy signal must not vanish like decoration: the sweep becomes a slow in-place pulse.
   .app-nav__refresh::after {
     width: 100%;
-    animation: nav-refresh-pulse 2s ease-in-out infinite;
+    animation: nav-refresh-pulse $loop-pulse ease-in-out infinite;
   }
 
   // Color and shape still mark these states; only the motion goes.
@@ -66,11 +69,12 @@
 
   // Exits keep a 1ms duration so `animationend` still unmounts the jobs drawer, toasts and strips.
   .dialog-panel--exit,
-  .dialog-backdrop--exit,
+  .dialog-backdrop.dialog-backdrop--exit,
   .jobs-dialog__panel.dialog-panel--exit,
   .stats-dialog__panel.dialog-panel--exit,
   .notifications__toast--exiting,
-  .collapse--exit {
-    animation-duration: 1ms;
+  .collapse--exit,
+  .anchored[data-state="closed"] {
+    animation-duration: $duration-skip;
   }
 }

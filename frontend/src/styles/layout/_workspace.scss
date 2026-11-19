@@ -10,7 +10,7 @@
   width: 232px;
   min-height: 0;
   border-right: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: var(--surface-sheen), var(--bg-elevated);
   z-index: 25;
 
   &--collapsed {
@@ -28,7 +28,9 @@
     height: 100%;
     padding: 1rem 0.75rem;
   }
-  &--collapsed &__panel {
+  // Child combinators: the closing copy (`--ghost`) is the open sidebar laid inside the rail, and
+  // must not take the rail's state.
+  &--collapsed > &__panel {
     padding-inline: 0.375rem;
   }
   // Panel actions span the column.
@@ -36,11 +38,10 @@
   &__footer .button {
     width: 100%;
   }
-  &--collapsed &__panel .button,
-  &--collapsed &__footer .button {
+  &--collapsed > &__panel .button {
     padding-inline: 0;
   }
-  &--overlay &__panel {
+  &--overlay > &__panel {
     position: absolute;
     inset: 0 auto 0 0;
     z-index: 1;
@@ -48,6 +49,13 @@
     border-right: 1px solid var(--border);
     background: var(--bg-elevated);
     box-shadow: var(--elevation-4);
+  }
+  // `useSidebarMotion`'s inert copy of the open sidebar, retracting over the rail.
+  &--ghost {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 2;
+    pointer-events: none;
   }
   &__backdrop {
     position: fixed;
@@ -78,7 +86,7 @@
       transform-origin: 70% 75%;
     }
     &:hover svg {
-      animation: workspace-hammer-tap 0.65s ease-in-out;
+      animation: workspace-hammer-tap $attention ease-in-out;
     }
   }
   // Headings stay put and each folder list scrolls on its own. Grid rows grow evenly up to their
@@ -133,6 +141,7 @@
     padding: 0 0.5rem;
   }
   &__folder {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -140,7 +149,7 @@
     padding: 0.5rem;
     border: 0;
     border-radius: var(--radius-sm);
-    background: transparent;
+    @include fade-bg(transparent);
     color: var(--text-muted);
     font-size: var(--text-sm);
     text-align: left;
@@ -155,18 +164,40 @@
       @include truncate;
     }
     &:hover {
-      background: var(--surface-hover);
+      @include fade-bg(var(--surface-hover));
       color: var(--text);
     }
     @include drag-reorder-row(0.5rem, -1px);
+    // After the mixin, whose own list covers only the drag states.
+    transition:
+      --fade-bg var(--transition),
+      color var(--transition),
+      opacity var(--transition),
+      transform var(--transition);
+    // The open folder's edge mark: the old row's shrinks as the new one's springs up.
+    &::before {
+      content: "";
+      position: absolute;
+      top: 25%;
+      bottom: 25%;
+      left: 0;
+      width: 3px;
+      border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+      background: var(--accent);
+      scale: 1 0;
+      transition: scale var(--duration-moderate) var(--ease-spring);
+    }
     &--active {
-      background: var(--accent-soft);
+      @include fade-bg(var(--accent-soft));
       color: var(--accent);
+    }
+    &--active::before {
+      scale: 1 1;
     }
     // Green like the header's tagging sweep; only the icon pulses, so the name stays readable.
     &--tagging svg {
       color: var(--success);
-      animation: folder-tagging-pulse 2.4s ease-in-out infinite;
+      animation: folder-tagging-pulse $loop-pulse ease-in-out infinite;
     }
   }
   // Row actions sit over the row's right edge and appear only on hover or focus.

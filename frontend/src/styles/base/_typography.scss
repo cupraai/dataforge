@@ -28,10 +28,13 @@ h6 {
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
   color: var(--text);
+  // A title that wraps splits into even lines, not a full line and a stray word.
+  text-wrap: balance;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 strong {

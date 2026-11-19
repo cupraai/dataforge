@@ -1,3 +1,4 @@
+@use "sass:meta";
 @use "../abstracts/variables" as *;
 
 // A mixin, so light-theme regions that show media can take the dark theme back.
@@ -143,14 +144,24 @@
   // surfaces add a top highlight, since a shadow alone barely reads on a near-black page.
   --elevation-1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3);
   --elevation-2:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.25),
-    0 6px 16px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.2), 0 12px 24px -8px rgba(0, 0, 0, 0.32);
   --elevation-3:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.25),
-    0 12px 32px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.24),
+    0 8px 20px rgba(0, 0, 0, 0.3), 0 20px 40px -12px rgba(0, 0, 0, 0.45);
   --elevation-4:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.3),
-    0 24px 64px rgba(0, 0, 0, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 2px 4px rgba(0, 0, 0, 0.24),
+    0 12px 32px rgba(0, 0, 0, 0.35), 0 32px 72px -16px rgba(0, 0, 0, 0.55);
+  // Light falling on raised chrome from above; static, so painted as a background image.
+  --surface-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 3rem);
+  // A faint accent dawn behind the workspace, for depth on the near-black page.
+  --shell-wash: radial-gradient(
+    60rem 28rem at 72% -6rem,
+    rgba(124, 156, 255, 0.07),
+    rgba(124, 156, 255, 0) 70%
+  );
+  // Chosen and current things: a hairline accent edge plus a soft bloom.
+  --accent-glow: 0 0 0 1px rgba(124, 156, 255, 0.4), 0 0 20px -4px rgba(124, 156, 255, 0.45);
   --shadow-drawer: -12px 0 40px rgba(0, 0, 0, 0.35);
   // One ring for keyboard focus; a component retunes it with `--focus-ring-color`.
   --focus-ring: var(--accent);
@@ -171,12 +182,16 @@
   --icon-size-lg: #{$icon-size-lg};
   --icon-size-xl: #{$icon-size-xl};
 
+  --duration-instant: #{$duration-instant};
   --duration-fast: #{$duration-fast};
   --duration-base: #{$duration-base};
+  --duration-moderate: #{$duration-moderate};
   --duration-slow: #{$duration-slow};
   --ease-standard: #{$ease-standard};
   --ease-emphasized: #{$ease-emphasized};
   --ease-exit: #{$ease-exit};
+  --ease-spring: #{$ease-spring};
+  --stagger-step: #{$stagger-step};
   --transition: #{$transition-fast};
 
   --space-0_5: #{$space-0_5};
@@ -191,8 +206,10 @@
 
   --font-sans: #{$font-sans};
   --font-mono: #{$font-mono};
-  --font-features: #{$font-features};
-  --font-features-numeric: #{$font-features-numeric};
+  // `inspect`, not plain interpolation, which drops the tags' quotes and so the whole value.
+  --font-features: #{meta.inspect($font-features)};
+  --font-features-numeric: #{meta.inspect($font-features-numeric)};
+  --font-features-filename: #{meta.inspect($font-features-filename)};
 
   --text-3xs: #{$text-3xs};
   --text-2xs: #{$text-2xs};

@@ -4,11 +4,11 @@ import { Fragment } from "react";
 import { jobMenuLabelFor, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import type { WorkflowActions } from "@/features/workflows/hooks/useWorkflowHost";
 import { COLLAPSIBLE_LABEL_CLASS, useToolbarCompact } from "@/features/gallery/lib/toolbarCompact";
+import { ToolbarMenuChevron } from "@/features/gallery/components/ToolbarMenuChevron";
 import { ScopeNote } from "@/features/gallery/components/ScopeNote";
 import type { ReviewScope } from "@/features/gallery/lib/reviewScope";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import {
-  iconChevronDown,
   iconChevronRight,
   iconLoader2,
   iconPlus,
@@ -43,17 +43,14 @@ export function WorkflowsMenu({ actions, scope }: WorkflowsMenuProps) {
       <div ref={rootRef}>
         <Tooltip content="Workflows" disabled={!compact}>
           {/* Not `busy`, which disables: the menu still opens while a run starts. */}
-          <Button
-            iconEnd={iconChevronDown}
-            aria-busy={startingWorkflow ? true : undefined}
-            {...triggerProps}
-          >
+          <Button aria-busy={startingWorkflow ? true : undefined} {...triggerProps}>
             <Icon
               icon={startingWorkflow ? iconLoader2 : iconWorkflow}
               spin={Boolean(startingWorkflow)}
               className="button__icon"
             />
             <span className={COLLAPSIBLE_LABEL_CLASS}>Workflows</span>
+            <ToolbarMenuChevron />
           </Button>
         </Tooltip>
       </div>

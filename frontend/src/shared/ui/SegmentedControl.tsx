@@ -1,4 +1,5 @@
-import { useId, type CSSProperties } from "react";
+import { useId, useRef, type CSSProperties } from "react";
+import { useSlidingIndicator } from "@/shared/hooks/useSlidingIndicator";
 import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
@@ -39,6 +40,10 @@ type SegmentedControlProps<T extends string | number> = SegmentedControlName & {
   className?: string;
 };
 
+function findCheckedOption(root: HTMLElement) {
+  return root.querySelector("input:checked")?.closest<HTMLElement>(".segmented__option") ?? null;
+}
+
 /** One choice of a few, as a track of options. Native radios give it arrow-key movement. */
 export function SegmentedControl<T extends string | number>({
   value,
@@ -52,9 +57,12 @@ export function SegmentedControl<T extends string | number>({
   className,
 }: SegmentedControlProps<T>) {
   const name = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  useSlidingIndicator(rootRef, findCheckedOption, value);
 
   return (
     <div
+      ref={rootRef}
       role="radiogroup"
       aria-label={label}
       aria-labelledby={labelledBy}
@@ -65,6 +73,7 @@ export function SegmentedControl<T extends string | number>({
         className,
       )}
     >
+      <span className="segmented__thumb" aria-hidden="true" />
       {options.map((option) => {
         const segment = (
           <label

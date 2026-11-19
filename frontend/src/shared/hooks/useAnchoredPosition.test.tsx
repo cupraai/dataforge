@@ -19,14 +19,31 @@ function fakeRect(partial: Partial<DOMRect>): DOMRect {
   };
 }
 
-/** jsdom has no layout; supply the anchor rect and surface size. */
-function stubLayout(anchor: Partial<DOMRect>, floating: Partial<DOMRect>) {
+/**
+ * jsdom has no layout; supply the anchor rect and surface size. `scale` stands for an entrance
+ * transform, which a client rect includes and the layout box does not.
+ */
+function stubLayout(anchor: Partial<DOMRect>, floating: Partial<DOMRect>, scale = 1) {
   vi.spyOn(window, "innerWidth", "get").mockReturnValue(1000);
   vi.spyOn(window, "innerHeight", "get").mockReturnValue(800);
+  const size = (element: HTMLElement, key: "width" | "height") =>
+    element.classList.contains("floating") ? (floating[key] ?? 0) : 0;
+  vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    return size(this, "width");
+  });
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    return size(this, "height");
+  });
   return vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
     this: Element,
   ) {
-    return fakeRect(this.classList.contains("floating") ? floating : anchor);
+    if (!this.classList.contains("floating")) return fakeRect(anchor);
+    const { width = 0, height = 0 } = floating;
+    return fakeRect({ ...floating, width: width * scale, height: height * scale });
   });
 }
 
@@ -60,6 +77,14 @@ describe("useAnchoredPosition", () => {
     expect(floating.style.left).toBe("300px");
     expect(floating.style.top).toBe("248px");
     expect(floating.dataset.side).toBe("bottom");
+  });
+
+  it("sizes the surface by its layout box, not a scale its entrance is playing", () => {
+    stubLayout(ANCHOR, FLOATING, 0.97);
+    const { getByTestId } = render(<Fixture active placement="bottom-end" />);
+
+    // A scaled measure would put it 6px right, then jump back once the entrance ends.
+    expect(getByTestId("floating").style.left).toBe("300px");
   });
 
   it("writes nothing while inactive", () => {
@@ -127,8 +152,8 @@ describe("useAnchoredPosition", () => {
     act(() => {
       vi.advanceTimersToNextFrame();
     });
-    // One placement reads the anchor and the surface once each.
-    expect(rect).toHaveBeenCalledTimes(2);
+    // One placement reads the anchor's rect once; the surface's size comes from its layout box.
+    expect(rect).toHaveBeenCalledTimes(1);
   });
 
   it("drops a frame still pending when the surface goes away", () => {

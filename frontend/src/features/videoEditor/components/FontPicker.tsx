@@ -9,6 +9,7 @@ import { Icon } from "@/shared/ui/Icon";
 import type { VideoProjectFont, VideoProjectFontFamily } from "@/shared/types";
 import { useFontFamilies } from "@/features/videoEditor/hooks/useFontFamilies";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { DURATION_INSTANT_MS } from "@/shared/lib/motion";
 
 const DEFAULT_LABEL = "Default";
 
@@ -143,6 +144,7 @@ function FamilyMenu({
         anchorRef={rootRef}
         floatingRef={panelRef}
         open={open}
+        exitDuration={DURATION_INSTANT_MS}
         id={menuId}
         className="video-editor__font-panel"
         role="dialog"

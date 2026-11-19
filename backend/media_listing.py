@@ -26,6 +26,7 @@ from folder_scan import (
     is_model_path,
     scan_folder,
 )
+from media_colors import ColorRow, folder_color_rows, forget_media_colors
 from media_dimensions import media_info
 from media_tags import TagRow, get_tag_min_confidence, listed_tag_rows, listed_tags
 from safetensors_header import model_info
@@ -142,14 +143,25 @@ def summarize_folder_contents(folder: Path) -> dict[str, int]:
 
 
 class _FolderTags(NamedTuple):
-    """Read once per listing."""
+    """Read once per listing, with the placeholder colours."""
 
     rows: dict[str, TagRow]
     min_confidence: float
+    colors: dict[str, ColorRow]
 
 
 def _folder_tags(scan: FolderScan) -> _FolderTags:
-    return _FolderTags(listed_tag_rows(scan.folder), get_tag_min_confidence())
+    colors = folder_color_rows(scan.folder)
+    gone = colors.keys() - {media.name for media in scan.media}
+    if gone:
+        forget_media_colors(scan.folder, gone)
+    return _FolderTags(listed_tag_rows(scan.folder), get_tag_min_confidence(), colors)
+
+
+def _placeholder_color(row: ColorRow | None, media: ScannedEntry) -> str | None:
+    if row is None or row.mtime_ns != media.mtime_ns or row.size != media.size:
+        return None
+    return row.color
 
 
 def _iso_time(timestamp: float) -> str:
@@ -243,6 +255,12 @@ def _build_media_item(
         "has_backup": f"{media.name}{EDIT_BACKUP_SUFFIX}" in scan.files,
         "tags": listed_tags(
             tags.rows.get(media.name), media.mtime_ns, media.size, tags.min_confidence
+        ),
+        # Audio cards draw a waveform, never a picture for a colour to stand in for.
+        "placeholder_color": (
+            None
+            if media_type == "audio"
+            else _placeholder_color(tags.colors.get(media.name), media)
         ),
     }
 

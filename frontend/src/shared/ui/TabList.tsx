@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import type { TabListState } from "@/shared/hooks/useTabList";
+import { useSlidingIndicator } from "@/shared/hooks/useSlidingIndicator";
 import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
@@ -24,7 +26,11 @@ interface TabListProps<T extends string> {
   className?: string;
 }
 
-/** Underlined tabs: the selected one's bar sits on the row's bottom rule. */
+function findSelectedTab(root: HTMLElement) {
+  return root.querySelector<HTMLElement>(':scope > [aria-selected="true"]');
+}
+
+/** Underlined tabs: the selected one's bar sits on the row's bottom rule, sliding between them. */
 export function TabList<T extends string>({
   tabs,
   item,
@@ -33,12 +39,17 @@ export function TabList<T extends string>({
   disabled = false,
   className,
 }: TabListProps<T>) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useSlidingIndicator(rootRef, findSelectedTab, tabs.active);
+
   return (
     <div
       {...tabs.tabListProps}
+      ref={rootRef}
       aria-label={label}
       className={classNames("tab-list", `tab-list--${size}`, className)}
     >
+      <span className="tab-list__bar" aria-hidden="true" />
       {tabs.ids.map((id) => {
         const { label: name, icon, mark } = item(id);
         return (

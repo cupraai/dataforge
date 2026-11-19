@@ -253,6 +253,8 @@ class GalleryItem(BaseModel):
     tags: list[MediaTag] = Field(default_factory=list)
     #: Models only, read from the header; ``None`` for an unreadable header or unknown layout.
     model_kind: ModelKind | None = None
+    #: ``#rrggbb`` average of the thumbnail last served for this exact file; ``None`` until then.
+    placeholder_color: str | None = None
 
 
 class DuplicateGroup(BaseModel):

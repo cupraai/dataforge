@@ -5,6 +5,7 @@ import { iconCheck, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 import { Icon } from "@/shared/ui/Icon";
+import { DURATION_INSTANT_MS } from "@/shared/lib/motion";
 
 const ITEM_SELECTOR = '[role^="menuitem"]:not(:disabled)';
 const STEP_KEYS: Record<string, (index: number, count: number) => number> = {
@@ -40,6 +41,7 @@ export function Menu({ menu, label, className, children, ...options }: MenuProps
       anchorRef={menu.rootRef}
       floatingRef={menu.panelRef}
       open={menu.open}
+      exitDuration={DURATION_INSTANT_MS}
       id={menu.menuId}
       role="menu"
       label={label}

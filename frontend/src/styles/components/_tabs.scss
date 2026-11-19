@@ -3,6 +3,7 @@
 // The surface's own class draws the rule under the row; the selected tab's bar overlaps it, so
 // the open tab reads as joined to what it shows.
 .tab-list {
+  position: relative;
   display: flex;
   flex-shrink: 0;
   gap: 0.25rem;
@@ -21,7 +22,9 @@
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
-    transition: color var(--transition);
+    transition:
+      color var(--transition),
+      scale var(--duration-instant) var(--ease-standard);
 
     &::after {
       content: "";
@@ -43,19 +46,55 @@
       background: var(--accent);
     }
 
+    @include press-feedback(0.97);
+
     &:disabled {
       @include disabled-state;
     }
   }
 
-  &--md &__tab {
+  // The selected tab's bar, sliding along the rule; the tab's own bar stands in until it is placed.
+  &__bar {
+    display: none;
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: calc(var(--indicator-w) - 2 * var(--tab-padding-inline));
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+    translate: calc(var(--indicator-x) + var(--tab-padding-inline)) 0;
+    pointer-events: none;
+
+    @include motion-safe {
+      transition:
+        translate var(--duration-moderate) var(--ease-spring),
+        width var(--duration-moderate) var(--ease-emphasized);
+    }
+  }
+
+  &[data-indicator="ready"] > &__bar {
+    display: block;
+  }
+
+  &[data-indicator="ready"] &__tab[aria-selected="true"]::after {
+    background: transparent;
+  }
+
+  &--md {
     --tab-padding-inline: 0.625rem;
+  }
+
+  &--sm {
+    --tab-padding-inline: 0.5rem;
+  }
+
+  &--md &__tab {
     padding: 0.5625rem var(--tab-padding-inline);
     font-size: var(--text-sm);
   }
 
   &--sm &__tab {
-    --tab-padding-inline: 0.5rem;
     padding: 0.4375rem var(--tab-padding-inline);
     font-size: var(--text-xs);
     @include icon-scope-sm;

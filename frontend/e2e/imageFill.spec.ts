@@ -150,7 +150,8 @@ test("paints, generates, compares, keeps, applies and reopens a fill", async ({
   await dialog.getByRole("button", { name: "Exit image editing for scene.png" }).click();
   await dialog.getByRole("button", { name: "Edit scene.png" }).click();
   await expect(dialog.getByRole("tab", { name: "Fill, changed" })).toBeVisible();
-  await expect(dialog.locator("img.image-edit-stage__img")).toHaveAttribute(
+  // In the live `<dialog>`: the editor that just closed may still be fading out as an inert copy.
+  await expect(dialog.locator("dialog img.image-edit-stage__img")).toHaveAttribute(
     "src",
     /image-fill\/preview/,
   );

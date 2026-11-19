@@ -22,8 +22,20 @@
   background: var(--media-text);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--text) 28%, transparent),
+    0 0 0 0 var(--accent-soft),
     var(--elevation-1);
-  transition: transform var(--transition);
+  transition:
+    transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--transition);
+}
+
+// Held: the thumb swells and a soft halo shows the grip.
+@mixin slider-thumb-held {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--text) 28%, transparent),
+    0 0 0 0.3125rem var(--accent-soft),
+    var(--elevation-1);
 }
 
 .slider {
@@ -66,6 +78,14 @@
 
   &:hover:not(:disabled)::-moz-range-thumb {
     transform: scale(1.15);
+  }
+
+  &:active:not(:disabled)::-webkit-slider-thumb {
+    @include slider-thumb-held;
+  }
+
+  &:active:not(:disabled)::-moz-range-thumb {
+    @include slider-thumb-held;
   }
 
   // The thumb is the mark that moves, so it carries the ring.

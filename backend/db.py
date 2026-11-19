@@ -58,6 +58,7 @@ def init_db() -> None:
 
     from app_settings import load_saved_settings
     from automation.jobs_store import init_jobs_table
+    from media_colors import init_media_colors_table
     from media_tags import init_media_tags_table
     from notifications_store import init_notifications_table
     from ui_settings import load_tagging_switch
@@ -67,6 +68,7 @@ def init_db() -> None:
 
     init_jobs_table()
     init_media_tags_table()
+    init_media_colors_table()
     init_notifications_table()
     init_video_project_versions_table()
     init_video_project_grades_table()

@@ -45,6 +45,10 @@ class TransitionCheckTests(unittest.TestCase):
             "a { transition: opacity var(--transition), transform 150ms ease; }",
             "a { transition: opacity var(--duration-base) ease 0.05s; }",
             "a { transition-duration: 0.3s; }",
+            "a { animation: spin 0.9s linear infinite; }",
+            "a { animation: pop-in var(--duration-fast) ease 40ms; }",
+            "a { animation-duration: 1ms; }",
+            "a { animation-delay: 0.1s; }",
         ):
             with self.subTest(line=line):
                 self.assertEqual(len(self._problems(line)), 1)
@@ -58,6 +62,10 @@ class TransitionCheckTests(unittest.TestCase):
             "a { transition: --fade-bg var(--transition); }",
             "a { transition: none; }",
             "a { transition-duration: 0s; }",
+            "a { animation: spin $loop-spin linear infinite; }",
+            "a { animation: pop-in var(--duration-fast) var(--ease-spring) both; }",
+            "a { animation: none; }",
+            "a { animation-delay: calc(var(--i) * var(--stagger-step)); }",
             "// transition: opacity 0.2s ease;",
         ):
             with self.subTest(line=line):

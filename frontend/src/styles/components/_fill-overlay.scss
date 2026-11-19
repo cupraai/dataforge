@@ -49,7 +49,7 @@
 }
 
 .fill-overlay--working .fill-overlay__paint {
-  animation: fill-working 1.4s ease-in-out infinite alternate;
+  animation: fill-working $loop-shimmer ease-in-out infinite alternate;
 }
 
 @keyframes fill-working {

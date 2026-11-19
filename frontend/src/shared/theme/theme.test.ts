@@ -62,6 +62,7 @@ function holdServerTheme() {
 }
 
 afterEach(() => {
+  delete (document as Partial<Document>).startViewTransition;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -128,5 +129,32 @@ describe("theme", () => {
         expect.objectContaining({ method: "PUT", body: JSON.stringify({ theme: "dark" }) }),
       ),
     );
+  });
+
+  it("crossfades a switch with transitions held, and swaps at once under reduced motion", async () => {
+    stubSystemScheme(false);
+    holdServerTheme();
+    renderHookWithQueryClient(() => useThemeSync());
+    let finish: () => void = () => {};
+    const startViewTransition = vi.fn<(swap: () => void) => ViewTransition>((swap) => {
+      swap();
+      return {
+        finished: new Promise<undefined>((resolve) => (finish = () => resolve(undefined))),
+      } as ViewTransition;
+    });
+    document.startViewTransition = startViewTransition;
+    const root = document.documentElement;
+
+    act(() => setThemePreference("light"));
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(root.dataset.theme).toBe("light");
+    expect(root).toHaveClass("theme-switching");
+    await act(async () => finish());
+    expect(root).not.toHaveClass("theme-switching");
+
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce") }));
+    act(() => setThemePreference("dark"));
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(root.dataset.theme).toBe("dark");
   });
 });

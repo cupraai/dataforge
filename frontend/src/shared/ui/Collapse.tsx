@@ -1,8 +1,6 @@
 import { useEffect, useState, type HTMLAttributes } from "react";
 import { classNames } from "@/shared/lib/classNames";
-
-/** Backstop if `animationend` never fires, as in a hidden tab or while the content is empty. */
-const EXIT_FALLBACK_MS = 400;
+import { EXIT_FALLBACK_MS } from "@/shared/lib/motion";
 
 interface CollapseProps extends HTMLAttributes<HTMLDivElement> {
   open: boolean;

@@ -25,6 +25,10 @@ vi.mock("@/shared/notifications/NotificationsButton", () => ({
   NotificationsButton: () => null,
 }));
 
+vi.mock("@/features/automation/components/SystemSpecsButton", () => ({
+  SystemSpecsButton: () => null,
+}));
+
 const defaultProps = {
   subfolderCount: 1,
   fileCount: 3,
