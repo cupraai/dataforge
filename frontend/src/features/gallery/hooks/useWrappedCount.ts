@@ -9,7 +9,8 @@ function countWrapped(element: HTMLElement): number {
 
 /**
  * Children of a one-line wrapping row out of sight, recounted for new `contents`.
- * The "+N more" can wrap one more child; that settles on the next notification.
+ * The "+N more" can wrap one more child; that settles on the next notification only while a
+ * larger N never renders narrower, so its digits must be tabular.
  */
 export function useWrappedCount(ref: RefObject<HTMLElement | null>, contents: unknown): number {
   const [wrapped, setWrapped] = useState(0);

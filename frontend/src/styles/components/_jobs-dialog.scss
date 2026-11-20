@@ -21,22 +21,6 @@ $jobs-content-pad-top: 0.75rem;
   &--running[aria-expanded="true"] &__icon {
     animation-play-state: paused;
   }
-
-  &__count {
-    @include count-pill($height: 1.125rem);
-    min-width: 1.125rem;
-    padding-inline: 0.3125rem;
-    color: var(--bg);
-    background: var(--accent);
-
-    @include motion-safe {
-      animation: count-bump var(--duration-moderate) var(--ease-standard);
-    }
-
-    &--danger {
-      background: var(--danger);
-    }
-  }
 }
 
 .jobs-dialog {

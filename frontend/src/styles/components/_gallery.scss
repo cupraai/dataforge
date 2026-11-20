@@ -647,6 +647,11 @@
     overflow: hidden;
   }
 
+  // Equal-width digits, so a larger count never narrows the badge and flips the count back.
+  &__tags-more {
+    @include tabular-nums;
+  }
+
   // Plain text where the caption would be: a pill inside a clickable card reads as a button.
   // The block padding and transparent border keep the height the masonry reserves for it.
   &__caption-status {

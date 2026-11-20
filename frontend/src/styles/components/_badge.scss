@@ -78,3 +78,24 @@
     color: var(--text-subtle);
   }
 }
+
+// The solid count inside a toolbar button (unseen jobs, notifications); see CountBadge.
+.count-badge {
+  @include count-pill($height: 1.125rem);
+  min-width: 1.125rem;
+  padding-inline: 0.3125rem;
+  color: var(--bg);
+  background: var(--accent);
+
+  @include motion-safe {
+    animation: count-bump var(--duration-moderate) var(--ease-standard);
+  }
+
+  &--warning {
+    background: var(--warning);
+  }
+
+  &--danger {
+    background: var(--danger);
+  }
+}

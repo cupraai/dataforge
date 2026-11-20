@@ -130,9 +130,12 @@
     max-width: 100%;
   }
 
+  // Equal-width digits: with proportional ones "+21" is narrower than "+20", so the count it
+  // takes room from can flip between the two every frame.
   &__more {
     flex: none;
     cursor: default;
+    @include tabular-nums;
   }
 
   &__score {

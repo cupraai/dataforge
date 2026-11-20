@@ -23,7 +23,7 @@ describe("JobsButton", () => {
     const { container } = render(<JobsButton />);
 
     expect(screen.getByRole("button", { name: "Open automation jobs" })).toBeInTheDocument();
-    expect(container.querySelector(".jobs-button__count")).toBeNull();
+    expect(container.querySelector(".count-badge")).toBeNull();
   });
 
   it("counts jobs that finished while nobody was looking", () => {
@@ -33,8 +33,18 @@ describe("JobsButton", () => {
     expect(
       screen.getByRole("button", { name: "Open automation jobs (3 new)" }),
     ).toBeInTheDocument();
-    expect(container.querySelector(".jobs-button__count")).toHaveTextContent("3");
-    expect(container.querySelector(".jobs-button__count--danger")).toBeNull();
+    expect(container.querySelector(".count-badge")).toHaveTextContent("3");
+    expect(container.querySelector(".count-badge--danger")).toBeNull();
+  });
+
+  it("caps the visible count at 99+ while the label keeps the exact number", () => {
+    jobsContext.unseenCount = 120;
+    const { container } = render(<JobsButton />);
+
+    expect(
+      screen.getByRole("button", { name: "Open automation jobs (120 new)" }),
+    ).toBeInTheDocument();
+    expect(container.querySelector(".count-badge")).toHaveTextContent("99+");
   });
 
   it("turns the count red when an unseen job failed", () => {
@@ -44,9 +54,9 @@ describe("JobsButton", () => {
     expect(
       screen.getByRole("button", { name: "Open automation jobs (running, 1 new, some failed)" }),
     ).toBeInTheDocument();
-    expect(container.querySelector(".jobs-button__count--danger")).toBeInTheDocument();
+    expect(container.querySelector(".count-badge--danger")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /running/ })).toHaveClass("jobs-button--running");
     expect(container.querySelector(".jobs-button__dot")).toBeNull();
-    expect(container.querySelectorAll(".jobs-button__count")).toHaveLength(1);
+    expect(container.querySelectorAll(".count-badge")).toHaveLength(1);
   });
 });

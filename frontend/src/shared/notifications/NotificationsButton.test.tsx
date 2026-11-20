@@ -77,6 +77,34 @@ describe("NotificationsButton", () => {
     expect(await screen.findByRole("button", { name: "Notifications (2 new)" })).toBeVisible();
   });
 
+  it("badges the unread count from the fetched feed, like the jobs button", async () => {
+    renderButton([record({ id: "a" }), record({ id: "b" }), record({ id: "c", read_at: READ_AT })]);
+
+    const button = await screen.findByRole("button", { name: "Notifications (2 new)" });
+    const badge = button.querySelector(".count-badge");
+    expect(badge).toHaveTextContent("2");
+    expect(badge).toHaveAttribute("aria-hidden", "true");
+    expect(badge).not.toHaveClass("count-badge--warning", "count-badge--danger");
+  });
+
+  it("caps the badge at 99+ while the label keeps the exact number", async () => {
+    renderButton(Array.from({ length: 120 }, (_, index) => record({ id: `n-${index}` })));
+
+    const button = await screen.findByRole("button", { name: "Notifications (120 new)" });
+    expect(button.querySelector(".count-badge")).toHaveTextContent("99+");
+  });
+
+  it("tints the badge by the most severe unread entry", async () => {
+    const { unmount } = renderButton([record({ id: "a", variant: "warning" })]);
+    const warned = await screen.findByRole("button", { name: "Notifications (1 new)" });
+    expect(warned.querySelector(".count-badge")).toHaveClass("count-badge--warning");
+    unmount();
+
+    renderButton([record({ id: "a", variant: "warning" }), record({ id: "b", variant: "danger" })]);
+    const urgent = await screen.findByRole("button", { name: "Notifications (2 new)" });
+    expect(urgent.querySelector(".count-badge")).toHaveClass("count-badge--danger");
+  });
+
   it("rings the bell instead of showing a dot, red while an unread one is urgent", async () => {
     renderButton([record({ id: "a" }), record({ id: "b", variant: "danger" })]);
 
@@ -139,6 +167,7 @@ describe("NotificationsButton", () => {
     const button = await screen.findByRole("button", { name: "Notifications" });
     expect(button).not.toHaveClass("notifications-button--unread");
     expect(button.querySelector(".lucide-bell-ring")).toBeNull();
+    expect(button.querySelector(".count-badge")).toBeNull();
   });
 
   it("shows how often a message repeated", async () => {

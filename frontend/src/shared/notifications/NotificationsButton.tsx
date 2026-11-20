@@ -4,6 +4,7 @@ import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconBell, iconBellRing } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { CountBadge } from "@/shared/ui/CountBadge";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { NotificationsPanel } from "./NotificationsPanel";
@@ -36,10 +37,13 @@ export function NotificationsButton() {
   const urgent = unreadVariants.has("danger");
   const warning = !urgent && unreadVariants.has("warning");
   const label = unread ? `Notifications (${unreadCount} new)` : "Notifications";
+  const tooltip = unread
+    ? `${unreadCount} new ${unreadCount === 1 ? "notification" : "notifications"}`
+    : "Notifications";
 
   return (
     <div ref={rootRef} className="notifications-button-wrap">
-      <Tooltip content={unread ? `${unreadCount} new notifications` : "Notifications"}>
+      <Tooltip content={tooltip}>
         <Button
           iconOnly
           className={classNames(
@@ -56,6 +60,10 @@ export function NotificationsButton() {
             key={unreadCount}
             icon={unread ? iconBellRing : iconBell}
             className="button__icon notifications-button__icon"
+          />
+          <CountBadge
+            count={unreadCount}
+            tone={urgent ? "danger" : warning ? "warning" : "accent"}
           />
         </Button>
       </Tooltip>

@@ -3,7 +3,7 @@ import { useJobs } from "@/features/jobs/context/JobsContext";
 import { iconBot } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
-import { RollingNumber } from "@/shared/ui/RollingNumber";
+import { CountBadge } from "@/shared/ui/CountBadge";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 function describeJobs(running: boolean, unseenCount: number, unseenFailed: boolean): string[] {
@@ -46,17 +46,7 @@ export function JobsButton() {
       >
         {/* Running animates the robot; the only badge is the count of unseen finished jobs. */}
         <Icon icon={iconBot} className="button__icon jobs-button__icon" />
-        {unseen && (
-          <span
-            className={classNames(
-              "jobs-button__count",
-              unseenFailed && "jobs-button__count--danger",
-            )}
-            aria-hidden="true"
-          >
-            <RollingNumber value={unseenCount > 99 ? "99+" : unseenCount} />
-          </span>
-        )}
+        <CountBadge count={unseenCount} tone={unseenFailed ? "danger" : "accent"} />
       </Button>
     </Tooltip>
   );
