@@ -105,6 +105,23 @@ describe("SettingsDialog sections", () => {
     expect(localStorage.getItem("gallery-recent-folders")).toBe("[]");
   });
 
+  it("shows the machine's live usage and details on About's Performance tab", async () => {
+    const user = await openSection("About");
+    expect(backend.requestsTo("/api/system/performance")).toHaveLength(0);
+
+    await user.click(screen.getByRole("tab", { name: "Performance" }));
+
+    const tiles = await screen.findByRole("region", { name: "Live usage" });
+    expect(within(tiles).getByRole("group", { name: "CPU" })).toHaveTextContent("20%");
+    expect(within(tiles).getByRole("group", { name: "VRAM" })).toHaveTextContent("4 / 10 GB");
+    expect(within(groupNamed("Processor")).getByText("Base clock")).toBeInTheDocument();
+    expect(within(groupNamed("Graphics")).getByText("580.12 · PCIe 4.0 ×16")).toBeInTheDocument();
+    expect(within(groupNamed("Storage")).getByRole("meter", { name: "C: used" })).toHaveAttribute(
+      "aria-valuenow",
+      "60",
+    );
+  });
+
   it("describes the installation and copies diagnostics without the key", async () => {
     const user = await openSection("About");
     const installation = groupNamed("Installation");
@@ -117,10 +134,14 @@ describe("SettingsDialog sections", () => {
     await user.click(within(installation).getByRole("button", { name: "Copy diagnostics" }));
 
     await waitFor(() =>
-      expect(within(installation).getByRole("button", { name: "Copied!" })).toBeInTheDocument(),
+      expect(within(installation).getByRole("button", { name: "Copied!" })).toHaveClass(
+        "button--copied",
+      ),
     );
     const text = await navigator.clipboard.readText();
     expect(text).toContain("DataForge 0.1.0");
+    expect(text).toContain("CPU: Intel Core i7-12700K 12-Core Processor (16 threads)");
+    expect(text).toContain("RAM: 32.0 GB (8.0 GB in use)");
     expect(text).toContain("key not set");
     expect(text).toContain("Tagging models: C:\\DataForge\\backend\\data\\models");
 

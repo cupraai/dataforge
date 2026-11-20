@@ -16,7 +16,14 @@ import type {
   Workflow,
 } from "@/shared/types";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
-import { appSettings, emptyFolder, HOME_SYSPROMPT, homeFolder, vacationFolder } from "./fixtures";
+import {
+  appSettings,
+  emptyFolder,
+  HOME_SYSPROMPT,
+  homeFolder,
+  systemPerformance,
+  vacationFolder,
+} from "./fixtures";
 import { instructionFile } from "./instructionFixtures";
 
 // The fixture folder's tests are written in name order; the server's default is newest first.
@@ -568,6 +575,10 @@ export function installMockBackend(options: MockBackendOptions = {}) {
         ...(kind === "job-options" ? { job_option_folders: 0 } : { display_mode_folders: 0 }),
       };
       return jsonResponse(remembered);
+    }
+
+    if (url.pathname === "/api/system/performance") {
+      return jsonResponse(systemPerformance());
     }
 
     if (url.pathname === "/api/system/about") {

@@ -111,6 +111,12 @@
   --code-search-match-selected-outline: rgba(255, 97, 136, 0.8);
 
   // One hue per container in the stats drawer; images blue, videos violet.
+  // Categorical slots, in order, for parts that are told apart by name (VRAM by app).
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
   --chart-other: #94a3b8;
   --chart-jpg: #60a5fa;
   --chart-webp: #818cf8;

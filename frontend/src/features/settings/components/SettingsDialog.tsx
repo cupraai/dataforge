@@ -66,6 +66,7 @@ import { SettingInput } from "./SettingInput";
 import { Button } from "@/shared/ui/Button";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { SettingsGroup } from "./SettingsGroup";
+import { PerformanceSection } from "./PerformanceSection";
 import { SettingsPageTabs } from "./SettingsPageTabs";
 import { StorageSection } from "./StorageSection";
 import { TaggingSection } from "./TaggingSection";
@@ -88,7 +89,8 @@ type PageId =
   | "integrations"
   | "storage"
   | "data"
-  | "about";
+  | "about"
+  | "performance";
 
 interface Group {
   title: string;
@@ -316,13 +318,19 @@ const SECTIONS: Section[] = [
   {
     id: "about",
     label: "About",
-    caption: "Version and diagnostics",
+    caption: "Version and performance",
     icon: iconInfo,
     pages: [
       {
         id: "about",
         label: "About",
         description: "What is installed and where it lives. Useful when something does not work.",
+        groups: [],
+      },
+      {
+        id: "performance",
+        label: "Performance",
+        description: "The computer DataForge runs on, read live while this page is open.",
         groups: [],
       },
     ],
@@ -712,6 +720,9 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           visible={section === "about"}
         />
       );
+    }
+    if (page.id === "performance") {
+      return <PerformanceSection visible={isShown(page)} />;
     }
     if (state.status === "loading") {
       return (

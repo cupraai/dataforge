@@ -6,6 +6,7 @@ import type {
   RememberedDataResponse,
   ServiceProbeRequest,
   ServiceProbeResponse,
+  SystemPerformance,
   ThumbnailCacheCleared,
   ThumbnailCacheStats,
 } from "@/shared/types";
@@ -13,6 +14,7 @@ import type {
 export const settingsKeys = {
   app: ["app-settings"] as const,
   about: ["about"] as const,
+  performance: ["system-performance"] as const,
   thumbnailCache: ["thumbnail-cache"] as const,
   remembered: ["remembered-data"] as const,
 };
@@ -27,6 +29,10 @@ export function saveAppSettings(update: AppSettingsUpdate): Promise<AppSettingsR
 
 export function probeService(request: ServiceProbeRequest): Promise<ServiceProbeResponse> {
   return postJson<ServiceProbeResponse>("/api/settings/probe", request);
+}
+
+export function fetchSystemPerformance(signal?: AbortSignal): Promise<SystemPerformance> {
+  return requestJson<SystemPerformance>("/api/system/performance", { signal });
 }
 
 export function fetchThumbnailCacheStats(signal?: AbortSignal): Promise<ThumbnailCacheStats> {

@@ -394,6 +394,73 @@ class SystemSpecsResponse(BaseModel):
     gpu_available: bool = False
 
 
+class GpuProcessMemory(BaseModel):
+    pid: int
+    name: str
+    #: The configured service the process serves: "Vision server", "ComfyUI", "AI-Toolkit"
+    #: or "DataForge".
+    service: str | None = None
+    used_bytes: int
+
+
+class PerformanceDisk(BaseModel):
+    #: The drive letter on Windows (``C:``), else the mount point.
+    name: str
+    mountpoint: str
+    filesystem: str
+    total_bytes: int
+    used_bytes: int
+
+
+class SystemPerformanceResponse(BaseModel):
+    """Settings > About > Performance. Rates cover the time since the previous read."""
+
+    os_name: str
+    architecture: str
+    uptime_seconds: float | None = None
+    cpu_name: str
+    cpu_cores: int | None = None
+    cpu_threads: int
+    cpu_clock_mhz: float | None = None
+    #: False where the OS reports only the rated base clock (Windows).
+    cpu_clock_is_live: bool = False
+    cpu_load_percent: float | None = None
+    cpu_core_load_percents: list[float] = Field(default_factory=list)
+    cpu_temperature_celsius: float | None = None
+    cpu_power_watts: float | None = None
+    memory_total_bytes: int
+    memory_used_bytes: int
+    swap_total_bytes: int | None = None
+    swap_used_bytes: int | None = None
+    gpu_available: bool = False
+    gpu_name: str | None = None
+    gpu_driver: str | None = None
+    gpu_memory_bytes: int | None = None
+    gpu_memory_used_bytes: int | None = None
+    gpu_load_percent: float | None = None
+    gpu_temperature_celsius: float | None = None
+    gpu_power_watts: float | None = None
+    gpu_power_limit_watts: float | None = None
+    gpu_clock_mhz: float | None = None
+    gpu_max_clock_mhz: float | None = None
+    gpu_memory_clock_mhz: float | None = None
+    #: The fastest link the card and board agree on; an idle card drops below it.
+    gpu_pcie_generation: int | None = None
+    gpu_pcie_width: int | None = None
+    #: Largest holders first; null where this platform cannot attribute VRAM to processes.
+    gpu_processes: list[GpuProcessMemory] | None = None
+    disks: list[PerformanceDisk] = Field(default_factory=list)
+    disk_read_bytes_per_second: float | None = None
+    disk_write_bytes_per_second: float | None = None
+    network_received_bytes_per_second: float | None = None
+    network_sent_bytes_per_second: float | None = None
+    #: The backend process's share of the whole machine, like the load figures.
+    process_cpu_percent: float | None = None
+    process_memory_bytes: int | None = None
+    process_threads: int | None = None
+    process_uptime_seconds: float | None = None
+
+
 class VisionLlmInfoResponse(BaseModel):
     model: str
 

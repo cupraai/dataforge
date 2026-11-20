@@ -28,6 +28,7 @@ SKIP_PREFIX = "Body_"
 RENAMES = {
     "JobResponse": "Job",
     "SystemSpecsResponse": "SystemSpecs",
+    "SystemPerformanceResponse": "SystemPerformance",
     "ExternalOstrisJobResponse": "ExternalOstrisJob",
 }
 

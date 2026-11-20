@@ -4,7 +4,13 @@ import {
   MODEL_EXTENSIONS,
   VIDEO_EXTENSIONS,
 } from "@/shared/constants";
-import type { AppSettingsResponse, FolderResponse, GalleryItem, Job } from "@/shared/types";
+import type {
+  AppSettingsResponse,
+  FolderResponse,
+  GalleryItem,
+  Job,
+  SystemPerformance,
+} from "@/shared/types";
 
 export const HOME_PATH = "C:\\Photos";
 export const HOME_SYSPROMPT = "# Caption every image with rich detail.";
@@ -213,6 +219,63 @@ export function appSettings(overrides: Partial<AppSettingsResponse> = {}): AppSe
     job_history_days: number(30, 0),
     notification_history_days: number(3, 0),
     tag_min_confidence: number(0.25, 0.1, 1),
+    ...overrides,
+  };
+}
+
+export function systemPerformance(overrides: Partial<SystemPerformance> = {}): SystemPerformance {
+  return {
+    os_name: "Windows 11 (10.0.26200)",
+    architecture: "AMD64",
+    uptime_seconds: 3 * 86_400 + 4 * 3600,
+    cpu_name: "Intel Core i7-12700K",
+    cpu_cores: 12,
+    cpu_threads: 4,
+    cpu_clock_mhz: 3600,
+    cpu_clock_is_live: false,
+    cpu_load_percent: 20,
+    cpu_core_load_percents: [10, 20, 30, 95],
+    cpu_temperature_celsius: 54,
+    cpu_power_watts: 95,
+    memory_total_bytes: 32 * 1024 ** 3,
+    memory_used_bytes: 8 * 1024 ** 3,
+    swap_total_bytes: 8 * 1024 ** 3,
+    swap_used_bytes: 1024 ** 3,
+    gpu_available: true,
+    gpu_name: "NVIDIA GeForce RTX 3080",
+    gpu_driver: "580.12",
+    gpu_memory_bytes: 10 * 1024 ** 3,
+    gpu_memory_used_bytes: 4 * 1024 ** 3,
+    gpu_load_percent: 40,
+    gpu_temperature_celsius: 62,
+    gpu_power_watts: 280,
+    gpu_power_limit_watts: 320,
+    gpu_clock_mhz: 1800,
+    gpu_max_clock_mhz: 2100,
+    gpu_memory_clock_mhz: 9500,
+    gpu_pcie_generation: 4,
+    gpu_pcie_width: 16,
+    gpu_processes: [
+      { pid: 10, name: "python", service: "ComfyUI", used_bytes: 3 * 1024 ** 3 },
+      { pid: 20, name: "llama-server", service: null, used_bytes: 1024 ** 3 },
+    ],
+    disks: [
+      {
+        name: "C:",
+        mountpoint: "C:\\",
+        filesystem: "NTFS",
+        total_bytes: 1000 * 1024 ** 3,
+        used_bytes: 600 * 1024 ** 3,
+      },
+    ],
+    disk_read_bytes_per_second: 2048,
+    disk_write_bytes_per_second: 0,
+    network_received_bytes_per_second: 512,
+    network_sent_bytes_per_second: 1024 ** 2,
+    process_cpu_percent: 1.5,
+    process_memory_bytes: 300 * 1024 ** 2,
+    process_threads: 9,
+    process_uptime_seconds: 720,
     ...overrides,
   };
 }

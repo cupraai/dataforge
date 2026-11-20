@@ -16,6 +16,7 @@ version heading when a minor or major version is cut.
 - The **ComfyUI workflow** dialog of a generated file offers **Generate with this workflow...** for an output that loads no source file. It opens Generate with ComfyUI on that output, starting from the prompt the file was made with, and runs it without saving a preset.
 - **Manage workflows...** in Quick actions opens the workflow editor, on your first saved workflow or on a new one when none are saved.
 - The crop **Aspect** choices in the image and video edit panels include **Original**, which locks the crop to the file's own shape.
+- **Settings → About → Performance** shows the computer DataForge runs on, read live every second while the page is open. It graphs the last minute of CPU, memory, GPU and VRAM use, and adds each thread's load, clocks, the GPU driver and PCIe link, drive space, disk and network rates, and how much CPU and memory DataForge itself uses. A bar splits the VRAM by the apps holding it, naming your vision server, ComfyUI, AI-Toolkit and DataForge when they run on this computer; hover a part for its size, or focus the bar to list them all. On a Mac the split is not available.
 
 ### Changed
 

@@ -24,6 +24,8 @@ markdown-it-py==4.2.0
 # Caption find-and-replace: `re` syntax with a per-call timeout, which `re` lacks.
 regex==2026.9.29
 opencv-python-headless>=4.14.0.94,<5
+# Settings > About > Performance: per-core load, drives, I/O rates and the backend process.
+psutil==7.2.2
 
 # torch is optional: it is only a fallback for GPU name/VRAM in the automation
 # panel (see system_specs.py), and nvidia-smi is tried first. No CUDA build needed.

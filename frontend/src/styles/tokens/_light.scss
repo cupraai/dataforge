@@ -91,6 +91,12 @@
   --code-search-match-selected: rgba(214, 47, 99, 0.22);
   --code-search-match-selected-outline: rgba(214, 47, 99, 0.6);
 
+  // Categorical slots, in order, for parts that are told apart by name (VRAM by app).
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
   --chart-other: #64748b;
   --chart-jpg: #2563eb;
   --chart-webp: #4f46e5;

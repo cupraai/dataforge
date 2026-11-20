@@ -58,6 +58,27 @@ class SystemSpecsEndpointTests(unittest.TestCase):
         )
 
 
+class SystemPerformanceEndpointTests(unittest.TestCase):
+    @patch("system_performance.gpu_details")
+    def test_serves_the_machine_with_drives_and_per_core_load(self, details) -> None:
+        from system_performance import GpuDetails
+
+        details.return_value = GpuDetails()
+
+        response = client.get("/api/system/performance")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertGreater(body["cpu_threads"], 0)
+        self.assertIsInstance(body["cpu_core_load_percents"], list)
+        self.assertIsInstance(body["disks"], list)
+        for disk in body["disks"]:
+            self.assertEqual(
+                set(disk), {"name", "mountpoint", "filesystem", "total_bytes", "used_bytes"}
+            )
+        self.assertIn("process_memory_bytes", body)
+
+
 class VisionLlmInfoEndpointTests(unittest.TestCase):
     @patch("routes.system.get_openai_model", return_value="qwen38")
     def test_returns_configured_model_id(self, _get_model_mock) -> None:

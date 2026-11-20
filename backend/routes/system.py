@@ -7,6 +7,7 @@ from about import describe_installation
 from openai_settings import get_openai_model
 from schemas import (
     AboutResponse,
+    SystemPerformanceResponse,
     SystemSpecsResponse,
     TaggingRetagResponse,
     TaggingStatusResponse,
@@ -14,6 +15,7 @@ from schemas import (
     TagVocabularyUpdate,
     VisionLlmInfoResponse,
 )
+from system_performance import get_system_performance
 from system_specs import get_system_specs
 from tagging_worker import retag_everything, tagging_status
 
@@ -23,6 +25,11 @@ router = APIRouter()
 @router.get("/system/specs", response_model=SystemSpecsResponse)
 def read_system_specs() -> SystemSpecsResponse:
     return SystemSpecsResponse.model_validate(asdict(get_system_specs()))
+
+
+@router.get("/system/performance", response_model=SystemPerformanceResponse)
+def read_system_performance() -> SystemPerformanceResponse:
+    return SystemPerformanceResponse.model_validate(asdict(get_system_performance()))
 
 
 @router.get("/system/vision-llm", response_model=VisionLlmInfoResponse)

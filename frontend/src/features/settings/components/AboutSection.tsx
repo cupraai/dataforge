@@ -28,6 +28,16 @@ function gpuText(specs: SystemSpecs | null): string {
     : specs.gpu_name;
 }
 
+function cpuText(specs: SystemSpecs | null): string {
+  return specs ? `${specs.cpu_name} (${specs.cpu_cores} threads)` : "Unknown";
+}
+
+function ramText(specs: SystemSpecs | null): string {
+  return specs
+    ? `${formatFileSize(specs.memory_total_bytes)} (${formatFileSize(specs.memory_used_bytes)} in use)`
+    : "Unknown";
+}
+
 /** Plain text for a bug report. The API key stays out: only whether one is set. */
 function diagnosticsText(
   about: AboutResponse,
@@ -38,6 +48,8 @@ function diagnosticsText(
     `DataForge ${about.version}`,
     `Python ${about.python_version} on ${about.platform}`,
     `ffmpeg: ${ffmpegText(about)}`,
+    `CPU: ${cpuText(specs)}`,
+    `RAM: ${ramText(specs)}`,
     `GPU: ${gpuText(specs)}`,
     `.env: ${about.env_file ?? "none loaded"}`,
     `Database: ${about.database_path}`,
@@ -64,7 +76,7 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ settings, visible }: AboutSectionProps) {
-  const { copyLabel, copyText } = useCopyFeedback();
+  const { copyLabel, copyState, copyText } = useCopyFeedback();
 
   // An installation does not change while the app runs, so once read it stays read.
   const aboutQuery = useQuery({
@@ -97,6 +109,7 @@ export function AboutSection({ settings, visible }: AboutSectionProps) {
           <Button
             size="xs"
             icon={iconCopy}
+            feedback={copyState}
             disabled={!about}
             onClick={() => {
               if (about) void copyText(diagnosticsText(about, specs, settings));
