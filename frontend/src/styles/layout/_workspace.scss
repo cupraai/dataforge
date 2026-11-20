@@ -3,6 +3,13 @@
 
 // Workspace chrome: the folder sidebar, the toolbar's folder actions, and the job activity strip.
 
+// A registered number so a sidebar name's mask fades in step with its row actions.
+@property --row-actions-reveal {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
 .workspace-sidebar {
   position: relative;
   grid-column: 1;
@@ -200,15 +207,29 @@
       animation: folder-tagging-pulse $loop-pulse ease-in-out infinite;
     }
   }
-  // Row actions sit over the row's right edge and appear only on hover or focus.
+  // Row actions overlay the row's right edge on hover or focus. The name keeps the full width
+  // and fades out beneath them, rather than truncating early for buttons that are usually hidden.
   &__row {
     position: relative;
-    .workspace-sidebar__folder {
-      padding-right: 2rem;
+    // How far the actions reach into the name: their width plus `right`, minus the row padding.
+    --row-actions-cover: calc(var(--control-height-xs) - 0.25rem);
+    &--two-actions {
+      --row-actions-cover: calc(2 * var(--control-height-xs) - 0.25rem);
     }
-    &--two-actions .workspace-sidebar__folder {
-      padding-right: 3.5rem;
+    // Filling the row anchors the mask to the row's edge, so a short name is never clipped.
+    .workspace-sidebar__folder span {
+      flex: 1;
+      mask-image: linear-gradient(
+        to left,
+        transparent calc(var(--row-actions-cover) * var(--row-actions-reveal)),
+        var(--text) calc((var(--row-actions-cover) + 1rem) * var(--row-actions-reveal))
+      );
+      transition: --row-actions-reveal var(--transition);
     }
+  }
+  &__row:hover &__folder span,
+  &__row:focus-within &__folder span {
+    --row-actions-reveal: 1;
   }
   &__row-actions {
     position: absolute;

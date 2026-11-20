@@ -31,6 +31,7 @@
   // The fade and the drop line still show; they just appear at once.
   .workspace-sidebar__folder,
   .workspace-sidebar__folder::before,
+  .workspace-sidebar__folder span,
   .workspace-sidebar__row-actions {
     transition: none;
   }
