@@ -39,10 +39,6 @@
     font: inherit;
     font-size: var(--text-xs);
 
-    &::placeholder {
-      color: var(--text-subtle);
-    }
-
     // The clear button replaces the browser's, which ignores the theme.
     &::-webkit-search-cancel-button {
       display: none;

@@ -91,7 +91,7 @@ export function VerifyCaptionsDialog({
             {...control}
             value={context}
             onChange={(event) => setContext(event.target.value)}
-            placeholder="Optional notes about the dataset, e.g. typical poses or recurring subjects"
+            placeholder="e.g. typical poses or recurring subjects"
             rows={2}
             disabled={busy}
             data-scroll-lock-allow

@@ -51,13 +51,10 @@
   resize: vertical;
   overscroll-behavior: contain;
 
-  &--warning .cm-placeholder {
+  // `.cm-editor` outranks the plain `.cm-placeholder` rule below, which comes later.
+  &--warning .cm-editor .cm-placeholder {
     color: var(--warning);
     opacity: 0.9;
-  }
-
-  &--muted .cm-placeholder {
-    opacity: 0.65;
   }
 
   // Save state tints the frame at rest and the focus ring.
@@ -175,9 +172,7 @@
   }
 
   .cm-placeholder {
-    color: var(--code-muted);
-    font-style: italic;
-    opacity: 0.9;
+    color: var(--text-placeholder);
   }
 
   // Rendered in the editor's own stacking context, so it must clear the dialog it sits in.
@@ -391,12 +386,6 @@
 
     .cm-gutter {
       min-height: 100%;
-    }
-
-    .cm-placeholder {
-      color: var(--text-muted);
-      font-style: italic;
-      opacity: 0.75;
     }
 
     .cm-editor.cm-light .cm-selectionBackground,

@@ -46,7 +46,7 @@ export function TagVocabularySection({
               <TextArea
                 {...control}
                 value={value}
-                placeholder={saved ? "red dress\nhot air balloon" : "Loading..."}
+                placeholder={saved ? "e.g. red dress\nhot air balloon" : "Loading..."}
                 spellCheck={false}
                 disabled={disabled || !saved}
                 onChange={(event) => onChange(event.target.value)}

@@ -550,10 +550,6 @@
     font-weight: var(--font-semibold);
     letter-spacing: var(--tracking-tight);
 
-    &::placeholder {
-      color: var(--text-subtle);
-    }
-
     &:hover {
       border-color: var(--border);
     }

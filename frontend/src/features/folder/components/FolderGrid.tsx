@@ -110,9 +110,7 @@ function FolderCard({ folder, onOpen }: { folder: Subfolder; onOpen: (path: stri
           </span>
         </div>
       ) : (
-        <span className="folder-card__tip-pending">
-          {failed ? "Counts unavailable" : "Counting..."}
-        </span>
+        <span>{failed ? "Counts unavailable" : "Counting..."}</span>
       )}
     </span>
   );

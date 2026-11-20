@@ -14,6 +14,8 @@
   --text-muted: #9ca3af;
   // At least 4.5:1 on every surface up to --bg-card, so 11-12px meta text stays legible.
   --text-subtle: #848c9b;
+  // About 3:1, well below values: readable, but never mistaken for one.
+  --text-placeholder: #656c79;
   --accent: #7c9cff;
   --accent-soft: rgba(124, 156, 255, 0.15);
   --accent-border: rgba(124, 156, 255, 0.25);

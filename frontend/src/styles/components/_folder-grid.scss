@@ -241,10 +241,6 @@
     }
   }
 
-  &__tip-pending {
-    font-style: italic;
-  }
-
   // Takes the tile's footprint; the shimmer replaces its accent fill.
   &__skeleton-block {
     @include skeleton-shimmer;

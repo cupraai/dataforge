@@ -22,7 +22,7 @@ const markdownHighlightStyle = HighlightStyle.define([
   { tag: tags.monospace, color: mkpPink },
   { tag: tags.url, color: mkpCyan, textDecoration: "underline" },
   { tag: tags.link, color: mkpCyan },
-  { tag: tags.quote, color: mkpBright, fontStyle: "italic" },
+  { tag: tags.quote, color: mkpBright },
   { tag: tags.contentSeparator, color: mkpPurple },
   { tag: tags.processingInstruction, color: mkpPurple },
   { tag: tags.keyword, color: mkpPurple },
@@ -42,7 +42,7 @@ const yamlHighlightStyle = HighlightStyle.define([
   { tag: tags.meta, color: mkpMuted },
   { tag: tags.separator, color: mkpMuted },
   { tag: tags.punctuation, color: mkpMuted },
-  { tag: tags.comment, color: mkpMuted, fontStyle: "italic" },
+  { tag: tags.comment, color: mkpMuted },
   { tag: tags.invalid, color: mkpPink },
 ]);
 

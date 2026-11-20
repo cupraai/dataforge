@@ -55,10 +55,6 @@
 
     // The panel border frames the field; a ring inside it would read as a second control.
     @include focus-ring-none;
-
-    &::placeholder {
-      color: var(--text-subtle);
-    }
   }
 
   &__results {

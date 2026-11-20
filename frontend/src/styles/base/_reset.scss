@@ -32,6 +32,12 @@ input {
   font: inherit;
 }
 
+// Firefox dims placeholders with opacity on top of the color.
+::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
 // Native number spinners crowd the right-aligned digits in the 4.25rem W/H boxes.
 input[type="number"] {
   appearance: textfield;

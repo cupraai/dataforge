@@ -173,7 +173,7 @@ export function FolderInstructionsDialog({
     const sourceError = !localDraft && source.message !== null;
     const editorProps = {
       id: `${kind}-editor`,
-      className: classNames("code-editor--muted", errors[kind] && "code-editor--error"),
+      className: classNames(errors[kind] && "code-editor--error"),
       value: visibleText,
       placeholder: details.placeholder,
       "aria-label": details.label,

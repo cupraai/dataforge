@@ -210,10 +210,6 @@ $toolbar-group-inset: 0.1875rem;
       // uneven padding lifts the line to sit level with the icon.
       padding-block: 0 2px;
 
-      &::placeholder {
-        color: var(--text-subtle);
-      }
-
       &::-webkit-search-cancel-button {
         display: none;
       }

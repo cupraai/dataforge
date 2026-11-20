@@ -73,10 +73,6 @@
 .text-input {
   @include form-input(2.75rem);
 
-  &::placeholder {
-    color: var(--text-muted);
-  }
-
   // Tool bars and popovers, beside the sm buttons there.
   &--sm {
     min-height: var(--control-height-sm);

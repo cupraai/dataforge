@@ -157,7 +157,7 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
         <TextInput
           size="sm"
           aria-label="Instruction"
-          placeholder="What goes there, e.g. a wooden bench. Blank removes it."
+          placeholder="e.g. a wooden bench; leave blank to remove"
           maxLength={MAX_FILL_INSTRUCTION_LENGTH}
           value={fill.instruction}
           disabled={requestLocked}

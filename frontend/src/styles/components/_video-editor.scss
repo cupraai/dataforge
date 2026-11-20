@@ -1350,11 +1350,6 @@ $lane-inset: 4px;
     @include tabular-nums;
     transition: border-color var(--transition);
 
-    &::placeholder {
-      color: var(--text-subtle);
-      font-style: italic;
-    }
-
     &:hover {
       border-color: var(--border);
     }
@@ -2505,7 +2500,6 @@ $lane-inset: 4px;
     @include truncate;
     color: var(--text-muted);
     font-size: var(--text-2xs);
-    font-style: italic;
   }
 
   &__filmstrip,

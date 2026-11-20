@@ -522,10 +522,6 @@
     font-size: var(--text-sm);
     @include focus-ring-none;
 
-    &::placeholder {
-      color: var(--text-subtle);
-    }
-
     &:disabled {
       color: var(--text-muted);
     }
@@ -543,7 +539,7 @@
     pointer-events: none;
 
     &--placeholder {
-      color: var(--text-muted);
+      color: var(--text-placeholder);
     }
   }
 
