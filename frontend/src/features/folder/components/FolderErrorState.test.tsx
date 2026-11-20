@@ -1,5 +1,5 @@
 import { act, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import * as foldersApi from "@/features/folder/api/folders";
 import { folderKeys } from "@/features/folder/lib/folderQuery";
 import { renderWithQueryClient } from "@/test/queryClient";

@@ -705,7 +705,7 @@ class CoverageProtocolTests(RunChecksTestCase):
         self.assertEqual(run_tests.COVERAGE_FILE, self.run_checks.BACKEND_COVERAGE_FILE)
 
     def test_the_vitest_config_writes_where_the_console_reads(self) -> None:
-        source = (ROOT / "frontend" / "vitest.config.ts").read_text(encoding="utf-8")
+        source = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
         folder, name = self.run_checks.FRONTEND_COVERAGE_FILE.split("/")
         self.assertIn(f"process.env.{self.run_checks.COVERAGE_ENV}", source)
         self.assertIn(f'path.join(coverageDir, "{folder}")', source)

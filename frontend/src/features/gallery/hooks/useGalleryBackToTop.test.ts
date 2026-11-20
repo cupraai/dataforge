@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as scrollRoot from "@/features/gallery/lib/scrollRoot";
 import { GALLERY_BACK_TO_TOP_THRESHOLD_PX, useGalleryBackToTop } from "./useGalleryBackToTop";
 

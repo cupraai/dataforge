@@ -1,7 +1,7 @@
 import { startCompletion } from "@codemirror/autocomplete";
 import { EditorView } from "@codemirror/view";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import {
   DEFAULT_EDITOR_OPTIONS,
   EditorOptionsContext,

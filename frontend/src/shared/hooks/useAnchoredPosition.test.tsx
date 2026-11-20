@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { useRef } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { type AnchoredPlacement } from "@/shared/lib/anchoredPosition";
 import { useAnchoredPosition } from "./useAnchoredPosition";
 

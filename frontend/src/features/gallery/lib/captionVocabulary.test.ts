@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeItem } from "@/test/galleryItemDialog";
 import { buildCaptionVocabulary } from "./captionVocabulary";
 import type { GalleryItem } from "@/shared/types";

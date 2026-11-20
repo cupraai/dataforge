@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { iconDisc, iconHardDrive, iconNetwork, iconUsb } from "@/shared/icons";
 import { driveIcon, driveRootOf, listDrives } from "./drives";
 

@@ -1,7 +1,7 @@
 import { useState, type ComponentProps } from "react";
 import { createEvent, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { HOME_PATH, VACATION_PATH } from "@/test/fixtures";
 import { makeItem } from "@/test/galleryItemDialog";
 import { installMockBackend } from "@/test/mockBackend";

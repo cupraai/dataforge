@@ -2,7 +2,7 @@ import { renderWithThumbnails as render } from "@/test/renderWithThumbnails";
 import { StrictMode } from "react";
 import { act, createEvent, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vite-plus/test";
 import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
 import { HOME_PATH } from "@/test/fixtures";
 import { CARD_ACTION_IDS } from "@/features/gallery/lib/cardActions";

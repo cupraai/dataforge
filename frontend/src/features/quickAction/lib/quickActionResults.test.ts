@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { iconFolder } from "@/shared/icons";
 import type { QuickActionItem, QuickActionSection } from "../types";
 import { MAX_RECENT_ACTIONS } from "./quickActionHistory";

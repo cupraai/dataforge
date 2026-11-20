@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CaptionPreviewSample } from "./CaptionPreviewSample";
 
 const LONG = Array.from({ length: 40 }, (_, index) => `word${index}`).join(" ");

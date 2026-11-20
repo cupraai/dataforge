@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/folderContents";
 import { folderKeys } from "@/features/folder/lib/folderQuery";
 import { VACATION_PATH, vacationFolder } from "@/test/fixtures";

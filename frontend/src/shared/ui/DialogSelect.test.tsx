@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { DialogSelect } from "./DialogSelect";
 
 const OPTIONS = [
@@ -21,7 +21,7 @@ function renderSelect(props: Partial<Parameters<typeof DialogSelect<string>>[0]>
     />,
   );
 
-  const select = screen.getByRole("combobox", { name: "Workflow" }) as HTMLSelectElement;
+  const select = screen.getByRole<HTMLSelectElement>("combobox", { name: "Workflow" });
   const showPicker = vi.fn<() => void>();
   select.showPicker = showPicker;
 

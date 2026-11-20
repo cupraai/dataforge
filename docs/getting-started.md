@@ -9,7 +9,7 @@
 | Platform | Windows 10/11, Linux, or macOS; 64-bit dual-core CPU | A quad-core CPU is a practical starting point |
 | Memory and disk | About 8 GB RAM and 2 GB disk for the app | Plus space for datasets and the thumbnail cache. 16 GB RAM and an SSD are practical starting points |
 | Python | 3.13.x, any final release | Windows setup supplies 3.13.12 |
-| Node | `^20.19.0 \|\| ^22.13.0 \|\| >=24`, with npm | Windows setup supplies 24.21.0 |
+| Node | 26.x LTS, with npm | Windows setup and CI use the release pinned in [`.node-version`](../.node-version) |
 | FFmpeg | 7.1.x, with `drawtext` and `libmp3lame` | Needed for video and audio work. Windows x64 setup supplies 7.1.1 |
 | GPU | None | Model servers, ComfyUI, and AI-Toolkit have their own hardware requirements |
 
@@ -26,7 +26,7 @@ Get the project from the [repository](https://github.com/cupraai/dataforge): cho
 ### Windows
 
 1. Run `setup.bat` once. It installs everything inside the project folder, so no global Python or Node is needed:
-   - portable Python 3.13.12 in `.python/` and Node 24 in `.node/`;
+   - portable Python 3.13.12 in `.python/` and Node 26 LTS in `.node/`;
    - on x64, a checksum-verified FFmpeg 7.1.1 in `.ffmpeg/`;
    - the backend virtual environment `backend/.venv`, all dependencies, and the generated frontend API files;
    - the optional [tagger](user-guide.md#tags) for your GPU and its model, a few GB. Use `setup.bat -SkipTagging` to leave it out.

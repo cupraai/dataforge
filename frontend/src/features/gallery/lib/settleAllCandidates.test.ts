@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { ComfyCandidateBatchResponse } from "@/shared/types";
 import { candidateCountPhrase, settleAllCandidatesOutcome } from "./settleAllCandidates";
 

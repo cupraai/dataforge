@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { COLOR_ADJUST_CASES } from "@/test/colorAdjustCases";
 import {
   RESTING_ADJUST,

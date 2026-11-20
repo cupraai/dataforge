@@ -1,5 +1,5 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchFolder } from "@/features/folder/api/folderContents";
 import { ApiError } from "@/shared/api/http";
 import { AppProviders } from "@/test/AppProviders";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { job } from "@/test/fixtures";
 import type { Job, JobsResponse } from "@/shared/types";
 import {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { useMaskRegions } from "./useMaskRegions";
 import { MAX_MASK_REGIONS, type MaskDraft } from "@/features/gallery/lib/mask";
 

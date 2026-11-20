@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { MIN_MASK_FRACTION } from "./crop";
 import {
   DEFAULT_MASK_MODE,

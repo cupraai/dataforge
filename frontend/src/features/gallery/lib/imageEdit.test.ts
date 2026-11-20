@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { IDENTITY_CROP, type CropRect, type RotationDegrees } from "./crop";
 import {
   draftFromSpec,

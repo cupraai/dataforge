@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { StrictMode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   acquireScrollLock,
   releaseScrollLock,

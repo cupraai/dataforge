@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as folderApi from "@/features/folder/api/folderContents";
 import { folderKeys, folderQueryOptions } from "@/features/folder/lib/folderQuery";
 import * as preferences from "@/features/folder/lib/folderPreferences";

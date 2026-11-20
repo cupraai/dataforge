@@ -2,7 +2,7 @@ import "./animationEvent";
 import "./nativeDialog";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, configure } from "@testing-library/react";
-import { afterEach, vi } from "vitest";
+import { afterEach, vi } from "vite-plus/test";
 
 // An App-level step re-renders the whole tree: ~300ms here, past the 1s default on CI runners.
 configure({ asyncUtilTimeout: 3000 });

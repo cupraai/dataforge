@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 import { clearFolderScrollMemory } from "@/features/folder/lib/folderScrollMemory";
 import type {
   AppSettingKey,

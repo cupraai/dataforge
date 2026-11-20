@@ -1,5 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { REGEX_SEARCH_BUDGET_MS } from "./useRegexSearch";
 import { FILTER_OPTIONS } from "@/features/gallery/lib/filters";
 import { readGallerySessionQuery } from "@/features/gallery/lib/sessionPreferences";

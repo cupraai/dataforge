@@ -1,6 +1,6 @@
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { renderWithQueryClient } from "@/test/queryClient";
 import { systemPerformance } from "@/test/fixtures";
 import type { SystemPerformance } from "@/shared/types";

@@ -1,6 +1,6 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as MediaApi from "@/features/gallery/api/media";
 import { previewMediaTransfer, transferSelectedMedia } from "@/features/gallery/api/media";
 import { AppProviders } from "@/test/AppProviders";

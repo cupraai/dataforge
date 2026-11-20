@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { VideoEditPanel } from "./VideoEditPanel";
 import { stageHintSlot } from "@/test/stageHintSlot";
 import { emptyDraft, type VideoEditDraft } from "@/features/gallery/lib/videoEdit";

@@ -1,4 +1,4 @@
-import { onTestFinished } from "vitest";
+import { onTestFinished } from "vite-plus/test";
 import { isElementInGalleryLoadZone } from "@/features/gallery/lib/scrollRoot";
 
 export function installThumbnailIntersections() {

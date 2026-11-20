@@ -358,15 +358,16 @@ def _resolve_python() -> Path:
     raise SystemExit(1)
 
 
-def _resolve_npm() -> str:
-    npm = shutil.which("npm")
+def _resolve_npm(environ: dict[str, str]) -> str:
+    portable = ROOT / ".node" / "npm.cmd"
+    if os.name == "nt" and portable.is_file():
+        # npm scripts and Playwright also launch node by name.
+        environ["PATH"] = os.pathsep.join((str(portable.parent), environ.get("PATH", "")))
+        return str(portable)
+    npm = shutil.which("npm", path=environ.get("PATH"))
     if npm:
         return npm
-    if os.name == "nt":
-        npm_cmd = shutil.which("npm.cmd")
-        if npm_cmd:
-            return npm_cmd
-    raise RuntimeError("npm was not found on PATH. Install Node.js and npm first.")
+    raise RuntimeError("npm was not found. Run setup or install Node 26 LTS with npm.")
 
 
 def _git_status_lines() -> list[str]:
@@ -414,7 +415,7 @@ def _check_steps(
         steps.append(Step("Backend typecheck", [str(python), str(SCRIPTS / "run_typecheck.py")]))
     if npm is not None:
         steps.append(Step("Frontend oxlint", [npm, "run", "lint"], FRONTEND))
-        steps.append(Step("Frontend Prettier", [npm, "run", "format:check"], FRONTEND))
+        steps.append(Step("Frontend Oxfmt", [npm, "run", "format:check"], FRONTEND))
         # Grouped with static checks so ``--lint-only`` still catches type errors; vitest does not.
         steps.append(Step("Frontend typecheck", [npm, "run", "typecheck"], FRONTEND))
         steps.append(Step("Theme colors", [str(interpreter), str(SCRIPTS / "check_colors.py")]))
@@ -603,7 +604,8 @@ def main() -> int:
     # The backend venv is always needed: frontend API types are generated.
     python = _resolve_python()
     backend_python = python if args.scope != "frontend" else None
-    npm = _resolve_npm() if args.scope != "backend" else None
+    base_environ = dict(os.environ)
+    npm = _resolve_npm(base_environ) if args.scope != "backend" else None
 
     generate = Step("Generate API types", [str(python), str(SCRIPTS / "generate_types.py")])
     checks = _check_steps(
@@ -630,7 +632,7 @@ def main() -> int:
     ) as raw:
         coverage_dir = Path(raw)
         environ = _child_environment(
-            os.environ,
+            base_environ,
             color=console.color,
             progress=console.live,
             coverage_dir=coverage_dir if measure_coverage else None,

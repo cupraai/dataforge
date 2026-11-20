@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { readFolderExpanded, writeFolderExpanded } from "./folderExpansion";
 
 const STORAGE_KEY = "folder-grid-expanded";

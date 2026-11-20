@@ -1,6 +1,6 @@
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { literalMatchHighlight, queryMatchHighlight } from "./codeEditorQueryHighlight";
 
 vi.unmock("@codemirror/state");

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { RadioTileGroup, type RadioTileOption } from "./RadioTileGroup";
 
 const OPTIONS: ReadonlyArray<RadioTileOption<"one" | "two">> = [

@@ -1,7 +1,7 @@
 import { instructionFile } from "@/test/instructionFixtures";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as FolderInstructionsApi from "@/shared/api/folderInstructions";
 import type { FolderInstructionsResponse, InstructionFileResponse } from "@/shared/types";
 import { AutoCaptionDialog } from "./AutoCaptionDialog";

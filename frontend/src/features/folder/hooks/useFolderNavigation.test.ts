@@ -1,5 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/folderContents";
 import { entryKeyOf, folderOfLocation } from "@/features/folder/lib/folderHistory";
 import * as folderPreferences from "@/features/folder/lib/folderPreferences";

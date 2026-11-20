@@ -199,7 +199,14 @@ void main() {
 }`;
 
 type ProgramName =
-  "view" | "base" | "gauss" | "moments" | "box" | "coefficients" | "apply" | "composite";
+  | "view"
+  | "base"
+  | "gauss"
+  | "moments"
+  | "box"
+  | "coefficients"
+  | "apply"
+  | "composite";
 
 const FRAGMENTS: Record<ProgramName, string> = {
   view: VIEW,
@@ -220,7 +227,10 @@ interface Target {
 }
 
 type UniformValue =
-  number | boolean | readonly number[] | { texture: WebGLTexture; is3d?: boolean };
+  | number
+  | boolean
+  | readonly number[]
+  | { texture: WebGLTexture; is3d?: boolean };
 
 export function viewRadius(
   outputRadius: number,

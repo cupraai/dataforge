@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { GpuProcessMemory } from "@/shared/types";
 import { assignVramSlots, VRAM_SLOTS } from "./vramSlots";
 

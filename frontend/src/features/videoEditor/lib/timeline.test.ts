@@ -1,5 +1,5 @@
 import { RESTING_EFFECTS } from "@/shared/lib/audioEffects";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { VideoProjectSourceInfo } from "@/shared/types";
 import {
   addDissolve,

@@ -1,6 +1,6 @@
 import { focusManager } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
 import type { ComfyWorkflowPromptsResponse } from "@/shared/types";
 import { queryWrapper } from "@/test/queryClient";

@@ -1,5 +1,5 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchDuplicateGroups } from "@/features/gallery/api/duplicates";
 import { AppProviders } from "@/test/AppProviders";
 import type { DuplicateGroup, DuplicateGroupsResponse } from "@/shared/types";

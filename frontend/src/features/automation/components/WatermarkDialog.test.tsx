@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ComponentProps } from "react";
 import type * as JobsApi from "@/features/automation/api/jobs";
 import { fetchWatermarkImageInfo, uploadWatermarkImage } from "@/features/automation/api/jobs";

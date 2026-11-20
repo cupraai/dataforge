@@ -1,5 +1,5 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as MediaApi from "@/features/gallery/api/media";
 import { openMediaInViewer, renameMedia } from "@/features/gallery/api/media";
 import type { WorkspaceAction } from "@/app/hooks/useWorkspaceTransitions";

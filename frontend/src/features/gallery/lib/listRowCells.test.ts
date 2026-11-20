@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { HOME_PATH } from "@/test/fixtures";
 import type { GalleryItem } from "@/shared/types";
 import { rowMarkers, rowMetaCells } from "./listRowCells";

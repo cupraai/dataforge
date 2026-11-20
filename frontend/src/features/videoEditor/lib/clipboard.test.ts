@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeClip, makeProject, makeSource, makeTrack } from "@/test/videoProject";
 import { copyClips, pasteAttributes, pastableGroups, pasteClips } from "./clipboard";
 import { restingAdjust, type Clip, type Project } from "./timeline";

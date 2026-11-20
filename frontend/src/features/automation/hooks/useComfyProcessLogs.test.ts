@@ -1,5 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as jobsApi from "@/features/automation/api/jobs";
 import { advanceFakeClock } from "@/test/timers";
 import { job } from "@/test/fixtures";

@@ -1,5 +1,5 @@
 import { waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
 import { HOME_PATH } from "@/test/fixtures";
 import { useCaptionBackup } from "./useCaptionBackup";

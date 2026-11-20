@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { ImageEditPanel } from "./ImageEditPanel";
 import { stageHintSlot } from "@/test/stageHintSlot";
 import {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 import { MAX_RECENT_ACTIONS, readRecentActionIds, touchRecentAction } from "./quickActionHistory";
 
 const KEY = "quick-action-recent";

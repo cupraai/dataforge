@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeClip, makeProject, makeSource } from "@/test/videoProject";
 import { moveClipsFlush, setClipSpeed, splitClips, trimClip } from "./timeline";
 import { clipValueAt } from "./keyframes";

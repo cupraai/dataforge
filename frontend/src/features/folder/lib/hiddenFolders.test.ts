@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { visibleFolders } from "./hiddenFolders";
 
 const album = { name: "Album", path: "C:\\Photos\\Album", hidden: false };

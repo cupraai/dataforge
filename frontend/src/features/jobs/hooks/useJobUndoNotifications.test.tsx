@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as JobsApi from "@/features/jobs/api/jobs";
 import { undoJob } from "@/features/jobs/api/jobs";
 import { jobKeys } from "@/features/jobs/lib/jobQueries";

@@ -1,7 +1,7 @@
 import { StrictMode, useRef } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { resetScrollLockManagerForTests } from "@/shared/hooks/scrollLockManager";
 import { DialogShell } from "./DialogShell";
 

@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import type { DragEvent } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/files";
 import type { FileImportPreviewResponse } from "@/shared/types";
 import { useFolderFileDrop } from "./useFolderFileDrop";

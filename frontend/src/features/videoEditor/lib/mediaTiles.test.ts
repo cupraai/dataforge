@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeClip } from "@/test/videoProject";
 import { clipTiles, MAX_TILES, tileSeconds } from "./mediaTiles";
 

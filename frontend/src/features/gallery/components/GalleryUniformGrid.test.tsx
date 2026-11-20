@@ -1,5 +1,5 @@
 import { renderWithThumbnails as render } from "@/test/renderWithThumbnails";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { galleryLayoutFor } from "@/features/gallery/lib/layout";
 import type { GalleryItem } from "@/shared/types";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";

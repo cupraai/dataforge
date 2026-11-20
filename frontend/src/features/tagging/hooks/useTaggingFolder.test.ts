@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { ServerEventsProvider } from "@/shared/events/ServerEventsProvider";
 import type { TaggingStatusResponse } from "@/shared/types";
 import { installFakeEventSource } from "@/test/fakeEventSource";

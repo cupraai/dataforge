@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 import { OPEN_GRACE_MS } from "@/shared/ui/Dialog";
 
 /** Offset `performance.now()`; do not freeze it, or React's scheduler stops too. */

@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 import type { ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import { BRUSH_DEFAULT_FRACTION } from "@/features/gallery/lib/fillMask";
 import type { BrushMode, FillStroke } from "@/features/gallery/lib/fillMask";

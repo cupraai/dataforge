@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { NotificationRecord, ServerEvent } from "@/shared/types";
 import { ServerEventsContext } from "@/shared/events/serverEvents";
 import { ServerEventsProvider } from "@/shared/events/ServerEventsProvider";

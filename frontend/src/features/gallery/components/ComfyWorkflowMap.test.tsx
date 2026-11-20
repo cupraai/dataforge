@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { ComfyMapNode } from "@/shared/types";
 import { ComfyWorkflowMap } from "./ComfyWorkflowMap";
 

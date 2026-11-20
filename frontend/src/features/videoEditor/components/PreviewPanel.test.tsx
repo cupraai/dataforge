@@ -1,7 +1,7 @@
 import { createRef, type ComponentProps } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { makeItem } from "@/test/galleryItemDialog";
 import { makeProject } from "@/test/videoProject";
 import { PreviewEngine } from "@/features/videoEditor/lib/previewEngine";

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { renderWithQueryClient as render } from "@/test/queryClient";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
 import { literalMatchHighlight } from "@/shared/lib/codeEditorQueryHighlight";
 import { HOME_PATH, homeFolder } from "@/test/fixtures";

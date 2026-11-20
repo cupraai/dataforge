@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { settleScrollPosition } from "./scrollSettle";
 
 /** jsdom ignores scrollTop; clamp writes like a container whose row heights are still estimates. */

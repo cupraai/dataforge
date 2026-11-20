@@ -1,5 +1,5 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { convertGifToMp4, fetchGifToMp4State } from "@/features/gallery/api/gifToMp4";
 import { useGifToMp4, type UseGifToMp4Options } from "./useGifToMp4";
 import { AppProviders } from "@/test/AppProviders";

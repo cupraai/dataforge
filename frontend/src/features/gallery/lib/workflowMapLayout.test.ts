@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { ComfyMapNode } from "@/shared/types";
 import { layoutWorkflowMap, splitLabel } from "./workflowMapLayout";
 

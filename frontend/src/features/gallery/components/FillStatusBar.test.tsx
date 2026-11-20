@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { makeFillControls, makeImageFill } from "@/test/fillControls";
 import type { ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import { stageHintSlot } from "@/test/stageHintSlot";

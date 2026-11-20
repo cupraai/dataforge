@@ -119,11 +119,7 @@ $space-8: 2rem;
 
 // Bundled (`inter-ui` in main.tsx), so the app renders the same offline. The full Inter build:
 // the Google Fonts one leaves out the alternates `$font-features` turn on.
-$font-sans:
-  InterVariable,
-  system-ui,
-  -apple-system,
-  sans-serif;
+$font-sans: InterVariable, system-ui, -apple-system, sans-serif;
 $font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 $font-features:
   "cv11" 1,

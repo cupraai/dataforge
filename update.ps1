@@ -25,6 +25,7 @@ $VenvPy = Join-Path $Root 'backend\.venv\Scripts\python.exe'
 # Changes to these are what setup.ps1 acts on and the launchers do not.
 $SetupInputs = @(
     '.python-version',
+    '.node-version',
     'setup.ps1',
     'backend/requirements.txt',
     'backend/requirements-dev.txt',

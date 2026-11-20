@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createTestRouter } from "@/test/router";
 import { entryKeyOf, folderOfLocation, syncFolderHistory } from "./folderHistory";
 

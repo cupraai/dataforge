@@ -8,6 +8,8 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+## 0.15.0 - 2026-11-20
+
 ### Added
 
 - **Effects** adds nine adjustable looks to gallery images and videos and to individual picture clips in the video editor.
@@ -20,6 +22,7 @@ version heading when a minor or major version is cut.
 
 ### Changed
 
+- DataForge now needs Node 26. Windows setup downloads it into `.node/` on its next run; on Linux and macOS, install a Node 26 release before running `setup.sh` or updating, since older and newer versions are refused.
 - The interface has more depth and smoother motion. Dialogs grow out of the control that opened them and fade away when closed, whether cancelled or confirmed. Menus, toasts and the jobs drawer's cards move in and out instead of popping, and tabs and segmented choices slide their marker to the new choice. Buttons and cards dip when pressed, checkboxes spring their tick, a folder's contents fade in when it opens, and switching between light and dark crossfades the whole window. The folder sidebar wipes open from its rail and folds back into it. With your system's reduced-motion setting on, all of this stays still.
 - Gallery cards show each file's main colour while its thumbnail loads, once the thumbnail has been shown before. Paging in the viewer slides the next file in from the side you are moving toward, counts roll to their new value, and long file names are cut in the middle so the number and extension stay visible. The toolbar's view controls and its notification and job buttons each sit together in one group.
 - Text uses Inter's single-storey a and open digits, and file names show a serifed I and a tailed l so names like `Il1` cannot be misread.

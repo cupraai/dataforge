@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";

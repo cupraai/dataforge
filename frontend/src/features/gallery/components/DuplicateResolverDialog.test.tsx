@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { dismissDuplicateGroup, resolveDuplicateGroup } from "@/features/gallery/api/duplicates";
 import type { DuplicateGroup } from "@/shared/types";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";

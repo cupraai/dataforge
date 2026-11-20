@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { readStored, readStoredJson, writeStored, writeStoredJson } from "@/shared/lib/storage";
 
 const KEY = "storage-test-key";

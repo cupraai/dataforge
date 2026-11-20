@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { CropOverlay } from "./CropOverlay";
 import {
   CROP_READOUT_LINGER_MS,

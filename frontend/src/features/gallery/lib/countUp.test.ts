@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { COUNT_UP_MS, easedCount } from "./countUp";
 
 describe("easedCount", () => {

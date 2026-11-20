@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { homeFolder } from "@/test/fixtures";
 import { renderWithThumbnails as render } from "@/test/renderWithThumbnails";
 import { GalleryListHeader } from "./GalleryListHeader";

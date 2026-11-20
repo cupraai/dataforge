@@ -25,7 +25,8 @@ export interface SegmentOption<T extends string | number> {
 
 /** Named by `label`, or by `labelledBy` where a visible caption already names the choice. */
 type SegmentedControlName =
-  { label: string; labelledBy?: never } | { labelledBy: string; label?: never };
+  | { label: string; labelledBy?: never }
+  | { labelledBy: string; label?: never };
 
 type SegmentedControlProps<T extends string | number> = SegmentedControlName & {
   /** Null checks nothing, such as a setting a multiple selection does not share. */

@@ -2,7 +2,9 @@ import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 
 /** A registered shortcut, bare key names, or a mouse gesture written out, and what it does. */
 export type StageGesture = { does: string } & (
-  { shortcut: ShortcutDefinition } | { keys: readonly string[] } | { gesture: string }
+  | { shortcut: ShortcutDefinition }
+  | { keys: readonly string[] }
+  | { gesture: string }
 );
 
 export interface ToolHintEntry {

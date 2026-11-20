@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { HISTOGRAM_BINS, measureFrame, WAVEFORM_ROWS } from "./scopes";
 
 /** A ``width × 1`` RGBA strip of the given pixels. */

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { VideoProjectExportState } from "@/shared/types";
 import { makeProject } from "@/test/videoProject";
 import type { VideoProjectState } from "@/features/videoEditor/hooks/useVideoProject";

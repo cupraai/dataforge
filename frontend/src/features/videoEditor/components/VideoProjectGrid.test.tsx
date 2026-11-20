@@ -1,6 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { VideoProjectSummary } from "@/shared/types";
 import { renderWithQueryClient } from "@/test/queryClient";
 import * as api from "@/features/videoEditor/api/videoProjects";

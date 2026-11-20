@@ -1,7 +1,7 @@
 import { renderWithThumbnails as render } from "@/test/renderWithThumbnails";
 import { installThumbnailImages } from "@/test/thumbnailImages";
 import { act, fireEvent, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as captionStatus from "@/features/gallery/lib/captionStatus";
 import * as scrollRoot from "@/features/gallery/lib/scrollRoot";
 import { galleryLayoutFor } from "@/features/gallery/lib/layout";

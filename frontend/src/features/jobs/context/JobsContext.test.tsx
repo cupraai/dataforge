@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { startAutomationJob } from "@/features/automation/api/jobs";
 import { FOLDER_INSTRUCTIONS_KEY } from "@/shared/hooks/useFolderInstructions";
 import { cancelJob, deleteAllJobs, deleteJob, fetchJobs } from "@/features/jobs/api/jobs";

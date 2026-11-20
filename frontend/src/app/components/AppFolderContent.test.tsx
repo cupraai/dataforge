@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { ThumbnailProvider } from "@/features/gallery/context/ThumbnailProvider";
 import { iconSearch } from "@/shared/icons";
 import type { GalleryDisplayMode } from "@/shared/types";

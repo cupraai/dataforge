@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ServerEvent } from "@/shared/types";
 import { job } from "@/test/fixtures";
 import { serverEventsTabId, subscribeToServerEvents } from "./eventStream";

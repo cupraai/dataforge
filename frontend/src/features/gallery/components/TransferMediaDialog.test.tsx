@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as foldersApi from "@/features/folder/api/folders";
 import { ApiError } from "@/shared/api/http";
 import { EMPTY_PATH, HOME_PATH, VACATION_PATH } from "@/test/fixtures";

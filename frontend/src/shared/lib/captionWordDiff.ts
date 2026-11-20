@@ -36,7 +36,8 @@ function isWord(token: Token): boolean {
 }
 
 type Op =
-  { kind: "same"; before: Token; after: Token } | { kind: "removed" | "added"; token: Token };
+  | { kind: "same"; before: Token; after: Token }
+  | { kind: "removed" | "added"; token: Token };
 
 /** Word-level diff of two captions, as runs of unchanged, removed and added text. */
 export function diffCaptionWords(before: string, after: string): CaptionDiffSegment[] {

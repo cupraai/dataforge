@@ -1,7 +1,7 @@
 import { instructionFile } from "@/test/instructionFixtures";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
 import { HOME_PATH } from "@/test/fixtures";
 import type { FolderInstructionsResponse, InstructionFileResponse } from "@/shared/types";

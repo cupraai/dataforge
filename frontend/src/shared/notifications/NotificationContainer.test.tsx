@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { expect, it, vi } from "vite-plus/test";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { NotificationContainer } from "./NotificationContainer";
 

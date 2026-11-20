@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { useRef, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as toolbarCompact from "@/features/gallery/lib/toolbarCompact";
 import { classNames } from "@/shared/lib/classNames";
 import { useToolbarCompactMode } from "./useToolbarCompactMode";

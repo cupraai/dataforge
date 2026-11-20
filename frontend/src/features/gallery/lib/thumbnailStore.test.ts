@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { installThumbnailImages } from "@/test/thumbnailImages";
 import { ThumbnailStore } from "./thumbnailStore";
 import type { ThumbnailDemand } from "./thumbnailStore";

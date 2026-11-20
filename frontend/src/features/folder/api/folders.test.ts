@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 const { requestJsonMock } = vi.hoisted(() => ({
   requestJsonMock: vi.fn<typeof requestJson>(),

@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { ApiError } from "@/shared/api/http";
 import type { VideoProjectDocument } from "@/shared/types";
 import * as api from "@/features/videoEditor/api/videoProjects";

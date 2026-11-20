@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import type { GalleryRanges } from "@/features/gallery/lib/query";
 import type { GalleryItem } from "@/shared/types";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";

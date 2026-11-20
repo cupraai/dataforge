@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { MaskOverlay } from "./MaskOverlay";
 import { newMaskDraft, type MaskDraft } from "@/features/gallery/lib/mask";
 import type { CropRect } from "@/features/gallery/lib/crop";

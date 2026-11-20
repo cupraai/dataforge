@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { resetScrollLockManagerForTests } from "@/shared/hooks/scrollLockManager";
 import type { OstrisTrainingSample } from "@/shared/types";
 import { TrainingSampleDialog } from "./TrainingSampleDialog";

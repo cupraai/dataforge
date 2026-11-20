@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { useChanged } from "./useChanged";
 
 function Draft({ value, commits }: { value: string; commits: string[] }) {

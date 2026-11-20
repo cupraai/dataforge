@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { fittedSize } from "./sizeFit";
 
 type Case = [[number, number], number, number, boolean, [number, number] | null];

@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchOstrisTrainingSamples } from "@/features/jobs/api/externalJobs";
 import { fetchJobs } from "@/features/jobs/api/jobs";
 import type * as JobsApi from "@/features/jobs/api/jobs";

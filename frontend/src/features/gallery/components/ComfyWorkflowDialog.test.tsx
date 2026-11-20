@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
 import { installMockBackend } from "@/test/mockBackend";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";

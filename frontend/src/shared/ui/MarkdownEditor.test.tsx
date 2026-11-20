@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 describe("MarkdownEditor", () => {
@@ -9,7 +9,7 @@ describe("MarkdownEditor", () => {
       <MarkdownEditor value="Hello world" aria-label="Prompt" onChange={onChange} />,
     );
 
-    const editor = screen.getByRole("textbox", { name: "Prompt" }) as HTMLTextAreaElement;
+    const editor = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Prompt" });
     editor.focus();
     editor.setSelectionRange(6, 6);
     fireEvent.mouseUp(editor);
@@ -33,7 +33,7 @@ describe("MarkdownEditor", () => {
       <MarkdownEditor value="Hello world" aria-label="Prompt" onChange={onChange} />,
     );
 
-    const editor = screen.getByRole("textbox", { name: "Prompt" }) as HTMLTextAreaElement;
+    const editor = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Prompt" });
     editor.focus();
     editor.setSelectionRange(11, 11);
     fireEvent.mouseUp(editor);

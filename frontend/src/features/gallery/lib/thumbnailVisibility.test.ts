@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vite-plus/test";
 import { installThumbnailIntersections } from "@/test/thumbnailIntersections";
 import { ThumbnailVisibility } from "./thumbnailVisibility";
 import type { GalleryMediaZones } from "@/features/gallery/lib/scrollRoot";

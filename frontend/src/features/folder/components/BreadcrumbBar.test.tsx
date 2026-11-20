@@ -1,6 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ComponentProps } from "react";
 import type { FolderRoot } from "@/shared/types";
 import * as foldersApi from "@/features/folder/api/folders";

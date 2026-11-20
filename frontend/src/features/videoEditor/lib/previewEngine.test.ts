@@ -1,5 +1,5 @@
 import { RESTING_EFFECTS } from "@/shared/lib/audioEffects";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { makeClip, makeProject, makeSource } from "@/test/videoProject";
 import { AdjustRenderer } from "@/features/gallery/lib/adjustRenderer";
 import { MEDIA_STALL_MS, problemFromError } from "@/shared/lib/mediaProblems";

@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 import type { ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import type { AdjustTool } from "@/features/gallery/lib/colorAdjust";

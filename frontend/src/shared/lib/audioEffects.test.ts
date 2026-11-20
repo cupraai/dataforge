@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   AUDIO_EQ_BASS_HZ,
   AUDIO_EQ_MID_HZ,

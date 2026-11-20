@@ -1,5 +1,5 @@
 import { QueryObserver } from "@tanstack/react-query";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { ApiError, NetworkError } from "@/shared/api/http";
 import { LOAD_RETRY_DELAYS_MS, createQueryClient, mergedRead } from "./queryClient";
 

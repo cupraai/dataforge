@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { VIDEO_PROJECT_TRUE_PEAK_CEILING_DB } from "@/shared/constants";
 import { meterAlarm, meterFraction, toDecibels } from "./meter";
 

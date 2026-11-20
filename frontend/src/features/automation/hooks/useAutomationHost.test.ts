@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { readRecentActionIds } from "@/features/quickAction/lib/quickActionHistory";
 import { mediaItem } from "@/test/fixtures";
 import { useAutomationHost } from "./useAutomationHost";

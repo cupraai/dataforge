@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { render } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 import { installThumbnailImages } from "@/test/thumbnailImages";
 import { installThumbnailIntersections } from "@/test/thumbnailIntersections";
 import type { ThumbnailDemand } from "@/features/gallery/lib/thumbnailStore";

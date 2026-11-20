@@ -1,5 +1,5 @@
 import { instructionFile } from "@/test/instructionFixtures";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { instructionApplies } from "./folderInstructions";
 
 const NO_FILE = instructionFile();

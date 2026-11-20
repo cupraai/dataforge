@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { AUDIO_HIGH_CUT_MAX_HZ } from "@/shared/constants";
 import {
   adjustUnit,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 import { cacheGallerySessionQuery, readGallerySessionQuery } from "./sessionPreferences";
 
 const SESSION_QUERY_CACHE_KEY = "gallery-session-query";

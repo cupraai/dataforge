@@ -1,5 +1,5 @@
 import { act, renderHook, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { deleteFolder } from "@/features/folder/api/folders";
 import type * as FoldersApi from "@/features/folder/api/folders";
 import {

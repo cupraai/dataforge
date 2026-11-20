@@ -7,7 +7,7 @@ For running the app, see [Getting started](getting-started.md). Contributor and 
 ## Stack
 
 - **Backend:** Python 3.13.x, FastAPI, SQLite, Pillow, ffmpeg, and the OpenAI client. Optional tagging uses PyTorch and Ultralytics YOLO-World.
-- **Frontend:** React 19, TypeScript 7, Vite, SCSS, TanStack Query for server data, and TanStack Router for navigation.
+- **Frontend:** React 19, TypeScript 7, Vite+, SCSS, TanStack Query for server data, and TanStack Router for navigation.
 - **Integrations:** OpenAI-compatible model servers, ComfyUI, and AI-Toolkit; see [Configuration](configuration.md).
 
 ## Run with hot reload
@@ -87,7 +87,7 @@ Before finishing code changes, run the checks:
 <python> scripts/run_checks.py --fix
 ```
 
-This generates API files, then runs formatting, lint, type checks, the comment, theme, and transition checks, and the backend and frontend tests. Backend tools include Ruff and ty; off Linux, ty runs a second time for Linux, the platform CI checks on. Frontend tools include oxlint, Prettier, TypeScript, and Vitest. Tool configuration and pins live in each project's manifest. See [AGENTS.md](../AGENTS.md) for verification requirements; documentation-only changes need a content and diff review instead.
+This generates API files, then runs formatting, lint, type checks, the comment, theme, and transition checks, and the backend and frontend tests. Backend tools include Ruff and ty; off Linux, ty runs a second time for Linux, the platform CI checks on. Frontend npm scripts use the project-local Vite+ CLI for development, builds, Oxlint, Oxfmt, and Vitest. Their configuration lives in `frontend/vite.config.ts`. The TypeScript and Playwright commands also run through npm. See [AGENTS.md](../AGENTS.md) for verification requirements.
 
 | Option | Effect |
 | --- | --- |

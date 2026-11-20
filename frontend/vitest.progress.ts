@@ -1,5 +1,5 @@
-import type { UserConsoleLog } from "vitest";
-import type { Reporter, TestSpecification, Vitest } from "vitest/node";
+import type { UserConsoleLog } from "vite-plus/test";
+import type { Reporter, TestSpecification, Vitest } from "vite-plus/test/node";
 
 const PROGRESS_PREFIX = "@progress ";
 const WARNINGS_PREFIX = "@warnings ";

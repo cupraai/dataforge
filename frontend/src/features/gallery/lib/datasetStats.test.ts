@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { BUCKET_RANGES, computeDatasetStats } from "./datasetStats";
 import { RANGE_AXES, applyRanges } from "./query";
 import { HOME_PATH, mediaItem } from "@/test/fixtures";

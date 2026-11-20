@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as captionsApi from "@/features/gallery/api/captions";
 import { JOB_GROUPS, JOB_TYPES } from "@/features/jobs/lib/jobMeta";
 import { installMockBackend } from "@/test/mockBackend";

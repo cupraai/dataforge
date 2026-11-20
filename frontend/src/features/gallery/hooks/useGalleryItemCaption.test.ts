@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { afterEach, describe, expect, it, vi, type MockInstance } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
 import { ApiError } from "@/shared/api/http";
 import { HOME_PATH } from "@/test/fixtures";

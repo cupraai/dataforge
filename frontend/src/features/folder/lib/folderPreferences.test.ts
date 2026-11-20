@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/folderContents";
 import { NetworkError } from "@/shared/api/http";
 import { HOME_PATH, VACATION_PATH, homeFolder, vacationFolder } from "@/test/fixtures";

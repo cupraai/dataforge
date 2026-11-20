@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { useQuery } from "@tanstack/react-query";
 import { BACKEND_UNREACHABLE, NetworkError } from "@/shared/api/http";
 import { ServerEventsProvider } from "@/shared/events/ServerEventsProvider";

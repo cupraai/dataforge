@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { axisViewportShift } from "./viewportShift";
 
 const VIEWPORT = 1000;

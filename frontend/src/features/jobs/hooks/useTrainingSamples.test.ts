@@ -1,5 +1,5 @@
 import { act, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchOstrisTrainingSamples } from "@/features/jobs/api/externalJobs";
 import { fetchJobResults } from "@/features/jobs/api/jobs";
 import type { ExternalOstrisJob, Job } from "@/shared/types";

@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { act, fireEvent, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { ThumbnailProvider } from "@/features/gallery/context/ThumbnailProvider";
 import { renderWithThumbnails } from "@/test/renderWithThumbnails";
 import { installThumbnailImages } from "@/test/thumbnailImages";

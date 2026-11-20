@@ -30,7 +30,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $Root = $PSScriptRoot
 $PyVer = (Get-Content -LiteralPath (Join-Path $Root '.python-version') -Raw).Trim()
-$NodeVer = '24.21.0'
+$NodeVer = (Get-Content -LiteralPath (Join-Path $Root '.node-version') -Raw).Trim()
 # Bump all three together; the hash is of the release archive, checked before it is opened.
 $FfmpegVer = '7.1.1'
 $FfmpegUri = 'https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip'
@@ -171,6 +171,16 @@ function Install-PortableNode {
     $folder = 'node-v{0}-{1}' -f $NodeVer, $Arch.NodeBuild
     $uri = 'https://nodejs.org/dist/v{0}/{1}.zip' -f $NodeVer, $folder
     $zip = Join-Path $env:TEMP ('dataforge-{0}.zip' -f $folder)
+
+    # A running dev server locks node.exe. Check before removing any part of its npm install.
+    $installedNode = Join-Path $NodeDir 'node.exe'
+    if (Test-Path -LiteralPath $installedNode) {
+        try {
+            [IO.File]::Open($installedNode, 'Open', 'ReadWrite', 'None').Dispose()
+        } catch {
+            throw 'Cannot replace .node\node.exe. Close the running DataForge session and retry setup.'
+        }
+    }
 
     Write-Host ('Downloading Node.js {0} ({1})...' -f $NodeVer, $Arch.NodeBuild)
     Get-RemoteFile -Uri $uri -OutFile $zip

@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { SyntheticEvent } from "react";
 import { MEDIA_STALL_MS } from "@/shared/lib/mediaProblems";
 import { useMediaPlaybackProblem } from "./useMediaPlaybackProblem";

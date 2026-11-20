@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SYSPROMPT_FILENAME } from "@/shared/constants";
 import { filterImportableFiles, isImportableFileName } from "./importableFiles";
 

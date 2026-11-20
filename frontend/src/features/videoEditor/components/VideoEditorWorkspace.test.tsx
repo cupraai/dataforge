@@ -1,7 +1,7 @@
 import { RESTING_EFFECTS } from "@/shared/lib/audioEffects";
 import { createEvent, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { ApiError } from "@/shared/api/http";
 import type { VideoProjectClip, VideoProjectDocument } from "@/shared/types";
 import { makeItem } from "@/test/galleryItemDialog";

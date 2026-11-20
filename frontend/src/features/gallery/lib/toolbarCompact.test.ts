@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { toolbarNeedsCompact } from "./toolbarCompact";
 
 const row = { row: 1000, stats: 200, actions: 400, labels: 220, controls: 360, gap: 10 };

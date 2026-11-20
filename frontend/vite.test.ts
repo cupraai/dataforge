@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
-import type { ViteDevServer } from "vite";
-import { afterEach, expect, it, vi } from "vitest";
+import { createServer } from "vite-plus";
+import type { ViteDevServer } from "vite-plus";
+import { afterEach, expect, it, vi } from "vite-plus/test";
 
 let server: ViteDevServer | undefined;
 let root: string | undefined;

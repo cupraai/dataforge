@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { GalleryItem } from "@/shared/types";
 import { countResolvableIssues, flaggedCaptionPhrases, listResolvableIssueItems } from "./issues";
 

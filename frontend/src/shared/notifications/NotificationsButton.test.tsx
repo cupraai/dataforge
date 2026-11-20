@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { NotificationRecord } from "@/shared/types";
 import * as notificationsApi from "@/shared/api/notifications";
 import { NotificationsButton } from "./NotificationsButton";

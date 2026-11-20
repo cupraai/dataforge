@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { previewCaptionRestore } from "@/features/automation/api/jobs";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { CaptionBackupCompareSample, RestoreCaptionsPreviewResponse } from "@/shared/types";

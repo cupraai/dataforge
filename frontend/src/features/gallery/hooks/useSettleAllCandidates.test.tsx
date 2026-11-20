@@ -1,5 +1,5 @@
 import { act, renderHook, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { acceptCandidates, rejectCandidates } from "@/features/gallery/api/comfyCandidates";
 import { AppProviders } from "@/test/AppProviders";
 import type { ComfyCandidateBatchResponse } from "@/shared/types";

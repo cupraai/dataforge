@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { StrictMode } from "react";
-import { expect } from "vitest";
+import { expect } from "vite-plus/test";
 import App from "@/app/App";
 import "../styles/main.scss";
 

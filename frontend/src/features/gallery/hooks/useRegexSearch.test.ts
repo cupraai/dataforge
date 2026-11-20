@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { REGEX_SEARCH_BUDGET_MS, useRegexSearch } from "./useRegexSearch";
 import { matchRegexTexts } from "@/features/gallery/lib/regexSearch";
 import type { RegexSearchRequest } from "@/features/gallery/lib/regexSearch.worker";

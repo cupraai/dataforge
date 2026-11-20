@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { JOB_GROUPS } from "@/features/jobs/lib/jobMeta";
 import type { WorkflowStep } from "@/shared/types";
 import { stepSummary } from "./stepSummary";

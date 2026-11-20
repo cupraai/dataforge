@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap } from "@codemirror/commands";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { leaveModEnterToHost } from "./codeEditorCommitKey";
 
 vi.unmock("@codemirror/state");

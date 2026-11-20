@@ -74,7 +74,13 @@ import { TagVocabularySection } from "./TagVocabularySection";
 import { ThemePicker } from "./ThemePicker";
 
 type SectionId =
-  "appearance" | "notifications" | "vision" | "tagging" | "integrations" | "data" | "about";
+  | "appearance"
+  | "notifications"
+  | "vision"
+  | "tagging"
+  | "integrations"
+  | "data"
+  | "about";
 
 type PageId =
   | "appearance"

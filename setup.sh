@@ -8,8 +8,9 @@ set -eo pipefail
 PYTHON_VERSION="$(tr -d '\r\n' < "$DEV_ROOT/.python-version")"
 PYTHON_SERIES="${PYTHON_VERSION%.*}"
 
-# Keep in step with frontend/package.json engines (jsdom 29, sass 1.103).
-NODE_RANGE="^20.19.0 || ^22.13.0 || >=24"
+NODE_VERSION_PIN="$(tr -d '\r\n' < "$DEV_ROOT/.node-version")"
+NODE_MAJOR="${NODE_VERSION_PIN%%.*}"
+NODE_RANGE="$NODE_MAJOR.x"
 
 SKIP_TAGGING=0
 for arg in "$@"; do
@@ -51,21 +52,7 @@ find_python() {
 }
 
 node_version_ok() {
-    # Without semver, since npm is not usable yet.
-    local version="$1" major rest minor
-    version="${version#v}"
-    major="${version%%.*}"
-    rest="${version#*.}"
-    minor="${rest%%.*}"
-
-    case "$major$minor" in
-        *[!0-9]*) return 1 ;;
-    esac
-
-    [ "$major" -ge 24 ] && return 0
-    [ "$major" -eq 22 ] && [ "$minor" -ge 13 ] && return 0
-    [ "$major" -eq 20 ] && [ "$minor" -ge 19 ] && return 0
-    return 1
+    [[ "${1#v}" =~ ^"${NODE_MAJOR}"\.[0-9]+\.[0-9]+$ ]]
 }
 
 say "================================================"
@@ -102,12 +89,10 @@ fi
 NODE_VERSION="$(node --version)"
 if ! node_version_ok "$NODE_VERSION"; then
     err "Node $NODE_VERSION is outside the supported range $NODE_RANGE."
-    say "        This is what the lockfile resolves to, not a preference: jsdom 29"
-    say "        and sass 1.103 both refuse anything older, and npm will now stop"
-    say "        the install rather than fail later inside vite."
-    say ""
-    say "        Note that 21.x, 22.0-22.12 and 23.x are excluded too - a recent"
-    say "        Node is not automatically a supported one."
+    say "        The frontend supports one Node release line, older and newer"
+    say "        majors alike are refused, and npm would stop the install anyway."
+    say "        Install Node $NODE_VERSION_PIN (pinned in .node-version), or any"
+    say "        $NODE_RANGE release, and run setup again."
     exit 1
 fi
 ok "Node:   $(command -v node) ($NODE_VERSION)"

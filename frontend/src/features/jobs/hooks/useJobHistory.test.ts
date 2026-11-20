@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchJobs } from "@/features/jobs/api/jobs";
 import type { JobsQuery } from "@/features/jobs/lib/jobFilters";
 import { job } from "@/test/fixtures";

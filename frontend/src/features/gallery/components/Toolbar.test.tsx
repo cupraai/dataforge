@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   acquireScrollLock,
   releaseScrollLock,
@@ -134,9 +134,9 @@ describe("Toolbar", () => {
     const user = userEvent.setup();
     renderToolbar({ searchQuery: "sunset" });
 
-    const search = screen.getByRole("searchbox", {
+    const search = screen.getByRole<HTMLInputElement>("searchbox", {
       name: "Search files and folders by name or caption",
-    }) as HTMLInputElement;
+    });
 
     await user.keyboard("{Control>}f{/Control}");
 

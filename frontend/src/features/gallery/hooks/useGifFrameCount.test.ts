@@ -1,5 +1,5 @@
 import { waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as mediaApi from "@/features/gallery/api/media";
 import { renderHookWithQueryClient } from "@/test/queryClient";
 import { useGifFrameCount } from "./useGifFrameCount";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeItem } from "@/test/galleryItemDialog";
 import type { GalleryCardAction, GalleryItem } from "@/shared/types";
 import { CARD_ACTION_IDS, cardActionsFor, withCardAction } from "./cardActions";

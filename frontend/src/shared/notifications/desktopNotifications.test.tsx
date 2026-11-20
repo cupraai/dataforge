@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UiSettings } from "@/shared/preferences/uiPreferences";
 import { useDesktopNotifier } from "./desktopNotifications";
 import { DesktopNotificationsProvider } from "./DesktopNotificationsProvider";

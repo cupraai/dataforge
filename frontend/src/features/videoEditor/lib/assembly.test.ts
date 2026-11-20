@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { VideoProjectSourceInfo } from "@/shared/types";
 import { makeClip, makeProject, makeSource, makeTrack } from "@/test/videoProject";
 import {

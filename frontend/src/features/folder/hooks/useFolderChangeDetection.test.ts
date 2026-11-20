@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import type { QueryClient } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/folderContents";
 import { folderKeys } from "@/features/folder/lib/folderQuery";
 import { ServerEventsProvider } from "@/shared/events/ServerEventsProvider";

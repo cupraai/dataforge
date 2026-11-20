@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { useSlidingIndicator } from "./useSlidingIndicator";
 
 function Group({ selected }: { selected: string | null }) {

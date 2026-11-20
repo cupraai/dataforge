@@ -1,6 +1,6 @@
 import { renderWithThumbnails as render } from "@/test/renderWithThumbnails";
 import { fireEvent, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { HOME_PATH } from "@/test/fixtures";
 import type { GalleryItem } from "@/shared/types";
 import { GalleryListRow } from "./GalleryListRow";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { makeClip, makeProject, makeSource, makeTrack } from "@/test/videoProject";
 import { addMarker, markerBeside, removeMarker, updateMarker } from "./markers";
 import { rippleTrim, rippleTrimToPlayhead, rollTrim } from "./trimming";

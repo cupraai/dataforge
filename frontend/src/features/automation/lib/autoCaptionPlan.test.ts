@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { autoCaptionPlan } from "./autoCaptionPlan";
 
 const NONE = { total: 0, drafts: 0, from_scratch: 0, unreadable: 0, long_enough: 0 };

@@ -5,7 +5,7 @@
 [![Checks](https://github.com/cupraai/dataforge/actions/workflows/checks.yml/badge.svg)](https://github.com/cupraai/dataforge/actions/workflows/checks.yml)
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.13.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Node](https://img.shields.io/badge/node-20.19%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/node-26_LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](docs/getting-started.md#requirements)
 
 ![DataForge gallery showing a saved video project, caption coverage, review queues, and sample image, video, and audio cards.](docs/gallery.png)

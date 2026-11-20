@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { isServerEvent } from "@/shared/wireGuards";
 import { job } from "@/test/fixtures";
 

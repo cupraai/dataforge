@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 
 /** Fake the clock around `schedule`, then restore before `waitFor` (RTL hangs on fakes). */
 export async function advanceFakeClock(ms: number, schedule?: () => void) {

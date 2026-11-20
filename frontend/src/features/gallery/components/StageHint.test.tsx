@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { iconCrop } from "@/shared/icons";
 import { SHORTCUTS } from "@/shared/lib/shortcuts";
 import { stageHintSlot } from "@/test/stageHintSlot";

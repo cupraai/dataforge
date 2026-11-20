@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { AdjustCanvas } from "./AdjustCanvas";
 import { IDENTITY_CROP, type CropRect } from "@/features/gallery/lib/crop";
 import { makeAdjustControls } from "@/test/colorAdjustControls";

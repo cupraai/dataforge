@@ -140,7 +140,14 @@ export function pasteClips(
 }
 
 export type AttributeGroup =
-  "color" | "effects" | "transform" | "crop" | "fades" | "audio" | "sound" | "title";
+  | "color"
+  | "effects"
+  | "transform"
+  | "crop"
+  | "fades"
+  | "audio"
+  | "sound"
+  | "title";
 
 export const ATTRIBUTE_LABELS: Record<AttributeGroup, string> = {
   color: "Color adjustments",

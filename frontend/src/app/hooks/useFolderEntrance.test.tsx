@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { useFolderEntrance } from "./useFolderEntrance";
 
 function Content({ folder, cards }: { folder: string; cards: number }) {

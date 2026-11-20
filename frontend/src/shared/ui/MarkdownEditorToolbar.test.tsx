@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 vi.unmock("@uiw/react-codemirror");

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { makeItem } from "@/test/galleryItemDialog";
 import { makeClip, makeProject, makeSource } from "@/test/videoProject";
 import { SourceIssues } from "./SourceIssues";

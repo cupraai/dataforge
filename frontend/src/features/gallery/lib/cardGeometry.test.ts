@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   CARD_BORDER_PX,
   LARGE_CARD_BODY_PX,

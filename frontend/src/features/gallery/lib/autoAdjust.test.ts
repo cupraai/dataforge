@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { RESTING_ADJUST } from "./colorAdjust";
 import { autoAdjustEqual, rescaleAuto, withAuto, withoutAuto } from "./autoAdjust";
 

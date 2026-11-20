@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchOstrisTrainingSamples } from "@/features/jobs/api/externalJobs";
 import type { ExternalOstrisJob } from "@/shared/types";
 import { ExternalJobCard } from "./ExternalJobCard";

@@ -23,7 +23,8 @@ export type Track = VideoProjectTrack;
 
 /** An edit either produces the next project or explains why it cannot be made. */
 export type EditResult =
-  { project: Project; error?: undefined } | { project?: undefined; error: string };
+  | { project: Project; error?: undefined }
+  | { project?: undefined; error: string };
 
 export const EPSILON = VIDEO_PROJECT_TIME_EPSILON;
 export const MIN_CLIP_SECONDS = VIDEO_PROJECT_MIN_CLIP_SECONDS;
