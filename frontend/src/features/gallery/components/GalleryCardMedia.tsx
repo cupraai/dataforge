@@ -32,9 +32,15 @@ const PLACEHOLDER_ICONS: Record<GalleryItem["media_type"], AppIcon> = {
 interface GalleryCardMediaProps {
   item: MediaItem;
   previewing?: boolean;
+  /** A blurred copy of the thumbnail behind it, filling the sides a contained one leaves empty. */
+  backdrop?: boolean;
 }
 
-export function GalleryCardMedia({ item, previewing = false }: GalleryCardMediaProps) {
+export function GalleryCardMedia({
+  item,
+  previewing = false,
+  backdrop = false,
+}: GalleryCardMediaProps) {
   const itemIsVideo = item.media_type === "video";
   const itemIsGif = item.media_type === "gif";
   const itemIsMotion = itemIsVideo || itemIsGif;
@@ -43,8 +49,8 @@ export function GalleryCardMedia({ item, previewing = false }: GalleryCardMediaP
     useGalleryCardMedia(item);
   // The store only reports a source once its own preload has decoded it, so a mask needs no onLoad.
   const painted = showImage && (ready || itemIsAudio);
-  // On the surface, not the placeholder: it stays under the thumbnail while that fades in.
-  const color = item.placeholder_color;
+  // Stands in only until a thumbnail paints; a contained one then sits on the plain media well.
+  const color = painted ? undefined : item.placeholder_color;
   const surfaceStyle = color ? ({ "--placeholder-color": color } as CSSProperties) : undefined;
 
   return (
@@ -61,6 +67,16 @@ export function GalleryCardMedia({ item, previewing = false }: GalleryCardMediaP
             className="card__media-placeholder-icon"
           />
         </div>
+      )}
+      {backdrop && showImage && !itemIsAudio && (
+        // Before the thumbnail, so it paints underneath; it reuses the thumbnail's decoded source.
+        <img
+          className={classNames("card__backdrop", ready && "card__backdrop--ready")}
+          src={src}
+          alt=""
+          decoding="async"
+          draggable={false}
+        />
       )}
       {showImage && itemIsAudio && <AudioWaveform src={src!} className="card__waveform" />}
       {showImage && !itemIsAudio && (

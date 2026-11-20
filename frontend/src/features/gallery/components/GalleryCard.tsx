@@ -147,7 +147,11 @@ export const GalleryCard = memo(function GalleryCard({
               "card__media--fitted",
           )}
         >
-          <GalleryCardMedia item={item} previewing={previewing} />
+          <GalleryCardMedia
+            item={item}
+            previewing={previewing}
+            backdrop={displayMode === "small"}
+          />
           {selectionMode && (
             <span className="card__selection-indicator" aria-hidden="true">
               {selected && <Icon icon={iconCheck} className="card__selection-indicator-icon" />}

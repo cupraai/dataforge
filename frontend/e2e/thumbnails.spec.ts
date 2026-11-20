@@ -17,7 +17,7 @@ async function expectThumbnail(card: Locator) {
   await expect
     .poll(() =>
       card
-        .locator("img")
+        .locator("img.card__img")
         .evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
     )
     .toBe(true);

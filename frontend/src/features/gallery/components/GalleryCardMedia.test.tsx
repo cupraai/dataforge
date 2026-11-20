@@ -42,11 +42,10 @@ describe("GalleryCardMedia", () => {
     expect(container.querySelector(".card__media-placeholder")).toBeNull();
   });
 
-  it("paints the listed colour under the thumbnail instead of the icon placeholder", () => {
+  it("paints the listed colour only until a thumbnail paints", () => {
     vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue(visible);
-    const { container } = renderWithThumbnails(
-      <GalleryCardMedia item={{ ...item, placeholder_color: "#336699" }} />,
-    );
+    const colored = { ...item, placeholder_color: "#336699" };
+    const { container, rerender } = renderWithThumbnails(<GalleryCardMedia item={colored} />);
     const surface = container.querySelector<HTMLElement>(".card__media-surface")!;
     expect(surface).toHaveClass("card__media-surface--colored");
     expect(surface.style.getPropertyValue("--placeholder-color")).toBe("#336699");
@@ -55,9 +54,46 @@ describe("GalleryCardMedia", () => {
     act(() => {
       loads.load();
     });
-    fireEvent.load(container.querySelector("img")!);
-    // Still there while the thumbnail fades in over it.
     expect(surface).toHaveClass("card__media-surface--colored");
+    fireEvent.load(container.querySelector("img")!);
+    expect(surface).not.toHaveClass("card__media-surface--colored");
+    expect(surface.style.getPropertyValue("--placeholder-color")).toBe("");
+
+    // A new revision has not painted yet, so the colour stands in again.
+    rerender(<GalleryCardMedia item={{ ...colored, size: 200 }} />);
+    expect(surface).toHaveClass("card__media-surface--colored");
+  });
+
+  it("fades a blurred copy of the thumbnail in underneath it when asked for a backdrop", () => {
+    vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue(visible);
+    const { container } = renderWithThumbnails(<GalleryCardMedia item={item} backdrop />);
+    expect(container.querySelector(".card__backdrop")).toBeNull();
+    act(() => {
+      loads.load();
+    });
+    const [backdrop, image] = container.querySelectorAll("img");
+    expect(backdrop).toHaveClass("card__backdrop");
+    expect(backdrop.getAttribute("src")).toBe(image.getAttribute("src"));
+    expect(backdrop).not.toHaveClass("card__backdrop--ready");
+    fireEvent.load(image);
+    expect(backdrop).toHaveClass("card__backdrop--ready");
+  });
+
+  it("draws no backdrop unless asked, or behind an audio waveform", () => {
+    vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue(visible);
+    const { container, rerender } = renderWithThumbnails(<GalleryCardMedia item={item} />);
+    act(() => {
+      loads.load();
+    });
+    expect(container.querySelector(".card__backdrop")).toBeNull();
+    rerender(
+      <GalleryCardMedia item={{ ...item, name: "voice.wav", media_type: "audio" }} backdrop />,
+    );
+    act(() => {
+      loads.load();
+    });
+    expect(container.querySelector(".card__waveform")).not.toBeNull();
+    expect(container.querySelector(".card__backdrop")).toBeNull();
   });
 
   it("recognizes already complete browser-cached images", () => {

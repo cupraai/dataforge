@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vite-plus/test";
 import { galleryItemMediaUrl } from "@/features/gallery/lib/thumbnail";
 import { HOME_PATH } from "@/test/fixtures";
+import { installThumbnailImages } from "@/test/thumbnailImages";
+import * as scrollRoot from "@/features/gallery/lib/scrollRoot";
 import { CARD_ACTION_IDS } from "@/features/gallery/lib/cardActions";
 import type { GalleryCardAction, GalleryItem } from "@/shared/types";
 import { GalleryCard } from "./GalleryCard";
@@ -212,6 +214,30 @@ describe("GalleryCard", () => {
     );
 
     expect(container.querySelector(".card--small")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["small", 1],
+    ["large", 0],
+  ] as const)("gives %s cards %i blurred backdrop behind the thumbnail", (displayMode, count) => {
+    vi.spyOn(scrollRoot, "getGalleryMediaZones").mockReturnValue({
+      shouldLoad: true,
+      shouldKeep: true,
+      priority: "visible",
+    });
+    const loads = installThumbnailImages();
+    const { container } = render(
+      <GalleryCard
+        item={captionedItem}
+        onSelect={vi.fn<(path: string) => void>()}
+        displayMode={displayMode}
+      />,
+    );
+    act(() => {
+      loads.load();
+    });
+    expect(container.querySelector("img.card__img")).not.toBeNull();
+    expect(container.querySelectorAll(".card__backdrop")).toHaveLength(count);
   });
 
   it("pins badges over the thumbnail", () => {
