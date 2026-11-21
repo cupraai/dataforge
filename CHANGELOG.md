@@ -12,6 +12,10 @@ version heading when a minor or major version is cut.
 
 - The notification bell shows how many notifications are unread, in the same count badge as the jobs button. It turns yellow or red when an unread one is a warning or an error, and clears once you close the list. Both badges show **99+** for anything above 99.
 
+### Changed
+
+- The **Adjust** tab in the image and video edit panels is now called **Color**, matching the video editor. Color, Effects, Blur, Fill and the audio EQ tab have new icons.
+
 ## 0.15.0 - 2026-11-20
 
 ### Added

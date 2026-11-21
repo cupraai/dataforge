@@ -13,7 +13,7 @@ import {
   iconLink,
   iconMusic,
   iconPalette,
-  iconSparkles,
+  iconSwatchBook,
   iconScaling,
   iconTimer,
   iconTrash2,
@@ -780,7 +780,7 @@ const SPEED_STEP = 0.01;
 function EffectsPanel({ clip, onEdit }: { clip: Clip; onEdit: ClipEdit }) {
   const effect = clip.effect ?? null;
   return (
-    <Panel title="Effects" icon={iconSparkles} defaultOpen={false} changed={Boolean(effect)}>
+    <Panel title="Effects" icon={iconSwatchBook} defaultOpen={false} changed={Boolean(effect)}>
       <label className="video-editor__field">
         <span>Style</span>
         <Select

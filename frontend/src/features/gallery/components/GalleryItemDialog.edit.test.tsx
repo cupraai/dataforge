@@ -649,7 +649,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("tab", { name: /^Adjust/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Color/ }));
       await user.click(within(dialog).getByRole("tab", { name: "Warmth" }));
       fireEvent.keyDown(within(dialog).getByRole("slider", { name: "Warmth" }), {
         key: "ArrowRight",
@@ -670,7 +670,7 @@ describe("GalleryItemDialog", () => {
       renderDialog(videoItem());
       const dialog = await openEditMode(user);
 
-      await user.click(within(dialog).getByRole("tab", { name: /^Adjust/ }));
+      await user.click(within(dialog).getByRole("tab", { name: /^Color/ }));
       fireEvent.keyDown(within(dialog).getByRole("slider", { name: "Exposure" }), {
         key: "ArrowRight",
       });

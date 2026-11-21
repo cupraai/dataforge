@@ -135,7 +135,7 @@ describe("VideoEditPanel", () => {
       expect(screen.queryByText(/follow the playhead/)).not.toBeInTheDocument();
       expect(screen.getByText(/whole clip/)).toBeInTheDocument();
 
-      fireEvent.click(tool("Adjust"));
+      fireEvent.click(tool("Color"));
       expect(screen.queryByText(/whole clip/)).not.toBeInTheDocument();
     });
 
@@ -187,7 +187,7 @@ describe("VideoEditPanel", () => {
       ["Speed", { speed: 2 }],
       ["Size", { scale: 0.5 }],
       ["Blur", { masks: [newMaskDraft("blur", 0.12, 0)] }],
-      ["Adjust", { adjust: { ...RESTING_ADJUST, definition: 0.4 } }],
+      ["Color", { adjust: { ...RESTING_ADJUST, definition: 0.4 } }],
     ])("marks %s when it holds a value", (label, overrides) => {
       renderPanel(makeEdit({ draft: { ...emptyDraft(12), ...overrides } }));
 
@@ -394,7 +394,7 @@ describe("VideoEditPanel", () => {
       const edit = makeEdit();
       renderPanel(edit);
 
-      fireEvent.click(tool("Adjust"));
+      fireEvent.click(tool("Color"));
       fireEvent.keyDown(screen.getByRole("slider", { name: "Exposure" }), { key: "ArrowLeft" });
 
       expect(edit.adjust.set).toHaveBeenCalledWith("exposure", -0.01);

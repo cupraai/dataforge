@@ -11,15 +11,15 @@ import { describeFills } from "@/features/gallery/lib/fillMask";
 import { isAdjustIdentity } from "@/features/gallery/lib/colorAdjust";
 import {
   iconCrop,
-  iconDroplets,
   iconFlipHorizontal,
   iconFlipVertical,
   iconMaximize2,
   iconRotateCcw,
   iconRotateCw,
-  iconSliders,
+  iconOpacity,
+  iconPaintBucket,
   iconPalette,
-  iconSparkles,
+  iconSwatchBook,
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
@@ -54,13 +54,13 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "crop", label: "Crop", icon: iconCrop },
   { id: "size", label: "Size", icon: iconMaximize2 },
   { id: "rotate", label: "Rotate", icon: iconRotateCw },
-  { id: "adjust", label: "Adjust", icon: iconSliders },
-  { id: "effects", label: "Effects", icon: iconPalette },
-  { id: "blur", label: "Blur", icon: iconDroplets },
-  { id: "fill", label: "Fill", icon: iconSparkles },
+  { id: "adjust", label: "Color", icon: iconPalette },
+  { id: "effects", label: "Effects", icon: iconSwatchBook },
+  { id: "blur", label: "Blur", icon: iconOpacity },
+  { id: "fill", label: "Fill", icon: iconPaintBucket },
 ];
 
-// Adjust and Fill have their own, which follow the wand and the generation.
+// Color and Fill have their own, which follow the wand and the generation.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   crop: CROP_HINT,
   size: SIZE_HINT,

@@ -129,7 +129,7 @@ for (const overlays of [false, true]) {
       .poll(async () => Number(await start.getAttribute("aria-valuenow")))
       .toBeCloseTo(IN_POINT + 1 / RATE, 6);
     if (overlays) {
-      await page.getByRole("tab", { name: "Adjust", exact: true }).click();
+      await page.getByRole("tab", { name: "Color", exact: true }).click();
       await page.getByRole("tab", { name: /^Exposure/ }).click();
       await page.getByRole("slider", { name: "Exposure", exact: true }).press("Shift+ArrowRight");
       await expect(page.locator("canvas.adjust-canvas")).toBeVisible();

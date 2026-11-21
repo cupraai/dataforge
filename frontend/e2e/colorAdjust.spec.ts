@@ -176,7 +176,7 @@ test("the adjust preview matches the image Apply writes", async ({ page }) => {
   await page.getByRole("button", { name: "Edit adjust.png" }).click();
 
   const heights = new Set<number>();
-  for (const tool of ["Crop", "Size", "Rotate", "Blur", "Effects", "Adjust"]) {
+  for (const tool of ["Crop", "Size", "Rotate", "Blur", "Effects", "Color"]) {
     await page.getByRole("tab", { name: new RegExp(`^${tool}`) }).click();
     heights.add((await page.locator(".edit-panel").boundingBox())?.height ?? -1);
   }
@@ -208,7 +208,7 @@ test("the wand moves the tools it reads a fault in", async ({ page }) => {
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
   await page.getByRole("button", { name: "View dark.png" }).click();
   await page.getByRole("button", { name: "Edit dark.png" }).click();
-  await page.getByRole("tab", { name: "Adjust", exact: true }).click();
+  await page.getByRole("tab", { name: "Color", exact: true }).click();
 
   await page.getByRole("tab", { name: "Auto" }).click();
 
@@ -222,7 +222,7 @@ test("the unadjusted video preview matches the video itself", async ({ page }) =
   await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
   await page.getByRole("button", { name: `View ${name}` }).click();
   await page.getByRole("button", { name: `Edit ${name}` }).click();
-  await page.getByRole("tab", { name: "Adjust", exact: true }).click();
+  await page.getByRole("tab", { name: "Color", exact: true }).click();
 
   const preview = await blocks(page, "preview");
   const source = await blocks(page, { file: name });
@@ -253,7 +253,7 @@ for (const [index, { label, tools }] of videoAdjustments.entries()) {
     await page.goto(`/?path=${encodeURIComponent(WORKSPACE)}`);
     await page.getByRole("button", { name: `View ${name}` }).click();
     await page.getByRole("button", { name: `Edit ${name}` }).click();
-    await page.getByRole("tab", { name: "Adjust", exact: true }).click();
+    await page.getByRole("tab", { name: "Color", exact: true }).click();
 
     for (const [tool, key, presses] of tools) await setTool(page, tool, key, presses);
     const [firstTool] = tools[0];
@@ -279,10 +279,10 @@ for (const kind of ["image", "video"] as const) {
     await page.getByRole("button", { name: `View ${name}` }).click();
     const edit = page.getByRole("button", { name: `Edit ${name}` });
     await edit.click();
-    const adjust = page.getByRole("tab", { name: "Adjust", exact: true });
+    const adjust = page.getByRole("tab", { name: "Color", exact: true });
     await adjust.click();
     if (kind === "image") await setTool(page, "Shadows", "Shift+ArrowRight", 2);
-    await page.getByRole("tab", { name: /^Adjust(?:, changed)?$/ }).press("ArrowRight");
+    await page.getByRole("tab", { name: /^Color(?:, changed)?$/ }).press("ArrowRight");
     const effects = page.getByRole("tab", { name: /^Effects/ });
     await expect(effects).toBeFocused();
     const styles = page.getByRole("radiogroup", { name: "Style" });
@@ -310,7 +310,7 @@ for (const kind of ["image", "video"] as const) {
     await styles.getByText("None", { exact: true }).click();
     await expect(effects).toHaveAccessibleName("Effects");
     if (kind === "image") {
-      await page.getByRole("tab", { name: "Adjust, changed" }).click();
+      await page.getByRole("tab", { name: "Color, changed" }).click();
       await expect(page.getByRole("tab", { name: "Shadows, +20" })).toBeVisible();
     }
     await expect(page.getByRole("button", { name: "Apply" })).toBeEnabled();

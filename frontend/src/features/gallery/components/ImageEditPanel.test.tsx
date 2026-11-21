@@ -126,7 +126,7 @@ describe("ImageEditPanel", () => {
       await user.click(tools().getByRole("tab", { name: "Effects" }));
       expect(slot()).toHaveTextContent("Pick a style, then set how strongly it applies");
 
-      await user.click(tools().getByRole("tab", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Color" }));
       expect(slot()).toHaveTextContent("turn its ruler");
       expect(slot()).toHaveTextContent("Turn the ruler");
     });
@@ -138,11 +138,11 @@ describe("ImageEditPanel", () => {
         { auto: { amount: 1, suggestion: { ...RESTING_ADJUST, exposure: 0.2 } } },
         "its ruler sets how much",
       ],
-    ])("follows the wand in the Adjust hint (%o)", async (adjust, message) => {
+    ])("follows the wand in the Color hint (%o)", async (adjust, message) => {
       const user = userEvent.setup();
       renderPanel(makeEdit({ adjust: makeAdjustControls(adjust) }));
 
-      await user.click(tools().getByRole("tab", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Color" }));
 
       expect(screen.getByRole("status")).toHaveTextContent(message);
     });
@@ -173,7 +173,7 @@ describe("ImageEditPanel", () => {
       expect(screen.queryByText(/pick a ratio/)).not.toBeInTheDocument();
       expect(screen.getByText(/drag it over what to hide/)).toBeInTheDocument();
 
-      await user.click(tools().getByRole("tab", { name: "Adjust" }));
+      await user.click(tools().getByRole("tab", { name: "Color" }));
       expect(screen.queryByText(/drag it over what to hide/)).not.toBeInTheDocument();
     });
 
@@ -218,7 +218,7 @@ describe("ImageEditPanel", () => {
       ["Rotate", draftWith({ mirrorV: true })],
       ["Size", draftWith({ scale: 0.5 })],
       ["Blur", draftWith({ masks: [newMaskDraft("blur", 0.12, 0)] })],
-      ["Adjust", draftWith({ adjust: { ...RESTING_ADJUST, tint: 0.2 } })],
+      ["Color", draftWith({ adjust: { ...RESTING_ADJUST, tint: 0.2 } })],
     ])("says %s holds a value once it is off its default", (label, draft) => {
       // Collapsed, the tool is the only thing that can say it carries a change.
       renderPanel(makeEdit({ draft }));
@@ -592,7 +592,7 @@ describe("ImageEditPanel", () => {
   describe("adjust", () => {
     async function openAdjust() {
       const user = userEvent.setup();
-      await user.click(tools().getByRole("tab", { name: /^Adjust/ }));
+      await user.click(tools().getByRole("tab", { name: /^Color/ }));
       return user;
     }
 

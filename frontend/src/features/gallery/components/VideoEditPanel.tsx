@@ -18,12 +18,12 @@ import { describeMasks } from "@/features/gallery/lib/mask";
 import { formatFrameTime } from "@/features/gallery/lib/videoFrameCapture";
 import {
   iconCrop,
-  iconDroplets,
   iconGauge,
   iconMaximize2,
   iconScissors,
-  iconSliders,
+  iconOpacity,
   iconPalette,
+  iconSwatchBook,
   iconVolume2,
 } from "@/shared/icons";
 import { VIDEO_FRAME_RATES } from "@/shared/constants";
@@ -65,9 +65,9 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "volume", label: "Volume", icon: iconVolume2 },
   { id: "crop", label: "Crop", icon: iconCrop },
   { id: "size", label: "Size", icon: iconMaximize2 },
-  { id: "adjust", label: "Adjust", icon: iconSliders },
-  { id: "effects", label: "Effects", icon: iconPalette },
-  { id: "blur", label: "Blur", icon: iconDroplets },
+  { id: "adjust", label: "Color", icon: iconPalette },
+  { id: "effects", label: "Effects", icon: iconSwatchBook },
+  { id: "blur", label: "Blur", icon: iconOpacity },
 ];
 
 // Null keeps the source's rate; the radio needs a value of its own for it.
@@ -87,7 +87,7 @@ function speedHint(frameRate: VideoFrameRate | null, outputSeconds: number): Too
   };
 }
 
-// Adjust labels itself and follows the wand; Speed's depends on the draft.
+// Color labels itself and follows the wand; Speed's depends on the draft.
 const HINTS: Partial<Record<ToolId, ToolHintEntry>> = {
   trim: TRIM_HINT,
   volume: { message: "Applies to the whole clip; Mute removes the sound." },

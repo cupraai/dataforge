@@ -39,7 +39,7 @@ import {
   iconAudioLines,
   iconGauge,
   iconScissors,
-  iconSliders,
+  iconSlidersVertical,
   iconBroom,
   iconVolume2,
 } from "@/shared/icons";
@@ -68,7 +68,7 @@ const TOOLS: ReadonlyArray<EditTool<ToolId>> = [
   { id: "fades", label: "Fades", icon: iconAudioLines },
   { id: "volume", label: "Volume", icon: iconVolume2 },
   { id: "speed", label: "Speed", icon: iconGauge },
-  { id: "eq", label: "EQ", icon: iconSliders },
+  { id: "eq", label: "EQ", icon: iconSlidersVertical },
   { id: "clean", label: "Clean", icon: iconBroom },
 ];
 
