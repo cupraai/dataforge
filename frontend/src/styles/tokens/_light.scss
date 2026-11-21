@@ -72,6 +72,8 @@
     rgba(63, 95, 217, 0) 70%
   );
   --accent-glow: 0 0 0 1px rgba(63, 95, 217, 0.32), 0 0 18px -4px rgba(63, 95, 217, 0.32);
+  --danger-glow: 0 0 0 1px rgba(185, 28, 28, 0.32), 0 0 18px -4px rgba(185, 28, 28, 0.32);
+  --warning-glow: 0 0 0 1px rgba(180, 83, 9, 0.32), 0 0 18px -4px rgba(180, 83, 9, 0.32);
   --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.12);
 
   // Monokai Pro Light.

@@ -169,6 +169,8 @@
   );
   // Chosen and current things: a hairline accent edge plus a soft bloom.
   --accent-glow: 0 0 0 1px rgba(124, 156, 255, 0.4), 0 0 20px -4px rgba(124, 156, 255, 0.45);
+  --danger-glow: 0 0 0 1px rgba(252, 165, 165, 0.4), 0 0 20px -4px rgba(252, 165, 165, 0.45);
+  --warning-glow: 0 0 0 1px rgba(251, 191, 36, 0.4), 0 0 20px -4px rgba(251, 191, 36, 0.45);
   --shadow-drawer: -12px 0 40px rgba(0, 0, 0, 0.35);
   // One ring for keyboard focus; a component retunes it with `--focus-ring-color`.
   --focus-ring: var(--accent);

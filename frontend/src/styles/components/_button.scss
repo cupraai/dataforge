@@ -24,6 +24,7 @@
     @include fade-bg(var(--#{$tone}));
     color: var(--bg);
     border-color: var(--#{$tone});
+    box-shadow: var(--#{$tone}-glow);
   }
 }
 
@@ -90,10 +91,6 @@
 
   &--primary {
     @include tone-surface(accent);
-
-    &:hover:not(:disabled) {
-      box-shadow: var(--accent-glow);
-    }
   }
 
   &--secondary {

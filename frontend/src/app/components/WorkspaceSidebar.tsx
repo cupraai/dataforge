@@ -30,10 +30,10 @@ import {
   iconFolderPlus,
   iconFolderSearch,
   iconFileCog,
+  iconPanelLeftClose,
+  iconPanelLeftOpen,
   iconStickyNote,
   iconStickyNotePlus,
-  iconChevronLeft,
-  iconChevronRight,
   iconClapperboard,
   iconHammer,
   iconX,
@@ -231,7 +231,7 @@ export function WorkspaceSidebar({
             </strong>
           )}
           <IconButton
-            icon={hidden ? iconChevronRight : iconChevronLeft}
+            icon={hidden ? iconPanelLeftOpen : iconPanelLeftClose}
             label={toggleLabel}
             shape="round"
             tooltipPlacement="right"

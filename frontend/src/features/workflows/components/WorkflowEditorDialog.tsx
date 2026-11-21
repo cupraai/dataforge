@@ -558,6 +558,7 @@ export function WorkflowEditorDialog({
               icon={iconTrash2}
               disabled={busy || (savedName === null && draft.steps.length === 0 && !trimmedName)}
               onClick={() => setConfirmingDelete(true)}
+              variant="danger"
             >
               Delete
             </Button>
