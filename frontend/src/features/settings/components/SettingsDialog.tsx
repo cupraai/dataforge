@@ -262,7 +262,7 @@ const SECTIONS: Section[] = [
   {
     id: "integrations",
     label: "Integrations",
-    caption: "ComfyUI and AI-Toolkit",
+    caption: "Generation and training",
     icon: iconPlug,
     pages: [
       {
@@ -294,7 +294,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: "data",
-    label: "Data & storage",
+    label: "Data",
     caption: "History and cache",
     icon: iconHardDrive,
     pages: [

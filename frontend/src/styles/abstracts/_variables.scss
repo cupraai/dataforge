@@ -97,7 +97,7 @@ $transition-fast: $duration-fast $ease-standard;
 $loop-spin: 0.9s;
 $loop-sweep: 1.1s;
 $loop-shimmer: 1.4s;
-$loop-bob: 1.6s;
+$loop-scan: 3.2s;
 $loop-pulse: 2.4s;
 $attention: 0.7s;
 // Reduced motion keeps exits this short so `animationend` still unmounts them.

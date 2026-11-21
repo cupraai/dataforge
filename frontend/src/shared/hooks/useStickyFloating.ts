@@ -12,6 +12,7 @@ function isDocked(sentinel: HTMLElement, element: HTMLElement): boolean {
 export function useStickyFloating(
   sentinelRef: RefObject<HTMLElement | null>,
   elementRef: RefObject<HTMLElement | null>,
+  scrollRootSelector = ".main",
 ): boolean {
   const [floating, setFloating] = useState(false);
 
@@ -20,7 +21,7 @@ export function useStickyFloating(
     const element = elementRef.current;
     if (!sentinel || !element) return;
 
-    const scrollRoot = sentinel.closest(".main");
+    const scrollRoot = sentinel.closest(scrollRootSelector);
     if (!scrollRoot) return;
 
     const update = () => {
@@ -35,7 +36,7 @@ export function useStickyFloating(
       scrollRoot.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [elementRef, sentinelRef]);
+  }, [elementRef, scrollRootSelector, sentinelRef]);
 
   return floating;
 }

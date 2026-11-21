@@ -74,6 +74,19 @@ describe("useStickyFloating", () => {
     });
   });
 
+  it("docks inside the scroll root it is given", async () => {
+    const { sentinelRef, elementRef } = setup(40, 160, false);
+    sentinelRef.current?.parentElement?.classList.add("drawer-content");
+
+    const { result } = renderHook(() =>
+      useStickyFloating(sentinelRef, elementRef, ".drawer-content"),
+    );
+
+    await waitFor(() => {
+      expect(result.current).toBe(true);
+    });
+  });
+
   it("returns false outside the scroll root", async () => {
     const { sentinelRef, elementRef } = setup(40, 160, false);
 

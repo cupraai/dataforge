@@ -145,7 +145,15 @@ export function jobWhenLabel(job: Job, nowMs = Date.now()): JobWhen | null {
   return relative ? { label: `${verb} ${relative}`, title: formatModifiedAt(iso) } : null;
 }
 
-export type JobSectionId = "running" | "queued" | "new" | "today" | "yesterday" | "earlier";
+export type JobSectionId =
+  | "running"
+  | "queued"
+  | "new"
+  | "today"
+  | "yesterday"
+  | "week"
+  | "month"
+  | "earlier";
 
 export interface JobSection {
   id: JobSectionId;
@@ -159,6 +167,8 @@ const SECTION_LABELS: Record<JobSectionId, string> = {
   new: "New",
   today: "Today",
   yesterday: "Yesterday",
+  week: "Last week",
+  month: "Last month",
   earlier: "Earlier",
 };
 
@@ -168,13 +178,16 @@ const SECTION_ORDER: readonly JobSectionId[] = [
   "new",
   "today",
   "yesterday",
+  "week",
+  "month",
   "earlier",
 ];
 
-function startOfDay(ms: number, daysBack = 0): number {
+function startOfDay(ms: number, daysBack = 0, monthsBack = 0): number {
   const date = new Date(ms);
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() - daysBack);
+  date.setMonth(date.getMonth() - monthsBack);
   return date.getTime();
 }
 
@@ -186,6 +199,9 @@ export function groupJobsForDrawer(
 ): JobSection[] {
   const today = startOfDay(nowMs);
   const yesterday = startOfDay(nowMs, 1);
+  // Rolling, so the sections do not empty out on a Monday or the first of a month.
+  const lastWeek = startOfDay(nowMs, 7);
+  const lastMonth = startOfDay(nowMs, 0, 1);
   const buckets = new Map<JobSectionId, Job[]>(SECTION_ORDER.map((id) => [id, []]));
 
   for (const job of jobs) {
@@ -201,7 +217,11 @@ export function groupJobsForDrawer(
               ? "today"
               : time >= yesterday
                 ? "yesterday"
-                : "earlier";
+                : time >= lastWeek
+                  ? "week"
+                  : time >= lastMonth
+                    ? "month"
+                    : "earlier";
     buckets.get(id)!.push(job);
   }
 

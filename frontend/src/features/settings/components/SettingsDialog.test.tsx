@@ -175,7 +175,7 @@ describe("SettingsDialog", () => {
   });
 
   it("clears the thumbnail cache and moves thumbnails to a new epoch", async () => {
-    const { user } = await openDialog("Data & storage");
+    const { user } = await openDialog("Data");
     await user.click(screen.getByRole("tab", { name: "Storage" }));
     const storedEpoch = () => Number(localStorage.getItem("thumbnail-epoch") ?? 0);
     const epoch = storedEpoch();

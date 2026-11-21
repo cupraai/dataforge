@@ -223,22 +223,99 @@
 }
 
 // Toolbar icon states: a loop for an ongoing process, a one-shot for an event.
-@keyframes job-bot-work {
+// The jobs robot shares one timeline: look left, hop while glancing right, settle, blink.
+@keyframes job-bot-head {
   0%,
+  10%,
+  80%,
   100% {
-    transform: translateY(0) rotate(0);
+    translate: 0 0;
+    rotate: 0deg;
   }
 
-  25% {
-    transform: translateY(-1.5px) rotate(-8deg);
+  20%,
+  36% {
+    translate: 0 0;
+    rotate: -4deg;
   }
 
-  50% {
-    transform: translateY(0) rotate(0);
+  44% {
+    translate: 0 -6%;
   }
 
-  75% {
-    transform: translateY(-1.5px) rotate(8deg);
+  52%,
+  68% {
+    translate: 0 0;
+    rotate: 4deg;
+  }
+}
+
+// Lengths on SVG children are icon units: 1.5 of 24 is a pixel at 16px, all the room the head has.
+@keyframes job-bot-glance {
+  0%,
+  10%,
+  80%,
+  100% {
+    translate: 0 0;
+  }
+
+  20%,
+  36% {
+    translate: -1.5px 0;
+  }
+
+  52%,
+  68% {
+    translate: 1.5px 0;
+  }
+}
+
+// Leads each turn of the head, overshoots and settles, like a spring.
+@keyframes job-bot-antenna {
+  0%,
+  10%,
+  84%,
+  100% {
+    rotate: 0deg;
+  }
+
+  17% {
+    rotate: -20deg;
+  }
+
+  24%,
+  36% {
+    rotate: -10deg;
+  }
+
+  46% {
+    rotate: 18deg;
+  }
+
+  54%,
+  68% {
+    rotate: 10deg;
+  }
+
+  76% {
+    rotate: -6deg;
+  }
+}
+
+// Strokes keep their width under transforms, so a squash cannot close an eye: the upright dash
+// morphs into a flat one. Both paths restate the icon's eye as `l` so they interpolate.
+@each $side, $x in (left: 9, right: 15) {
+  @keyframes job-bot-blink-#{$side} {
+    0%,
+    86%,
+    92%,
+    100% {
+      d: path("M#{$x} 13l0 2");
+    }
+
+    89% {
+      d: path("M#{$x - 0.75} 14l1.5 0");
+    }
   }
 }
 

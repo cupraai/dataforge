@@ -173,16 +173,25 @@ describe("groupJobsForDrawer", () => {
   const now = new Date(2026, 2, 10, 15, 0).getTime();
   const at = (day: number, hour: number) => new Date(2026, 2, day, hour, 0).toISOString();
 
-  it("puts running, then new, then finished jobs by day", () => {
+  it("puts running, then new, then finished jobs by how long ago", () => {
     const running = job({ id: "running", status: "running" });
     const unseen = finished({ id: "unseen", finished_at: at(10, 14) });
     const today = finished({ id: "today", finished_at: at(10, 9) });
     const lateYesterday = finished({ id: "yesterday", finished_at: at(9, 23) });
-    const earlier = finished({ id: "earlier", finished_at: at(8, 23) });
+    const weekAgo = finished({ id: "week", finished_at: at(3, 0) });
+    const pastWeek = finished({ id: "month", finished_at: at(2, 23) });
+    const monthAgo = finished({
+      id: "month-edge",
+      finished_at: new Date(2026, 1, 10).toISOString(),
+    });
+    const earlier = finished({
+      id: "earlier",
+      finished_at: new Date(2026, 1, 9, 23).toISOString(),
+    });
     const seenAt = new Date(2026, 2, 10, 12, 0).getTime();
 
     const sections = groupJobsForDrawer(
-      [unseen, running, earlier, today, lateYesterday],
+      [unseen, running, earlier, monthAgo, pastWeek, weekAgo, today, lateYesterday],
       seenAt,
       now,
     );
@@ -193,6 +202,8 @@ describe("groupJobsForDrawer", () => {
         ["New", ["unseen"]],
         ["Today", ["today"]],
         ["Yesterday", ["yesterday"]],
+        ["Last week", ["week"]],
+        ["Last month", ["month-edge", "month"]],
         ["Earlier", ["earlier"]],
       ],
     );

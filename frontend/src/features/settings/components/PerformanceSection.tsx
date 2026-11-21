@@ -152,7 +152,7 @@ export function PerformanceSection({ visible }: { visible: boolean }) {
         />
         <UsageTile
           icon={iconMemoryStick}
-          label="Memory"
+          label="RAM"
           percent={memoryPercent(data.memory_used_bytes, data.memory_total_bytes)}
           history={samples.map((sample) => sample.memory)}
           readings={

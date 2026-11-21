@@ -45,6 +45,7 @@ import { VideoExportCard } from "./VideoExportCard";
 import { Icon } from "@/shared/ui/Icon";
 import { CancelJobDialog } from "./CancelJobDialog";
 import { JobCard, type JobFollowUp } from "./JobCard";
+import { JobsSectionTitle } from "./JobsSectionTitle";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import type { Job } from "@/shared/types";
 import { reviewScopeSuffix } from "@/features/gallery/lib/reviewScope";
@@ -376,7 +377,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
             <>
               {hasExports && (
                 <section className="jobs-dialog__section" aria-label="Video exports">
-                  <h3 className="jobs-dialog__section-title">Video exports</h3>
+                  <JobsSectionTitle>Video exports</JobsSectionTitle>
                   <div className="jobs-dialog__list">
                     {videoExports.map((item) => (
                       <VideoExportCard
@@ -392,7 +393,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
               )}
               {hasExternalJobs && (
                 <section className="jobs-dialog__section" aria-label="External jobs">
-                  <h3 className="jobs-dialog__section-title">AI-Toolkit</h3>
+                  <JobsSectionTitle>AI-Toolkit</JobsSectionTitle>
                   <div className="jobs-dialog__list">
                     {externalJobs.map((job) => (
                       <ExternalJobCard
@@ -425,15 +426,12 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
                           )}
                           aria-labelledby={`jobs-dialog-section-${section.id}`}
                         >
-                          <h3
-                            id={`jobs-dialog-section-${section.id}`}
-                            className="jobs-dialog__section-title"
-                          >
+                          <JobsSectionTitle id={`jobs-dialog-section-${section.id}`}>
                             {section.label}
                             <span className="jobs-dialog__section-count">
                               {section.jobs.length}
                             </span>
-                          </h3>
+                          </JobsSectionTitle>
                           <div className="jobs-dialog__list">{section.jobs.map(renderJobCard)}</div>
                         </section>
                       ))}

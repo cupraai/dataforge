@@ -15,6 +15,8 @@ version heading when a minor or major version is cut.
 ### Changed
 
 - The **Adjust** tab in the image and video edit panels is now called **Color**, matching the video editor. Color, Effects, Blur, Fill and the audio EQ tab have new icons.
+- While automation jobs run, the robot on the jobs button looks left and right, its antenna swinging after it, and blinks now and then, instead of rocking side to side.
+- The jobs drawer groups older jobs under **Last week** (the seven days before yesterday) and **Last month** before **Earlier**.
 
 ## 0.15.0 - 2026-11-20
 

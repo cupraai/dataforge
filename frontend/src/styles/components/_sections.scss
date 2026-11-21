@@ -29,7 +29,6 @@
         inset-block: calc(-1 * #{$sticky-dock-padding});
         inset-inline: 0;
         z-index: -1;
-        border-bottom: 1px solid var(--border);
         opacity: 0;
         // Paired with opacity: a transparent backdrop-filter still repaints every frame.
         visibility: hidden;
@@ -39,16 +38,22 @@
       }
     }
 
-    &--floating::before {
-      opacity: 1;
-      visibility: visible;
+    &--floating {
+      &::before {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .gallery-section__header-below {
+        margin-bottom: calc(-1 * #{$sticky-dock-padding});
+      }
     }
 
     // A second row docks with the title: the list's column headings stay over the rows. The
     // first row's actions flex from zero, so wrapping never pushes them onto a line of their own.
     &--with-below {
       flex-wrap: wrap;
-      row-gap: 0.5rem;
+      row-gap: 0;
       margin-bottom: 0;
     }
   }
