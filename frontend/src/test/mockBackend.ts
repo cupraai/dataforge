@@ -116,7 +116,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let folderFavorites: string[] | null = options.folderFavorites ?? null;
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
-  let instructionSnippets: { name: string; text: string }[] = [];
+  const savedSnippets = new Map<string, { name: string; text: string }[]>();
   let workflows: Workflow[] = options.workflows ?? [];
   let tagVocabulary = { text: "# mine\nred dress\n", default_count: 302, added_count: 1 };
   let thumbnailCache = {
@@ -634,21 +634,21 @@ export function installMockBackend(options: MockBackendOptions = {}) {
       return jsonResponse({ cleared: body.paths ?? [], failed: [] });
     }
 
-    if (url.pathname === "/api/preferences/instruction-snippets") {
+    const snippetBook = /^\/api\/preferences\/snippets\/([a-z_]+)$/.exec(url.pathname)?.[1];
+    if (snippetBook) {
+      let book = savedSnippets.get(snippetBook) ?? [];
       if (method === "PUT") {
         const body = JSON.parse(init?.body as string) as { name: string; text: string };
         const key = body.name.toLowerCase();
-        instructionSnippets = [
-          ...instructionSnippets.filter((snippet) => snippet.name.toLowerCase() !== key),
-          body,
-        ].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        book = [...book.filter((snippet) => snippet.name.toLowerCase() !== key), body].sort(
+          (a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+        );
       } else if (method === "DELETE") {
         const key = (url.searchParams.get("name") ?? "").toLowerCase();
-        instructionSnippets = instructionSnippets.filter(
-          (snippet) => snippet.name.toLowerCase() !== key,
-        );
+        book = book.filter((snippet) => snippet.name.toLowerCase() !== key);
       }
-      return jsonResponse({ snippets: instructionSnippets });
+      savedSnippets.set(snippetBook, book);
+      return jsonResponse({ snippets: book });
     }
 
     if (url.pathname === "/api/workflows/run" && method === "POST") {

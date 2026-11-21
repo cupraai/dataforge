@@ -1,10 +1,11 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ComfyPresetSummary, ComfyPresetsResponse } from "@/shared/types";
+import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
 import { ComfyGenerateDialog, type ComfyGenerateSettings } from "./ComfyGenerateDialog";
 
@@ -151,6 +152,39 @@ describe("ComfyGenerateDialog", () => {
     expect(prompt.closest(".field")).toContainElement(caption);
   });
 
+  it("saves the typed prompt to the prompt book and inserts it after other text", async () => {
+    const { requestsTo } = installMockBackend();
+    const user = userEvent.setup();
+    const { onConfirm } = renderDialog(
+      settings({
+        preset: "txt2img",
+        by_preset: { txt2img: { seed: null, prompt_text: "at dusk", inputs: {} } },
+      }),
+    );
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    const prompt = screen.getByLabelText<HTMLTextAreaElement>("Prompt");
+
+    await user.click(screen.getByRole("button", { name: "Saved" }));
+    let panel = await screen.findByRole("dialog", { name: "Saved prompts" });
+    await user.click(within(panel).getByRole("button", { name: "Save current prompt..." }));
+    await user.type(within(panel).getByLabelText("Name for the prompt"), "Dusk{Enter}");
+    await within(panel).findByRole("button", { name: /^Dusk/ });
+    expect(requestsTo("/api/preferences/snippets/comfy_prompts", "PUT")).toHaveLength(1);
+
+    await user.clear(prompt);
+    await user.type(prompt, "a lighthouse");
+    await user.click(screen.getByRole("button", { name: "Saved" }));
+    panel = await screen.findByRole("dialog", { name: "Saved prompts" });
+    await user.click(within(panel).getByRole("button", { name: /^Dusk/ }));
+
+    expect(prompt).toHaveValue("a lighthouse\n\nat dusk");
+    expect(prompt).toHaveFocus();
+    await start(user);
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ promptText: "a lighthouse\n\nat dusk" }),
+    );
+  });
+
   it("says where the new files go instead of counting files it never reads", async () => {
     renderDialog();
 
@@ -294,6 +328,7 @@ describe("ComfyGenerateDialog", () => {
     const caption = screen.getByRole("checkbox", { name: /caption/ });
     expect(caption).toBeDisabled();
     expect(caption).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Saved" })).toBeDisabled();
     expect(screen.getByText(/runs exactly as saved/)).toBeInTheDocument();
   });
 });

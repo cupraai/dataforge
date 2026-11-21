@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
@@ -10,6 +10,7 @@ import type {
   ComfyPresetsResponse,
 } from "@/shared/types";
 import { ComfyProcessDialog } from "./ComfyProcessDialog";
+import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import { stubDialogClock } from "@/test/dialogClock";
@@ -345,6 +346,27 @@ describe("ComfyProcessDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({ promptText: "sharp studio photograph" }),
     );
+  });
+
+  it("lists the saved ComfyUI prompts, not the caption instructions", async () => {
+    installMockBackend();
+    const put = (book: string, name: string, text: string) =>
+      fetch(`/api/preferences/snippets/${book}`, {
+        method: "PUT",
+        body: JSON.stringify({ name, text }),
+      });
+    await put("instructions", "Tense", "Use present tense.");
+    await put("comfy_prompts", "Studio", "sharp studio photograph");
+    const user = userEvent.setup();
+    renderDialog();
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    await user.click(screen.getByRole("button", { name: "Saved" }));
+    const panel = await screen.findByRole("dialog", { name: "Saved prompts" });
+    await user.click(await within(panel).findByRole("button", { name: /^Studio/ }));
+
+    expect(within(panel).queryByText("Tense")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt")).toHaveValue("sharp studio photograph");
   });
 
   it("starts from the prompt the last run used", async () => {

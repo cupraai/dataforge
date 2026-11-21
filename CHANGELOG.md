@@ -11,6 +11,7 @@ version heading when a minor or major version is cut.
 ### Added
 
 - The notification bell shows how many notifications are unread, in the same count badge as the jobs button. It turns yellow or red when an unread one is a warning or an error, and clears once you close the list. Both badges show **99+** for anything above 99.
+- **Generate with ComfyUI** and **Edit with ComfyUI** have a **Saved** menu beside the prompt, like the one for **Edit captions** instructions. Save the typed prompt under a name, then add it to the prompt in either dialog, in any folder. Saved prompts are kept apart from saved caption instructions.
 
 ### Changed
 

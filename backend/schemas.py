@@ -25,10 +25,10 @@ from constants import (
     MAX_COMFY_GENERATE_PREFIX_LENGTH,
     MAX_FILL_INSTRUCTION_LENGTH,
     MAX_IMAGE_FILLS,
-    MAX_INSTRUCTION_SNIPPET_NAME_LENGTH,
-    MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH,
     MAX_RESIZE_MEGAPIXELS,
     MAX_RESIZE_MULTIPLE,
+    MAX_SAVED_SNIPPET_NAME_LENGTH,
+    MAX_SAVED_SNIPPET_TEXT_LENGTH,
     MAX_SPLIT_CLIP_SECONDS,
     MAX_TRIM_LENGTH_SECONDS,
     MAX_WORKFLOW_NAME_LENGTH,
@@ -767,26 +767,30 @@ class RememberedDataResponse(BaseModel):
     display_mode_folders: int
 
 
-class InstructionSnippet(BaseModel):
-    """A saved Edit captions instruction. Names are unique ignoring case."""
+#: ``instructions`` serves Edit captions; ``comfy_prompts`` both ComfyUI dialogs.
+type SnippetBook = Literal["instructions", "comfy_prompts"]
+
+
+class SavedSnippet(BaseModel):
+    """Names are unique ignoring case within one book."""
 
     name: Annotated[
         str,
         StringConstraints(
-            strip_whitespace=True, min_length=1, max_length=MAX_INSTRUCTION_SNIPPET_NAME_LENGTH
+            strip_whitespace=True, min_length=1, max_length=MAX_SAVED_SNIPPET_NAME_LENGTH
         ),
     ]
     text: Annotated[
         str,
         StringConstraints(
-            strip_whitespace=True, min_length=1, max_length=MAX_INSTRUCTION_SNIPPET_TEXT_LENGTH
+            strip_whitespace=True, min_length=1, max_length=MAX_SAVED_SNIPPET_TEXT_LENGTH
         ),
     ]
 
 
-class InstructionSnippetsResponse(BaseModel):
+class SavedSnippetsResponse(BaseModel):
     #: Sorted by name, ignoring case.
-    snippets: list[InstructionSnippet] = Field(default_factory=list)
+    snippets: list[SavedSnippet] = Field(default_factory=list)
 
 
 #: ``setup`` is the checksum-verified build setup installs into the clone.
@@ -3201,7 +3205,7 @@ type ServerEvent = Annotated[
 ]
 
 #: Types no route mentions, so generate_types.py merges them in by hand.
-EXTRA_WIRE_MODELS = (ServerEvent, JobType, JobStatus, ApiErrorResponse)
+EXTRA_WIRE_MODELS = (ServerEvent, JobType, JobStatus, ApiErrorResponse, SnippetBook)
 
 #: Runtime-checked on the client. Only unvalidated arrivals belong here; event frames are pushed.
 GUARDED_WIRE_MODELS = (ServerEvent,)

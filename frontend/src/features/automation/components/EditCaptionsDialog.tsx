@@ -7,8 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { previewCaptionEdits } from "@/features/automation/api/jobs";
 import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
-import { InstructionSnippetMenu } from "@/features/automation/components/InstructionSnippetMenu";
-import { appendInstruction } from "@/features/automation/lib/appendInstruction";
+import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetMenu";
+import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
@@ -205,11 +205,12 @@ export function EditCaptionsDialog({
         <Field
           label="Edit instruction"
           labelEnd={
-            <InstructionSnippetMenu
-              instruction={instruction}
+            <SavedSnippetMenu
+              book="instructions"
+              text={instruction}
               disabled={controlsBusy}
               onInsert={(text) => {
-                setInstruction((current) => appendInstruction(current, text));
+                setInstruction((current) => appendSnippet(current, text));
                 setError(null);
                 instructionRef.current?.focus();
               }}

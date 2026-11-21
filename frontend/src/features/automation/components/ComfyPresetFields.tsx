@@ -1,8 +1,9 @@
-import { useId, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import type {
   ComfyPresetForm,
   ComfyPresetKind,
 } from "@/features/automation/hooks/useComfyPresetForm";
+import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { iconLoader2, iconTriangleAlert } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
@@ -11,6 +12,7 @@ import { DialogSelect } from "@/shared/ui/DialogSelect";
 import { Field, TextArea, TextInput } from "@/shared/ui/Field";
 import { Icon } from "@/shared/ui/Icon";
 import { ComfyPresetMap } from "./ComfyPresetMap";
+import { SavedSnippetMenu } from "./SavedSnippetMenu";
 
 type BooleanChoice = "" | "on" | "off";
 
@@ -186,7 +188,7 @@ interface ComfyPresetFieldsProps {
   busy: boolean;
   /** Called on every edit, so the dialog can clear a stale error. */
   onEdited: () => void;
-  /** Beside the Prompt label, for an option about the prompt itself. */
+  /** Beside the Prompt label, before the saved prompts menu, for an option about the prompt. */
   promptLabelEnd?: ReactNode;
   /** The dialog's own options, under an Output heading below the preset's fields. */
   children?: ReactNode;
@@ -206,6 +208,7 @@ export function ComfyPresetFields({
 }: ComfyPresetFieldsProps) {
   const nodeHintId = useId();
   const presetsId = useId();
+  const promptRef = useRef<HTMLTextAreaElement>(null);
   const { state, preset, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
   const ready = state.status === "ready";
   const mapRequest: ComfyWorkflowMapRequest = embedded
@@ -273,10 +276,29 @@ export function ComfyPresetFields({
       </section>
 
       <div className="comfy-preset-layout__form">
-        <Field label="Prompt" labelEnd={promptLabelEnd} className="comfy-preset-layout__prompt">
+        <Field
+          label="Prompt"
+          labelEnd={
+            <>
+              {promptLabelEnd}
+              <SavedSnippetMenu
+                book="comfy_prompts"
+                text={promptBlocked ? "" : draft.promptText}
+                disabled={busy || promptBlocked}
+                onInsert={(text) => {
+                  form.updateDraft({ promptText: appendSnippet(draft.promptText, text) });
+                  onEdited();
+                  promptRef.current?.focus();
+                }}
+              />
+            </>
+          }
+          className="comfy-preset-layout__prompt"
+        >
           {(control) => (
             <TextArea
               {...control}
+              ref={promptRef}
               aria-describedby={nodeHintId}
               rows={4}
               value={promptBlocked ? "" : draft.promptText}

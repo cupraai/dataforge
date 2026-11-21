@@ -6,7 +6,7 @@ import { emptyAutomationSettings } from "@/features/automation/preferences/autom
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
 import { EditCaptionsDialog } from "./EditCaptionsDialog";
-import { appendInstruction } from "@/features/automation/lib/appendInstruction";
+import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 
 let requestsTo: ReturnType<typeof installMockBackend>["requestsTo"];
 
@@ -37,10 +37,10 @@ async function openPanel(user: ReturnType<typeof userEvent.setup>) {
   return screen.findByRole("dialog", { name: "Saved instructions" });
 }
 
-describe("appendInstruction", () => {
+describe("appendSnippet", () => {
   it("fills an empty field and appends after a blank line otherwise", () => {
-    expect(appendInstruction("  \n", "Use present tense.")).toBe("Use present tense.");
-    expect(appendInstruction("Name colors.\n", "Use present tense.")).toBe(
+    expect(appendSnippet("  \n", "Use present tense.")).toBe("Use present tense.");
+    expect(appendSnippet("Name colors.\n", "Use present tense.")).toBe(
       "Name colors.\n\nUse present tense.",
     );
   });
@@ -53,7 +53,7 @@ async function saveAs(user: ReturnType<typeof userEvent.setup>, panel: HTMLEleme
   await user.type(within(panel).getByLabelText("Name for the instruction"), `${name}{Enter}`);
 }
 
-describe("InstructionSnippetMenu", () => {
+describe("SavedSnippetMenu", () => {
   beforeEach(() => {
     ({ requestsTo } = installMockBackend());
   });
@@ -67,7 +67,7 @@ describe("InstructionSnippetMenu", () => {
     await saveAs(user, panel, "Tense");
 
     expect(await within(panel).findByRole("button", { name: /^Tense/ })).toBeInTheDocument();
-    expect(requestsTo("/api/preferences/instruction-snippets", "PUT")).toHaveLength(1);
+    expect(requestsTo("/api/preferences/snippets/instructions", "PUT")).toHaveLength(1);
     // Saved, the row goes back to its menu item.
     expect(within(panel).queryByLabelText("Name for the instruction")).not.toBeInTheDocument();
     // Enter in the name field saves; it must not also start the job.
@@ -107,7 +107,7 @@ describe("InstructionSnippetMenu", () => {
     await user.click(await within(panel).findByRole("button", { name: 'Delete "Tense"' }));
 
     expect(await within(panel).findByText(EMPTY)).toBeInTheDocument();
-    expect(requestsTo("/api/preferences/instruction-snippets?name=Tense", "DELETE")).toHaveLength(
+    expect(requestsTo("/api/preferences/snippets/instructions?name=Tense", "DELETE")).toHaveLength(
       1,
     );
   });

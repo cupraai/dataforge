@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 import automation_settings
 import gallery_display_settings
-import instruction_snippets
+import saved_snippets
 from automation_settings import get_automation_settings
 from gallery_display_settings import (
     get_gallery_display_settings,
@@ -12,9 +12,10 @@ from schemas import (
     AutomationSettingsResponse,
     GalleryDisplaySettingsResponse,
     GalleryDisplaySettingsUpdate,
-    InstructionSnippet,
-    InstructionSnippetsResponse,
     RememberedDataResponse,
+    SavedSnippet,
+    SavedSnippetsResponse,
+    SnippetBook,
     UiSettingsResponse,
     UiSettingsUpdate,
 )
@@ -95,21 +96,22 @@ def forget_display_modes() -> RememberedDataResponse:
     return _remembered()
 
 
-@router.get("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
-def read_instruction_snippets() -> InstructionSnippetsResponse:
-    return instruction_snippets.list_snippets()
+@router.get("/preferences/snippets/{book}", response_model=SavedSnippetsResponse)
+def read_saved_snippets(book: SnippetBook) -> SavedSnippetsResponse:
+    return saved_snippets.list_snippets(book)
 
 
-@router.put("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
-def save_instruction_snippet(body: InstructionSnippet) -> InstructionSnippetsResponse:
+@router.put("/preferences/snippets/{book}", response_model=SavedSnippetsResponse)
+def save_saved_snippet(book: SnippetBook, body: SavedSnippet) -> SavedSnippetsResponse:
     try:
-        return instruction_snippets.save_snippet(body)
-    except instruction_snippets.TooManySnippetsError as error:
+        return saved_snippets.save_snippet(book, body)
+    except saved_snippets.TooManySnippetsError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
-@router.delete("/preferences/instruction-snippets", response_model=InstructionSnippetsResponse)
-def delete_instruction_snippet(
-    name: str = Query(..., description="The saved instruction's name, matched ignoring case"),
-) -> InstructionSnippetsResponse:
-    return instruction_snippets.delete_snippet(name)
+@router.delete("/preferences/snippets/{book}", response_model=SavedSnippetsResponse)
+def delete_saved_snippet(
+    book: SnippetBook,
+    name: str = Query(..., description="The saved snippet's name, matched ignoring case"),
+) -> SavedSnippetsResponse:
+    return saved_snippets.delete_snippet(book, name)
