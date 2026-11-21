@@ -110,7 +110,6 @@ interface Group {
 interface Page {
   id: PageId;
   label: string;
-  description: string;
   groups: Group[];
   /** Groups sit side by side instead of stacking. */
   columns?: boolean;
@@ -142,20 +141,16 @@ const SECTIONS: Section[] = [
       {
         id: "appearance",
         label: "Color scheme",
-        description: "Pick a color scheme, or let DataForge follow the one your system uses.",
         groups: [],
       },
       {
         id: "gallery",
         label: "Gallery",
-        description:
-          "How much of each caption the gallery shows, what cards list, and which folders.",
         groups: [],
       },
       {
         id: "editor",
         label: "Editor",
-        description: "How text editors lay out lines, and what the caption editor helps with.",
         groups: [],
       },
     ],
@@ -169,7 +164,6 @@ const SECTIONS: Section[] = [
       {
         id: "notifications",
         label: "Notifications",
-        description: "Where DataForge tells you about finished jobs and other news.",
         groups: [],
       },
     ],
@@ -183,20 +177,18 @@ const SECTIONS: Section[] = [
       {
         id: "server",
         label: "Server",
-        description:
-          "The OpenAI-compatible server behind Auto-caption, Verify captions, and Edit captions.",
         groups: [
           {
             title: "Connection",
             icon: iconLink,
-            hint: "A running job keeps the server it started with.",
+            hint: "An OpenAI-compatible server for Auto-caption, Verify captions, and Edit captions. A running job keeps the server it started with.",
             rows: [["vision_base_url"], ["vision_api_key", "vision_model"]],
             probe: "vision",
           },
           {
             title: "Limits",
             icon: iconGauge,
-            hint: "Auto-caption leaves captions longer than the draft threshold alone and retries shorter results.",
+            hint: "Max tokens caps each reply. Auto-caption leaves captions longer than the draft threshold alone and retries shorter results.",
             rows: [["vision_max_tokens", "vision_top_k", "draft_caption_threshold"]],
           },
         ],
@@ -204,30 +196,36 @@ const SECTIONS: Section[] = [
       {
         id: "sampling",
         label: "Sampling",
-        description:
-          "Tune sampling last, once the connection and budgets work. Each job picks its mode.",
         columns: true,
         groups: [
-          { title: "Reasoning", icon: iconBrain, rows: samplingRows("thinking") },
-          { title: "Instruct", icon: iconZap, rows: samplingRows("instruct") },
+          {
+            title: "Reasoning",
+            icon: iconBrain,
+            hint: "Used by jobs set to Reasoning. Tune sampling last, once the server and limits work.",
+            rows: samplingRows("thinking"),
+          },
+          {
+            title: "Instruct",
+            icon: iconZap,
+            hint: "Used by jobs set to Instruct. Each job's dialog picks which of the two applies.",
+            rows: samplingRows("instruct"),
+          },
         ],
       },
       {
         id: "media",
         label: "Media input",
-        description:
-          "Pixels and frames sent to the model. Shrink these first when VRAM or context runs out.",
         groups: [
           {
             title: "Stills",
             icon: iconImage,
-            hint: "Images, and a GIF's first frame, are downscaled to fit this budget.",
+            hint: "Images, and a GIF's first frame, are downscaled to fit this budget. Lower it first when VRAM or context runs out.",
             rows: [["image_max_pixels"]],
           },
           {
             title: "Video",
             icon: iconVideo,
-            hint: "Frames are spread across the clip. The frame budget falls from the short-clip value at 7 s to the long-clip value at 20 s.",
+            hint: "Frames are spread across the clip. Their budget falls from the short-clip value at 7 s to the long-clip value at 20 s. Fewer or smaller frames save VRAM and context.",
             rows: [
               ["video_keyframes_per_second", "video_max_keyframes"],
               ["video_frame_max_pixels", "video_frame_min_pixels"],
@@ -246,15 +244,11 @@ const SECTIONS: Section[] = [
       {
         id: "tagging",
         label: "Tagging",
-        description:
-          "Files in favorite folders, not their subfolders, are tagged in the background so search finds them by what they show.",
         groups: [{ title: "Background tagging", icon: iconTag, rows: [["tag_min_confidence"]] }],
       },
       {
         id: "vocabulary",
         label: "Vocabulary",
-        description:
-          "Terms the tagger looks for besides its built-in ones. A change applies to files tagged from then on; Re-tag everything brings the rest up to it.",
         groups: [],
       },
     ],
@@ -268,10 +262,14 @@ const SECTIONS: Section[] = [
       {
         id: "integrations",
         label: "Integrations",
-        description:
-          "Where DataForge reaches the tools it drives. Use the origin, not a page within it.",
         groups: [
-          { title: "ComfyUI", icon: iconComfyUi, rows: [["comfy_base_url"]], probe: "comfy" },
+          {
+            title: "ComfyUI",
+            icon: iconComfyUi,
+            hint: "Runs Generate with ComfyUI, Edit with ComfyUI, and the editor's Fill tool. Enter the server's origin, not a page within it.",
+            rows: [["comfy_base_url"]],
+            probe: "comfy",
+          },
           {
             title: "Generative fill",
             icon: iconComfyUi,
@@ -285,6 +283,7 @@ const SECTIONS: Section[] = [
           {
             title: "Ostris AI-Toolkit",
             icon: iconAiToolkit,
+            hint: "Runs Train LoRA. Enter the server's origin, not a page within it.",
             rows: [["ai_toolkit_base_url"]],
             probe: "ai_toolkit",
           },
@@ -301,7 +300,6 @@ const SECTIONS: Section[] = [
       {
         id: "data",
         label: "History",
-        description: "How long DataForge keeps its history, and what it remembers between visits.",
         groups: [
           {
             title: "History",
@@ -314,7 +312,6 @@ const SECTIONS: Section[] = [
       {
         id: "storage",
         label: "Storage",
-        description: "Disk space DataForge uses for itself.",
         groups: [
           { title: "Thumbnail cache", icon: iconHardDrive, rows: [["thumbnail_cache_max_mb"]] },
         ],
@@ -330,13 +327,11 @@ const SECTIONS: Section[] = [
       {
         id: "about",
         label: "About",
-        description: "What is installed and where it lives. Useful when something does not work.",
         groups: [],
       },
       {
         id: "performance",
         label: "Performance",
-        description: "The computer DataForge runs on, read live while this page is open.",
         groups: [],
       },
     ],
@@ -668,7 +663,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const renderPage = (page: Page) => {
     if (page.id === "appearance") {
       return (
-        <SettingsGroup title="Color scheme" icon={iconPalette}>
+        <SettingsGroup
+          title="Color scheme"
+          icon={iconPalette}
+          hint="System switches between light and dark along with your OS."
+        >
           <ThemePicker value={theme} disabled={saving} onChange={setTheme} />
         </SettingsGroup>
       );
@@ -682,7 +681,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             disabled={saving}
             onChange={setCards}
           />
-          <SettingsGroup title="Folders" icon={iconFolder}>
+          <SettingsGroup title="Folders" icon={iconFolder} hint="Which folders DataForge lists.">
             <Checkbox
               label="Hide hidden folders"
               hint="Folders named with a leading dot, or marked hidden in Windows."
@@ -828,10 +827,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
       <div className="settings-dialog__main">
         <header className="settings-dialog__header">
-          <div className="settings-dialog__heading">
-            <h2 className="settings-dialog__title">{active.label}</h2>
-            <p className="settings-dialog__description">{pageOf(active).description}</p>
-          </div>
+          <h2 className="settings-dialog__title">{active.label}</h2>
           <IconButton
             icon={iconX}
             label="Close settings"

@@ -105,6 +105,7 @@ export function AboutSection({ settings, visible }: AboutSectionProps) {
       <SettingsGroup
         title="Installation"
         icon={iconInfo}
+        hint="What is installed. Copy diagnostics when reporting a problem."
         action={
           <Button
             size="xs"
@@ -133,7 +134,11 @@ export function AboutSection({ settings, visible }: AboutSectionProps) {
         </dl>
       </SettingsGroup>
 
-      <SettingsGroup title="Locations" icon={iconFolder}>
+      <SettingsGroup
+        title="Locations"
+        icon={iconFolder}
+        hint="Files DataForge reads and writes outside your media folders."
+      >
         <dl className="settings-paths">
           <dt>.env file</dt>
           <dd>

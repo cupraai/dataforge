@@ -176,27 +176,14 @@
     padding: 1.25rem 1.5rem 0.875rem;
   }
 
-  &__heading {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-
   &__title {
+    min-width: 0;
     margin: 0;
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
     line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
     color: var(--text);
-  }
-
-  &__description {
-    margin: 0;
-    font-size: var(--text-sm);
-    line-height: var(--leading-snug);
-    color: var(--text-muted);
   }
 
   &__close {

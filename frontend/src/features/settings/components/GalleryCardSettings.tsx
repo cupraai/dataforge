@@ -37,7 +37,11 @@ export function GalleryCardSettings({
 
   return (
     <>
-      <SettingsGroup title="Cards" icon={iconGrid2x2}>
+      <SettingsGroup
+        title="Cards"
+        icon={iconGrid2x2}
+        hint="How much of each caption cards show, and which file details they add."
+      >
         <div className="settings-dialog__row">
           <DialogSelect
             label="Large card caption"

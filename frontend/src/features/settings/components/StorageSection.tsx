@@ -41,7 +41,7 @@ export function StorageSection({ visible, disabled, children }: StorageSectionPr
     <SettingsGroup
       title="Thumbnail cache"
       icon={iconHardDrive}
-      hint="Recreated as you browse. Past the limit, the least recently used go first; 0 means no limit."
+      hint="Gallery previews, recreated as you browse. Past the limit, the least recently used go first; 0 means no limit."
       action={
         <Button
           size="xs"

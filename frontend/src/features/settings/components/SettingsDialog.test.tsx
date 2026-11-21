@@ -361,7 +361,7 @@ describe("SettingsDialog", () => {
 
     expect(screen.getByRole("tab", { name: "Sampling" })).toHaveFocus();
     expect(screen.getAllByRole("spinbutton", { name: "Temperature" })).toHaveLength(2);
-    expect(screen.getByText(/^Tune sampling last/)).toBeInTheDocument();
+    expect(screen.getByText(/Tune sampling last/)).toBeInTheDocument();
   });
 
   it("shows the page holding a refused value, wherever the user is", async () => {

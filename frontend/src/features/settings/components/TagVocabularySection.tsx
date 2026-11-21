@@ -32,7 +32,7 @@ export function TagVocabularySection({
     <SettingsGroup
       title="Your terms"
       icon={iconList}
-      hint="One term per line; '#' starts a comment. Concrete, visible things work best, such as 'red dress': the detector finds objects, not moods or styles."
+      hint="Terms to look for besides the built-in ones, one per line; '#' starts a comment. Concrete, visible things work best, such as 'red dress': the detector finds objects, not moods or styles. Changes apply to files tagged from then on; Re-tag everything updates the rest."
       fill
     >
       {error ? (

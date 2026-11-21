@@ -76,8 +76,8 @@ export function TaggingSection({
       icon={iconTag}
       hint={
         enabled
-          ? "Tags below the minimum confidence are hidden from cards and search. Lower it to find more, at the cost of more wrong guesses."
-          : undefined
+          ? "Tags let search find files by what they show. Tags below the minimum confidence are hidden; lower it to find more, at the cost of more wrong guesses."
+          : "Tags let search find files by what they show."
       }
       action={
         enabled && (
@@ -95,7 +95,7 @@ export function TaggingSection({
     >
       <Checkbox
         label="Tag favorite folders"
-        hint="The first run downloads the model, about 500 MB. Turned off, tags are hidden everywhere and kept for later."
+        hint="Their subfolders are skipped. The first run downloads the model, about 500 MB. Turned off, tags are hidden everywhere and kept for later."
         checked={enabled}
         disabled={disabled}
         onChange={onEnabledChange}

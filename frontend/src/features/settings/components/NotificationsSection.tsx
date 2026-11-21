@@ -60,7 +60,11 @@ export function NotificationsSection({
   };
 
   return (
-    <SettingsGroup title="Desktop" icon={iconBell}>
+    <SettingsGroup
+      title="Desktop"
+      icon={iconBell}
+      hint="Finished jobs and other news always land in the bell. They can reach your desktop too."
+    >
       <Checkbox
         label="Show desktop notifications"
         hint={desktopHint(permission, desktop)}

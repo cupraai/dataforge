@@ -29,7 +29,7 @@ export function EditorPreferenceSettings({
       <SettingsGroup
         title="All editors"
         icon={iconFileText}
-        hint="Captions, folder instructions, and training templates."
+        hint="Line layout in every text editor: captions, folder instructions, and training templates."
       >
         <div className="settings-group__checks">
           <Checkbox
@@ -46,7 +46,11 @@ export function EditorPreferenceSettings({
           />
         </div>
       </SettingsGroup>
-      <SettingsGroup title="Captions" icon={iconSpellCheck2}>
+      <SettingsGroup
+        title="Captions"
+        icon={iconSpellCheck2}
+        hint="Writing help in the caption editor."
+      >
         <div className="settings-dialog__row">
           <Checkbox
             label="Check spelling"
