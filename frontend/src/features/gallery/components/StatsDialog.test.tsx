@@ -392,11 +392,11 @@ describe("StatsDialog", () => {
     expect(screen.queryByRole("button", { name: /Captioned/ })).not.toBeInTheDocument();
   });
 
-  it("ranks the most frequent caption words as a bar chart", () => {
+  it("shows the most frequent caption words as a word cloud", () => {
     renderDrawer();
 
     const chart = screen.getByRole("figure", {
-      name: "Distribution by how often each word appears",
+      name: "Caption words sized by how often they appear",
     });
     expect(within(chart).getByText("brown")).toBeInTheDocument();
     expect(within(chart).getByText("dog")).toBeInTheDocument();
@@ -408,7 +408,7 @@ describe("StatsDialog", () => {
     renderDrawer({ onSearchWord });
 
     const chart = screen.getByRole("figure", {
-      name: "Distribution by how often each word appears",
+      name: "Caption words sized by how often they appear",
     });
     await user.click(within(chart).getByRole("button", { name: "brown" }));
 
@@ -449,7 +449,7 @@ describe("StatsDialog", () => {
     expect(within(durations).queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("ranks tags by how many files carry them and sends one to the search", async () => {
+  it("sizes tags by how many files carry them and sends one to the search", async () => {
     const user = userEvent.setup();
     const onSearchWord = vi.fn<(word: string) => void>();
     const tag = (label: string) => ({ label, confidence: 0.8 });
@@ -462,19 +462,21 @@ describe("StatsDialog", () => {
       ],
     });
 
-    const chart = screen.getByRole("figure", {
-      name: "Distribution by how many files have each tag",
+    const cloud = screen.getByRole("figure", {
+      name: "Tags sized by how many files have them",
     });
-    const labels = within(chart)
-      .getAllByRole("button")
-      .map((button) => button.textContent);
-    expect(labels).toEqual(["dog", "beach"]);
-    await user.click(within(chart).getByRole("button", { name: "dog" }));
+    const weight = (name: string) =>
+      Number(within(cloud).getByRole("button", { name }).style.getPropertyValue("--cloud-weight"));
+    expect(weight("dog")).toBe(1);
+    expect(weight("beach")).toBe(0);
+    await user.hover(within(cloud).getByRole("button", { name: "beach" }));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("On 1 file");
+    await user.click(within(cloud).getByRole("button", { name: "dog" }));
 
     expect(onSearchWord).toHaveBeenCalledWith("dog");
   });
 
-  it("has no tag chart for an untagged folder", () => {
+  it("has no tag cloud for an untagged folder", () => {
     renderDrawer();
 
     expect(screen.queryByText("Most frequent tags")).not.toBeInTheDocument();
@@ -484,7 +486,7 @@ describe("StatsDialog", () => {
     renderDrawer();
 
     const chart = screen.getByRole("figure", {
-      name: "Distribution by how often each word appears",
+      name: "Caption words sized by how often they appear",
     });
     expect(within(chart).queryByRole("button")).not.toBeInTheDocument();
   });

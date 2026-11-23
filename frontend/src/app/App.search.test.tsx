@@ -449,10 +449,10 @@ describe("App: search and filters", () => {
 
     await user.click(await screen.findByRole("button", { name: "Open dataset statistics" }));
 
-    const chart = await screen.findByRole("figure", {
-      name: "Distribution by how often each word appears",
+    const cloud = await screen.findByRole("figure", {
+      name: "Caption words sized by how often they appear",
     });
-    await user.click(within(chart).getByRole("button", { name: "golden" }));
+    await user.click(within(cloud).getByRole("button", { name: "golden" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: /statistics/i })).not.toBeInTheDocument();

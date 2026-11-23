@@ -58,7 +58,7 @@ $jobs-content-pad-top: 0.75rem;
     right: 0;
     display: flex;
     flex-direction: column;
-    width: min(100%, 34rem);
+    width: min(100%, $drawer-width);
     height: 100%;
     background: var(--surface-sheen), var(--bg-elevated);
     border-left: 1px solid var(--border);

@@ -3,6 +3,7 @@ import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import { IconButton } from "@/shared/ui/IconButton";
 import { useMemo, useRef, useState } from "react";
 import { CreationTimelineChart } from "@/features/gallery/components/CreationTimelineChart";
+import { layoutWordCloud } from "@/features/gallery/lib/wordCloud";
 import { useCountUp } from "@/features/gallery/hooks/useCountUp";
 import {
   BUCKET_RANGES,
@@ -133,6 +134,11 @@ function StatsContent({
     () => computeDatasetStats(items, creationGrouping, creationPeriod),
     [items, creationGrouping, creationPeriod],
   );
+  // Stable between renders, so the word cloud packs again only when the words change.
+  const wordEntries = useMemo(
+    () => stats.topWords.map((entry) => ({ label: entry.word, count: entry.count })),
+    [stats.topWords],
+  );
 
   if (stats.total === 0) {
     return (
@@ -205,7 +211,6 @@ function StatsContent({
             buckets={stats.captionLength.buckets}
             unit="caption length in characters"
             onSelect={rangeSelect("caption_length")}
-            selectTitle={showFilesIn}
           />
         </Section>
       )}
@@ -231,7 +236,6 @@ function StatsContent({
             buckets={stats.durations}
             unit="video duration in seconds"
             onSelect={rangeSelect("duration")}
-            selectTitle={showFilesIn}
           />
           {stats.unknownDuration > 0 && (
             <p className="stats-dialog__note">
@@ -247,7 +251,6 @@ function StatsContent({
           buckets={stats.megapixels}
           unit="megapixels"
           onSelect={rangeSelect("megapixels")}
-          selectTitle={showFilesIn}
         />
         {stats.unknownResolution > 0 && (
           <p className="stats-dialog__note">
@@ -265,22 +268,22 @@ function StatsContent({
 
       {stats.topWords.length > 0 && (
         <Section title="Most frequent words" icon={iconBookOpen}>
-          <BarChart
-            buckets={stats.topWords.map((entry) => ({ label: entry.word, count: entry.count }))}
-            unit="how often each word appears"
-            labelWidth="wide"
-            onSelect={onSearchWord && ((index) => onSearchWord(stats.topWords[index].word))}
+          <WordCloud
+            entries={wordEntries}
+            label="Caption words sized by how often they appear"
+            describe={(count) => `Appears ${count} ${count === 1 ? "time" : "times"}`}
+            onSelect={onSearchWord}
           />
         </Section>
       )}
 
       {stats.topTags.length > 0 && (
         <Section title="Most frequent tags" icon={iconTag}>
-          <BarChart
-            buckets={stats.topTags}
-            unit="how many files have each tag"
-            labelWidth="wide"
-            onSelect={onSearchWord && ((index) => onSearchWord(stats.topTags[index].label))}
+          <WordCloud
+            entries={stats.topTags}
+            label="Tags sized by how many files have them"
+            describe={(count) => `On ${count} ${count === 1 ? "file" : "files"}`}
+            onSelect={onSearchWord}
           />
         </Section>
       )}
@@ -415,27 +418,86 @@ function MediaMix({ buckets, total }: { buckets: StatBucket[]; total: number }) 
   );
 }
 
-function searchFor(label: string): string {
-  return `Search for "${label}"`;
+function percent(part: number, whole: number): string {
+  return `${(part / whole) * 100}%`;
 }
 
-function showFilesIn(label: string): string {
-  return `Show files in "${label}"`;
+function WordCloud({
+  entries,
+  label,
+  describe,
+  onSelect,
+}: {
+  entries: StatBucket[];
+  label: string;
+  /** The exact count, shown on hover since the bubble's size only approximates it. */
+  describe: (count: number) => string;
+  /** Called with the bubble's label. Omitted, the bubbles are read-only. */
+  onSelect?: (label: string) => void;
+}) {
+  const layout = useMemo(() => layoutWordCloud(entries), [entries]);
+  if (layout.bubbles.length === 0) return null;
+  const { width, height } = layout;
+
+  return (
+    <figure className="stats-dialog__chart stats-dialog__cloud" aria-label={label}>
+      {/* Laid out in px at full width; narrower, everything scales with the field's width. */}
+      <div
+        className="stats-dialog__cloud-field"
+        style={{ width: `${width}px`, aspectRatio: `${width} / ${height}` }}
+      >
+        {layout.bubbles.map((bubble, order) => {
+          const style = {
+            "--cloud-weight": bubble.weight,
+            "--cloud-order": order,
+            left: percent(bubble.x - bubble.r, width),
+            top: percent(bubble.y - bubble.r, height),
+            width: percent(2 * bubble.r, width),
+            fontSize: `${(bubble.fontSize / width) * 100}cqw`,
+          } as React.CSSProperties;
+          const text = (
+            <span className="stats-dialog__bubble-label">
+              {bubble.lines.map((line) => (
+                <span key={line} className="stats-dialog__bubble-line">
+                  {line}
+                </span>
+              ))}
+            </span>
+          );
+          return (
+            <Tooltip key={bubble.label} content={describe(bubble.count)}>
+              {onSelect ? (
+                <button
+                  type="button"
+                  className="stats-dialog__bubble stats-dialog__bubble--button"
+                  aria-label={bubble.label}
+                  style={style}
+                  onClick={() => onSelect(bubble.label)}
+                >
+                  {text}
+                </button>
+              ) : (
+                <span className="stats-dialog__bubble" style={style}>
+                  {text}
+                </span>
+              )}
+            </Tooltip>
+          );
+        })}
+      </div>
+    </figure>
+  );
 }
 
 function BarChart({
   buckets,
   unit,
-  labelWidth = "narrow",
   onSelect,
-  selectTitle = searchFor,
 }: {
   buckets: StatBucket[];
   unit: string;
-  labelWidth?: "narrow" | "wide";
   /** Called with the bucket's index in `buckets`, empty buckets included. */
   onSelect?: (index: number) => void;
-  selectTitle?: (label: string) => string;
 }) {
   const visible = buckets
     .map((bucket, index) => ({ bucket, index }))
@@ -445,7 +507,7 @@ function BarChart({
 
   return (
     <figure className="stats-dialog__chart" aria-label={`Distribution by ${unit}`}>
-      <dl className={`stats-dialog__bars stats-dialog__bars--${labelWidth}`}>
+      <dl className="stats-dialog__bars">
         {visible.map(({ bucket, index }) => (
           <div key={bucket.label} className="stats-dialog__bar-row">
             <dt className="stats-dialog__bar-label" title={bucket.label}>
@@ -454,7 +516,7 @@ function BarChart({
                   type="button"
                   className="stats-dialog__bar-button"
                   onClick={() => onSelect(index)}
-                  title={selectTitle(bucket.label)}
+                  title={`Show files in "${bucket.label}"`}
                 >
                   {bucket.label}
                 </button>

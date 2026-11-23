@@ -8,8 +8,8 @@ import { isAudio, isGif, isVideo } from "@/features/gallery/lib/itemKind";
 import { rangeValue, type GalleryRange, type RangeAxis } from "@/features/gallery/lib/query";
 import type { GalleryItem } from "@/shared/types";
 
-const TOP_WORD_LIMIT = 15;
-const TOP_TAG_LIMIT = 15;
+const TOP_WORD_LIMIT = 32;
+const TOP_TAG_LIMIT = 32;
 
 const MEGAPIXEL_BUCKETS = [
   { label: "< 0.3 MP", max: 0.3 },

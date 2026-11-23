@@ -21,7 +21,7 @@ $hero-font-size: 3rem;
     right: 0;
     display: flex;
     flex-direction: column;
-    width: min(100%, 24rem);
+    width: min(100%, $drawer-width);
     height: 100%;
     background: var(--surface-sheen), var(--bg-elevated);
     border-left: 1px solid var(--border);
@@ -482,24 +482,105 @@ $hero-font-size: 3rem;
     margin: 0;
   }
 
+  &__cloud {
+    display: flex;
+    justify-content: center;
+    padding: 0.25rem 0;
+  }
+
+  // Bubbles are placed in % of this box and sized in cqw, so a narrower window scales the pack.
+  &__cloud-field {
+    position: relative;
+    max-width: 100%;
+    container-type: inline-size;
+  }
+
+  // `--cloud-weight` runs 0-1 with the count. Hue grades low -> accent -> high along it.
+  &__bubble {
+    --cloud-hue: color-mix(
+      in oklch,
+      color-mix(
+        in oklch,
+        var(--word-cloud-low),
+        var(--accent) calc(min(1, var(--cloud-weight) * 2) * 100%)
+      ),
+      var(--word-cloud-high) calc(max(0, var(--cloud-weight) * 2 - 1) * 100%)
+    );
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid
+      color-mix(in srgb, var(--cloud-hue) calc(20% + var(--cloud-weight) * 30%), transparent);
+    border-radius: 50%;
+    font-family: inherit;
+    font-weight: var(--font-semibold);
+    line-height: 1.1;
+    text-align: center;
+    letter-spacing: -0.01em;
+    color: color-mix(in oklch, var(--cloud-hue) calc(55% + var(--cloud-weight) * 25%), var(--text));
+    @include fade-bg(
+      color-mix(in srgb, var(--cloud-hue) calc(10% + var(--cloud-weight) * 16%), transparent)
+    );
+
+    // A soft highlight up and to the left gives each bubble its round, glassy body.
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        circle at 32% 26%,
+        color-mix(in srgb, var(--cloud-hue) 30%, transparent),
+        transparent 62%
+      );
+      pointer-events: none;
+    }
+
+    @include motion-safe {
+      animation: stats-bubble-pop var(--duration-moderate) var(--ease-emphasized) backwards;
+      animation-delay: calc(min(var(--cloud-order), 32) * var(--stagger-step));
+    }
+
+    &--button {
+      @include control-interactive;
+      @include press-feedback;
+
+      &:hover {
+        z-index: 1;
+        color: color-mix(in oklch, var(--cloud-hue) 40%, var(--text));
+        border-color: color-mix(in srgb, var(--cloud-hue) 70%, transparent);
+        @include fade-bg(
+          color-mix(in srgb, var(--cloud-hue) calc(20% + var(--cloud-weight) * 16%), transparent)
+        );
+      }
+    }
+  }
+
+  &__bubble-label {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__bubble-line {
+    white-space: nowrap;
+  }
+
   &__bars {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
     margin: 0;
-
-    &--narrow {
-      --stats-label-width: 4.75rem;
-    }
-
-    &--wide {
-      --stats-label-width: 6.5rem;
-    }
   }
 
   &__bar-row {
     display: grid;
-    grid-template-columns: var(--stats-label-width) 1fr;
+    grid-template-columns: 4.75rem 1fr;
     align-items: center;
     gap: 0.625rem;
     min-width: 0;
@@ -569,5 +650,12 @@ $hero-font-size: 3rem;
     font-size: var(--text-xs);
     text-align: right;
     color: var(--text-muted);
+  }
+}
+
+@keyframes stats-bubble-pop {
+  from {
+    opacity: 0;
+    scale: 0.6;
   }
 }

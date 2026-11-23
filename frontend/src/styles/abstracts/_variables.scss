@@ -28,6 +28,8 @@ $dialog-width-lg: 60rem;
 // Full-size editors: the workflow editor and both ComfyUI dialogs share one footprint.
 $dialog-width-full: 84rem;
 $dialog-height-full: min(92vh, 56rem);
+// The side drawers (jobs, statistics) share one width.
+$drawer-width: 34rem;
 $dialog-media-max-height: min(36vh, 500px);
 $dialog-stage-padding-block: 1.25rem;
 // A media stage held at this height fits every aspect ratio, so paging never resizes its panel.

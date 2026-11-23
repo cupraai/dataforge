@@ -131,6 +131,9 @@
   --chart-avi: #a78bfa;
   --chart-wmv: #f0abfc;
   --chart-flv: #f5d0fe;
+  // Word cloud hue grade: rare words lean `low`, the commonest `high`, accent between.
+  --word-cloud-low: #5fd4e8;
+  --word-cloud-high: #e07af0;
 
   // One hue per box kind in the ComfyUI workflow map; passes and the output use the accent.
   --map-model: #c4b5fd;

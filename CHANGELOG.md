@@ -24,6 +24,7 @@ version heading when a minor or major version is cut.
 - The **Adjust** tab in the image and video edit panels is now called **Color**, matching the video editor. Color, Effects, Blur, Fill and the audio EQ tab have new icons.
 - While automation jobs run, the robot on the jobs button looks left and right, its antenna swinging after it, and blinks now and then, instead of rocking side to side.
 - The jobs drawer groups older jobs under **Last week** (the seven days before yesterday) and **Last month** before **Earlier**.
+- **Dataset statistics** is as wide as the jobs drawer and shows the 32 most frequent words and tags as clouds of round bubbles packed around the commonest one in the middle. Bubbles grow and shade from cool to warm the more often a word appears. Each one shows its exact count on hover and searches the gallery when clicked.
 - In Settings, a saved value resets with a small button inside its field, which you can click again to undo the reset before saving. Units such as **chars** and **pixels** show inside the field after the number, so labels are no longer cut short.
 
 ### Removed

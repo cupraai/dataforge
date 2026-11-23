@@ -112,6 +112,9 @@
   --chart-avi: #6d28d9;
   --chart-wmv: #d946ef;
   --chart-flv: #e879f9;
+  // Word cloud hue grade: rare words lean `low`, the commonest `high`, accent between.
+  --word-cloud-low: #0f7c93;
+  --word-cloud-high: #a8329f;
 
   --map-model: #7c3aed;
   --map-clip: #a16207;
