@@ -11,13 +11,14 @@ version heading when a minor or major version is cut.
 ### Added
 
 - The notification bell shows how many notifications are unread, in the same count badge as the jobs button. It turns yellow or red when an unread one is a warning or an error, and clears once you close the list. Both badges show **99+** for anything above 99.
-- **Generate with ComfyUI** and **Edit with ComfyUI** have a **Saved** menu beside the prompt, like the one for **Edit captions** instructions. Save the typed prompt under a name, then add it to the prompt in either dialog, in any folder. Saved prompts are kept apart from saved caption instructions.
+- **Run ComfyUI workflow** has a **Saved** menu beside the prompt, like the one for **Edit captions** instructions. Save the typed prompt under a name, then add it to the prompt in any folder. Saved prompts are kept apart from saved caption instructions.
 - **Verify captions** has the same **Saved** menu beside **Additional context**, with its own list of contexts to reuse in any folder.
 - **Reasoning effort** in Auto-caption, Verify captions and Edit captions now also offers **High** and **Max**, for models whose chat template supports them. Each model accepts only some levels; Qwen3.8 rejects High and Max.
-- **Create showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
+- **LoRA showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
 
 ### Changed
 
+- **Edit with ComfyUI** and **Generate with ComfyUI** are now one job, **Run ComfyUI workflow**, which lists every preset. A preset that loads a source file edits the files in scope into candidates for review, as before; one without makes new files in the folder. Its options and start button follow the selected preset. A workflow step can use only a preset that edits files.
 - The ComfyUI dialogs list workflow presets as you add, remove or export them again, without closing the dialog. A removed preset that was selected leaves nothing selected instead of switching to another.
 - The per-file results in the jobs drawer show a thumbnail of each file a job made.
 - The **Adjust** tab in the image and video edit panels is now called **Color**, matching the video editor. Color, Effects, Blur, Fill and the audio EQ tab have new icons.

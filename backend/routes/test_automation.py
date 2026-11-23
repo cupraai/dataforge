@@ -171,25 +171,15 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "strip_metadata": True,
         },
     ),
-    # The shipped example doubles as the fixture.
-    "comfy_process": (
-        "comfy-process",
-        {
-            "preset": "example_lanczos_2x",
-            "seed": 1234,
-            # The example has no prompt node.
-            "prompt_text": "",
-            "overwrite_candidates": True,
-        },
-    ),
-    # The shipped generation example has no prompt node either.
-    "comfy_generate": (
-        "comfy-generate",
+    # The shipped generation example doubles as the fixture; it has no prompt node.
+    "comfy_run": (
+        "comfy-run",
         {
             "preset": "example_solid_color",
             "seed": 99,
             "prompt_text": "",
             "inputs": {"Color": 255},
+            "overwrite_candidates": True,
             "count": 3,
             "name_prefix": "swatch",
             "caption_from_prompt": True,
@@ -199,7 +189,6 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
         "comfy-showcase",
         {
             "preset": "showcase_example",
-            "inputs": {},
             "items": [
                 {
                     "label": "Beach",
@@ -922,12 +911,12 @@ class JobSettingsPersistenceTests(unittest.TestCase):
 
     def test_the_table_covers_every_job_that_registers_settings(self) -> None:
         self.assertLessEqual(
-            set(JOB_SETTINGS_MODELS) | {"comfy_process", "comfy_generate"},
+            set(JOB_SETTINGS_MODELS) | {"comfy_run"},
             set(_NON_DEFAULT_STARTS),
         )
 
-    def _run(self, job_type: str, folder: Path) -> dict:
-        endpoint, body = _NON_DEFAULT_STARTS[job_type]
+    def _run(self, job_type: str, folder: Path, start: tuple[str, dict] | None = None) -> dict:
+        endpoint, body = start or _NON_DEFAULT_STARTS[job_type]
         _write_captioned_folder(folder, video=job_type in _VIDEO_JOBS)
 
         with _patched_job_runner(job_type, _capturing_runner({})):
@@ -963,15 +952,20 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                     {name: value for name, value in body.items() if name in model.model_fields},
                 )
 
-    def test_comfy_process_remembers_its_settings_under_the_preset(self) -> None:
+    def test_a_comfy_edit_remembers_its_seed_under_the_preset(self) -> None:
+        # The shipped example loads a source file and has no prompt node.
+        edit = ("comfy-run", {"preset": "example_lanczos_2x", "seed": 1234, "prompt_text": ""})
         with TempMediaFolder() as root:
-            body = self._run("comfy_process", root)
+            body = self._run("comfy_run", root, edit)
 
             self.assertEqual(
-                _stored_settings(root)["comfy_process"],
+                _stored_settings(root)["comfy_run"],
                 {
                     "preset": body["preset"],
-                    "overwrite_candidates": body["overwrite_candidates"],
+                    "overwrite_candidates": False,
+                    "count": 1,
+                    "name_prefix": "",
+                    "caption_from_prompt": False,
                     "by_preset": {
                         body["preset"]: {
                             "seed": body["seed"],
@@ -982,16 +976,17 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                 },
             )
 
-    def test_comfy_generate_remembers_its_prompt_per_preset_and_its_output_per_folder_not_seed(
+    def test_a_comfy_generation_remembers_its_prompt_per_preset_and_its_output_not_seed(
         self,
     ) -> None:
         with TempMediaFolder() as root:
-            body = self._run("comfy_generate", root)
+            body = self._run("comfy_run", root)
 
             self.assertEqual(
-                _stored_settings(root)["comfy_generate"],
+                _stored_settings(root)["comfy_run"],
                 {
                     "preset": body["preset"],
+                    "overwrite_candidates": body["overwrite_candidates"],
                     "count": body["count"],
                     "name_prefix": body["name_prefix"],
                     "caption_from_prompt": body["caption_from_prompt"],

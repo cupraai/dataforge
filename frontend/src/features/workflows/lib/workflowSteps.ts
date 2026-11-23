@@ -1,12 +1,16 @@
 import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import { JOB_GROUPS } from "@/features/jobs/lib/jobMeta";
-import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
+import {
+  emptyAutomationSettings,
+  type JobSettingsByType,
+} from "@/features/automation/preferences/automationPreferences";
 import { MAX_WORKFLOW_STEPS } from "@/shared/constants";
 import type { JobType, Workflow, WorkflowStep } from "@/shared/types";
 
 export type WorkflowJobType = WorkflowStep["job_type"];
 
-/** LoRA training ignores the scope; generation makes files outside it. */
+/** LoRA training ignores the scope; a showcase makes files outside it. A generating preset
+ * cannot be a ComfyUI step either, which the step dialog and the server enforce. */
 const NOT_A_STEP: ReadonlySet<JobType> = new Set<JobType>(["train_lora", ...GENERATING_JOBS]);
 
 export function isWorkflowJobType(type: JobType): type is WorkflowJobType {
@@ -44,9 +48,11 @@ export function emptyStep(type: WorkflowJobType): WorkflowStep {
 
 /** What the step's dialog opens with. ComfyUI's dialog reads its settings per preset. */
 export function stepDialogSettings(step: WorkflowStep): unknown {
-  if (step.job_type !== "comfy_process") return step.settings;
+  if (step.job_type !== "comfy_run") return step.settings;
   const { preset, seed, prompt_text, inputs, overwrite_candidates } = step.settings;
-  const comfy: JobSettingsByType["comfy_process"] = {
+  // A step never generates, so the output fields only fill the dialog's shape.
+  const comfy: JobSettingsByType["comfy_run"] = {
+    ...emptyAutomationSettings("").comfy_run,
     preset,
     overwrite_candidates,
     by_preset: preset ? { [preset]: { seed, prompt_text, inputs } } : {},

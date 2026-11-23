@@ -178,7 +178,7 @@ class ValidateTests(unittest.TestCase):
             with self.assertRaises(ValueError) as caught:
                 validate_comfy_generate_folder(workspace.folder, preset="upscale")
 
-            self.assertIn("Edit with ComfyUI", str(caught.exception))
+            self.assertIn("edits files instead of making new ones", str(caught.exception))
 
     def test_a_prompt_is_refused_when_the_preset_has_nowhere_to_put_it(self) -> None:
         with Workspace() as workspace:
@@ -462,7 +462,7 @@ class EmbeddedSourceTests(unittest.TestCase):
                     workspace.folder, source={"path": str(render), "node_id": "11"}
                 )
 
-        self.assertIn("Edit with ComfyUI", str(caught.exception))
+        self.assertIn("edits files instead of making new ones", str(caught.exception))
 
     def test_a_preset_and_a_file_together_are_refused(self) -> None:
         with Workspace() as workspace:

@@ -3,16 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
+import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type {
   ComfyPresetInput,
   ComfyPresetMapResponse,
   ComfyPresetSettings,
+  ComfyPresetSummary,
   ComfyPresetsResponse,
 } from "@/shared/types";
-import { ComfyProcessDialog } from "./ComfyProcessDialog";
+import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import { ComfyRunDialog, type ComfyRunSettings } from "./ComfyRunDialog";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
-import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
 import { stubDialogClock } from "@/test/dialogClock";
 
 vi.mock("@/features/automation/api/jobs", () => ({
@@ -65,12 +67,21 @@ function mapOf(name: string, labels: string[]): ComfyPresetMapResponse {
   };
 }
 
-const SCOPE = { itemCount: 12, folderLabel: "Photos", kind: "folder" as const };
+const SCOPE: DialogScopeInfo = { itemCount: 12, folderLabel: "Photos", kind: "folder" };
+const DESTINATION: DialogScopeInfo = { itemCount: 12, folderLabel: "Photos", kind: "destination" };
 
 function settings(
-  overrides: Partial<JobSettingsByType["comfy_process"]> = {},
-): JobSettingsByType["comfy_process"] {
-  return { preset: "", overwrite_candidates: false, by_preset: {}, ...overrides };
+  overrides: Partial<JobSettingsByType["comfy_run"]> = {},
+): JobSettingsByType["comfy_run"] {
+  return {
+    preset: "",
+    overwrite_candidates: false,
+    count: 1,
+    name_prefix: "",
+    caption_from_prompt: false,
+    by_preset: {},
+    ...overrides,
+  };
 }
 
 function saved(overrides: Partial<ComfyPresetSettings> = {}): ComfyPresetSettings {
@@ -92,20 +103,30 @@ function presets(
       accepts_prompt: roles[name]?.accepts_prompt ?? true,
       accepts_seed: roles[name]?.accepts_seed ?? true,
       inputs: [],
+      generates: false,
     })),
     available,
     base_url: baseUrl,
   };
 }
 
-function renderDialog(initialSettings = settings()) {
-  const onConfirm = vi.fn<(settings: ComfyProcessSettings) => void>();
+interface RenderOptions {
+  scope?: DialogScopeInfo;
+  editOnly?: boolean;
+  embedded?: EmbeddedGenerateWorkflow;
+}
+
+function renderDialog(initialSettings = settings(), options: RenderOptions = {}) {
+  const onConfirm = vi.fn<(settings: ComfyRunSettings) => void>();
   const onCancel = vi.fn<() => void>();
 
   renderWithQueryClient(
-    <ComfyProcessDialog
-      scope={SCOPE}
+    <ComfyRunDialog
+      scope={options.scope ?? SCOPE}
+      destinationScope={DESTINATION}
       initialSettings={initialSettings}
+      editOnly={options.editOnly}
+      embedded={options.embedded}
       onConfirm={onConfirm}
       onCancel={onCancel}
     />,
@@ -118,7 +139,7 @@ function presetNames(): (string | null)[] {
   return screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"));
 }
 
-describe("ComfyProcessDialog", () => {
+describe("ComfyRunDialog with a preset that edits files", () => {
   beforeEach(() => {
     fetchPresets.mockReset().mockResolvedValue(presets(["fix-faces", "upscale-2x"]));
     fetchMap
@@ -216,16 +237,35 @@ describe("ComfyProcessDialog", () => {
     );
   });
 
-  it("leaves generation presets to Generate with ComfyUI", async () => {
+  it("lists generation presets beside the ones that edit files", async () => {
     const listed = presets(["txt2img", "upscale-2x"]);
     listed.presets[0] = { ...listed.presets[0], generates: true };
     fetchPresets.mockResolvedValue(listed);
-    renderDialog(settings({ preset: "txt2img" }));
+    renderDialog(settings({ preset: "upscale-2x" }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    expect(presetNames()).toEqual(["txt2img", "upscale-2x"]);
+  });
+
+  it("offers only presets that edit files as a workflow step", async () => {
+    const listed = presets(["txt2img", "upscale-2x"]);
+    listed.presets[0] = { ...listed.presets[0], generates: true };
+    fetchPresets.mockResolvedValue(listed);
+    renderDialog(settings({ preset: "txt2img" }), { editOnly: true });
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
     expect(presetNames()).toEqual(["upscale-2x"]);
     expect(screen.getByRole("radio", { name: "upscale-2x" })).toBeChecked();
+  });
+
+  it("cannot edit a scope with no files in it", async () => {
+    renderDialog(settings(), { scope: { ...SCOPE, itemCount: 0 } });
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
   });
 
   it("starts from the preset the last run used", async () => {
@@ -307,7 +347,11 @@ describe("ComfyProcessDialog", () => {
       seed: 4321,
       promptText: "",
       inputs: {},
+      generates: false,
       overwriteCandidates: false,
+      count: 1,
+      namePrefix: "",
+      captionFromPrompt: false,
     });
   });
 
@@ -433,11 +477,16 @@ describe("ComfyProcessDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ promptText: "" }));
   });
 
-  it("names the nodes the prompt and seed are written into", async () => {
+  it("names the node each of the prompt and seed is written into", async () => {
     renderDialog();
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-    expect(await screen.findByText(/DataForge Prompt/)).toBeInTheDocument();
-    expect(screen.getByText(/DataForge Seed/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
+      "Optional; written into the preset's DataForge Prompt node.",
+    );
+    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
+      "Optional; written into the preset's DataForge Seed node.",
+    );
   });
 
   // `type="number"` still lets a sign and a decimal point through.
@@ -651,5 +700,305 @@ describe("ComfyProcessDialog", () => {
       expect(screen.getByLabelText("Prompt")).toBeEnabled();
       expect(screen.getByLabelText("Seed")).toBeEnabled();
     });
+  });
+});
+
+const EMBEDDED: EmbeddedGenerateWorkflow = {
+  mediaPath: "/renders/render_.png",
+  mediaName: "render_.png",
+  nodeId: "9",
+  generation: {
+    accepts_prompt: true,
+    accepts_seed: true,
+    inputs: [],
+    prompt_text: "a lighthouse at dusk",
+  },
+  branch: {
+    node_id: "9",
+    class_type: "SaveImage",
+    label: "Final render",
+    is_preview: false,
+    matches_filename: true,
+    prompts: [],
+    parameters: [],
+    loras: [],
+    stages: [],
+    map: [],
+  },
+};
+
+function generationPreset(
+  name: string,
+  overrides: Partial<ComfyPresetSummary> = {},
+): ComfyPresetSummary {
+  return {
+    name,
+    modified_at: null,
+    accepts_prompt: true,
+    accepts_seed: true,
+    inputs: [],
+    generates: true,
+    ...overrides,
+  };
+}
+
+function generationPresets(entries: ComfyPresetSummary[]): ComfyPresetsResponse {
+  return { presets: entries, available: true, base_url: "http://127.0.0.1:9000" };
+}
+
+async function startGenerating(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByRole("radiogroup", { name: "Workflow presets" });
+  await user.click(screen.getByRole("button", { name: "Start generating" }));
+}
+
+describe("ComfyRunDialog with a preset that makes new files", () => {
+  // Nothing in scope: a generation runs anyway, since it reads no files.
+  const EMPTY_SCOPE: DialogScopeInfo = { ...SCOPE, itemCount: 0 };
+  const generationSettings = (overrides: Partial<JobSettingsByType["comfy_run"]> = {}) =>
+    settings({ preset: "txt2img", count: 4, ...overrides });
+  const renderGeneration = (initialSettings = generationSettings()) =>
+    renderDialog(initialSettings, { scope: EMPTY_SCOPE });
+
+  beforeEach(() => {
+    fetchMap.mockReset().mockResolvedValue({ name: "txt2img", branch: null, error: "Broken." });
+    fetchPresets
+      .mockReset()
+      .mockResolvedValue(
+        generationPresets([
+          generationPreset("upscale-2x", { generates: false }),
+          generationPreset("txt2img"),
+          generationPreset("broken", { generates: null, accepts_prompt: null, accepts_seed: null }),
+        ]),
+      );
+  });
+
+  it("says when a workflow loads nothing worth drawing", async () => {
+    fetchMap.mockResolvedValue({
+      name: "txt2img",
+      error: null,
+      branch: {
+        node_id: "9",
+        class_type: "SaveImage",
+        label: "Save Image",
+        filename_prefix: null,
+        filename: null,
+        is_preview: false,
+        matches_filename: false,
+        prompts: [],
+        parameters: [],
+        loras: [],
+        stages: [],
+        map: [
+          {
+            id: "9",
+            kind: "output",
+            label: "Output",
+            detail: [],
+            status: "ran",
+            feeds: [],
+            role: null,
+            media: "image",
+          },
+        ],
+      },
+    });
+    renderGeneration();
+
+    expect(await screen.findByText(/loads no models, LoRAs or files/)).toBeInTheDocument();
+  });
+
+  it("puts the caption choice beside the prompt it saves", async () => {
+    renderGeneration();
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    const prompt = screen.getByLabelText("Prompt");
+    const caption = screen.getByRole("checkbox", { name: "Save as caption" });
+    expect(prompt.closest(".field")).toContainElement(caption);
+  });
+
+  it("saves the typed prompt to the prompt book and inserts it after other text", async () => {
+    const { requestsTo } = installMockBackend();
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration(
+      generationSettings({
+        by_preset: { txt2img: { seed: null, prompt_text: "at dusk", inputs: {} } },
+      }),
+    );
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    const prompt = screen.getByLabelText<HTMLTextAreaElement>("Prompt");
+
+    await user.click(screen.getByRole("button", { name: "Saved" }));
+    let panel = await screen.findByRole("dialog", { name: "Saved prompts" });
+    await user.click(within(panel).getByRole("button", { name: "Save current prompt..." }));
+    await user.type(within(panel).getByLabelText("Name for the prompt"), "Dusk{Enter}");
+    await within(panel).findByRole("button", { name: /^Dusk/ });
+    expect(requestsTo("/api/preferences/snippets/comfy_prompts", "PUT")).toHaveLength(1);
+
+    await user.clear(prompt);
+    await user.type(prompt, "a lighthouse");
+    await user.click(screen.getByRole("button", { name: "Saved" }));
+    panel = await screen.findByRole("dialog", { name: "Saved prompts" });
+    await user.click(within(panel).getByRole("button", { name: /^Dusk/ }));
+
+    expect(prompt).toHaveValue("a lighthouse\n\nat dusk");
+    expect(prompt).toHaveFocus();
+    await startGenerating(user);
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ promptText: "a lighthouse\n\nat dusk" }),
+    );
+  });
+
+  it("says where the new files go instead of counting files it never reads", async () => {
+    renderGeneration();
+
+    expect(await screen.findByText(/New files go to/)).toHaveTextContent("Photos");
+    expect(screen.getByText(/Nothing is replaced/)).toBeInTheDocument();
+  });
+
+  it("switches to the edit's options when a preset that edits files is chosen", async () => {
+    const user = userEvent.setup();
+    renderGeneration();
+
+    expect(await screen.findByLabelText("Generations")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start generating" })).toBeEnabled();
+
+    await user.click(screen.getByRole("radio", { name: "upscale-2x" }));
+
+    expect(screen.queryByLabelText("Generations")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Replace candidates already waiting/)).toBeInTheDocument();
+    expect(screen.getByText(/writes the result as a/)).toBeInTheDocument();
+    // The scope is empty, and an edit needs files.
+    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+  });
+
+  it("starts with the remembered count, prefix and prompt", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration(
+      generationSettings({
+        count: 12,
+        name_prefix: "lake",
+        caption_from_prompt: true,
+        by_preset: { txt2img: { seed: 7, prompt_text: "a lake", inputs: {} } },
+      }),
+    );
+
+    await startGenerating(user);
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      preset: "txt2img",
+      seed: 7,
+      promptText: "a lake",
+      inputs: {},
+      generates: true,
+      overwriteCandidates: false,
+      count: 12,
+      namePrefix: "lake",
+      captionFromPrompt: true,
+    });
+  });
+
+  it("runs a file's own workflow in place of the presets, from the prompt it was made with", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderDialog(
+      generationSettings({
+        by_preset: { txt2img: { seed: 7, prompt_text: "a lake", inputs: {} } },
+      }),
+      { scope: EMPTY_SCOPE, embedded: EMBEDDED },
+    );
+
+    const list = await screen.findByRole("radiogroup", { name: "File workflow" });
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.getByRole("radio", { name: "render_" })).toBeChecked();
+    expect(list).toBeInTheDocument();
+    expect(screen.getByText(/not saved as a preset/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt")).toHaveValue("a lighthouse at dusk");
+    expect(screen.getByLabelText("File name prefix")).toHaveAttribute("placeholder", "render");
+    expect(screen.getByText("render_0001")).toBeInTheDocument();
+    expect(fetchMap).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Start generating" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preset: "render_",
+        seed: null,
+        promptText: "a lighthouse at dusk",
+        generates: true,
+      }),
+    );
+  });
+
+  it("leaves an empty seed to be drawn at random", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration();
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(screen.getByLabelText("Seed")).toHaveAttribute("placeholder", "Random");
+    expect(screen.getByText(/random each time/)).toBeInTheDocument();
+    await startGenerating(user);
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ seed: null }));
+  });
+
+  it("shows the file names the preset's name gives when no prefix is typed", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration();
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(screen.getByLabelText("File name prefix")).toHaveAttribute("placeholder", "txt2img");
+    expect(screen.getByText("txt2img_0001")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("File name prefix"), "harbour");
+    expect(screen.getByText("harbour_0001")).toBeInTheDocument();
+    await startGenerating(user);
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ namePrefix: "harbour" }));
+  });
+
+  it("refuses a count outside the limit", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration();
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    await user.clear(screen.getByLabelText("Generations"));
+    await user.type(screen.getByLabelText("Generations"), "0");
+    await startGenerating(user);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("from 1 to 100");
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("refuses a prefix that is not a plain file name", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderGeneration();
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    await user.type(screen.getByLabelText("File name prefix"), "renders/lake");
+    await startGenerating(user);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("cannot contain");
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("cannot caption with a prompt the preset has no node for", async () => {
+    fetchPresets.mockResolvedValue(
+      generationPresets([
+        generationPreset("solid", { accepts_prompt: false, accepts_seed: false }),
+      ]),
+    );
+    renderGeneration(generationSettings({ preset: "solid", caption_from_prompt: true }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    const caption = screen.getByRole("checkbox", { name: /caption/ });
+    expect(caption).toBeDisabled();
+    expect(caption).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Saved" })).toBeDisabled();
+    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
+      "No DataForge Prompt node, so the saved prompt runs.",
+    );
+    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
+      "No seed to vary, so every generation runs alike.",
+    );
   });
 });

@@ -123,6 +123,12 @@ describe("jobThroughputLabel", () => {
     ).toBe("1.2 s/step");
   });
 
+  it("counts a ComfyUI run by what it did: files edited, or generations made", () => {
+    const run = { job_type: "comfy_run" as const, processed: 4 };
+    expect(jobThroughputLabel(finished(run))).toBe("25 s/file");
+    expect(jobThroughputLabel(finished({ ...run, generates: true }))).toBe("25 s/generation");
+  });
+
   it("stays quiet for a single file or a running job", () => {
     expect(jobThroughputLabel(finished({ processed: 1 }))).toBeNull();
     expect(jobThroughputLabel(job({ status: "running", processed: 40 }))).toBeNull();
@@ -131,7 +137,7 @@ describe("jobThroughputLabel", () => {
 
 describe("jobWorkflow", () => {
   it("names the ComfyUI preset a run used", () => {
-    expect(jobWorkflow(job({ job_type: "comfy_process", workflow: "upscale_2x" }))).toEqual({
+    expect(jobWorkflow(job({ job_type: "comfy_run", workflow: "upscale_2x" }))).toEqual({
       kind: "Workflow",
       name: "upscale_2x",
       edited: false,
@@ -150,7 +156,7 @@ describe("jobWorkflow", () => {
   });
 
   it("says nothing for runs from before the field existed or other job types", () => {
-    expect(jobWorkflow(job({ job_type: "comfy_process" }))).toBeNull();
+    expect(jobWorkflow(job({ job_type: "comfy_run" }))).toBeNull();
     expect(jobWorkflow(job({ workflow: "stray" }))).toBeNull();
   });
 });

@@ -54,7 +54,7 @@ for (const width of [1024, 1440]) {
                 scenario === "training"
                   ? "train_lora"
                   : scenario === "comfy"
-                    ? "comfy_process"
+                    ? "comfy_run"
                     : "auto_caption",
               status,
               effective_status: status,
@@ -80,6 +80,7 @@ for (const width of [1024, 1440]) {
                     ? "upscale_2x"
                     : null,
               workflow_edited: scenario === "training",
+              generates: false,
               undoable: false,
               created_at: "2026-01-01T00:00:00.000Z",
               started_at: "2026-01-01T00:00:00.000Z",

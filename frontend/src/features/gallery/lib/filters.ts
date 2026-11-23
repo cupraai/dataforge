@@ -125,7 +125,7 @@ const FILE_FILTER_EMPTY: Record<
     variant: "success",
     title: "No candidates",
     description:
-      "Nothing in this folder has a candidate waiting. Run Edit with ComfyUI to create some.",
+      "Nothing in this folder has a candidate waiting. Run a ComfyUI workflow that edits files to create some.",
     matchedTitle: "No matching candidates",
     matchedDescription:
       "Nothing in this folder has a candidate waiting that the caption filter also keeps.",

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from automation_settings import (
-    COMFY_GENERATE_JOB_TYPE,
-    COMFY_PROCESS_JOB_TYPE,
+    COMFY_RUN_JOB_TYPE,
     JOB_SETTINGS_MODELS,
     automation_settings_key,
     get_automation_settings,
@@ -16,10 +16,8 @@ from schemas import (
     AutomationSettingsResponse,
     BackupCaptionsStartRequest,
     BatchRenameStartRequest,
-    ComfyGenerateSettingsResponse,
-    ComfyGenerateStartRequest,
-    ComfyProcessSettingsResponse,
-    ComfyProcessStartRequest,
+    ComfyRunSettingsResponse,
+    ComfyRunStartRequest,
     ComfyShowcaseStartRequest,
     EditCaptionsStartRequest,
     FindDuplicatesStartRequest,
@@ -63,7 +61,7 @@ class RegistryShapeTests(unittest.TestCase):
         response_jobs = set(AutomationSettingsResponse.model_fields) - {"folder_path"}
 
         self.assertEqual(
-            set(JOB_SETTINGS_MODELS) | {COMFY_PROCESS_JOB_TYPE, COMFY_GENERATE_JOB_TYPE},
+            set(JOB_SETTINGS_MODELS) | {COMFY_RUN_JOB_TYPE},
             response_jobs,
         )
 
@@ -187,82 +185,65 @@ class RememberJobSettingsTests(unittest.TestCase):
         self.assertTrue(get_automation_settings(folder_path="C:/Photos").folder_path)
 
 
-class ComfyProcessSettingsTests(unittest.TestCase):
+class ComfyRunSettingsTests(unittest.TestCase):
     def setUp(self) -> None:
         _clear()
+        # No preset files exist here; a name containing "txt2img" stands for a generation one.
+        patcher = patch(
+            "automation_settings.comfy_run_generates",
+            side_effect=lambda preset, source: "txt2img" in preset,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self) -> None:
         _clear()
 
     def _remember(self, folder_path: str = r"C:\Photos", **settings: object) -> None:
         remember_job_settings(
-            COMFY_PROCESS_JOB_TYPE,
-            ComfyProcessStartRequest.model_validate(settings),
+            COMFY_RUN_JOB_TYPE,
+            ComfyRunStartRequest.model_validate(settings),
             folder_path=folder_path,
         )
 
-    def test_it_reads_empty_before_any_run(self) -> None:
-        self.assertEqual(
-            get_automation_settings(folder_path=r"C:\Photos").comfy_process,
-            ComfyProcessSettingsResponse(),
-        )
+    def _stored(self, folder_path: str = r"C:\Photos") -> ComfyRunSettingsResponse:
+        return get_automation_settings(folder_path=folder_path).comfy_run
+
+    def test_it_reads_the_defaults_before_any_run(self) -> None:
+        self.assertEqual(self._stored(), ComfyRunSettingsResponse())
 
     def test_a_preset_without_a_prompt_keeps_the_other_presets_prompt(self) -> None:
-        self._remember(preset="txt2img", seed=42, prompt_text="a lake")
+        self._remember(preset="fix-faces", seed=42, prompt_text="no watermark")
         self._remember(preset="upscale", seed=None, prompt_text="")
 
-        stored = get_automation_settings(folder_path=r"C:\Photos").comfy_process
+        stored = self._stored()
         self.assertEqual(stored.preset, "upscale")
-        self.assertEqual(stored.by_preset["txt2img"].prompt_text, "a lake")
-        self.assertEqual(stored.by_preset["txt2img"].seed, 42)
+        self.assertEqual(stored.by_preset["fix-faces"].prompt_text, "no watermark")
+        self.assertEqual(stored.by_preset["fix-faces"].seed, 42)
         self.assertEqual(stored.by_preset["upscale"].prompt_text, "")
 
     def test_the_overwrite_checkbox_stays_per_folder(self) -> None:
-        self._remember(folder_path=r"C:\Photos", preset="txt2img", overwrite_candidates=True)
-        self._remember(folder_path=r"C:\Renders", preset="txt2img", overwrite_candidates=False)
+        self._remember(folder_path=r"C:\Photos", preset="upscale", overwrite_candidates=True)
+        self._remember(folder_path=r"C:\Renders", preset="upscale", overwrite_candidates=False)
 
-        photos = get_automation_settings(folder_path=r"C:\Photos").comfy_process
+        photos = self._stored()
         self.assertTrue(photos.overwrite_candidates)
-        self.assertNotIn("overwrite_candidates", photos.by_preset["txt2img"].model_dump())
-        self.assertFalse(
-            get_automation_settings(folder_path=r"C:\Renders").comfy_process.overwrite_candidates
-        )
+        self.assertNotIn("overwrite_candidates", photos.by_preset["upscale"].model_dump())
+        self.assertFalse(self._stored(r"C:\Renders").overwrite_candidates)
 
     def test_settings_follow_the_preset_across_folders(self) -> None:
-        self._remember(folder_path=r"C:\Photos", preset="txt2img", prompt_text="a lake")
+        self._remember(folder_path=r"C:\Photos", preset="upscale", prompt_text="crisp")
 
-        stored = get_automation_settings(folder_path=r"C:\Renders").comfy_process
-        self.assertEqual(stored.preset, "txt2img")
-        self.assertEqual(stored.by_preset["txt2img"].prompt_text, "a lake")
+        stored = self._stored(r"C:\Renders")
+        self.assertEqual(stored.preset, "upscale")
+        self.assertEqual(stored.by_preset["upscale"].prompt_text, "crisp")
 
     def test_it_never_stores_the_selection(self) -> None:
-        self._remember(preset="txt2img", paths=[r"C:\Photos\one.png"])
+        self._remember(preset="upscale", paths=[r"C:\Photos\one.png"])
 
-        stored = get_automation_settings(folder_path=r"C:\Photos").comfy_process
-        self.assertNotIn("paths", stored.by_preset["txt2img"].model_dump())
+        self.assertNotIn("paths", self._stored().by_preset["upscale"].model_dump())
 
-
-class ComfyGenerateSettingsTests(unittest.TestCase):
-    def setUp(self) -> None:
-        _clear()
-
-    def tearDown(self) -> None:
-        _clear()
-
-    def _remember(self, folder_path: str = r"C:\Photos", **settings: object) -> None:
-        remember_job_settings(
-            COMFY_GENERATE_JOB_TYPE,
-            ComfyGenerateStartRequest.model_validate(settings),
-            folder_path=folder_path,
-        )
-
-    def test_it_reads_the_defaults_before_any_run(self) -> None:
-        self.assertEqual(
-            get_automation_settings(folder_path=r"C:\Photos").comfy_generate,
-            ComfyGenerateSettingsResponse(),
-        )
-
-    def test_prompts_follow_the_preset_the_output_stays_per_folder_and_seeds_go(self) -> None:
+    def test_a_generation_forgets_its_seed_and_keeps_its_output_per_folder(self) -> None:
         self._remember(
             folder_path=r"C:\Photos",
             preset="txt2img",
@@ -273,14 +254,14 @@ class ComfyGenerateSettingsTests(unittest.TestCase):
             caption_from_prompt=True,
         )
 
-        renders = get_automation_settings(folder_path=r"C:\Renders").comfy_generate
+        renders = self._stored(r"C:\Renders")
         self.assertEqual(renders.preset, "txt2img")
         self.assertEqual(renders.by_preset["txt2img"].prompt_text, "a lake")
         # A remembered seed would repeat the last images; the next open draws at random.
         self.assertIsNone(renders.by_preset["txt2img"].seed)
         self.assertNotIn("count", renders.by_preset["txt2img"].model_dump())
 
-        photos = get_automation_settings(folder_path=r"C:\Photos").comfy_generate
+        photos = self._stored()
         self.assertEqual(
             (photos.count, photos.name_prefix, photos.caption_from_prompt), (12, "lake", True)
         )
@@ -293,17 +274,7 @@ class ComfyGenerateSettingsTests(unittest.TestCase):
             source={"path": r"C:\Photos\render_0001.png", "node_id": "9"},
         )
 
-        self.assertEqual(
-            get_automation_settings(folder_path=r"C:\Photos").comfy_generate,
-            ComfyGenerateSettingsResponse(),
-        )
-
-    def test_it_keeps_apart_from_the_edit_jobs_presets(self) -> None:
-        self._remember(preset="txt2img", prompt_text="a lake")
-
-        stored = get_automation_settings(folder_path=r"C:\Photos")
-        self.assertEqual(stored.comfy_process.by_preset, {})
-        self.assertEqual(stored.comfy_process.preset, "")
+        self.assertEqual(self._stored(), ComfyRunSettingsResponse())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import threading
 import unittest
 import uuid
@@ -141,7 +142,7 @@ class JobManagerExecutionTests(unittest.TestCase):
             return None
 
         cases = [
-            ("comfy_process", {"preset": "upscale_2x"}, ("upscale_2x", False)),
+            ("comfy_run", {"preset": "upscale_2x"}, ("upscale_2x", False)),
             ("train_lora", {"model": "qwen_image_2"}, ("qwen_image_2", False)),
             ("train_lora", {"model": "krea2_turbo", "template": "job: x"}, ("krea2_turbo", True)),
             ("strip_metadata", {}, (None, False)),
@@ -158,6 +159,41 @@ class JobManagerExecutionTests(unittest.TestCase):
                 self.assertEqual((finished.workflow, finished.workflow_edited), expected)
                 assert stored is not None
                 self.assertEqual((stored["workflow"], stored["workflow_edited"]), expected)
+
+    def test_a_comfy_run_that_generates_is_recorded_and_reports_as_generations(self) -> None:
+        def fail_one(folder, **_params):
+            stats = {"total": 2, "success": 1, "comfy_error": 1}
+            return {
+                "folder": str(folder),
+                "total": 2,
+                "processed": 2,
+                "stats": stats,
+                "results": [],
+            }
+
+        def accept(_folder, **_params):
+            return None
+
+        for generates, wording in ((True, "generation"), (False, "process 1 file")):
+            with self.subTest(generates=generates):
+                reset_job_manager()
+                spec = replace(
+                    JOB_SPECS["comfy_run"],
+                    run=fail_one,
+                    validate=accept,
+                    generates=lambda _params, made=generates: made,
+                )
+                with TempMediaFolder() as root, patch.dict(JOB_SPECS, {"comfy_run": spec}):
+                    write_media(root, "photo.png")
+                    queued = job_manager.queue_job("comfy_run", root, preset="txt2img")
+                    finished = wait_for_job(queued.id)
+                    stored = get_job_from_store(finished.id)
+
+                self.assertIs(finished.generates, generates)
+                assert stored is not None
+                self.assertIs(stored["generates"], generates)
+                self.assertEqual(finished.status, "failed")
+                self.assertIn(wording, finished.error or "")
 
     def test_auto_caption_api_errors_mark_job_failed(self) -> None:
         with TempMediaFolder() as root:
@@ -283,6 +319,42 @@ class FolderQueueTests(unittest.TestCase):
             self.assertEqual(wait_for_job(waiting.id).status, "completed")
 
         self.assertEqual(ran, ["second"])
+
+    def test_a_job_that_could_not_be_saved_does_not_hold_the_folder(self) -> None:
+        with TempMediaFolder() as root, self._queue(root, _Gate(), lambda *_a, **_k: _finished()):
+            write_media(root, "photo.png")
+            with (
+                patch.object(jobs_store, "save_job", side_effect=sqlite3.OperationalError("x")),
+                self.assertRaises(sqlite3.OperationalError),
+            ):
+                job_manager.queue_job("strip_metadata", root)
+
+            self.assertIsNone(job_manager.get_active_job_for_folder(str(root.resolve())))
+            job = job_manager.queue_job("set_captions", root, caption="x", overwrite=True)
+            self.assertEqual(wait_for_job(job.id).status, "completed")
+
+    def test_a_workflow_that_could_not_be_saved_leaves_no_steps_behind(self) -> None:
+        save_job = jobs_store.save_job
+        saves: list[str] = []
+
+        def fail_second(job: dict[str, object]) -> None:
+            saves.append(str(job["id"]))
+            if len(saves) == 2:
+                raise sqlite3.OperationalError("x")
+            save_job(job)
+
+        with TempMediaFolder() as root, self._queue(root, _Gate(), lambda *_a, **_k: _finished()):
+            write_media(root, "photo.png")
+            steps = [("set_captions", {"caption": "x", "overwrite": True}), ("find_duplicates", {})]
+            with (
+                patch.object(jobs_store, "save_job", side_effect=fail_second),
+                self.assertRaises(sqlite3.OperationalError),
+            ):
+                job_manager.queue_workflow(root, steps, "Flow")
+
+            self.assertEqual(job_manager.queued_jobs(str(root)), [])
+            self.assertIsNone(job_manager.get_active_job_for_folder(str(root.resolve())))
+            self.assertIsNone(get_job_from_store(saves[0]))
 
     def test_the_folder_job_is_the_running_one_not_the_newer_queued_one(self) -> None:
         first = _Gate()

@@ -29,8 +29,8 @@ type UseAutomationHostOptions = {
   syspromptApplies: boolean;
   hasCaptionBackup: boolean;
   ostrisAvailable: boolean;
-  comfyPresetsAvailable: boolean;
-  comfyGeneratePresetsAvailable: boolean;
+  comfyEditPresetsAvailable: boolean;
+  comfyRunPresetsAvailable: boolean;
   comfyShowcasePresetsAvailable: boolean;
   getJobPaths: () => string[] | undefined;
   jobScopeKind?: BulkScopeKind;
@@ -56,8 +56,8 @@ export function useAutomationHost({
   syspromptApplies,
   hasCaptionBackup,
   ostrisAvailable,
-  comfyPresetsAvailable,
-  comfyGeneratePresetsAvailable,
+  comfyEditPresetsAvailable,
+  comfyRunPresetsAvailable,
   comfyShowcasePresetsAvailable,
   getJobPaths,
   jobScopeKind,
@@ -97,7 +97,7 @@ export function useAutomationHost({
     folderItemCount: items.length,
     getJobPaths,
     queuedAfter,
-    comfyPresetsAvailable,
+    comfyEditPresetsAvailable,
     runWorkflow: automation.runWorkflow,
     startingWorkflow: automation.startingWorkflow,
   });
@@ -134,15 +134,13 @@ export function useAutomationHost({
         syspromptApplies,
         hasCaptionBackup,
         ostrisAvailable,
-        comfyPresetsAvailable,
-        comfyGeneratePresetsAvailable,
+        comfyRunPresetsAvailable,
         comfyShowcasePresetsAvailable,
       },
     }),
     [
       automation.startingJobType,
-      comfyGeneratePresetsAvailable,
-      comfyPresetsAvailable,
+      comfyRunPresetsAvailable,
       comfyShowcasePresetsAvailable,
       folder,
       hasCaptionBackup,
@@ -190,12 +188,12 @@ export function useAutomationHost({
   /** Generate with a file's own workflow: no preset is needed, so only the folder can block it. */
   const openEmbeddedGenerate = useCallback(
     (embedded: EmbeddedGenerateWorkflow) => {
-      const block = jobStartBlock("comfy_generate", {
+      const block = jobStartBlock("comfy_run", {
         ...startContext,
-        availability: { ...startContext.availability, comfyGeneratePresetsAvailable: true },
+        availability: { ...startContext.availability, comfyRunPresetsAvailable: true },
       });
       if (block.blocked) return;
-      openDialogForJobType("comfy_generate", { embedded });
+      openDialogForJobType("comfy_run", { embedded });
     },
     [openDialogForJobType, startContext],
   );

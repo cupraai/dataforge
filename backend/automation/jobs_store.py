@@ -38,6 +38,7 @@ _JOB_SCHEMA: tuple[tuple[str, str], ...] = (
     ("workflow_edited", "INTEGER NOT NULL DEFAULT 0"),
     ("revision", "INTEGER NOT NULL DEFAULT 0"),
     ("workflow_run_json", "TEXT"),
+    ("generates", "INTEGER NOT NULL DEFAULT 0"),
 )
 
 _JOB_COLUMN_NAMES = tuple(name for name, _ in _JOB_SCHEMA)
@@ -149,6 +150,7 @@ def _row_to_dict(row: tuple, columns: tuple[str, ...] = _JOB_COLUMN_NAMES) -> di
         "processed": int(values["processed"] or 0),
         "revision": int(values["revision"] or 0),
         "workflow_edited": bool(values["workflow_edited"]),
+        "generates": bool(values["generates"]),
         "undoable": bool(undoable),
         "stats": {key: int(value) for key, value in stats.items()},
         "workflow_run": workflow_run or None,
@@ -177,8 +179,8 @@ def _job_column_value(job: dict[str, object], column: str) -> object:
     if column in {"total", "processed", "revision"}:
         value = job.get(column)
         return value if isinstance(value, int) and not isinstance(value, bool) else 0
-    if column == "workflow_edited":
-        return 1 if job.get("workflow_edited") is True else 0
+    if column in {"workflow_edited", "generates"}:
+        return 1 if job.get(column) is True else 0
     if column == "stats_json":
         return json.dumps(job.get("stats") or {})
     if column == "results_json":

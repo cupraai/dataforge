@@ -44,7 +44,6 @@ function settings(
 ): JobSettingsByType["comfy_showcase"] {
   return {
     preset: "t2i",
-    inputs: {},
     items: [],
     subject_loras: [],
     name_prefix: "",
@@ -68,6 +67,7 @@ function trainingJob(folder: string): Job {
     created_at: "2026-11-20T10:00:00Z",
     revision: 1,
     workflow_edited: false,
+    generates: false,
     undoable: false,
     external_ref: "subject",
   };
@@ -120,6 +120,20 @@ describe("ComfyShowcaseDialog", () => {
     expect(within(list).queryByRole("radio", { name: "upscale" })).not.toBeInTheDocument();
   });
 
+  it("explains the prompt and the seed each beside its own field", async () => {
+    installMockBackend();
+    renderDialog();
+
+    await screen.findByRole("radio", { name: "t2i" });
+
+    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
+      "Empty runs the preset's own prompt.",
+    );
+    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
+      "An empty seed is random, alike for every LoRA.",
+    );
+  });
+
   it("asks for the LoRA before it starts", async () => {
     installMockBackend();
     const user = userEvent.setup();
@@ -163,7 +177,6 @@ describe("ComfyShowcaseDialog", () => {
 
     expect(onConfirm).toHaveBeenCalledWith({
       preset: "t2i",
-      inputs: {},
       items: [
         {
           label: "Beach",

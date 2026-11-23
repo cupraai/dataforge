@@ -353,7 +353,7 @@ function JobActivity({
           <IconButton
             icon={iconX}
             label="Dismiss job status"
-            size="sm"
+            size="2xs"
             tooltip={false}
             className="workspace-activity__dismiss"
             onClick={onDismiss}

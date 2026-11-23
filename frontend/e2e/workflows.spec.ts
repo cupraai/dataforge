@@ -42,6 +42,7 @@ function job(id: string, jobType: Job["job_type"], status: Job["status"], create
     external_ref: null,
     workflow: null,
     workflow_edited: false,
+    generates: false,
     undoable: false,
     created_at: createdAt,
     started_at: status === "running" ? createdAt : null,

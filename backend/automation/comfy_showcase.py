@@ -1,4 +1,4 @@
-"""Create showcase: items with their own prompts and LoRAs, each run with the LoRA showcased.
+"""LoRA showcase: items with their own prompts and LoRAs, each run with the LoRA showcased.
 
 Several showcased LoRAs compare them: every item renders once per LoRA with one seed, so only
 the LoRA differs. Results are numbered like Generate's, and can be laid out on a sheet.

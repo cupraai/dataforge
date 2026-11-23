@@ -13,7 +13,7 @@ const stepDialogs = {
   itemCount: 4,
   folderItemCount: 4,
   scopeKind: "folder" as const,
-  comfyPresetsAvailable: false,
+  comfyEditPresetsAvailable: false,
 };
 
 const prep: Workflow = {

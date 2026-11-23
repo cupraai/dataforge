@@ -850,9 +850,9 @@
   }
 }
 
-// Both ComfyUI dialogs take the workflow editor's footprint and its three-column shape: the
+// The ComfyUI dialogs take the workflow editor's footprint and its three-column shape: the
 // presets down the side, the selected one's map in the middle, the values it takes on the right.
-.dialog__panel:is(.comfy-process-dialog, .comfy-generate-dialog, .comfy-showcase-dialog) {
+.dialog__panel:is(.comfy-run-dialog, .comfy-showcase-dialog) {
   display: flex;
   flex-direction: column;
   width: min($dialog-width-full, 100%);
@@ -998,7 +998,7 @@
     }
   }
 
-  // Belongs to the prompt and seed, not a field of its own.
+  // Belongs to the field above it, not a field of its own.
   &__hint {
     margin-top: -0.5rem;
   }
@@ -1016,6 +1016,11 @@
     // The gap spaces the section's fields.
     > .field {
       margin-top: 0;
+    }
+
+    // As close to its fields as the prompt hint is to the prompt.
+    > .comfy-preset-layout__hint {
+      margin-top: -0.375rem;
     }
   }
 
@@ -1197,7 +1202,7 @@
   }
 }
 
-.comfy-generate-dialog {
+.comfy-run-dialog {
   &__output {
     grid-template-columns: 7rem minmax(0, 1fr);
   }

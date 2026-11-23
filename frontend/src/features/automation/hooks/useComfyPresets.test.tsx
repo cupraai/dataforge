@@ -3,8 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyPresets, fetchComfyWorkflowMap } from "@/features/automation/api/jobs";
-import { ComfyGenerateDialog } from "@/features/automation/components/ComfyGenerateDialog";
-import { ComfyProcessDialog } from "@/features/automation/components/ComfyProcessDialog";
+import { ComfyRunDialog } from "@/features/automation/components/ComfyRunDialog";
 import { ComfyShowcaseDialog } from "@/features/automation/components/ComfyShowcaseDialog";
 import { emptyAutomationSettings } from "@/features/automation/preferences/automationPreferences";
 import { useLiveComfyPresets } from "@/features/automation/hooks/useComfyPresets";
@@ -41,35 +40,31 @@ function listPresets(names: string[], generates: boolean) {
   fetchPresets.mockResolvedValue({ presets, available: true, base_url: "http://127.0.0.1:9000" });
 }
 
+const runDialog = (
+  <ComfyRunDialog
+    scope={SCOPE}
+    destinationScope={{ ...SCOPE, kind: "destination" }}
+    initialSettings={SETTINGS.comfy_run}
+    onConfirm={noop}
+    onCancel={noop}
+  />
+);
+
 const DIALOGS: { title: string; generates: boolean; start: string; dialog: ReactNode }[] = [
   {
-    title: "Edit with ComfyUI",
+    title: "Run ComfyUI workflow, editing",
     generates: false,
     start: "Start processing",
-    dialog: (
-      <ComfyProcessDialog
-        scope={SCOPE}
-        initialSettings={SETTINGS.comfy_process}
-        onConfirm={noop}
-        onCancel={noop}
-      />
-    ),
+    dialog: runDialog,
   },
   {
-    title: "Generate with ComfyUI",
+    title: "Run ComfyUI workflow, generating",
     generates: true,
     start: "Start generating",
-    dialog: (
-      <ComfyGenerateDialog
-        scope={SCOPE}
-        initialSettings={SETTINGS.comfy_generate}
-        onConfirm={noop}
-        onCancel={noop}
-      />
-    ),
+    dialog: runDialog,
   },
   {
-    title: "Create showcase",
+    title: "LoRA showcase",
     generates: true,
     start: "Start showcase",
     dialog: (

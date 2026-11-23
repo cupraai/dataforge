@@ -49,7 +49,7 @@ type GalleryOverlayState = {
   onResolveIssue?: (item: GalleryItem) => void;
   onReviewCandidate?: (item: GalleryItem) => void;
   onResolveDuplicate?: (item: GalleryItem) => void;
-  /** Opens Generate with ComfyUI on one output of the file's own workflow. */
+  /** Opens Run ComfyUI workflow on one output of the file's own workflow. */
   onGenerateFromWorkflow?: (workflow: EmbeddedGenerateWorkflow) => void;
 };
 

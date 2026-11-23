@@ -61,6 +61,7 @@ export function job(options: Partial<Job> = {}): Job {
   return {
     workflow_edited: false,
     undoable: false,
+    generates: false,
     id: "job-1",
     folder,
     folder_name: folder.slice(folder.lastIndexOf("\\") + 1),

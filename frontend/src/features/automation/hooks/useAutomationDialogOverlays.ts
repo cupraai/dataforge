@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { trainLoraBody, type TrainLoraSettings } from "@/features/automation/api/jobs";
-import type { ComfyGenerateSettings } from "@/features/automation/components/ComfyGenerateDialog";
-import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
+import type { ComfyRunSettings } from "@/features/automation/components/ComfyRunDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
 import {
   loadAutomationSettings,
@@ -10,7 +9,7 @@ import {
   type JobSettingsByType,
 } from "@/features/automation/preferences/automationPreferences";
 import type { AutomationDialogsState, EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
+import { GENERATING_JOBS, MAY_GENERATE_JOBS } from "@/features/jobs/lib/generatingJobs";
 import type { JobStartBodies, JobStartBody } from "@/shared/api/jobStartBodies";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import {
@@ -58,13 +57,19 @@ type UseAutomationDialogOverlaysOptions = {
 /** Jobs the selection cannot narrow: they read the whole folder, or no files at all. */
 const FOLDER_WIDE_JOBS: ReadonlySet<JobType> = new Set<JobType>(["train_lora", ...GENERATING_JOBS]);
 
+/** Opens on an empty scope: generating needs none, and the dialog refuses an edit itself. */
+const OPENS_WITHOUT_FILES: ReadonlySet<JobType> = new Set<JobType>([
+  ...FOLDER_WIDE_JOBS,
+  ...MAY_GENERATE_JOBS,
+]);
+
 const NO_ITEMS: readonly GalleryItem[] = [];
 
 /** What `openDialogForJobType` can preset: the scope, and a workflow step's own settings. */
 export interface DialogOpenOverride extends Partial<BulkScopeSnapshot> {
   /** Shown instead of the folder's remembered settings, in the dialog's own settings shape. */
   initialSettings?: unknown;
-  /** Generate with ComfyUI runs this file's own workflow instead of a preset. */
+  /** Run ComfyUI workflow generates with this file's own workflow instead of a preset. */
   embedded?: EmbeddedGenerateWorkflow;
 }
 
@@ -114,8 +119,11 @@ export function useAutomationDialogOverlays({
 
   /** Closes the dialog, then starts its job; a rejection is already reported by the context. */
   const startJobFromDialog = useCallback(
-    <T extends JobType>(jobType: T, body?: JobStartBodies[T]) => {
-      const folderWide = FOLDER_WIDE_JOBS.has(jobType);
+    <T extends JobType>(
+      jobType: T,
+      body?: JobStartBodies[T],
+      folderWide = FOLDER_WIDE_JOBS.has(jobType),
+    ) => {
       if (!folderPath || (!editingStep && !folderWide && snapshot?.paths?.length === 0)) return;
       closeDialog();
       startJob(jobType, folderPath, body, folderWide ? undefined : snapshot?.paths).catch(() => {});
@@ -231,33 +239,37 @@ export function useAutomationDialogOverlays({
         onConfirm: (settings: JobSettingsByType["watermark"]) =>
           startJobFromDialog("watermark", settings),
       },
-      comfyProcess: {
-        ...shared("comfy_process"),
-        onConfirm: (draft: ComfyProcessSettings) =>
-          startJobFromDialog("comfy_process", {
-            preset: draft.preset,
+      comfyRun: {
+        ...shared("comfy_run"),
+        destinationScope: generateScope,
+        editOnly: editingStep,
+        embedded,
+        onConfirm: (draft: ComfyRunSettings) => {
+          const edit = {
+            // A file's own workflow has no preset; its stem only names it in the dialog.
+            preset: embedded ? "" : draft.preset,
             seed: draft.seed,
             prompt_text: draft.promptText,
             inputs: draft.inputs,
             overwrite_candidates: draft.overwriteCandidates,
-          }),
-      },
-      comfyGenerate: {
-        ...shared("comfy_generate"),
-        scope: generateScope,
-        embedded,
-        onConfirm: (draft: ComfyGenerateSettings) =>
-          startJobFromDialog("comfy_generate", {
-            // A file's own workflow has no preset; its stem only names it in the dialog.
-            preset: embedded ? "" : draft.preset,
-            ...(embedded && { source: { path: embedded.mediaPath, node_id: embedded.nodeId } }),
-            seed: draft.seed,
-            prompt_text: draft.promptText,
-            inputs: draft.inputs,
-            count: draft.count,
-            name_prefix: draft.namePrefix,
-            caption_from_prompt: draft.captionFromPrompt,
-          }),
+          };
+          // A step keeps exactly what it runs with; a job sends the rest so it is remembered.
+          startJobFromDialog(
+            "comfy_run",
+            editingStep
+              ? edit
+              : {
+                  ...edit,
+                  ...(embedded && {
+                    source: { path: embedded.mediaPath, node_id: embedded.nodeId },
+                  }),
+                  count: draft.count,
+                  name_prefix: draft.namePrefix,
+                  caption_from_prompt: draft.captionFromPrompt,
+                },
+            draft.generates,
+          );
+        },
       },
       comfyShowcase: {
         ...shared("comfy_showcase"),
@@ -355,7 +367,7 @@ export function useAutomationDialogOverlays({
     (jobType: JobType, override?: DialogOpenOverride) => {
       if (!folderPath) return;
       const paths = override?.paths ?? getJobPaths?.();
-      if (!editingStep && !FOLDER_WIDE_JOBS.has(jobType) && paths?.length === 0) return;
+      if (!editingStep && !OPENS_WITHOUT_FILES.has(jobType) && paths?.length === 0) return;
       setSnapshot(
         snapshotBulkScope(override?.scope ?? { itemCount, folderLabel, kind: scopeKind }, paths),
       );

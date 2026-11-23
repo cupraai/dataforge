@@ -130,8 +130,7 @@ type JobType = Literal[
     "resize",
     "split_video",
     "trim_video",
-    "comfy_process",
-    "comfy_generate",
+    "comfy_run",
     "comfy_showcase",
 ]
 
@@ -1271,24 +1270,13 @@ class ComfyPresetSettings(BaseModel):
     inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
 
 
-class ComfyProcessJobSettings(ComfyPresetSettings):
+class ComfyEditJobSettings(ComfyPresetSettings):
+    """What a preset that edits files runs with; a workflow step keeps exactly these."""
+
     #: A stem, not a Literal: unknown names are the job's own 400.
     preset: str = ""
     #: Off by default so a re-run picks up where the last stopped.
     overwrite_candidates: bool = False
-
-
-class ComfyProcessStartRequest(JobSelectionRequest, ComfyProcessJobSettings):
-    pass
-
-
-class ComfyProcessSettingsResponse(BaseModel):
-    """Prompt and seed are remembered per preset; the checkbox stays per folder."""
-
-    #: The preset of the most recent run, in any folder.
-    preset: str = ""
-    overwrite_candidates: bool = False
-    by_preset: dict[str, ComfyPresetSettings] = Field(default_factory=dict)
 
 
 class ComfyGenerateOutputSettings(BaseModel):
@@ -1301,9 +1289,9 @@ class ComfyGenerateOutputSettings(BaseModel):
     caption_from_prompt: bool = False
 
 
-class ComfyGenerateJobSettings(ComfyPresetSettings, ComfyGenerateOutputSettings):
-    #: A stem, not a Literal: unknown names are the job's own 400.
-    preset: str = ""
+class ComfyRunJobSettings(ComfyEditJobSettings, ComfyGenerateOutputSettings):
+    """The preset decides which half applies: one with a source loader edits the scope's files
+    into candidates, one without makes new files and ignores the scope."""
 
 
 class ComfyEmbeddedSource(BaseModel):
@@ -1313,18 +1301,19 @@ class ComfyEmbeddedSource(BaseModel):
     node_id: str = Field(description="The output node the workflow is trimmed to")
 
 
-class ComfyGenerateStartRequest(JobSelectionRequest, ComfyGenerateJobSettings):
-    """``paths`` is accepted like every job's and ignored: generation reads no files."""
+class ComfyRunStartRequest(JobSelectionRequest, ComfyRunJobSettings):
+    """A generation preset accepts ``paths`` like every job and ignores them."""
 
     #: Runs a file's own workflow instead of ``preset``, once: nothing is saved or remembered.
     source: ComfyEmbeddedSource | None = None
 
 
-class ComfyGenerateSettingsResponse(ComfyGenerateOutputSettings):
-    """Prompt, seed and inputs per preset, like Edit with ComfyUI's; the rest per folder."""
+class ComfyRunSettingsResponse(ComfyGenerateOutputSettings):
+    """Prompt, seed and inputs per preset; the rest per folder."""
 
-    #: The preset of the most recent generation, in any folder.
+    #: The preset of the most recent run, in any folder.
     preset: str = ""
+    overwrite_candidates: bool = False
     by_preset: dict[str, ComfyPresetSettings] = Field(default_factory=dict)
 
 
@@ -1338,7 +1327,7 @@ class ComfyPresetInput(BaseModel):
 
 
 class ComfyEmbeddedGeneration(BaseModel):
-    """What an embedded output takes when Generate with ComfyUI runs it."""
+    """What an embedded output takes when Run ComfyUI workflow generates with it."""
 
     accepts_prompt: bool
     accepts_seed: bool
@@ -1355,7 +1344,7 @@ class ComfyPresetSummary(BaseModel):
     accepts_seed: bool | None = None
     #: Empty for an unparseable preset too; queueing it names the fix.
     inputs: list[ComfyPresetInput] = Field(default_factory=list)
-    #: True without a source loader: listed under Generate, not Edit. Null when unparseable.
+    #: True without a source loader: it makes new files instead. Null when unparseable.
     generates: bool | None = None
     #: Whether a showcase can chain LoRAs after its model; null when unparseable.
     accepts_loras: bool | None = None
@@ -1409,7 +1398,7 @@ class ComfyShowcaseItem(BaseModel):
     loras: list[ComfyShowcaseLora] = Field(default_factory=list, max_length=MAX_SHOWCASE_ITEM_LORAS)
     #: None draws one random seed for the item, reused for every LoRA compared.
     seed: int | None = Field(None, ge=0)
-    #: Over the showcase's own ``inputs``, by custom input name.
+    #: By custom input name; a missing name runs the value the preset was saved with.
     inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
     #: Absolute path of the start file; none runs the preset without its source loader.
     source_path: str | None = None
@@ -1420,8 +1409,6 @@ class ComfyShowcaseContent(BaseModel):
 
     #: A stem, not a Literal: unknown names are the job's own 400.
     preset: str = ""
-    #: Every item's custom inputs unless the item overrides them.
-    inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
     items: list[ComfyShowcaseItem] = Field(default_factory=list, max_length=MAX_SHOWCASE_ITEMS)
 
 
@@ -1630,9 +1617,11 @@ class TrimVideoStep(BaseModel):
     settings: TrimVideoRunSettings = Field(default_factory=TrimVideoRunSettings)
 
 
-class ComfyProcessStep(BaseModel):
-    job_type: Literal["comfy_process"] = "comfy_process"
-    settings: ComfyProcessJobSettings = Field(default_factory=ComfyProcessJobSettings)
+class ComfyRunStep(BaseModel):
+    """Only a preset that edits files can be a step: generation makes files outside the scope."""
+
+    job_type: Literal["comfy_run"] = "comfy_run"
+    settings: ComfyEditJobSettings = Field(default_factory=ComfyEditJobSettings)
 
 
 #: Every job but LoRA training, whose run name is a per-run resume key and which ignores the scope.
@@ -1653,7 +1642,7 @@ type WorkflowStep = Annotated[
     | ResizeStep
     | SplitVideoStep
     | TrimVideoStep
-    | ComfyProcessStep,
+    | ComfyRunStep,
     Field(discriminator="job_type"),
 ]
 
@@ -1717,12 +1706,7 @@ class AutomationSettingsResponse(BaseModel):
     resize: ResizeJobSettings = Field(default_factory=ResizeJobSettings)
     split_video: SplitVideoJobSettings = Field(default_factory=SplitVideoJobSettings)
     trim_video: TrimVideoJobSettings = Field(default_factory=TrimVideoJobSettings)
-    comfy_process: ComfyProcessSettingsResponse = Field(
-        default_factory=ComfyProcessSettingsResponse
-    )
-    comfy_generate: ComfyGenerateSettingsResponse = Field(
-        default_factory=ComfyGenerateSettingsResponse
-    )
+    comfy_run: ComfyRunSettingsResponse = Field(default_factory=ComfyRunSettingsResponse)
     comfy_showcase: ComfyShowcaseJobSettings = Field(default_factory=ComfyShowcaseJobSettings)
 
 
@@ -1787,6 +1771,8 @@ class JobResponse(BaseModel):
     undoable: bool = False
     #: Set when the job was queued as a step of a workflow.
     workflow_run: WorkflowRunTag | None = None
+    #: It writes new files instead of changing the scope's, so it counts generations.
+    generates: bool = False
 
 
 class WorkflowRunResponse(BaseModel):

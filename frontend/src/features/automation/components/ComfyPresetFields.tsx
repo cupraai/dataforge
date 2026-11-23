@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 import type {
   ComfyPresetForm,
   ComfyFormKind,
+  ComfyRunMode,
 } from "@/features/automation/hooks/useComfyPresetForm";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ComfyWorkflowMapRequest } from "@/shared/types";
@@ -11,89 +12,67 @@ import { ComfyPresetSection, ComfyStatus } from "./ComfyPresetSection";
 import { ComfyPromptField } from "./ComfyPromptField";
 import { CustomInputField } from "./CustomInputField";
 
-const PROMPT_PLACEHOLDERS: Record<ComfyFormKind, string> = {
+const PROMPT_PLACEHOLDERS: Record<ComfyRunMode, string> = {
   edit: "e.g. sharp studio photograph, no watermark",
   generate: "e.g. a lighthouse on a cliff at dusk",
 };
 
-const SEED_PLACEHOLDERS: Record<ComfyFormKind, string> = {
+const SEED_PLACEHOLDERS: Record<ComfyRunMode, string> = {
   edit: "e.g. 424242",
   generate: "Random",
 };
 
 function EmptyHint({ kind }: { kind: ComfyFormKind }) {
-  return kind === "generate" ? (
+  return kind === "edit" ? (
     <p className="field__hint">
-      No generation presets found. Export a workflow without a source loader from ComfyUI with{" "}
-      <strong>Save (API Format)</strong> into the <strong>comfy_workflows</strong> folder.
+      No presets that edit files found. Export one from ComfyUI with{" "}
+      <strong>Save (API Format)</strong> into the <strong>comfy_workflows</strong> folder, titling
+      its loader node <strong>DataForge Input</strong>.
     </p>
   ) : (
     <p className="field__hint">
       No workflow presets found. Export one from ComfyUI with <strong>Save (API Format)</strong>{" "}
-      into the <strong>comfy_workflows</strong> folder, titling its loader node{" "}
-      <strong>DataForge Input</strong>.
+      into the <strong>comfy_workflows</strong> folder. One whose loader node is titled{" "}
+      <strong>DataForge Input</strong> edits files; one without a loader makes new ones.
     </p>
   );
 }
 
-function NodeHint({
-  kind,
-  promptBlocked,
-  seedBlocked,
-}: {
-  kind: ComfyFormKind;
-  promptBlocked: boolean;
-  seedBlocked: boolean;
-}): ReactNode {
-  const prompt = <strong>DataForge Prompt</strong>;
+const PROMPT_NODE = <strong>DataForge Prompt</strong>;
+const SEED_NODE = <strong>DataForge Seed</strong>;
 
-  if (kind === "generate") {
-    if (promptBlocked && seedBlocked) {
-      return <>No {prompt} node or seed, so every generation runs exactly as saved.</>;
-    }
-    if (promptBlocked) {
-      return <>No {prompt} node, so the saved prompt runs. An empty seed is random each time.</>;
-    }
-    if (seedBlocked) {
-      return <>The prompt is optional. No seed to vary, so every generation runs alike.</>;
-    }
-    return <>Both optional. An empty seed is random each time; a number counts up from there.</>;
+function PromptHint({ mode, blocked }: { mode: ComfyRunMode; blocked: boolean }): ReactNode {
+  if (mode === "generate") {
+    return blocked ? (
+      <>No {PROMPT_NODE} node, so the saved prompt runs.</>
+    ) : (
+      <>Optional; empty runs the saved prompt.</>
+    );
   }
+  return blocked ? (
+    <>This preset has no {PROMPT_NODE} node, so the saved prompt runs.</>
+  ) : (
+    <>Optional; written into the preset&apos;s {PROMPT_NODE} node.</>
+  );
+}
 
-  const seedNode = <strong>DataForge Seed</strong>;
-  if (promptBlocked && seedBlocked) {
-    return (
-      <>
-        This preset has neither a {prompt} nor a {seedNode} node, so it runs exactly as saved.
-      </>
+function SeedHint({ mode, blocked }: { mode: ComfyRunMode; blocked: boolean }): ReactNode {
+  if (mode === "generate") {
+    return blocked ? (
+      <>No seed to vary, so every generation runs alike.</>
+    ) : (
+      <>An empty seed is random each time; a number counts up from there.</>
     );
   }
-  if (promptBlocked) {
-    return (
-      <>
-        This preset has no {prompt} node. The seed is optional and is written into its {seedNode}{" "}
-        node.
-      </>
-    );
-  }
-  if (seedBlocked) {
-    return (
-      <>
-        This preset has no {seedNode} node. The prompt is optional and is written into its {prompt}{" "}
-        node.
-      </>
-    );
-  }
-  return (
-    <>
-      Both optional; written into the preset&apos;s {prompt} and {seedNode} nodes.
-    </>
+  return blocked ? (
+    <>This preset has no {SEED_NODE} node to take a seed.</>
+  ) : (
+    <>Optional; written into the preset&apos;s {SEED_NODE} node.</>
   );
 }
 
 interface ComfyPresetFieldsProps {
   form: ComfyPresetForm;
-  kind: ComfyFormKind;
   busy: boolean;
   /** Called on every edit, so the dialog can clear a stale error. */
   onEdited: () => void;
@@ -108,15 +87,15 @@ interface ComfyPresetFieldsProps {
 /** Presets down the side, the selected one's map in the middle, its inputs on the right. */
 export function ComfyPresetFields({
   form,
-  kind,
   busy,
   onEdited,
   promptLabelEnd,
   children,
   embedded,
 }: ComfyPresetFieldsProps) {
-  const nodeHintId = useId();
-  const { state, preset, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
+  const promptHintId = useId();
+  const seedHintId = useId();
+  const { state, preset, mode, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
   const ready = state.status === "ready";
   const mapRequest: ComfyWorkflowMapRequest = embedded
     ? { source: { path: embedded.mediaPath, node_id: embedded.nodeId }, inputs: mapInputs }
@@ -131,7 +110,7 @@ export function ComfyPresetFields({
         value={preset}
         removed={form.removed}
         disabled={busy}
-        emptyHint={<EmptyHint kind={kind} />}
+        emptyHint={<EmptyHint kind={form.kind} />}
         onChange={(value) => {
           form.selectPreset(value);
           onEdited();
@@ -170,8 +149,8 @@ export function ComfyPresetFields({
         <ComfyPromptField
           value={draft.promptText}
           blocked={promptBlocked}
-          placeholder={PROMPT_PLACEHOLDERS[kind]}
-          hintId={nodeHintId}
+          placeholder={PROMPT_PLACEHOLDERS[mode]}
+          hintId={promptHintId}
           disabled={busy}
           labelEnd={promptLabelEnd}
           onChange={(promptText) => {
@@ -180,25 +159,24 @@ export function ComfyPresetFields({
           }}
         />
 
-        <p id={nodeHintId} className="field__hint comfy-preset-layout__hint">
-          <NodeHint kind={kind} promptBlocked={promptBlocked} seedBlocked={seedBlocked} />
+        <p id={promptHintId} className="field__hint comfy-preset-layout__hint">
+          <PromptHint mode={mode} blocked={promptBlocked} />
         </p>
 
         <fieldset className="comfy-preset-layout__section">
-          <legend className="comfy-preset-layout__section-label">Workflow inputs</legend>
           <div className="field-row comfy-preset-fields__inputs">
             <Field label="Seed">
               {(control) => (
                 <TextInput
                   {...control}
-                  aria-describedby={nodeHintId}
+                  aria-describedby={seedHintId}
                   type="number"
                   value={seedBlocked ? "" : draft.seedText}
                   onChange={(event) => {
                     form.updateDraft({ seedText: event.target.value });
                     onEdited();
                   }}
-                  placeholder={seedBlocked ? "None" : SEED_PLACEHOLDERS[kind]}
+                  placeholder={seedBlocked ? "None" : SEED_PLACEHOLDERS[mode]}
                   spellCheck={false}
                   autoComplete="off"
                   disabled={busy || seedBlocked}
@@ -218,6 +196,9 @@ export function ComfyPresetFields({
               />
             ))}
           </div>
+          <p id={seedHintId} className="field__hint comfy-preset-layout__hint">
+            <SeedHint mode={mode} blocked={seedBlocked} />
+          </p>
         </fieldset>
 
         {children && (

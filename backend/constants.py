@@ -280,9 +280,8 @@ JOB_TYPE_LABELS: dict[str, str] = {
     "resize": "Resize",
     "split_video": "Split into clips",
     "trim_video": "Trim to length",
-    "comfy_process": "Edit with ComfyUI",
-    "comfy_generate": "Generate with ComfyUI",
-    "comfy_showcase": "Create showcase",
+    "comfy_run": "Run ComfyUI workflow",
+    "comfy_showcase": "LoRA showcase",
 }
 
 #: Tones and colors span ±1, detail tools 0..1, hue is degrees.

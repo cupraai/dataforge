@@ -8,6 +8,7 @@ import type { Job } from "@/shared/types";
 
 const failedJob: Job = {
   workflow_edited: false,
+  generates: false,
   undoable: false,
   id: "job-auto-caption",
   folder: HOME_PATH,

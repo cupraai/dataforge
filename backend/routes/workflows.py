@@ -50,7 +50,15 @@ def run_workflow(
     try:
         selected_paths = resolve_selected_media(folder, body.paths)
         steps = [
-            (step.job_type, {**step.settings.model_dump(), "selected_paths": selected_paths})
+            (
+                step.job_type,
+                {
+                    **step.settings.model_dump(),
+                    "selected_paths": selected_paths,
+                    # A step runs on files chosen before a generation could make any.
+                    **({"edits_only": True} if step.job_type == "comfy_run" else {}),
+                },
+            )
             for step in workflow.steps
         ]
         jobs = job_manager.queue_workflow(folder, steps, workflow.name)

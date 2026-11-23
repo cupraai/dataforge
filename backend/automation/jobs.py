@@ -29,8 +29,7 @@ from automation.check_caption_rules import (
     run_check_caption_rules_job,
     validate_check_caption_rules_folder,
 )
-from automation.comfy_generate import run_comfy_generate_job, validate_comfy_generate_folder
-from automation.comfy_process import run_comfy_process_job, validate_comfy_process_folder
+from automation.comfy_run import comfy_run_generates, run_comfy_run_job, validate_comfy_run_folder
 from automation.comfy_showcase import run_comfy_showcase_job
 from automation.edit_captions import run_edit_captions_job, validate_edit_captions_folder
 from automation.find_duplicates import (
@@ -169,6 +168,8 @@ class Job:
     undoable: bool = False
     #: ``WorkflowRunTag`` fields when the job is a workflow step.
     workflow_run: dict[str, object] | None = None
+    #: Makes new files instead of changing the scope's; fixed when the job is queued.
+    generates: bool = False
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> Job:
@@ -197,6 +198,7 @@ class Job:
             revision=_stored_int(data, "revision"),
             undoable=data.get("undoable") is True,
             workflow_run=_stored_workflow_run(data),
+            generates=data.get("generates") is True,
         )
 
     def to_summary_dict(self) -> dict[str, object]:
@@ -211,7 +213,7 @@ class Job:
             "current_file": self.current_file,
             "current_name": self.current_name,
             "stats": self.stats,
-            "error": self.error or JOB_SPECS[self.job_type].failure(self.stats),
+            "error": self.error or JOB_SPECS[self.job_type].failure(self.stats, self.generates),
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
@@ -222,6 +224,7 @@ class Job:
             "revision": self.revision,
             "undoable": self.undoable,
             "workflow_run": self.workflow_run,
+            "generates": self.generates,
         }
 
     def to_dict(self) -> dict[str, object]:
@@ -306,25 +309,21 @@ def _comfy_inputs(params: dict[str, object]) -> dict[str, object]:
     return {str(name): value for name, value in inputs.items()} if isinstance(inputs, dict) else {}
 
 
-def _validate_comfy_process(folder: Path, **params: object) -> None:
-    validate_comfy_process_folder(
-        folder,
-        preset=str(params.get("preset", "")),
-        prompt_text=str(params.get("prompt_text", "")),
-        inputs=_comfy_inputs(params),
-        selected_paths=_selected_paths(params),
-    )
-
-
-def _validate_comfy_generate(folder: Path, **params: object) -> None:
-    validate_comfy_generate_folder(
+def _validate_comfy_run(folder: Path, **params: object) -> None:
+    validate_comfy_run_folder(
         folder,
         preset=str(params.get("preset", "")),
         prompt_text=str(params.get("prompt_text", "")),
         inputs=_comfy_inputs(params),
         name_prefix=str(params.get("name_prefix", "")),
         source=_comfy_source(params),
+        selected_paths=_selected_paths(params),
+        edits_only=params.get("edits_only") is True,
     )
+
+
+def _comfy_run_generates(params: dict[str, object]) -> bool:
+    return comfy_run_generates(str(params.get("preset", "")), _comfy_source(params))
 
 
 def _validate_comfy_showcase(folder: Path, **params: object) -> None:
@@ -350,7 +349,7 @@ def _comfy_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
     return str(params.get("preset", "")).strip() or None, False
 
 
-def _comfy_generate_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
+def _comfy_run_workflow(params: dict[str, object]) -> tuple[str | None, bool]:
     source = _comfy_source(params)
     if source is not None:
         return path_leaf_name(str(source.get("path", ""))) or None, False
@@ -376,19 +375,28 @@ class JobSpec:
     run: Callable[..., dict[str, object]]
     validate: Callable[..., None]
     failure_message: Callable[[dict[str, int]], str | None] | None = None
+    #: Replaces ``failure_message`` for a run that made new files.
+    generating_failure_message: Callable[[dict[str, int]], str | None] | None = None
     resume: Callable[[Job], dict[str, object] | None] | None = None
     external_ref: Callable[[dict[str, object]], str | None] | None = None
     default_caption_mode: AutomationMode | None = None
     workflow: Callable[[dict[str, object]], tuple[str | None, bool]] | None = None
+    #: Whether a run with these params makes new files; never otherwise.
+    generates: Callable[[dict[str, object]], bool] | None = None
 
-    def failure(self, stats: dict[str, int]) -> str | None:
-        return self.failure_message(stats) if self.failure_message else None
+    def failure(self, stats: dict[str, int], generates: bool = False) -> str | None:
+        message = (
+            self.generating_failure_message
+            if generates and self.generating_failure_message
+            else self.failure_message
+        )
+        return message(stats) if message else None
 
     def resolve_status(self, job: Job, cancelled: bool) -> tuple[JobStatus, str | None]:
         """A training run the user stopped from AI-Toolkit itself."""
         if cancelled or job.stats.get("stopped"):
             return "cancelled", None
-        message = self.failure(job.stats)
+        message = self.failure(job.stats, job.generates)
         return ("failed", message) if message else ("completed", None)
 
 
@@ -491,20 +499,15 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         failure_message=trim_video_error_message,
         validate=_validate_trim_video,
     ),
-    "comfy_process": JobSpec(
-        thread_prefix="comfy-process",
-        run=run_comfy_process_job,
+    "comfy_run": JobSpec(
+        thread_prefix="comfy-run",
+        run=run_comfy_run_job,
         failure_message=comfy_process_error_message,
-        validate=_validate_comfy_process,
-        workflow=_comfy_workflow,
+        generating_failure_message=comfy_generate_error_message,
+        validate=_validate_comfy_run,
+        workflow=_comfy_run_workflow,
+        generates=_comfy_run_generates,
         # No resume: prompt ids are never persisted and ComfyUI history is bounded.
-    ),
-    "comfy_generate": JobSpec(
-        thread_prefix="comfy-generate",
-        run=run_comfy_generate_job,
-        failure_message=comfy_generate_error_message,
-        validate=_validate_comfy_generate,
-        workflow=_comfy_generate_workflow,
     ),
     "comfy_showcase": JobSpec(
         thread_prefix="comfy-showcase",
@@ -512,6 +515,7 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         failure_message=comfy_showcase_error_message,
         validate=_validate_comfy_showcase,
         workflow=_comfy_workflow,
+        generates=lambda _params: True,
     ),
     "train_lora": JobSpec(
         thread_prefix="train-lora",
@@ -885,12 +889,16 @@ class JobManager:
                 jobs.append(job)
                 runs.append(run)
 
+            # Saved before any worker exists, which would otherwise overwrite its running frame.
+            try:
+                for job in jobs:
+                    self._save_snapshot(job.id, job.to_dict())
+            except Exception:
+                self._discard_unsaved_unlocked(jobs)
+                raise
             waiting = runs if busy is not None else runs[1:]
             if waiting:
                 self._queues.setdefault(str(folder), []).extend(waiting)
-            # Saved before any worker exists, which would otherwise overwrite its running frame.
-            for job in jobs:
-                self._save_snapshot(job.id, job.to_dict())
 
         return jobs, None if busy is not None else runs[0]
 
@@ -914,6 +922,7 @@ class JobManager:
             workflow=workflow,
             workflow_edited=workflow_edited,
             workflow_run=workflow_run,
+            generates=spec.generates(params) if spec.generates else False,
         )
         self._jobs[job_id] = job
         cancel_event = threading.Event()
@@ -932,6 +941,19 @@ class JobManager:
                 self._published.pop(jid, None)
 
         return job, _QueuedRun(spec, job_id, folder, cancel_event, params)
+
+    def _discard_unsaved_unlocked(self, jobs: list[Job]) -> None:
+        """Drop a registration whose save failed; a kept job would hold its folder forever."""
+        ids = [job.id for job in jobs]
+        for job_id in ids:
+            self._jobs.pop(job_id, None)
+            self._cancel_flags.pop(job_id, None)
+        saved = [job_id for job_id in ids if self._published.pop(job_id, None) is not None]
+        if saved:
+            with suppress(Exception):
+                for job_id in saved:
+                    jobs_store.delete_job(job_id)
+            self._publish_removed(saved)
 
     def _run_managed_job(self, run: _QueuedRun, *, revalidate: bool = False) -> None:
         try:

@@ -14,6 +14,7 @@ const fetchResults = vi.mocked(fetchJobResults);
 
 const finishedJob: Job = {
   workflow_edited: false,
+  generates: false,
   undoable: false,
   id: "job-1",
   folder: "C:\\Photos",

@@ -12,7 +12,7 @@ vi.mock("@/features/automation/hooks/useComfyProcessLogs", () => ({
 const useLogs = vi.mocked(useComfyProcessLogs);
 
 async function renderLog() {
-  render(<ComfyProcessLog job={job({ job_type: "comfy_process", status: "running" })} />);
+  render(<ComfyProcessLog job={job({ job_type: "comfy_run", status: "running" })} />);
   await userEvent.setup().click(screen.getByRole("button", { name: "ComfyUI output" }));
 }
 
@@ -55,7 +55,7 @@ describe("ComfyProcessLog", () => {
     // It repaints every couple of seconds, and a polite region queues rather than drops.
     useLogs.mockReturnValue({ lines: ["a", "b"], available: true });
     const { container } = render(
-      <ComfyProcessLog job={job({ job_type: "comfy_process", status: "running" })} />,
+      <ComfyProcessLog job={job({ job_type: "comfy_run", status: "running" })} />,
     );
     await userEvent.setup().click(screen.getByRole("button", { name: "ComfyUI output" }));
 
@@ -80,7 +80,7 @@ describe("ComfyProcessLog", () => {
   it("starts collapsed and resets the disclosure for each new job", async () => {
     const user = userEvent.setup();
     useLogs.mockReturnValue({ lines: ["Rendering landscape"], available: true });
-    const currentJob = job({ id: "first", job_type: "comfy_process", status: "running" });
+    const currentJob = job({ id: "first", job_type: "comfy_run", status: "running" });
     const { rerender } = render(<ComfyProcessLog job={currentJob} />);
     const toggle = screen.getByRole("button", { name: "ComfyUI output" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");

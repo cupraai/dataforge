@@ -227,6 +227,29 @@ class WorkflowRunTests(unittest.TestCase):
 
         self.assertEqual(validated, ["strip_metadata", "find_duplicates"])
 
+    def test_a_comfy_step_runs_only_a_preset_that_edits_files(self) -> None:
+        received: dict[str, object] = {}
+
+        def run(_folder, **params):
+            received.update(params)
+            return _finished()
+
+        save_workflow(
+            Workflow.model_validate(
+                {
+                    "name": "Upscale",
+                    "steps": [{"job_type": "comfy_run", "settings": {"preset": "upscale"}}],
+                }
+            )
+        )
+        spec = replace(JOB_SPECS["comfy_run"], run=run, validate=lambda *_a, **_k: None)
+        with TempMediaFolder() as root, patch.dict(JOB_SPECS, {"comfy_run": spec}):
+            write_media(root, "a.png")
+            [job] = self._run(root, "Upscale").json()["jobs"]
+            wait_for_job(job["id"])
+
+        self.assertIs(received["edits_only"], True)
+
     def test_a_run_leaves_remembered_settings_alone(self) -> None:
         save_workflow(
             Workflow.model_validate(

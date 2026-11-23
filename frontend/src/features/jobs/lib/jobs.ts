@@ -325,11 +325,11 @@ const TIMING_SPLITS: Partial<Record<JobType, TimingSplit>> = {
     slow: ["success", "api_error", "parse_error", "frame_error", "read_error", "write_error"],
     fast: ["no_caption"],
   },
-  comfy_process: {
+  // Only an edit counts the fast ones; a generation's counts are all slow.
+  comfy_run: {
     slow: ["success", "comfy_error", "write_error"],
     fast: ["skipped", "read_error"],
   },
-  comfy_generate: { slow: ["success", "comfy_error", "write_error"], fast: [] },
   comfy_showcase: { slow: ["success", "comfy_error", "write_error"], fast: [] },
   watermark: MEDIA_KIND_SPLIT,
   strip_metadata: MEDIA_KIND_SPLIT,

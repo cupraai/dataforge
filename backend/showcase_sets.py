@@ -1,4 +1,4 @@
-"""Saved showcase sets: items and inputs for a preset, reused for every LoRA showcased."""
+"""Saved showcase sets: the items for a preset, reused for every LoRA showcased."""
 
 from __future__ import annotations
 

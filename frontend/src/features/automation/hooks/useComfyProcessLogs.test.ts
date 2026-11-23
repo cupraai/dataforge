@@ -11,7 +11,7 @@ function logs(lines: string[]) {
 }
 
 function comfyJob(overrides = {}) {
-  return job({ job_type: "comfy_process", status: "running", ...overrides });
+  return job({ job_type: "comfy_run", status: "running", ...overrides });
 }
 
 /** Mount and advance under one fake clock: restoring real timers drops pending polls. */

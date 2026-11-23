@@ -48,8 +48,7 @@ function renderActions(
         syspromptApplies: true,
         hasCaptionBackup: true,
         ostrisAvailable: true,
-        comfyPresetsAvailable: true,
-        comfyGeneratePresetsAvailable: true,
+        comfyRunPresetsAvailable: true,
         comfyShowcasePresetsAvailable: true,
       },
       ...context,
@@ -319,7 +318,7 @@ describe("Workspace tools", () => {
       "Files",
       "Integrations",
     ]);
-    for (const name of [/^Edit with ComfyUI/, /^LoRA training/]) {
+    for (const name of [/^Run ComfyUI workflow/, /^LoRA training/]) {
       expect(within(sections.at(-1)!).getByRole("menuitem", { name })).toBeInTheDocument();
     }
   });
@@ -379,8 +378,7 @@ describe("Workspace tools", () => {
           syspromptApplies: true,
           hasCaptionBackup: false,
           ostrisAvailable: false,
-          comfyPresetsAvailable: false,
-          comfyGeneratePresetsAvailable: false,
+          comfyRunPresetsAvailable: false,
           comfyShowcasePresetsAvailable: false,
         },
       },
@@ -423,8 +421,7 @@ describe("Workspace tools", () => {
           syspromptApplies: false,
           hasCaptionBackup: false,
           ostrisAvailable: false,
-          comfyPresetsAvailable: false,
-          comfyGeneratePresetsAvailable: false,
+          comfyRunPresetsAvailable: false,
           comfyShowcasePresetsAvailable: false,
         },
       },
@@ -435,7 +432,7 @@ describe("Workspace tools", () => {
     const unavailable = [
       ["auto_caption", "Create folder instructions to enable auto-captioning."],
       ["train_lora", "AI-Toolkit is unavailable"],
-      ["comfy_process", "No ComfyUI"],
+      ["comfy_run", "No ComfyUI"],
       ["restore_captions", "No caption backup in this folder."],
     ] as const;
     for (const [type, reason] of unavailable) {

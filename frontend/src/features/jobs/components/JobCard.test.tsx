@@ -21,6 +21,7 @@ const fetchResults = vi.mocked(fetchJobResults);
 
 const runningJob: Job = {
   workflow_edited: false,
+  generates: false,
   undoable: false,
   id: "job-1",
   folder: "C:\\Photos",
@@ -167,7 +168,7 @@ describe("JobCard", () => {
   });
 
   it("says which workflow a ComfyUI run used, and which template a training run used", () => {
-    const comfy: Job = { ...runningJob, job_type: "comfy_process", workflow: "upscale_2x" };
+    const comfy: Job = { ...runningJob, job_type: "comfy_run", workflow: "upscale_2x" };
     const { rerender } = renderWithQueryClient(<JobCard job={comfy} />);
 
     expect(screen.getByText("Workflow")).toBeInTheDocument();

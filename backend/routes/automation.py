@@ -46,7 +46,6 @@ from schemas import (
     BackupCaptionsStartRequest,
     BatchRenameStartRequest,
     CheckCaptionRulesStartRequest,
-    ComfyGenerateStartRequest,
     ComfyLogsResponse,
     ComfyLorasResponse,
     ComfyOutputBranch,
@@ -55,7 +54,7 @@ from schemas import (
     ComfyPresetsResponse,
     ComfyPresetSummary,
     ComfyPresetTextResponse,
-    ComfyProcessStartRequest,
+    ComfyRunStartRequest,
     ComfyShowcaseSet,
     ComfyShowcaseSetsResponse,
     ComfyShowcaseStartRequest,
@@ -331,18 +330,11 @@ async def put_watermark_image(
         ) from exc
 
 
-@router.post("/automation/comfy-process", response_model=JobResponse)
-def start_comfy_process_job(
-    path: str = FOLDER_QUERY, body: ComfyProcessStartRequest = ComfyProcessStartRequest()
+@router.post("/automation/comfy-run", response_model=JobResponse)
+def start_comfy_run_job(
+    path: str = FOLDER_QUERY, body: ComfyRunStartRequest = ComfyRunStartRequest()
 ) -> JobResponse:
-    return _start_job("comfy_process", path, body)
-
-
-@router.post("/automation/comfy-generate", response_model=JobResponse)
-def start_comfy_generate_job(
-    path: str = FOLDER_QUERY, body: ComfyGenerateStartRequest = ComfyGenerateStartRequest()
-) -> JobResponse:
-    return _start_job("comfy_generate", path, body)
+    return _start_job("comfy_run", path, body)
 
 
 @router.post("/automation/comfy-showcase", response_model=JobResponse)

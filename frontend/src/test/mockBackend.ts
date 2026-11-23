@@ -100,6 +100,7 @@ function createMockJob(folderPath: string, jobType: Job["job_type"]): Job {
   return {
     workflow_edited: false,
     undoable: false,
+    generates: false,
     id: `job-${jobType}-${folderPath}`,
     folder: folderPath,
     folder_name: folderLeafName(folderPath),

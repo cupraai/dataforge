@@ -23,8 +23,8 @@ const rename: WorkflowStep = {
 };
 
 describe("workflow steps", () => {
-  it("uses the Tools groups with LoRA training and generation excluded", () => {
-    const excluded = new Set(["train_lora", "comfy_generate", "comfy_showcase"]);
+  it("uses the Tools groups with LoRA training and the showcase excluded", () => {
+    const excluded = new Set(["train_lora", "comfy_showcase"]);
     expect(WORKFLOW_STEP_GROUPS).toEqual(
       JOB_GROUPS.map(({ label, types }) => ({
         label,
@@ -33,7 +33,9 @@ describe("workflow steps", () => {
     );
     expect(isWorkflowJobType("train_lora")).toBe(false);
     // What it makes lies outside the scope fixed for the steps after it.
-    expect(isWorkflowJobType("comfy_generate")).toBe(false);
+    expect(isWorkflowJobType("comfy_showcase")).toBe(false);
+    // Only with a preset that edits files, which its step dialog lists alone.
+    expect(isWorkflowJobType("comfy_run")).toBe(true);
   });
 
   it("stores a dialog's start body without the paths a run supplies", () => {
@@ -44,7 +46,7 @@ describe("workflow steps", () => {
 
   it("opens ComfyUI's dialog with the step's values under its preset", () => {
     const step: WorkflowStep = {
-      job_type: "comfy_process",
+      job_type: "comfy_run",
       settings: {
         preset: "upscale",
         seed: 7,
@@ -57,6 +59,9 @@ describe("workflow steps", () => {
     expect(stepDialogSettings(step)).toEqual({
       preset: "upscale",
       overwrite_candidates: true,
+      count: 1,
+      name_prefix: "",
+      caption_from_prompt: false,
       by_preset: { upscale: { seed: 7, prompt_text: "sharp", inputs: {} } },
     });
     expect(stepDialogSettings(resize)).toBe(resize.settings);

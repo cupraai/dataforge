@@ -16,6 +16,9 @@ import type { ComfyInputValue, ComfyPresetSettings } from "@/shared/types";
 /** A showcase has a form of its own. */
 export type ComfyFormKind = Exclude<ComfyPresetKind, "showcase">;
 
+/** What the selected preset does: one with a source loader edits files, one without makes new. */
+export type ComfyRunMode = "edit" | "generate";
+
 interface PresetMemory {
   preset: string;
   by_preset: Record<string, ComfyPresetSettings>;
@@ -59,7 +62,7 @@ function sameDraft(a: PresetDraft, b: PresetDraft): boolean {
   );
 }
 
-const EMPTY_SEED_MEANING: Record<ComfyFormKind, string> = {
+const EMPTY_SEED_MEANING: Record<ComfyRunMode, string> = {
   edit: "or empty to use the preset's own",
   generate: "or empty for a random seed",
 };
@@ -76,7 +79,7 @@ function embeddedMemory(embedded: EmbeddedGenerateWorkflow): PresetMemory {
 }
 
 /**
- * Preset, prompt, seed and inputs for both ComfyUI dialogs, drafted per preset.
+ * Preset, prompt, seed and inputs for Run ComfyUI workflow, drafted per preset.
  * With `embedded`, the file's own workflow is the only choice.
  */
 export function useComfyPresetForm(
@@ -111,6 +114,14 @@ export function useComfyPresetForm(
     }));
 
   const selected = loadedPresets?.find((entry) => entry.name === preset) ?? null;
+  // An unparseable preset reads as editing: queueing it names the fix either way. With none
+  // selected, as when the chosen one is removed, the form keeps the last one's shape.
+  const selectedMode: ComfyRunMode | null = embedded
+    ? "generate"
+    : selected && (selected.generates === true ? "generate" : "edit");
+  const [lastMode, setLastMode] = useState<ComfyRunMode>(selectedMode ?? "edit");
+  if (selectedMode !== null && selectedMode !== lastMode) setLastMode(selectedMode);
+  const mode = selectedMode ?? lastMode;
   // Only false blocks: a preset that could not be parsed reports null and keeps both fields live.
   const promptBlocked = selected?.accepts_prompt === false;
   const seedBlocked = selected?.accepts_seed === false;
@@ -134,7 +145,7 @@ export function useComfyPresetForm(
 
     const seedText = draft.seedText.trim();
     if (seedText && !/^\d+$/.test(seedText)) {
-      return { error: `The seed must be a whole number, ${EMPTY_SEED_MEANING[kind]}.` };
+      return { error: `The seed must be a whole number, ${EMPTY_SEED_MEANING[mode]}.` };
     }
 
     // Only the selected preset's inputs: a remembered name its file no longer has is dropped.
@@ -160,8 +171,10 @@ export function useComfyPresetForm(
   };
 
   return {
+    kind,
     state,
     preset,
+    mode,
     /** The selected preset's name once it has left the list; nothing is selected then. */
     removed,
     selectPreset: setChosenPreset,

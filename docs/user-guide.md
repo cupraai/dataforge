@@ -212,7 +212,7 @@ A kept fill joins the edit like any other change: crop, masks, turns, size, and 
 
 **What changes.** Fills are always made from the original, before any other edit, and only the painted area and a feathered border change. The model sees a crop around the selection scaled to about one megapixel, so a fill on a very large image has less detail than the image itself. A transparent image keeps any transparency the model generates in the filled area; an opaque one stays opaque.
 
-**Queue and unsaved results.** Generations run one at a time on ComfyUI, after any queued **Edit with ComfyUI** file. A result you have not kept is unsaved work: leaving the file asks first. Restarting DataForge interrupts a generation in progress, and unkept results are deleted after a day.
+**Queue and unsaved results.** Generations run one at a time on ComfyUI, after any queued **Run ComfyUI workflow** file. A result you have not kept is unsaved work: leaving the file asks first. Restarting DataForge interrupts a generation in progress, and unkept results are deleted after a day.
 
 ### Edit audio
 
@@ -276,7 +276,7 @@ A job runs on the first of these that applies:
 2. The files the search and filters show, when either is active.
 3. The whole folder.
 
-The dialog shows the count and freezes the file list when it opens, previews included. An empty scope cannot start a job. **LoRA training** is the exception: it always uses the whole folder, and its dialog says so. **Generate with ComfyUI** and **Create showcase** read no files: their dialogs name the folder the new files go to, and they run even in an empty folder.
+The dialog shows the count and freezes the file list when it opens, previews included. An empty scope cannot start a job. **LoRA training** is the exception: it always uses the whole folder, and its dialog says so. **Run ComfyUI workflow** with a generation preset and **LoRA showcase** read no files: their dialogs name the folder the new files go to, and they run even in an empty folder.
 
 ### Running and history
 
@@ -291,7 +291,7 @@ A workflow is a saved chain of jobs, each with its own settings, such as Resize,
 - **Create and edit.** Click **Workflows** in the toolbar, then **New workflow...** or **Manage workflows...**. The editor lists your workflows on the left, the selected one's steps in the middle, and every job you can add on the right (filter them by name). Type the name at the top, then click a job to add it as the last step: a job with settings opens its usual dialog, whose button reads **Save step**, and a job without settings is added as it is. Each step shows a one-line summary of its settings. Change one with **Settings**, reorder with the arrows, by dragging the grip, or with `Alt+Up`/`Alt+Down`, and remove it with the bin. **Save** stores the workflow, **Run...** runs the saved version, and **Close** asks first when there are unsaved changes.
 - **Run.** Pick a workflow in the **Workflows** menu or in Quick actions (**Run workflow: <name>**). The confirmation lists the steps and the scope: the selection, else the files in view, fixed when you click **Run workflow**. The steps join the folder's [queue](#jobs) back to back and follow its rules: each starts when the one before it finishes cleanly, and a failure cancels the rest. Each job's card and the strip say which workflow and step it is. In the Jobs drawer, waiting jobs sit under **Queued** in the order they will start, each saying which job it starts after.
 - **Settings are the workflow's own.** Running a workflow does not change what a job's dialog remembers for the folder, and the dialogs' one-run choices, such as **Overwrite existing captions** or **Reset size**, are kept with the step.
-- **Limits.** LoRA training, Generate with ComfyUI, and Create showcase cannot be steps. **Rename** can only be the last step, because the steps after it would look for the old file names. A workflow holds up to 12 steps, and up to 50 workflows can be saved.
+- **Limits.** LoRA training and LoRA showcase cannot be steps, and **Run ComfyUI workflow** only with a preset that edits files. **Rename** can only be the last step, because the steps after it would look for the old file names. A workflow holds up to 12 steps, and up to 50 workflows can be saved.
 
 The first step is checked when you run the workflow; later steps are checked when they start, since an earlier step may create what they need (for example, Backup captions before Restore captions).
 
@@ -322,9 +322,9 @@ Finished runs are kept for the [job history](configuration.md#server-storage-and
 | **Resize** | Files in place, originals kept | Fits images and videos to a megapixel size on a pixel grid. Can also set the videos' frame rate; **Keep** leaves each video's rate as it is |
 | **Split into clips** | MP4 clips in `clips/` | Cuts videos at scene changes or evenly; see [Split videos into clips](#split-videos-into-clips) |
 | **Trim to length** | Videos in place, originals kept | Shortens videos to a longest length, keeping the start, middle, or end; see [Trim videos to a length](#trim-videos-to-a-length) |
-| **Edit with ComfyUI** | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
-| **Generate with ComfyUI** | New files in the folder | Never replaces a file; see [ComfyUI](comfyui.md#generate-media) |
-| **Create showcase** | New files in the folder | Renders several prompts with one LoRA, or compares LoRAs; see [Showcases](comfyui.md#showcases) |
+| **Run ComfyUI workflow**, edit preset | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
+| **Run ComfyUI workflow**, generation preset | New files in the folder | Never replaces a file; see [ComfyUI](comfyui.md#generate-media) |
+| **LoRA showcase** | New files in the folder | Renders several prompts with one LoRA, or compares LoRAs; see [Showcases](comfyui.md#showcases) |
 | **LoRA training** | Nothing in the folder | Starts and monitors a run in [AI-Toolkit](ai-toolkit.md) |
 
 Jobs that change captions run once per caption, so `scene.jpg` and `scene.png` sharing `scene.txt` are changed once, and the result names both.
@@ -391,8 +391,8 @@ Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption
 | `<stem>.txt` | `.backup/` | Caption backup | You delete it; restoring keeps it |
 | Watermarked media | `watermarked/` | Watermark | You delete it |
 | `<stem>_001.mp4`, ... | `clips/` | Split into clips | You delete it, or split the same video again |
-| Result, `<result-name>.comfy.json` | `staging/` | Edit with ComfyUI | It is accepted, rejected, or deleted |
-| `<prefix>_0001.png`, ... | The folder | Generate with ComfyUI, Create showcase | You delete it |
+| Result, `<result-name>.comfy.json` | `staging/` | Run ComfyUI workflow, edit preset | It is accepted, rejected, or deleted |
+| `<prefix>_0001.png`, ... | The folder | Run ComfyUI workflow, generation preset; LoRA showcase | You delete it |
 | Database, thumbnails | `backend/data/` | The app: settings, jobs, notifications, tags | Pruned by [retention](configuration.md#server-storage-and-logging) |
 | Unkept fill results | `backend/data/fill_results/` | Generative fill, until you keep or discard a result | Discard, or a day later |
 | `watermark.png` | `backend/data/` | The PNG chosen in the Watermark dialog | Choosing another PNG replaces it |

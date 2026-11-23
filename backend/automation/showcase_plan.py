@@ -144,7 +144,7 @@ def _plan_entry(
             "clear the prompt."
         )
     try:
-        values = resolve_custom_inputs(workflow, {**settings.inputs, **item.inputs})
+        values = resolve_custom_inputs(workflow, item.inputs)
     except ComfyWorkflowError as exc:
         raise ValueError(f"{where}: {exc}") from exc
     return ShowcaseEntry(
@@ -174,7 +174,6 @@ def plan_showcase(folder: Path, **params: object) -> ShowcasePlan:
     try:
         workflow = load_comfy_workflow(settings.preset)
         require_model_nodes(workflow)
-        resolve_custom_inputs(workflow, settings.inputs)
     except ComfyWorkflowError as exc:
         # ComfyWorkflowError would escape the route as a 500.
         raise ValueError(str(exc)) from exc

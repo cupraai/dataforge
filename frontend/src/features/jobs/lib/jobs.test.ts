@@ -168,7 +168,7 @@ describe("remaining time", () => {
       { slow: 2, fast: 3 },
     ],
     [
-      "comfy_process",
+      "comfy_run",
       { success: 2, comfy_error: 1, write_error: 1, skipped: 3, read_error: 1 },
       { slow: 4, fast: 4 },
     ],

@@ -7,7 +7,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AutomationDialogOverlays } from "@/features/automation/components/AutomationDialogOverlays";
 import { useAutomationDialogOverlays } from "@/features/automation/hooks/useAutomationDialogOverlays";
 import type { BulkScopeKind } from "@/features/automation/lib/bulkScope";
-import { JOB_TYPE_META, jobMenuLabelFor, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
+import {
+  jobMenuLabelFor,
+  jobStepDescriptionFor,
+  jobTypeIconFor,
+} from "@/features/jobs/lib/jobMeta";
 import {
   deleteWorkflow,
   saveWorkflow,
@@ -55,7 +59,7 @@ export interface WorkflowStepDialogContext {
   folderItemCount: number;
   scopeKind: BulkScopeKind;
   getJobPaths?: () => string[] | undefined;
-  comfyPresetsAvailable: boolean;
+  comfyEditPresetsAvailable: boolean;
 }
 
 interface WorkflowEditorDialogProps {
@@ -492,7 +496,7 @@ export function WorkflowEditorDialog({
                 Add a step
               </h3>
               <p className="workflow-library__hint">
-                {addBlock ?? "Steps are added at the end. Jobs with settings open their dialog."}
+                {addBlock ?? "Only jobs acting on media can be added here."}
               </p>
               <SearchInput
                 label="Filter jobs"
@@ -508,7 +512,7 @@ export function WorkflowEditorDialog({
                   <p className="workflow-library__group-label">{group.label}</p>
                   {group.types.map((type) => {
                     const unavailable =
-                      type === "comfy_process" && !stepDialogs.comfyPresetsAvailable;
+                      type === "comfy_run" && !stepDialogs.comfyEditPresetsAvailable;
                     const label = jobMenuLabelFor(type);
                     return (
                       <button
@@ -517,7 +521,9 @@ export function WorkflowEditorDialog({
                         className="workflow-library__item"
                         aria-label={`Add ${label}`}
                         disabled={addBlock !== null || unavailable}
-                        title={unavailable ? "Add a ComfyUI workflow preset first" : undefined}
+                        title={
+                          unavailable ? "Add a ComfyUI preset that edits files first" : undefined
+                        }
                         onClick={() => addStep(type)}
                       >
                         <span className="workflow-library__icon">
@@ -526,7 +532,7 @@ export function WorkflowEditorDialog({
                         <span className="workflow-library__text">
                           <span className="workflow-library__label">{label}</span>
                           <span className="workflow-library__description">
-                            {JOB_TYPE_META[type].menuDescription}
+                            {jobStepDescriptionFor(type)}
                           </span>
                         </span>
                         <Icon icon={iconPlus} className="workflow-library__add" />

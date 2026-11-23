@@ -21,7 +21,7 @@ import {
   iconTimer,
   iconWandSparkles,
 } from "@/shared/icons";
-import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
+import { MAY_GENERATE_JOBS } from "@/features/jobs/lib/generatingJobs";
 import type { JobType } from "@/shared/types";
 
 type JobStartUi = "dialog" | "confirm";
@@ -30,8 +30,7 @@ export interface JobAvailability {
   syspromptApplies: boolean;
   hasCaptionBackup: boolean;
   ostrisAvailable: boolean;
-  comfyPresetsAvailable: boolean;
-  comfyGeneratePresetsAvailable: boolean;
+  comfyRunPresetsAvailable: boolean;
   comfyShowcasePresetsAvailable: boolean;
 }
 
@@ -53,6 +52,8 @@ interface JobTypeMeta {
   group: JobGroup;
   menuLabel?: string;
   menuDescription?: string;
+  /** Replaces menuDescription in the workflow step library. */
+  stepDescription?: string;
   confirm?: {
     title: string;
     description: () => ReactNode;
@@ -185,15 +186,17 @@ export const JOB_TYPE_META = {
     menuDescription: "Bring captions back from the .backup folder.",
     requires: { flag: "hasCaptionBackup", reason: "No caption backup in this folder." },
   },
-  comfy_generate: {
-    type: "comfy_generate" as const,
+  comfy_run: {
+    type: "comfy_run" as const,
     group: "integrations" as const,
     icon: iconComfyUi,
     startUi: "dialog" as const,
-    menuDescription: "Make new images or videos in this folder with a ComfyUI workflow.",
+    menuDescription: "Edit files for review, or make new ones, with a ComfyUI workflow.",
+    // A step can only use a preset that edits files.
+    stepDescription: "Edit files for review with a ComfyUI workflow.",
     requires: {
-      flag: "comfyGeneratePresetsAvailable",
-      reason: "No ComfyUI generation presets are available. Add one to the presets folder.",
+      flag: "comfyRunPresetsAvailable",
+      reason: "No ComfyUI workflow presets are available. Add one to the presets folder.",
     },
   },
   comfy_showcase: {
@@ -201,22 +204,11 @@ export const JOB_TYPE_META = {
     group: "integrations" as const,
     icon: iconComfyUi,
     startUi: "dialog" as const,
-    menuDescription: "Show off a LoRA: several prompts with their own LoRAs, rendered in one run.",
+    menuDescription:
+      "Create a showcase for a LoRA or compare LoRA versions with a ComfyUI workflow.",
     requires: {
       flag: "comfyShowcasePresetsAvailable",
       reason: "No ComfyUI preset loads a model to add LoRAs to. Add one to the presets folder.",
-    },
-  },
-  comfy_process: {
-    type: "comfy_process" as const,
-    group: "integrations" as const,
-    icon: iconComfyUi,
-    startUi: "dialog" as const,
-    menuLabel: "Edit with ComfyUI",
-    menuDescription: "Process images and videos with a ComfyUI workflow, for review.",
-    requires: {
-      flag: "comfyPresetsAvailable",
-      reason: "No ComfyUI presets are available. Configure workflows in Settings.",
     },
   },
   train_lora: {
@@ -264,6 +256,12 @@ export function jobMenuLabelFor(type: JobType): string {
   return jobTypeMeta(type).menuLabel ?? jobTypeLabelFor(type);
 }
 
+/** What a job does as a workflow step. */
+export function jobStepDescriptionFor(type: JobType): string | undefined {
+  const meta = jobTypeMeta(type);
+  return meta.stepDescription ?? meta.menuDescription;
+}
+
 export interface JobStartContext {
   hasFolder: boolean;
   /** Another start request is in flight. */
@@ -286,7 +284,7 @@ export function jobStartBlock(type: JobType, context: JobStartContext): JobStart
   const requirement = jobTypeMeta(type).requires;
   const reason = requirement && !context.availability[requirement.flag] ? requirement.reason : null;
   // Even an empty folder can take new files.
-  const emptyScope = GENERATING_JOBS.has(type)
+  const emptyScope = MAY_GENERATE_JOBS.has(type)
     ? false
     : type === "train_lora"
       ? context.folderCount === 0

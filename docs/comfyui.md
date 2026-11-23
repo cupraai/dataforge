@@ -33,7 +33,7 @@ The bundled [`example_solid_color.json`](../comfy_workflows/example_solid_color.
 
 1. Open the dataset itself, not its `staging/` folder.
 2. Select files, or search and filter, to limit the run; otherwise it covers the whole folder. See [job scope](user-guide.md#scope).
-3. Choose **Edit with ComfyUI**, then a preset from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs.
+3. Choose **Run ComfyUI workflow**, then an [edit preset](#edit-and-generation-presets) from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs.
 4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Workflow inputs**. Each field is enabled only when the workflow has the matching titled node.
 5. Under **Output**, choose whether to overwrite previously staged results, then start.
 
@@ -48,10 +48,10 @@ The panel shows ComfyUI's console, including output from other work on that serv
 
 ## Generate media
 
-**Generate with ComfyUI** runs a generation preset a number of times and adds what it makes to the open folder as new files. It reads no files, so search, filters, and selection do not apply, and it runs in an empty folder too.
+**Run ComfyUI workflow** with a generation preset runs it a number of times and adds what it makes to the open folder as new files. It reads no files, so search, filters, and selection do not apply, and it runs in an empty folder too.
 
 1. Open the folder the new files should go to. A `staging/` folder is refused.
-2. Choose **Generate with ComfyUI** and a preset from **Workflow presets**. Only [generation presets](#edit-and-generation-presets) are listed, and the [workflow map](#the-workflow-map) shows what the selected one runs.
+2. Choose **Run ComfyUI workflow** and a [generation preset](#edit-and-generation-presets) from **Workflow presets**. The dialog switches to the generation options, and the [workflow map](#the-workflow-map) shows what the selected one runs.
 3. Optionally enter **Prompt**, **Seed**, and the preset's [custom inputs](#custom-inputs).
 4. Under **Output**, set **Generations**, how many times the workflow runs, and optionally a **File name prefix**.
 5. Optionally turn on **Save as caption** beside **Prompt**, then start.
@@ -65,11 +65,11 @@ Files are named `<prefix>_0001.png` onwards, as `.png`, `.mp4`, `.mov` or `.gif`
 - **What is kept.** The file is saved exactly as ComfyUI wrote it, including its embedded workflow, so the [ComfyUI badge](#inspect-embedded-workflows) can show how it was made. It must decode before it gets a name in the folder; video validation needs ffmpeg.
 - **Failures.** A generation that fails is reported and the rest continue. Files a failed batch already wrote are kept. Cancelling stops after the current generation is interrupted or removed from ComfyUI's queue.
 
-Generations, showcases, processing, and fills share one queue, so they never run at the same time. Generate and showcases cannot be [workflow](user-guide.md#workflows) steps, because the steps after them run on a scope fixed before their files exist.
+Generations, showcases, processing, and fills share one queue, so they never run at the same time. Generation presets and showcases cannot be [workflow](user-guide.md#workflows) steps, because the steps after them run on a scope fixed before their files exist.
 
 ## Showcases
 
-**Create showcase** renders a list of items with a LoRA you trained, in one run. Each item has its own prompt, seed, and extra LoRAs, and optionally a start image or video. Choose several LoRAs, such as the saves of one training run, to compare them: every item renders once per LoRA on the same seed, so only the LoRA differs.
+**LoRA showcase** renders a list of items with a LoRA you trained, in one run. Each item has its own prompt, seed, and extra LoRAs, and optionally a start image or video. Choose several LoRAs, such as the saves of one training run, to compare them: every item renders once per LoRA on the same seed, so only the LoRA differs.
 
 ### Prepare a showcase
 
@@ -81,8 +81,8 @@ LoRAs are added with ComfyUI's core **LoraLoaderModelOnly**, so they patch the d
 ### Run a showcase
 
 1. Open the folder the files should go to. Results are named and numbered like [Generate's](#generate-media), and nothing is replaced. If a LoRA was trained on this folder, the dialog warns you, because [training reads every file in it](ai-toolkit.md#start-a-run).
-2. Choose **Create showcase**, a preset, and under **LoRA to showcase** up to 8 LoRAs. **Every save of** a recent training run picks that run's saves in training order.
-3. Add up to 50 items. Untick one to keep it without rendering it. **Shared inputs** sets the [custom inputs](#custom-inputs) every item runs with unless it sets its own.
+2. Choose **LoRA showcase**, a preset, and under **LoRA to showcase** up to 8 LoRAs. **Every save of** a recent training run picks that run's saves in training order.
+3. Add up to 50 items. Untick one to keep it without rendering it. Each item sets its own [custom inputs](#custom-inputs); an empty one runs the value the preset was saved with.
 4. Optionally set a **File name prefix**, turn on **Save as caption** beside **Prompt** for every item, or **Make a showcase sheet**, then start.
 
 Items run in list order, each once per LoRA, up to 200 generations in all. A failed one is reported and the rest continue.
@@ -92,7 +92,7 @@ Items run in list order, each once per LoRA, up to 200 generations in all. A fai
 - **Start image or video.** Offered for presets with a source loader, from the open folder's files, newest first; type to search by name. It is optional: an item without one runs the workflow without its loader and the nodes that only prepare its file. That works when the workflow takes the file through an optional input, such as `first_frame` on MiniMax H3's image-to-video node. Otherwise the job stops before rendering anything and names the node that requires it.
 - **Missing LoRAs.** The job asks ComfyUI for every LoRA first and stops before rendering if one is missing.
 
-**Sets** keeps the items and shared inputs under a name, for any folder and without the LoRAs, so the next LoRA can be shown with the same prompts. Up to 50 sets can be saved.
+**Sets** keeps the preset and items under a name, for any folder and without the LoRAs, so the next LoRA can be shown with the same prompts. Up to 50 sets can be saved.
 
 ### Showcase sheet
 
@@ -107,7 +107,7 @@ A video sheet runs as long as its longest clip, up to two minutes, while shorter
 
 ## The workflow map
 
-The Edit and Generate dialogs draw the selected preset between the preset list and its settings, in the same style as the [embedded workflow map](#inspect-embedded-workflows): the models, CLIPs, VAEs, LoRAs, prompts and input media that feed each sampling pass, and the output. Hover a box for its details and connections.
+The **Run ComfyUI workflow** dialog draws the selected preset between the preset list and its settings, in the same style as the [embedded workflow map](#inspect-embedded-workflows): the models, CLIPs, VAEs, LoRAs, prompts and input media that feed each sampling pass, and the output. Hover a box for its details and connections.
 
 - The box DataForge loads each source file into reads **Each source file**, not the placeholder file the preset was saved with.
 - The prompt box shows the preset's saved text; its details note that a prompt you enter replaces it.
@@ -163,7 +163,7 @@ The file name becomes the preset name: `upscale-2x.json` appears as `upscale-2x`
 
 ### Edit and generation presets
 
-One folder holds both kinds. A preset with a source loader, a node titled `DataForge Input` or any `LoadImage` or `VHS_LoadVideo` node, is an edit preset and lists under **Edit with ComfyUI**. A preset without one is a generation preset and lists under **Generate with ComfyUI**. **Create showcase** lists both kinds when it can [place the LoRAs](#prepare-a-showcase). A preset that cannot be parsed lists everywhere, so starting it names the fix.
+One folder holds both kinds. A preset with a source loader, a node titled `DataForge Input` or any `LoadImage` or `VHS_LoadVideo` node, is an edit preset: **Run ComfyUI workflow** runs it on each file in the scope and stages the results for review. A preset without one is a generation preset, which makes new files instead. The dialog lists both, and a workflow step lists only edit presets. **LoRA showcase** lists both kinds when it can [place the LoRAs](#prepare-a-showcase). A preset that cannot be parsed lists everywhere, so starting it names the fix.
 
 A generation preset that loads a fixed reference image, for example for a ControlNet, must load it with a node other than `LoadImage` or `VHS_LoadVideo`, or it counts as an edit preset.
 
@@ -194,7 +194,7 @@ Not supported:
 
 Without these nodes, or with their fields left empty, the workflow uses its saved values. The dialog disables Prompt or Seed when the matching node is missing. A prompt or custom input value must belong to the titled node itself, not arrive through a connection from another node; a supplied prompt is refused if its node cannot take it.
 
-Only the editor's [generative fill](#generative-fill) uploads a mask; **Edit with ComfyUI** runs a mask node with its saved file.
+Only the editor's [generative fill](#generative-fill) uploads a mask; **Run ComfyUI workflow** runs a mask node with its saved file.
 
 ### Custom inputs
 
@@ -204,7 +204,7 @@ Any other node titled `DataForge <name>`, such as `DataForge Denoise`, adds a fi
 2. The dialog shows a number, whole-number, text, or on/off field to match the saved value, with that value as the placeholder.
 3. DataForge writes the node's `value`, or its only literal input when it has no `value`. Leave the field empty to keep the saved value.
 
-Values are remembered per preset with the prompt. **Edit with ComfyUI** remembers the seed too; **Generate with ComfyUI** never does, so each run starts random. A showcase remembers them per item. Two nodes with the same title add no field.
+Values are remembered per preset with the prompt. An edit preset remembers the seed too; a generation preset never does, so each run starts random. A showcase remembers them per item. Two nodes with the same title add no field.
 
 ## Generative fill
 

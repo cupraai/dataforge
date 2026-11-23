@@ -253,7 +253,7 @@ class ResolveRolesTests(unittest.TestCase):
         with self.assertRaises(ComfyWorkflowError) as caught:
             require_source_input(workflow)
         self.assertIn("has no input node", str(caught.exception))
-        self.assertIn("Generate with ComfyUI", str(caught.exception))
+        self.assertIn("Run ComfyUI workflow", str(caught.exception))
 
     def test_any_source_loader_makes_an_edit_preset(self) -> None:
         workflow = parse(graph())
@@ -261,7 +261,7 @@ class ResolveRolesTests(unittest.TestCase):
         self.assertFalse(workflow.generates)
         with self.assertRaises(ComfyWorkflowError) as caught:
             require_generation(workflow)
-        self.assertIn("Edit with ComfyUI", str(caught.exception))
+        self.assertIn("edits files instead of making new ones", str(caught.exception))
 
     def test_a_mask_loader_alone_still_generates(self) -> None:
         workflow = parse(

@@ -265,7 +265,7 @@ const SECTIONS: Section[] = [
           {
             title: "ComfyUI",
             icon: iconComfyUi,
-            hint: "Runs Generate with ComfyUI, Edit with ComfyUI, and the editor's Fill tool. Enter the server's origin, not a page within it.",
+            hint: "Used by Run ComfyUI workflow, LoRA showcase, and the editor's Fill tool. Enter the server's origin, not a page within it.",
             rows: [["comfy_base_url"]],
             probe: "comfy",
           },

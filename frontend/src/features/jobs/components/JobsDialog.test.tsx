@@ -24,6 +24,7 @@ const fetchJobsMock = vi.mocked(fetchJobs);
 
 const trainingJob: Job = {
   workflow_edited: false,
+  generates: false,
   undoable: false,
   id: "job-1",
   folder: "C:\\datasets\\landscapes",
@@ -606,6 +607,25 @@ describe("JobsDialog", () => {
 
       expect(jobsContext.closeDrawer).toHaveBeenCalled();
       expect(onResolveIssues).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers candidate review after a ComfyUI run that edited files, not one that generated", () => {
+      const folder = "C:\\\\datasets\\\\landscapes";
+      const edit = { ...doneJob("edit", "comfy_run", "2026-01-03T00:00:00.000Z"), folder };
+      const onReviewCandidates = vi.fn<() => void>();
+
+      const { unmount } = renderDrawer([edit], [], {
+        job: edit,
+        candidateCount: 2,
+        onReviewCandidates,
+      });
+      expect(screen.getByRole("button", { name: "Review 2 candidates" })).toBeInTheDocument();
+      unmount();
+
+      // Candidates already waiting in staging belong to an earlier edit, not to this run.
+      const generation = { ...edit, generates: true };
+      renderDrawer([generation], [], { job: generation, candidateCount: 2, onReviewCandidates });
+      expect(screen.queryByRole("button", { name: /Review 2 candidates/ })).not.toBeInTheDocument();
     });
   });
 });

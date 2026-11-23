@@ -38,7 +38,7 @@ AI is optional. Browsing, manual captioning, editing, and most bulk tools work w
 | Service | Default address | Used for | Guide |
 | --- | --- | --- | --- |
 | OpenAI-compatible vision server | `http://127.0.0.1:8888/v1` | Auto-caption, Verify captions, Edit captions | [Configuration](docs/configuration.md#connect-a-vision-model) |
-| ComfyUI | `http://127.0.0.1:9000` | Edit and Generate with ComfyUI, LoRA showcases, generative fill | [ComfyUI](docs/comfyui.md) |
+| ComfyUI | `http://127.0.0.1:9000` | Run ComfyUI workflow, LoRA showcases, generative fill | [ComfyUI](docs/comfyui.md) |
 | AI-Toolkit | `http://127.0.0.1:8675` | LoRA training | [LoRA training](docs/ai-toolkit.md) |
 
 <a id="your-data-stays-local"></a>

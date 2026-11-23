@@ -17,7 +17,7 @@ interface UseWorkflowHostOptions {
   folderItemCount: number;
   getJobPaths: () => string[] | undefined;
   queuedAfter: string | undefined;
-  comfyPresetsAvailable: boolean;
+  comfyEditPresetsAvailable: boolean;
   runWorkflow: (folderPath: string, name: string, paths?: string[]) => Promise<unknown[] | null>;
   startingWorkflow: { folder: string; name: string } | null;
 }
@@ -64,7 +64,7 @@ export function useWorkflowHost({
   folderItemCount,
   getJobPaths,
   queuedAfter,
-  comfyPresetsAvailable,
+  comfyEditPresetsAvailable,
   runWorkflow,
   startingWorkflow,
 }: UseWorkflowHostOptions) {
@@ -140,7 +140,7 @@ export function useWorkflowHost({
               folderItemCount,
               scopeKind,
               getJobPaths,
-              comfyPresetsAvailable,
+              comfyEditPresetsAvailable,
             },
             onRun: (name) => {
               setEditing(null);

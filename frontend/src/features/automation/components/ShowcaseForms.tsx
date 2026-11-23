@@ -8,7 +8,6 @@ import {
   type LoraRowDraft,
   type ShowcaseDraftState,
 } from "@/features/automation/hooks/useShowcaseDraft";
-import { parseInput } from "@/features/automation/lib/comfyInputs";
 import { describeLora } from "@/features/automation/lib/showcase";
 import { MAX_SHOWCASE_ITEM_LORAS, MAX_SHOWCASE_LABEL_LENGTH } from "@/shared/constants";
 import { iconPlus, iconX } from "@/shared/icons";
@@ -99,27 +98,22 @@ function LoraRows({ rows, options, disabled, onChange }: LoraRowsProps) {
 interface InputFieldsProps {
   inputs: readonly ComfyPresetInput[];
   texts: Record<string, string>;
-  /** What an empty field runs with, when not the preset's saved value. */
-  shared?: Record<string, string>;
   disabled: boolean;
   onChange: (texts: Record<string, string>) => void;
 }
 
-function InputFields({ inputs, texts, shared = {}, disabled, onChange }: InputFieldsProps) {
+function InputFields({ inputs, texts, disabled, onChange }: InputFieldsProps) {
   return (
     <div className="field-row comfy-preset-fields__inputs">
-      {inputs.map((input) => {
-        const inherited = parseInput(input, shared[input.name] ?? "");
-        return (
-          <CustomInputField
-            key={input.name}
-            input={inherited == null ? input : { ...input, default: inherited }}
-            text={texts[input.name] ?? ""}
-            disabled={disabled}
-            onChange={(text) => onChange({ ...texts, [input.name]: text })}
-          />
-        );
-      })}
+      {inputs.map((input) => (
+        <CustomInputField
+          key={input.name}
+          input={input}
+          text={texts[input.name] ?? ""}
+          disabled={disabled}
+          onChange={(text) => onChange({ ...texts, [input.name]: text })}
+        />
+      ))}
     </div>
   );
 }
@@ -145,7 +139,8 @@ export function ShowcaseItemForm({
   folderItems,
   disabled,
 }: ItemFormProps) {
-  const hintId = useId();
+  const promptHintId = useId();
+  const seedHintId = useId();
   const item = state.draft.items[index];
   if (!item) return null;
 
@@ -160,11 +155,11 @@ export function ShowcaseItemForm({
         value={item.promptText}
         blocked={promptBlocked}
         placeholder="e.g. a lighthouse on a cliff at dusk"
-        hintId={hintId}
+        hintId={promptHintId}
         disabled={disabled}
         labelEnd={
           <Checkbox
-            className="comfy-generate-dialog__caption"
+            className="comfy-run-dialog__caption"
             label="Save as caption"
             checked={state.draft.captionFromPrompt && !promptBlocked}
             disabled={disabled || promptBlocked}
@@ -174,11 +169,10 @@ export function ShowcaseItemForm({
         onChange={(promptText) => change({ promptText })}
       />
 
-      <p id={hintId} className="field__hint comfy-preset-layout__hint">
+      <p id={promptHintId} className="field__hint comfy-preset-layout__hint">
         {promptBlocked
           ? "No DataForge Prompt node, so the saved prompt runs."
-          : "Empty runs the preset's own prompt."}{" "}
-        {seedBlocked ? "No seed to vary." : "An empty seed is random, alike for every LoRA."}
+          : "Empty runs the preset's own prompt."}
       </p>
 
       <div className="comfy-preset-layout__section">
@@ -212,7 +206,7 @@ export function ShowcaseItemForm({
             {(control) => (
               <TextInput
                 {...control}
-                aria-describedby={hintId}
+                aria-describedby={seedHintId}
                 type="number"
                 value={seedBlocked ? "" : item.seedText}
                 placeholder={seedBlocked ? "None" : "Random"}
@@ -223,6 +217,9 @@ export function ShowcaseItemForm({
             )}
           </Field>
         </div>
+        <p id={seedHintId} className="field__hint comfy-preset-layout__hint">
+          {seedBlocked ? "No seed to vary." : "An empty seed is random, alike for every LoRA."}
+        </p>
       </div>
 
       {preset?.source_kind && (
@@ -249,44 +246,14 @@ export function ShowcaseItemForm({
 
       {preset && preset.inputs.length > 0 && (
         <fieldset className="comfy-preset-layout__section">
-          <legend className="comfy-preset-layout__section-label">Workflow inputs</legend>
           <InputFields
             inputs={preset.inputs}
             texts={item.inputs}
-            shared={state.draft.inputs}
             disabled={disabled}
             onChange={(inputs) => change({ inputs })}
           />
         </fieldset>
       )}
     </>
-  );
-}
-
-/** The inputs every item runs with unless it sets its own. */
-export function ShowcaseSharedForm({ state, preset, disabled }: FormProps) {
-  return (
-    <fieldset className="comfy-preset-layout__section comfy-showcase__shared">
-      <legend className="comfy-preset-layout__section-label">Shared inputs</legend>
-      {preset && preset.inputs.length > 0 ? (
-        <>
-          <p className="field__hint comfy-showcase__note">
-            Every item runs with these unless it sets its own. Empty runs the value the preset was
-            saved with.
-          </p>
-          <InputFields
-            inputs={preset.inputs}
-            texts={state.draft.inputs}
-            disabled={disabled}
-            onChange={(inputs) => state.update({ inputs })}
-          />
-        </>
-      ) : (
-        <p className="field__hint comfy-showcase__note">
-          This preset has no inputs to share. Title a primitive node{" "}
-          <strong>DataForge Steps</strong>, for example, to set it here for every item.
-        </p>
-      )}
-    </fieldset>
   );
 }

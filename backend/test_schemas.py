@@ -87,7 +87,7 @@ class JobResponseSchemaTests(unittest.TestCase):
             "watermark",
             "auto_adjust",
             "resize",
-            "comfy_process",
+            "comfy_run",
         ):
             self.assertEqual(_job(job_type=job_type).job_type, job_type)
 

@@ -262,35 +262,137 @@ describe("useAutomationDialogOverlays scope", () => {
       }),
     );
 
-    await act(async () => result.current.openDialogForJobType("comfy_generate"));
-    expect(result.current.dialogs.comfyGenerate.open).toBe(true);
-    expect(result.current.dialogs.comfyGenerate.scope).toMatchObject({
+    await act(async () => result.current.openDialogForJobType("comfy_run"));
+    expect(result.current.dialogs.comfyRun.open).toBe(true);
+    expect(result.current.dialogs.comfyRun.destinationScope).toMatchObject({
       kind: "destination",
       folderLabel: "Photos",
     });
 
     await act(async () =>
-      result.current.dialogs.comfyGenerate.onConfirm({
+      result.current.dialogs.comfyRun.onConfirm({
         preset: "txt2img",
         seed: null,
         promptText: "a lake",
         inputs: { Steps: 8 },
+        generates: true,
+        overwriteCandidates: false,
         count: 3,
         namePrefix: "lake",
         captionFromPrompt: true,
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
-      "comfy_generate",
+      "comfy_run",
       "C:Photos",
       {
         preset: "txt2img",
         seed: null,
         prompt_text: "a lake",
         inputs: { Steps: 8 },
+        overwrite_candidates: false,
         count: 3,
         name_prefix: "lake",
         caption_from_prompt: true,
+      },
+      undefined,
+    );
+  });
+
+  it("runs an editing preset on the selection it opened with", async () => {
+    const startJob = vi
+      .fn<
+        (
+          jobType: JobType,
+          folder: string,
+          body?: JobStartBody,
+          paths?: string[],
+        ) => Promise<unknown>
+      >()
+      .mockResolvedValue({ id: "job-1" });
+    const { result } = renderHookWithQueryClient(() =>
+      useAutomationDialogOverlays({
+        folderPath: "C:Photos",
+        folderLabel: "Photos",
+        startingJobType: null,
+        itemCount: 1,
+        folderItemCount: 3,
+        scopeKind: "selected",
+        startJob,
+        getJobPaths: () => ["C:Photos/a.png"],
+      }),
+    );
+
+    await act(async () => result.current.openDialogForJobType("comfy_run"));
+    expect(result.current.dialogs.comfyRun.editOnly).toBe(false);
+    await act(async () =>
+      result.current.dialogs.comfyRun.onConfirm({
+        preset: "upscale",
+        seed: 7,
+        promptText: "",
+        inputs: {},
+        generates: false,
+        overwriteCandidates: true,
+        count: 1,
+        namePrefix: "",
+        captionFromPrompt: false,
+      }),
+    );
+    expect(startJob).toHaveBeenCalledWith(
+      "comfy_run",
+      "C:Photos",
+      expect.objectContaining({ preset: "upscale", seed: 7, overwrite_candidates: true }),
+      ["C:Photos/a.png"],
+    );
+  });
+
+  it("keeps only an edit's settings in a workflow step", async () => {
+    const startJob = vi
+      .fn<
+        (
+          jobType: JobType,
+          folder: string,
+          body?: JobStartBody,
+          paths?: string[],
+        ) => Promise<unknown>
+      >()
+      .mockResolvedValue(null);
+    const { result } = renderHookWithQueryClient(() =>
+      useAutomationDialogOverlays({
+        folderPath: "C:Photos",
+        folderLabel: "Photos",
+        startingJobType: null,
+        itemCount: 1,
+        folderItemCount: 1,
+        startJob,
+        stepMode: { confirmLabel: "Save step", note: "Runs on the workflow's files." },
+      }),
+    );
+
+    await act(async () => result.current.openDialogForJobType("comfy_run"));
+    expect(result.current.dialogs.comfyRun.editOnly).toBe(true);
+    await act(async () =>
+      result.current.dialogs.comfyRun.onConfirm({
+        preset: "upscale",
+        seed: null,
+        promptText: "sharp",
+        inputs: {},
+        generates: false,
+        overwriteCandidates: false,
+        count: 4,
+        namePrefix: "x",
+        captionFromPrompt: true,
+      }),
+    );
+    expect(startJob).toHaveBeenCalledWith(
+      "comfy_run",
+      "C:Photos",
+      {
+        preset: "upscale",
+        seed: null,
+        prompt_text: "sharp",
+        inputs: {},
+        overwrite_candidates: false,
       },
       undefined,
     );
@@ -336,22 +438,24 @@ describe("useAutomationDialogOverlays scope", () => {
       }),
     );
 
-    await act(async () => result.current.openDialogForJobType("comfy_generate", { embedded }));
-    expect(result.current.dialogs.comfyGenerate.embedded).toBe(embedded);
+    await act(async () => result.current.openDialogForJobType("comfy_run", { embedded }));
+    expect(result.current.dialogs.comfyRun.embedded).toBe(embedded);
 
     await act(async () =>
-      result.current.dialogs.comfyGenerate.onConfirm({
+      result.current.dialogs.comfyRun.onConfirm({
         preset: "render_",
         seed: null,
         promptText: "",
         inputs: {},
+        generates: true,
+        overwriteCandidates: false,
         count: 1,
         namePrefix: "",
         captionFromPrompt: false,
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
-      "comfy_generate",
+      "comfy_run",
       "C:Photos",
       expect.objectContaining({
         preset: "",
@@ -359,7 +463,7 @@ describe("useAutomationDialogOverlays scope", () => {
       }),
       undefined,
     );
-    expect(result.current.dialogs.comfyGenerate.embedded).toBeUndefined();
+    expect(result.current.dialogs.comfyRun.embedded).toBeUndefined();
   });
 
   it("always explains that search and filters do not narrow LoRA training", () => {
@@ -664,7 +768,7 @@ describe("useAutomationDialogOverlays saved settings", () => {
     ["resize", "resize"],
     ["splitVideo", "split_video"],
     ["trimVideo", "trim_video"],
-    ["comfyGenerate", "comfy_generate"],
+    ["comfyRun", "comfy_run"],
   ] as const;
 
   it("hands every dialog its own block of this folder's settings", async () => {

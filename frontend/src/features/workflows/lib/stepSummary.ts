@@ -108,7 +108,7 @@ export function stepSummary(step: WorkflowStep): string {
       if (s.reset_trim) return "Clears the trim";
       return `Up to ${seconds(s.max_seconds)}, keeps the ${s.keep}`;
     }
-    case "comfy_process": {
+    case "comfy_run": {
       const s = step.settings;
       return join([
         s.preset ? quoted(s.preset) : "No preset",

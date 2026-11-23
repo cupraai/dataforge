@@ -48,7 +48,6 @@ import { JobCard, type JobFollowUp } from "./JobCard";
 import { JobsSectionTitle } from "./JobsSectionTitle";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import type { Job } from "@/shared/types";
-import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import { reviewScopeSuffix } from "@/features/gallery/lib/reviewScope";
 
 const RETICK_MS = 30_000;
@@ -115,7 +114,12 @@ function followUpsFor(
       onClick: thenClose(actions.onResolveDuplicates),
     });
   }
-  if (candidateCount > 0 && actions.onReviewCandidates && job.job_type === "comfy_process") {
+  if (
+    candidateCount > 0 &&
+    actions.onReviewCandidates &&
+    job.job_type === "comfy_run" &&
+    !job.generates
+  ) {
     followUps.push({
       label: `Review ${plural(candidateCount, "candidate")}${within}`,
       icon: iconScanSquare,
@@ -260,7 +264,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
         }
         onRetryFailed={
           // A failed generation has no file to retry on; starting the job again is the retry.
-          actions?.onRetryFailed && !GENERATING_JOBS.has(job.job_type)
+          actions?.onRetryFailed && !job.generates
             ? (paths) => {
                 closeDrawer();
                 actions.onRetryFailed?.(job.job_type, paths);

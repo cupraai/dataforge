@@ -351,7 +351,7 @@ class AutomationPreferencesEndpointTests(unittest.TestCase):
         body = response.json()
         self.assertEqual(
             set(body) - {"folder_path"},
-            set(JOB_SETTINGS_MODELS) | {"comfy_process", "comfy_generate"},
+            set(JOB_SETTINGS_MODELS) | {"comfy_run"},
         )
         self.assertTrue(body["folder_path"])
 

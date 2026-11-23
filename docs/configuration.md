@@ -165,7 +165,7 @@ These are choices in each job's dialog, not environment variables. Most are reme
 
 **Always overwrite:** Backup captions replaces existing copies, and Watermark replaces earlier output in `watermarked/`.
 
-**Edit with ComfyUI** remembers prompt, seed and inputs per preset, and overwrite permission per folder. **Generate with ComfyUI** remembers prompt and inputs per preset, never the seed, and generations, prefix and caption per folder. **Create showcase** remembers its whole last run per folder, seeds included; showcase sets are shared by every folder. Edit and Generate remember the last preset globally. **Keep original metadata** is on by default and remembered across individual and bulk acceptance; see [candidate review](comfyui.md#review-candidates) for supported formats.
+**Run ComfyUI workflow** remembers prompt and inputs per preset, and the seed only for an edit preset. Overwrite permission, generations, prefix and caption are remembered per folder. **LoRA showcase** remembers its whole last run per folder, seeds included; showcase sets are shared by every folder. Edit and Generate remember the last preset globally. **Keep original metadata** is on by default and remembered across individual and bulk acceptance; see [candidate review](comfyui.md#review-candidates) for supported formats.
 
 ## How settings are loaded
 
@@ -219,8 +219,8 @@ The default endpoints are local. A remote endpoint receives the following; its o
 | Auto-caption | Downscaled image/video frames, draft caption if any, system prompt, optionally 15 seconds of audio | `OPENAI_API_BASE_URL` |
 | Verify captions | Downscaled image/video frames, caption, additional context; no audio | `OPENAI_API_BASE_URL` |
 | Edit captions | Caption and edit instruction; with **Send media**, also downscaled image/video frames | `OPENAI_API_BASE_URL` |
-| Edit with ComfyUI | Source media and workflow inputs | `COMFY_BASE_URL` |
-| Generate with ComfyUI, Create showcase | Workflow inputs, prompts included, and a showcase's start files | `COMFY_BASE_URL` |
+| Run ComfyUI workflow, edit preset | Source media and workflow inputs | `COMFY_BASE_URL` |
+| Run ComfyUI workflow, generation preset; LoRA showcase | Workflow inputs, prompts included, and a showcase's start files | `COMFY_BASE_URL` |
 | Generative fill | A crop around the painted area, its mask, and the instruction | `COMFY_BASE_URL` |
 | LoRA training | Dataset folder path and training configuration, including prompts; no media upload | `OSTRIS_BASE_URL` |
 

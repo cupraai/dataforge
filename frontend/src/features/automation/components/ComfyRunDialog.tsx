@@ -14,20 +14,30 @@ import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { ComfyPresetFields } from "./ComfyPresetFields";
 
-export interface ComfyGenerateSettings extends ResolvedPresetValues {
+export interface ComfyRunSettings extends ResolvedPresetValues {
+  /** The selected preset makes new files, so the job ignores the scope. */
+  generates: boolean;
+  overwriteCandidates: boolean;
   count: number;
   /** Empty names the files after the preset. */
   namePrefix: string;
   captionFromPrompt: boolean;
 }
 
-interface ComfyGenerateDialogProps {
+interface ComfyRunDialogProps {
+  /** The files an editing preset runs on. */
   scope: DialogScopeInfo;
-  initialSettings: JobSettingsByType["comfy_generate"];
+  /** Where a generating preset's new files go. */
+  destinationScope: DialogScopeInfo;
+  initialSettings: JobSettingsByType["comfy_run"];
   busy?: boolean;
+  /** Replaces the start label, as when the dialog edits a workflow step instead. */
+  confirmLabel?: string;
+  /** Lists only presets that edit files: a workflow step runs on files chosen beforehand. */
+  editOnly?: boolean;
   /** Runs this file's own workflow, once, instead of a preset. */
   embedded?: EmbeddedGenerateWorkflow;
-  onConfirm: (settings: ComfyGenerateSettings) => void;
+  onConfirm: (settings: ComfyRunSettings) => void;
   onCancel: () => void;
 }
 
@@ -64,15 +74,20 @@ function parseCount(text: string): number | null {
   return count >= 1 && count <= MAX_COMFY_GENERATE_COUNT ? count : null;
 }
 
-export function ComfyGenerateDialog({
+export function ComfyRunDialog({
   scope,
+  destinationScope,
   initialSettings,
   busy = false,
+  confirmLabel,
+  editOnly = false,
   embedded,
   onConfirm,
   onCancel,
-}: ComfyGenerateDialogProps) {
-  const form = useComfyPresetForm(initialSettings, "generate", embedded);
+}: ComfyRunDialogProps) {
+  const form = useComfyPresetForm(initialSettings, editOnly ? "edit" : "run", embedded);
+  const generates = form.mode === "generate";
+  const [overwrite, setOverwrite] = useState(initialSettings.overwrite_candidates);
   // Held as text so the field can be emptied mid-edit instead of snapping back.
   const [countText, setCountText] = useState(String(initialSettings.count));
   const [namePrefix, setNamePrefix] = useState(initialSettings.name_prefix);
@@ -82,51 +97,70 @@ export function ComfyGenerateDialog({
   const ready = form.state.status === "ready";
   const defaultPrefix = embedded ? embeddedNamePrefix(embedded) : form.preset;
   const shownPrefix = namePrefix.trim() || defaultPrefix || "generated";
+  // A step's scope is fixed when the workflow runs, not now.
+  const nothingToEdit = !generates && !editOnly && scope.itemCount === 0;
 
   const handleConfirm = () => {
-    if (busy || !ready) return;
+    if (busy || !ready || nothingToEdit) return;
 
     const resolved = form.resolve();
     if ("error" in resolved) {
       setError(resolved.error);
       return;
     }
-    const count = parseCount(countText);
+    // Only a generation reads these, so a stale value never blocks an edit.
+    const count = generates ? parseCount(countText) : initialSettings.count;
     if (count === null) {
       setError(`Generations must be a whole number from 1 to ${MAX_COMFY_GENERATE_COUNT}.`);
       return;
     }
     const prefix = namePrefix.trim();
-    const badPrefix = prefixError(prefix);
+    const badPrefix = generates ? prefixError(prefix) : null;
     if (badPrefix) {
       setError(badPrefix);
       return;
     }
 
     setError(null);
-    onConfirm({ ...resolved.values, count, namePrefix: prefix, captionFromPrompt });
+    onConfirm({
+      ...resolved.values,
+      generates,
+      overwriteCandidates: overwrite,
+      count,
+      namePrefix: generates ? prefix : initialSettings.name_prefix,
+      captionFromPrompt,
+    });
   };
 
   const edited = () => setError(null);
 
   return (
     <GuardedDialog
-      confirmDisabled={busy || !ready || !form.preset}
+      confirmDisabled={busy || !ready || !form.preset || nothingToEdit}
       unsavedChanges={
         form.changed ||
+        overwrite !== initialSettings.overwrite_candidates ||
         countText !== String(initialSettings.count) ||
         namePrefix !== initialSettings.name_prefix ||
         captionFromPrompt !== initialSettings.caption_from_prompt
       }
-      scope={scope}
-      title="Generate with ComfyUI?"
+      scope={generates ? destinationScope : scope}
+      title="Run a ComfyUI workflow?"
       description={
-        <>
-          Adds each result as a new file, <strong>{shownPrefix}_0001</strong> onwards. Nothing is
-          replaced.
-        </>
+        generates ? (
+          <>
+            Adds each result as a new file, <strong>{shownPrefix}_0001</strong> onwards. Nothing is
+            replaced.
+          </>
+        ) : (
+          <>
+            Runs each file through the workflow and writes the result as a{" "}
+            <strong>candidate</strong> in the <strong>staging</strong> subfolder, for you to accept
+            or reject.
+          </>
+        )
       }
-      panelClassName="comfy-generate-dialog"
+      panelClassName="comfy-run-dialog"
       busy={busy}
       onConfirm={handleConfirm}
       onClose={onCancel}
@@ -140,7 +174,7 @@ export function ComfyGenerateDialog({
             </p>
           )}
           <DialogActions
-            confirmLabel="Start generating"
+            confirmLabel={confirmLabel ?? (generates ? "Start generating" : "Start processing")}
             busyLabel="Starting..."
             onCancel={onCancel}
           />
@@ -149,60 +183,77 @@ export function ComfyGenerateDialog({
     >
       <ComfyPresetFields
         form={form}
-        kind="generate"
         embedded={embedded}
         busy={busy}
         onEdited={edited}
         promptLabelEnd={
+          generates && (
+            <Checkbox
+              className="comfy-run-dialog__caption"
+              label="Save as caption"
+              checked={captionFromPrompt && !form.promptBlocked}
+              disabled={busy || form.promptBlocked}
+              onChange={(checked) => {
+                setCaptionFromPrompt(checked);
+                edited();
+              }}
+            />
+          )
+        }
+      >
+        {generates ? (
+          <div className="field-row comfy-run-dialog__output">
+            <Field label="Generations">
+              {(control) => (
+                <TextInput
+                  {...control}
+                  type="number"
+                  min={1}
+                  max={MAX_COMFY_GENERATE_COUNT}
+                  step={1}
+                  value={countText}
+                  onChange={(event) => {
+                    setCountText(event.target.value);
+                    edited();
+                  }}
+                  autoComplete="off"
+                  disabled={busy}
+                />
+              )}
+            </Field>
+            <Field label="File name prefix">
+              {(control) => (
+                <TextInput
+                  {...control}
+                  value={namePrefix}
+                  maxLength={MAX_COMFY_GENERATE_PREFIX_LENGTH}
+                  onChange={(event) => {
+                    setNamePrefix(event.target.value);
+                    edited();
+                  }}
+                  placeholder={defaultPrefix || "Preset name"}
+                  spellCheck={false}
+                  autoComplete="off"
+                  disabled={busy}
+                />
+              )}
+            </Field>
+          </div>
+        ) : (
           <Checkbox
-            className="comfy-generate-dialog__caption"
-            label="Save as caption"
-            checked={captionFromPrompt && !form.promptBlocked}
-            disabled={busy || form.promptBlocked}
+            label={
+              <>
+                Replace candidates already waiting in <strong>staging</strong>
+              </>
+            }
+            checked={overwrite}
+            disabled={busy}
             onChange={(checked) => {
-              setCaptionFromPrompt(checked);
+              setOverwrite(checked);
               edited();
             }}
           />
-        }
-      >
-        <div className="field-row comfy-generate-dialog__output">
-          <Field label="Generations">
-            {(control) => (
-              <TextInput
-                {...control}
-                type="number"
-                min={1}
-                max={MAX_COMFY_GENERATE_COUNT}
-                step={1}
-                value={countText}
-                onChange={(event) => {
-                  setCountText(event.target.value);
-                  edited();
-                }}
-                autoComplete="off"
-                disabled={busy}
-              />
-            )}
-          </Field>
-          <Field label="File name prefix">
-            {(control) => (
-              <TextInput
-                {...control}
-                value={namePrefix}
-                maxLength={MAX_COMFY_GENERATE_PREFIX_LENGTH}
-                onChange={(event) => {
-                  setNamePrefix(event.target.value);
-                  edited();
-                }}
-                placeholder={defaultPrefix || "Preset name"}
-                spellCheck={false}
-                autoComplete="off"
-                disabled={busy}
-              />
-            )}
-          </Field>
-        </div>
+        )}
       </ComfyPresetFields>
     </GuardedDialog>
   );

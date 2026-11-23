@@ -28,8 +28,7 @@ export type JobSettingsByType = {
   resize: AutomationSettings["resize"];
   split_video: AutomationSettings["split_video"];
   trim_video: AutomationSettings["trim_video"];
-  comfy_process: AutomationSettings["comfy_process"];
-  comfy_generate: AutomationSettings["comfy_generate"];
+  comfy_run: AutomationSettings["comfy_run"];
   comfy_showcase: AutomationSettings["comfy_showcase"];
 };
 
@@ -103,9 +102,9 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       frame_rate: null,
     },
     trim_video: { max_seconds: DEFAULT_TRIM_LENGTH_SECONDS, keep: "start" },
-    comfy_process: { preset: "", overwrite_candidates: false, by_preset: {} },
-    comfy_generate: {
+    comfy_run: {
       preset: "",
+      overwrite_candidates: false,
       count: DEFAULT_COMFY_GENERATE_COUNT,
       name_prefix: "",
       caption_from_prompt: false,
@@ -113,7 +112,6 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
     },
     comfy_showcase: {
       preset: "",
-      inputs: {},
       items: [],
       subject_loras: [],
       name_prefix: "",

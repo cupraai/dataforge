@@ -286,7 +286,7 @@ class ValidateTests(unittest.TestCase):
             with self.assertRaises(ValueError) as caught:
                 validate_comfy_process_folder(workspace.folder, preset="txt2img")
 
-        self.assertIn("Generate with ComfyUI", str(caught.exception))
+        self.assertIn("Run ComfyUI workflow", str(caught.exception))
 
     def test_an_empty_preset_name_is_refused(self) -> None:
         with Workspace() as workspace, self.assertRaises(ValueError):

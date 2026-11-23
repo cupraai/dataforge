@@ -98,7 +98,7 @@ class EmbeddedFileTests(unittest.TestCase):
             with self.assertRaises(ComfyWorkflowError) as missing:
                 load_embedded_generation(media, "42")
 
-        self.assertIn("Edit with ComfyUI", str(source_file.exception))
+        self.assertIn("edits files instead of making new ones", str(source_file.exception))
         self.assertIn("no output node 42", str(missing.exception))
 
 

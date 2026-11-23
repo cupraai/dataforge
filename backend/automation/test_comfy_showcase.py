@@ -37,7 +37,7 @@ SHOWCASE_WORKFLOW = {
     "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["3", 0]}},
 }
 
-#: Starts from an image: an edit preset to Edit with ComfyUI, a showcase all the same.
+#: Starts from an image: a preset that edits files, a showcase all the same.
 I2V_WORKFLOW = {
     "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "base.safetensors"}},
     "2": {"class_type": "LoadImage", "inputs": {"image": "example.png"}},

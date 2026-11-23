@@ -1,6 +1,5 @@
 import type { TrainLoraSettings } from "@/features/automation/api/jobs";
-import type { ComfyGenerateSettings } from "@/features/automation/components/ComfyGenerateDialog";
-import type { ComfyProcessSettings } from "@/features/automation/components/ComfyProcessDialog";
+import type { ComfyRunSettings } from "@/features/automation/components/ComfyRunDialog";
 import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -75,14 +74,14 @@ export type AutomationDialogsState = {
     (settings: JobSettingsByType["watermark"]) => void,
     JobSettingsByType["watermark"]
   >;
-  comfyProcess: FolderBusyDialogState<
-    (settings: ComfyProcessSettings) => void,
-    JobSettingsByType["comfy_process"]
-  >;
-  comfyGenerate: FolderBusyDialogState<
-    (settings: ComfyGenerateSettings) => void,
-    JobSettingsByType["comfy_generate"]
+  comfyRun: FolderBusyDialogState<
+    (settings: ComfyRunSettings) => void,
+    JobSettingsByType["comfy_run"]
   > & {
+    /** Where a generating preset's new files go; `scope` is what an editing one runs on. */
+    destinationScope: DialogScopeInfo;
+    /** A workflow step, which only a preset that edits files can be. */
+    editOnly: boolean;
     /** Set when the dialog runs a file's own workflow instead of a preset. */
     embedded?: EmbeddedGenerateWorkflow;
   };
@@ -140,7 +139,7 @@ export type AutomationDialogsState = {
   };
 };
 
-/** One output of a file's own workflow, handed from the workflow dialog to Generate. */
+/** One output of a file's own workflow, handed from the workflow dialog to the run dialog. */
 export interface EmbeddedGenerateWorkflow {
   mediaPath: string;
   mediaName: string;

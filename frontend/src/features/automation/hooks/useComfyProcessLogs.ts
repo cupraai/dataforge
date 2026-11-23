@@ -9,7 +9,7 @@ export const COMFY_LOG_POLL_MS = 1000;
 /** ComfyUI's console during a run, or null; keyed by job so stale output never shows. */
 export function useComfyProcessLogs(job: Job | null): ComfyLogsResponse | null {
   const jobId = job?.id ?? "";
-  const enabled = job !== null && job.job_type === "comfy_process" && isActiveJobStatus(job.status);
+  const enabled = job !== null && job.job_type === "comfy_run" && isActiveJobStatus(job.status);
 
   // A tick never overlaps a request still out, so a ComfyUI busy sampling is not queued at.
   const { data } = useQuery({

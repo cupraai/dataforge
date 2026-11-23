@@ -3,10 +3,7 @@ import {
   ComfyPresetSection,
   ComfyStatus,
 } from "@/features/automation/components/ComfyPresetSection";
-import {
-  ShowcaseItemForm,
-  ShowcaseSharedForm,
-} from "@/features/automation/components/ShowcaseForms";
+import { ShowcaseItemForm } from "@/features/automation/components/ShowcaseForms";
 import { ShowcaseItemList } from "@/features/automation/components/ShowcaseItemList";
 import { ShowcaseSetMenu } from "@/features/automation/components/ShowcaseSetMenu";
 import { ShowcaseSubjects } from "@/features/automation/components/ShowcaseSubjects";
@@ -27,7 +24,7 @@ import {
 } from "@/features/automation/lib/showcase";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { MAX_COMFY_GENERATE_PREFIX_LENGTH, MAX_SHOWCASE_ITEMS } from "@/shared/constants";
-import { iconPlus, iconSliders, iconTriangleAlert } from "@/shared/icons";
+import { iconPlus, iconTriangleAlert } from "@/shared/icons";
 import type { ComfyPresetSummary, ComfyShowcaseJobSettings, GalleryItem } from "@/shared/types";
 import { Button } from "@/shared/ui/Button";
 import { Checkbox } from "@/shared/ui/Checkbox";
@@ -82,7 +79,6 @@ export function ComfyShowcaseDialog({
   const preset = listed?.find((entry) => entry.name === presetName) ?? null;
   const resolved = resolveContent(draft, preset);
   const totals = showcaseTotals(draft.items, draft.subjects.length);
-  const sharedSelected = state.selection === "shared";
   // Any edit answers the message, so it goes with the draft it was about.
   const error = problem?.draft === draft ? problem.message : null;
 
@@ -103,7 +99,7 @@ export function ComfyShowcaseDialog({
       confirmDisabled={busy || !presetName}
       unsavedChanges={state.changed}
       scope={scope}
-      title="Create a showcase?"
+      title="Create a LoRA showcase?"
       description={
         <>
           Renders every item with the LoRA showcased, as new files from{" "}
@@ -188,18 +184,6 @@ export function ComfyShowcaseDialog({
               disabled={busy}
               onLoad={state.loadSet}
             />
-            {(sharedSelected || (preset !== null && preset.inputs.length > 0)) && (
-              <Button
-                icon={iconSliders}
-                size="xs"
-                variant={sharedSelected ? "primary" : "secondary"}
-                aria-pressed={sharedSelected}
-                title="Workflow inputs every item runs with unless it sets its own"
-                onClick={() => state.select("shared")}
-              >
-                Shared inputs
-              </Button>
-            )}
             <Button
               icon={iconPlus}
               size="xs"
@@ -237,18 +221,14 @@ export function ComfyShowcaseDialog({
         </section>
 
         <div className="comfy-preset-layout__form">
-          {state.selection === "shared" ? (
-            <ShowcaseSharedForm state={state} preset={preset} disabled={busy} />
-          ) : (
-            <ShowcaseItemForm
-              state={state}
-              index={state.selection}
-              preset={preset}
-              loras={loras.options}
-              folderItems={folderItems}
-              disabled={busy}
-            />
-          )}
+          <ShowcaseItemForm
+            state={state}
+            index={state.selection}
+            preset={preset}
+            loras={loras.options}
+            folderItems={folderItems}
+            disabled={busy}
+          />
         </div>
       </div>
     </GuardedDialog>

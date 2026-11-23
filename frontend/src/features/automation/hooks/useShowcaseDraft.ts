@@ -10,7 +10,7 @@ import type {
 } from "@/shared/types";
 
 /** What a saved set holds: everything but the LoRA showcased and the output. */
-export type ShowcaseContent = Pick<ComfyShowcaseJobSettings, "preset" | "inputs" | "items">;
+export type ShowcaseContent = Pick<ComfyShowcaseJobSettings, "preset" | "items">;
 
 export interface LoraRowDraft {
   key: string;
@@ -28,24 +28,19 @@ export interface ItemDraft {
   strengthText: string;
   loras: LoraRowDraft[];
   seedText: string;
-  /** Field text by input name; empty runs the showcase's value. */
+  /** Field text by input name; empty runs the preset's saved value. */
   inputs: Record<string, string>;
   sourcePath: string | null;
 }
 
 export interface ShowcaseDraft {
   preset: string;
-  /** Every item's inputs; empty runs the preset's saved value. */
-  inputs: Record<string, string>;
   items: ItemDraft[];
   subjects: string[];
   namePrefix: string;
   captionFromPrompt: boolean;
   makeSheet: boolean;
 }
-
-/** The inputs every item shares, or an item by position. */
-export type ShowcaseSelection = "shared" | number;
 
 let nextKey = 0;
 function newKey(): string {
@@ -97,12 +92,9 @@ function itemDraft(item: ComfyShowcaseItem): ItemDraft {
 }
 
 /** A set or remembered run, with a first blank item so the editor never opens empty. */
-function contentDraft(
-  content: ShowcaseContent,
-): Pick<ShowcaseDraft, "preset" | "inputs" | "items"> {
+function contentDraft(content: ShowcaseContent): Pick<ShowcaseDraft, "preset" | "items"> {
   return {
     preset: content.preset,
-    inputs: inputTexts(content.inputs),
     items: content.items.length > 0 ? content.items.map(itemDraft) : [blankItem()],
   };
 }
@@ -131,7 +123,8 @@ function comparable(draft: ShowcaseDraft): string {
 /** The first problem, and what to select to fix it. */
 export interface ShowcaseProblem {
   error: string;
-  select?: ShowcaseSelection;
+  /** The item to select. */
+  select?: number;
 }
 
 function parseStrength(text: string): number | undefined {
@@ -198,9 +191,6 @@ export function resolveContent(
   preset: ComfyPresetSummary | null,
 ): { content: ShowcaseContent } | ShowcaseProblem {
   if (!preset) return { error: "Choose a workflow preset." };
-  const shared = resolveInputs(draft.inputs, preset);
-  if ("error" in shared) return { error: shared.error, select: "shared" };
-
   const items: ComfyShowcaseItem[] = [];
   for (const [index, entry] of draft.items.entries()) {
     const resolved = resolveItem(entry, preset);
@@ -209,7 +199,7 @@ export function resolveContent(
     }
     items.push(resolved.item);
   }
-  return { content: { preset: preset.name, inputs: shared.inputs, items } };
+  return { content: { preset: preset.name, items } };
 }
 
 /** The start body, or what does not parse; the rest is the backend's to refuse. */
@@ -234,7 +224,7 @@ export function resolveShowcase(
 /** The draft and its edits; the selection follows items as they move. */
 export function useShowcaseDraft(initial: ComfyShowcaseJobSettings) {
   const [draft, setDraft] = useState(() => draftFromSettings(initial));
-  const [selection, setSelection] = useState<ShowcaseSelection>(0);
+  const [selection, setSelection] = useState(0);
   const [baseline] = useState(() => comparable(draft));
 
   const update = (patch: Partial<ShowcaseDraft>) =>
@@ -276,9 +266,7 @@ export function useShowcaseDraft(initial: ComfyShowcaseJobSettings) {
       return { ...current, items: items.length > 0 ? items : [blankItem()] };
     });
     setSelection((current) =>
-      current === "shared"
-        ? current
-        : Math.max(0, current > index ? current - 1 : Math.min(current, draft.items.length - 2)),
+      Math.max(0, current > index ? current - 1 : Math.min(current, draft.items.length - 2)),
     );
   };
 
@@ -294,7 +282,7 @@ export function useShowcaseDraft(initial: ComfyShowcaseJobSettings) {
     setSelection((current) => (current === index ? target : current));
   };
 
-  /** A saved set replaces the items and inputs; the LoRAs and output stay. */
+  /** A saved set replaces the preset and items; the LoRAs and output stay. */
   const loadSet = (content: ShowcaseContent) => {
     setDraft((current) => ({ ...current, ...contentDraft(content) }));
     setSelection(0);

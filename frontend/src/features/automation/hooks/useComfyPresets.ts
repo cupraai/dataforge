@@ -7,15 +7,14 @@ import { formatApiError } from "@/shared/api/http";
 import { useOptionalServerEvent } from "@/shared/events/serverEvents";
 import type { ComfyPresetSummary } from "@/shared/types";
 
-/** Which ComfyUI job lists a preset: edit presets load a source file, generate presets do not;
- * a showcase takes any preset it can add LoRAs to. */
-export type ComfyPresetKind = "edit" | "generate" | "showcase";
+/** Which presets a list offers: `run` every one, `edit` those that load a source file (a
+ * workflow step), `showcase` any it can add LoRAs to. */
+export type ComfyPresetKind = "run" | "edit" | "showcase";
 
-/** Lists a preset under one job. An unparseable preset (null) lists under both, so queueing it
- * names the fix. */
+/** An unparseable preset (null) lists everywhere, so queueing it names the fix. */
 export function presetBelongsTo(preset: ComfyPresetSummary, kind: ComfyPresetKind): boolean {
   if (kind === "showcase") return preset.accepts_loras !== false;
-  return kind === "generate" ? preset.generates !== false : preset.generates !== true;
+  return kind === "run" || preset.generates !== true;
 }
 
 export type PresetsState =
@@ -48,17 +47,13 @@ export function useLiveComfyPresets(): void {
   });
 }
 
-/** Whether each ComfyUI job has a preset to offer. */
-export function useComfyPresetsAvailable(): {
-  edit: boolean;
-  generate: boolean;
-  showcase: boolean;
-} {
+/** Whether each preset list has a preset to offer. */
+export function useComfyPresetsAvailable(): Record<ComfyPresetKind, boolean> {
   const { data } = useQuery(comfyPresetsQueryOptions());
   const presets = data?.presets ?? [];
   return {
+    run: presets.length > 0,
     edit: presets.some((preset) => presetBelongsTo(preset, "edit")),
-    generate: presets.some((preset) => presetBelongsTo(preset, "generate")),
     showcase: presets.some((preset) => presetBelongsTo(preset, "showcase")),
   };
 }

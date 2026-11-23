@@ -7,9 +7,8 @@ import { EditCaptionsDialog } from "./EditCaptionsDialog";
 import { FindDuplicatesDialog } from "./FindDuplicatesDialog";
 import { BatchRenameDialog } from "./BatchRenameDialog";
 import { CheckCaptionRulesDialog } from "./CheckCaptionRulesDialog";
-import { ComfyGenerateDialog } from "./ComfyGenerateDialog";
 import { ComfyShowcaseDialog } from "./ComfyShowcaseDialog";
-import { ComfyProcessDialog } from "./ComfyProcessDialog";
+import { ComfyRunDialog } from "./ComfyRunDialog";
 import { TrainLoraDialog } from "./TrainLoraDialog";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
 import { ResizeDialog } from "./ResizeDialog";
@@ -38,8 +37,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     resize,
     splitVideo,
     trimVideo,
-    comfyProcess,
-    comfyGenerate,
+    comfyRun,
     comfyShowcase,
     autoAdjust,
     checkCaptionRules,
@@ -164,14 +162,17 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
         />
       )}
 
-      {comfyGenerate.open && comfyGenerate.initialSettings && (
-        <ComfyGenerateDialog
-          scope={comfyGenerate.scope}
-          initialSettings={comfyGenerate.initialSettings}
-          busy={comfyGenerate.busy}
-          embedded={comfyGenerate.embedded}
-          onConfirm={comfyGenerate.onConfirm}
-          onCancel={comfyGenerate.onCancel}
+      {comfyRun.open && comfyRun.initialSettings && (
+        <ComfyRunDialog
+          scope={comfyRun.scope}
+          destinationScope={comfyRun.destinationScope}
+          initialSettings={comfyRun.initialSettings}
+          busy={comfyRun.busy}
+          confirmLabel={comfyRun.confirmLabel}
+          editOnly={comfyRun.editOnly}
+          embedded={comfyRun.embedded}
+          onConfirm={comfyRun.onConfirm}
+          onCancel={comfyRun.onCancel}
         />
       )}
 
@@ -184,17 +185,6 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           folderItems={comfyShowcase.folderItems}
           onConfirm={comfyShowcase.onConfirm}
           onCancel={comfyShowcase.onCancel}
-        />
-      )}
-
-      {comfyProcess.open && comfyProcess.initialSettings && (
-        <ComfyProcessDialog
-          scope={comfyProcess.scope}
-          initialSettings={comfyProcess.initialSettings}
-          busy={comfyProcess.busy}
-          confirmLabel={comfyProcess.confirmLabel}
-          onConfirm={comfyProcess.onConfirm}
-          onCancel={comfyProcess.onCancel}
         />
       )}
 

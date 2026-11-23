@@ -23,7 +23,7 @@ function setupHost(
   options: {
     hasCaptionBackup?: boolean;
     ostrisAvailable?: boolean;
-    comfyPresetsAvailable?: boolean;
+    comfyEditPresetsAvailable?: boolean;
   } = {},
 ) {
   const startJob = vi.fn<StartJob>().mockResolvedValue({ id: "job-1" });
@@ -48,8 +48,8 @@ function setupHost(
       syspromptApplies: false,
       hasCaptionBackup: options.hasCaptionBackup ?? true,
       ostrisAvailable: options.ostrisAvailable ?? false,
-      comfyPresetsAvailable: options.comfyPresetsAvailable ?? false,
-      comfyGeneratePresetsAvailable: false,
+      comfyEditPresetsAvailable: options.comfyEditPresetsAvailable ?? false,
+      comfyRunPresetsAvailable: false,
       comfyShowcasePresetsAvailable: false,
       getJobPaths: () => undefined,
       // The hook only reads the fields asserted here.

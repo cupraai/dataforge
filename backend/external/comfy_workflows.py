@@ -157,17 +157,17 @@ def require_source_input(workflow: ComfyWorkflow) -> None:
     if workflow.generates:
         raise ComfyWorkflowError(
             f'The preset "{workflow.preset}" has no input node, so it cannot load a file. '
-            f'Title the loader you want in ComfyUI "{INPUT_NODE_TITLE}" and re-export it, or run '
-            "it with Generate with ComfyUI."
+            f'Title the loader you want in ComfyUI "{INPUT_NODE_TITLE}" and re-export it, or make '
+            "new files with it in Run ComfyUI workflow."
         )
 
 
 def require_generation(workflow: ComfyWorkflow) -> None:
     if not workflow.generates:
         raise ComfyWorkflowError(
-            f'The preset "{workflow.preset}" loads a source file, so it runs with Edit with '
-            "ComfyUI. To generate from a fixed reference image, title its loader something other "
-            f'than "{INPUT_NODE_TITLE}" and use a loader other than '
+            f'The preset "{workflow.preset}" loads a source file, so it edits files instead of '
+            "making new ones. To generate from a fixed reference image, title its loader "
+            f'something other than "{INPUT_NODE_TITLE}" and use a loader other than '
             f"{', '.join(sorted(INPUT_CLASSES))}."
         )
 
