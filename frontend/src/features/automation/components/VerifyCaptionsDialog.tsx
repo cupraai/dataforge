@@ -1,10 +1,12 @@
 import { Field, TextArea } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
+import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetMenu";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
+import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -33,6 +35,7 @@ export function VerifyCaptionsDialog({
   const [context, setContext] = useState(initialSettings.context);
   const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
+  const contextRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <GuardedDialog
@@ -85,10 +88,26 @@ export function VerifyCaptionsDialog({
         hint="Keeps earlier reasoning in the prompt instead of dropping it."
       />
 
-      <Field label="Additional context">
+      <Field
+        label="Additional context"
+        labelEnd={
+          <SavedSnippetMenu
+            book="verify_contexts"
+            text={context}
+            disabled={busy}
+            onInsert={(text) => {
+              setContext((current) => appendSnippet(current, text));
+              contextRef.current?.focus();
+            }}
+          />
+        }
+      >
         {(control) => (
           <TextArea
             {...control}
+            ref={contextRef}
+            grow
+            className="verify-captions-dialog__context"
             value={context}
             onChange={(event) => setContext(event.target.value)}
             placeholder="e.g. typical poses or recurring subjects"

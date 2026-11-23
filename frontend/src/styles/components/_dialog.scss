@@ -249,6 +249,11 @@
   }
 }
 
+// Grows only into the height the rest of the form leaves, so the dialog does not start scrolling.
+.verify-captions-dialog__context {
+  max-height: clamp(4.25rem, 88vh - 35.5rem, 8.5rem);
+}
+
 // Stem takes remaining width; the number column only holds a few digits.
 .batch-rename-dialog__row {
   grid-template-columns: 1fr 7rem;

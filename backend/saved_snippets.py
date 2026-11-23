@@ -8,10 +8,15 @@ from schemas import SavedSnippet, SavedSnippetsResponse, SnippetBook
 
 _STORES: dict[SnippetBook, JsonPreference[SavedSnippetsResponse]] = {
     "instructions": JsonPreference("instruction_snippets", SavedSnippetsResponse),
+    "verify_contexts": JsonPreference("verify_context_snippets", SavedSnippetsResponse),
     "comfy_prompts": JsonPreference("comfy_prompt_snippets", SavedSnippetsResponse),
 }
 
-_NOUNS: dict[SnippetBook, str] = {"instructions": "instructions", "comfy_prompts": "prompts"}
+_NOUNS: dict[SnippetBook, str] = {
+    "instructions": "instructions",
+    "verify_contexts": "contexts",
+    "comfy_prompts": "prompts",
+}
 
 
 class TooManySnippetsError(ValueError):

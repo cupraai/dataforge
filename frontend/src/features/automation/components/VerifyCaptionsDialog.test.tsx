@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
@@ -6,6 +6,7 @@ import {
   type JobSettingsByType,
 } from "@/features/automation/preferences/automationPreferences";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
+import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { ComponentProps } from "react";
 
@@ -78,6 +79,37 @@ describe("VerifyCaptionsDialog", () => {
       reasoning_effort: "medium",
       preserve_thinking: true,
     });
+  });
+
+  it("saves a context under a name and adds it after the typed text", async () => {
+    const { requestsTo } = installMockBackend();
+    const user = userEvent.setup();
+    const onConfirm = renderDialog({ context: "Studio product shots." });
+    const field = screen.getByLabelText("Additional context");
+    const openSaved = async () => {
+      await user.click(screen.getByRole("button", { name: "Saved" }));
+      return screen.findByRole("dialog", { name: "Saved contexts" });
+    };
+
+    let panel = await openSaved();
+    await user.click(within(panel).getByRole("button", { name: "Save current context..." }));
+    await user.type(within(panel).getByLabelText("Name for the context"), "Studio{Enter}");
+    expect(await within(panel).findByRole("button", { name: /^Studio/ })).toBeInTheDocument();
+    expect(requestsTo("/api/preferences/snippets/verify_contexts", "PUT")).toHaveLength(1);
+    // Enter in the name field saves; it must not also start the job.
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await user.clear(field);
+    await user.type(field, "Two people.");
+    panel = await openSaved();
+    await user.click(within(panel).getByRole("button", { name: /^Studio/ }));
+
+    expect(field).toHaveValue("Two people.\n\nStudio product shots.");
+    expect(field).toHaveFocus();
+    await confirm(user);
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ context: "Two people.\n\nStudio product shots." }),
+    );
   });
 
   it("submits a cleared Preserve thinking box", async () => {

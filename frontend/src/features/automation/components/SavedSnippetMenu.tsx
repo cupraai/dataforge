@@ -18,6 +18,12 @@ const COPY: Record<SnippetBook, BookCopy> = {
     title: "Saved instructions",
     empty: "Save an instruction to reuse it here, in any folder.",
   },
+  verify_contexts: {
+    noun: "context",
+    article: "a",
+    title: "Saved contexts",
+    empty: "Save a context to reuse it when verifying captions, in any folder.",
+  },
   comfy_prompts: {
     noun: "prompt",
     article: "a",

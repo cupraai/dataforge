@@ -776,8 +776,9 @@ class RememberedDataResponse(BaseModel):
     display_mode_folders: int
 
 
-#: ``instructions`` serves Edit captions; ``comfy_prompts`` both ComfyUI dialogs.
-type SnippetBook = Literal["instructions", "comfy_prompts"]
+#: ``instructions`` serves Edit captions, ``verify_contexts`` Verify captions, and
+#: ``comfy_prompts`` the ComfyUI dialogs.
+type SnippetBook = Literal["instructions", "verify_contexts", "comfy_prompts"]
 
 
 class SavedSnippet(BaseModel):
