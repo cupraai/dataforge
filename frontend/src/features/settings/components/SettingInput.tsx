@@ -1,7 +1,9 @@
 import { TextInput } from "@/shared/ui/Field";
 import { Badge, type BadgeTone } from "@/shared/ui/Badge";
-import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/IconButton";
+import { iconRotateCcw, iconUndo2 } from "@/shared/icons";
 import { useId } from "react";
+import { classNames } from "@/shared/lib/classNames";
 import type { AppSettingKey, AppSettingsResponse } from "@/shared/types";
 import { SETTING_FIELDS } from "../lib/settingsForm";
 
@@ -15,12 +17,16 @@ const INPUT_TYPES = {
   secret: "password",
 } as const;
 
+function fallbackName(state: SettingState): string {
+  return state.fallback_source === "env" ? ".env value" : "default";
+}
+
 function describeSource(
   state: SettingState,
   edited: boolean,
   pendingReset: boolean,
 ): { tone: BadgeTone; badge: string; title?: string; detail?: string } {
-  const fallback = state.fallback_source === "env" ? ".env value" : "default";
+  const fallback = fallbackName(state);
   if (pendingReset) {
     return { tone: "warning", badge: "Will reset", detail: `Returns to the ${fallback} on save` };
   }
@@ -60,6 +66,7 @@ interface SettingInputProps {
   suggestions?: readonly string[];
   onChange: (value: string) => void;
   onReset: () => void;
+  onUndoReset: () => void;
 }
 
 export function SettingInput({
@@ -73,6 +80,7 @@ export function SettingInput({
   suggestions = [],
   onChange,
   onReset,
+  onUndoReset,
 }: SettingInputProps) {
   const inputId = useId();
   const badgeId = useId();
@@ -80,7 +88,11 @@ export function SettingInput({
   const listId = useId();
   const field = SETTING_FIELDS[settingKey];
   const source = describeSource(state, edited, pendingReset);
-  const canReset = state.source === "saved" && !pendingReset;
+  const resettable = state.source === "saved";
+  const resetTarget =
+    "value" in state
+      ? `Reset to the ${fallbackName(state)}, ${state.fallback}`
+      : `Reset to the ${fallbackName(state)}`;
   const secret = field.kind === "secret";
   const range = "minimum" in state ? state : null;
 
@@ -89,20 +101,46 @@ export function SettingInput({
       <div className="setting-field__head">
         <label className="field__label setting-field__label" htmlFor={inputId}>
           {field.label}
+          {/* The unit shows inside the field; the label only names it for assistive tech. */}
           {field.unit && (
             <>
               {" "}
-              <span className="setting-field__unit">({field.unit})</span>
+              <span className="setting-field__label-unit">({field.unit})</span>
             </>
           )}
         </label>
-        <Badge id={badgeId} tone={source.tone} uppercase={false} title={source.title}>
+        <Badge
+          id={badgeId}
+          tone={source.tone}
+          uppercase={false}
+          title={source.title ?? source.detail}
+        >
           {source.badge}
         </Badge>
       </div>
       <TextInput
         id={inputId}
-        className="setting-field__input"
+        className={classNames("setting-field__input", range && "setting-field__input--number")}
+        // Always set, so the input is not remounted when a save makes it resettable.
+        end={
+          (field.unit || resettable) && (
+            <>
+              {field.unit && <span aria-hidden="true">{field.unit}</span>}
+              {resettable && (
+                // One button that flips, so focus stays put after either click.
+                <IconButton
+                  icon={pendingReset ? iconUndo2 : iconRotateCcw}
+                  label={pendingReset ? `Undo reset of ${field.label}` : `Reset ${field.label}`}
+                  tooltip={pendingReset ? "Keep the saved value" : resetTarget}
+                  size="2xs"
+                  variant="ghost"
+                  disabled={disabled}
+                  onClick={pendingReset ? onUndoReset : onReset}
+                />
+              )}
+            </>
+          )
+        }
         type={INPUT_TYPES[field.kind]}
         min={range?.minimum}
         max={range?.maximum ?? undefined}
@@ -124,23 +162,10 @@ export function SettingInput({
           ))}
         </datalist>
       )}
-      {(source.detail || canReset) && (
-        <div className="setting-field__foot">
-          <span id={detailId} className="setting-field__detail">
-            {source.detail}
-          </span>
-          {canReset && (
-            <Button
-              disabled={disabled}
-              aria-label={`Reset ${field.label}`}
-              onClick={onReset}
-              variant="text"
-              size="xs"
-            >
-              Reset
-            </Button>
-          )}
-        </div>
+      {source.detail && (
+        <span id={detailId} className="setting-field__detail">
+          {source.detail}
+        </span>
       )}
     </div>
   );

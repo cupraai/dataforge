@@ -97,10 +97,10 @@ class JobResponseSchemaTests(unittest.TestCase):
 
 
 class ReasoningEffortSchemaTests(unittest.TestCase):
-    """The chat template raises on an unrecognised effort, so the API must reject it first."""
+    """Chat templates raise on an unrecognised effort, so the API must reject it first."""
 
-    def test_accepts_every_level_the_template_supports(self) -> None:
-        for effort in ("low", "medium", "xhigh"):
+    def test_accepts_every_level_a_template_defines(self) -> None:
+        for effort in ("low", "medium", "high", "xhigh", "max"):
             self.assertEqual(
                 AutoCaptionStartRequest(reasoning_effort=effort).reasoning_effort, effort
             )
@@ -108,9 +108,10 @@ class ReasoningEffortSchemaTests(unittest.TestCase):
     def test_defaults_to_medium(self) -> None:
         self.assertEqual(AutoCaptionStartRequest().reasoning_effort, "medium")
 
-    def test_rejects_high_which_the_template_has_no_branch_for(self) -> None:
-        with self.assertRaises(ValidationError):
-            AutoCaptionStartRequest(reasoning_effort="high")
+    def test_rejects_a_level_no_template_defines(self) -> None:
+        for effort in ("none", "minimal", "extreme"):
+            with self.subTest(effort=effort), self.assertRaises(ValidationError):
+                AutoCaptionStartRequest(reasoning_effort=effort)
 
 
 class TrainingModelSchemaTests(unittest.TestCase):

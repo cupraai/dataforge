@@ -9,10 +9,16 @@ function quoted(text: string): string {
   return `"${short}"`;
 }
 
+const EFFORT_LABELS: Record<ReasoningEffort, string> = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: "extra high",
+  max: "max",
+};
+
 function modelMode(mode: AutomationMode, effort: ReasoningEffort): string {
-  return mode === "thinking"
-    ? `Thinking, ${effort === "xhigh" ? "extra high" : effort} effort`
-    : "Instruct";
+  return mode === "thinking" ? `Thinking, ${EFFORT_LABELS[effort]} effort` : "Instruct";
 }
 
 function seconds(value: number): string {

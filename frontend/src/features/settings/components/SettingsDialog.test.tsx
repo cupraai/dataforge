@@ -167,6 +167,14 @@ describe("SettingsDialog", () => {
 
     expect(model).toHaveValue("qwen38");
     expect(model).toHaveAccessibleDescription("Will reset Returns to the default on save");
+
+    await user.click(screen.getByRole("button", { name: "Undo reset of Model" }));
+
+    expect(model).toHaveValue("model-b");
+    expect(model).toHaveAccessibleDescription("Saved Overrides default qwen38");
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Reset Model" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(settingsRequests("PUT")).toHaveLength(1));
@@ -361,7 +369,8 @@ describe("SettingsDialog", () => {
 
     expect(screen.getByRole("tab", { name: "Sampling" })).toHaveFocus();
     expect(screen.getAllByRole("spinbutton", { name: "Temperature" })).toHaveLength(2);
-    expect(screen.getByText(/Tune sampling last/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Reasoning" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Instruct" })).toBeVisible();
   });
 
   it("shows the page holding a refused value, wherever the user is", async () => {

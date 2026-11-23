@@ -1,17 +1,17 @@
-import { RadioTileGroup, type RadioTileOption } from "@/shared/ui/RadioTileGroup";
+import { useId } from "react";
+import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
 import type { ReasoningEffort } from "@/shared/types";
 
 export type { ReasoningEffort };
 
-// Fixed by the chat template, which raises on anything else.
-const EFFORTS: ReadonlyArray<RadioTileOption<ReasoningEffort>> = [
-  {
-    value: "xhigh",
-    title: "Extra high",
-    description: "Validates assumptions, weighs alternatives",
-  },
-  { value: "medium", title: "Medium", description: "Balanced; the right level for captioning" },
-  { value: "low", title: "Low", description: "Brief thinking, straight to the answer" },
+// Each chat template accepts only its own subset and raises on the rest, so no level is described
+// here: what a level does depends on the loaded model.
+const EFFORTS: ReadonlyArray<SegmentOption<ReasoningEffort>> = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "xhigh", label: "Extra high" },
+  { value: "max", label: "Max" },
 ];
 
 interface ReasoningEffortSelectorProps {
@@ -26,13 +26,21 @@ export function ReasoningEffortSelector({
   disabled = false,
   onChange,
 }: ReasoningEffortSelectorProps) {
+  const labelId = useId();
+
   return (
-    <RadioTileGroup
-      value={value}
-      options={EFFORTS}
-      label="Reasoning effort"
-      disabled={disabled}
-      onChange={onChange}
-    />
+    <div className="field">
+      <span id={labelId} className="field__label">
+        Reasoning effort
+      </span>
+      <SegmentedControl
+        labelledBy={labelId}
+        value={value}
+        options={EFFORTS}
+        stretch
+        disabled={disabled}
+        onChange={onChange}
+      />
+    </div>
   );
 }

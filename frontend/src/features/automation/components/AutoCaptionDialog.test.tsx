@@ -92,6 +92,15 @@ describe("AutoCaptionDialog", () => {
     expect(preserveThinkingCheckbox()).toBeChecked();
   });
 
+  it("offers every effort level, lowest first", () => {
+    renderDialog();
+
+    const efforts = within(screen.getByRole("radiogroup", { name: "Reasoning effort" }));
+    expect(efforts.getAllByRole("radio").map((radio) => (radio as HTMLInputElement).value)).toEqual(
+      ["low", "medium", "high", "xhigh", "max"],
+    );
+  });
+
   it("submits the mode and leaves audio off by default", async () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog();

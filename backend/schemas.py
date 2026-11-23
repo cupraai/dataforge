@@ -108,8 +108,8 @@ type TrainingModel = Literal[
     "h3_ref2va",
 ]
 
-#: Chat template set; there is no ``high``. Template default ``xhigh``, ours ``medium``.
-type ReasoningEffort = Literal["low", "medium", "xhigh"]
+#: Union of the levels chat templates define; each template accepts only its own subset.
+type ReasoningEffort = Literal["low", "medium", "high", "xhigh", "max"]
 
 type JobStatus = Literal["queued", "running", "completed", "failed", "cancelled", "interrupted"]
 type JobType = Literal[

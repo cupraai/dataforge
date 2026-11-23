@@ -13,6 +13,7 @@ version heading when a minor or major version is cut.
 - The notification bell shows how many notifications are unread, in the same count badge as the jobs button. It turns yellow or red when an unread one is a warning or an error, and clears once you close the list. Both badges show **99+** for anything above 99.
 - **Generate with ComfyUI** and **Edit with ComfyUI** have a **Saved** menu beside the prompt, like the one for **Edit captions** instructions. Save the typed prompt under a name, then add it to the prompt in either dialog, in any folder. Saved prompts are kept apart from saved caption instructions.
 - **Verify captions** has the same **Saved** menu beside **Additional context**, with its own list of contexts to reuse in any folder.
+- **Reasoning effort** in Auto-caption, Verify captions and Edit captions now also offers **High** and **Max**, for models whose chat template supports them. Each model accepts only some levels; Qwen3.8 rejects High and Max.
 - **Create showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
 
 ### Changed
@@ -22,6 +23,7 @@ version heading when a minor or major version is cut.
 - The **Adjust** tab in the image and video edit panels is now called **Color**, matching the video editor. Color, Effects, Blur, Fill and the audio EQ tab have new icons.
 - While automation jobs run, the robot on the jobs button looks left and right, its antenna swinging after it, and blinks now and then, instead of rocking side to side.
 - The jobs drawer groups older jobs under **Last week** (the seven days before yesterday) and **Last month** before **Earlier**.
+- In Settings, a saved value resets with a small button inside its field, which you can click again to undo the reset before saving. Units such as **chars** and **pixels** show inside the field after the number, so labels are no longer cut short.
 
 ### Removed
 

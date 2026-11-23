@@ -50,12 +50,12 @@ Some download-based llama.cpp setups load the projector automatically; see its [
 | Model | When to choose it | Setup notes |
 | --- | --- | --- |
 | [Qwen3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B) | Default recommendation for image and video captioning | Start in Reasoning; its chat template supports low, medium, and xhigh effort |
-| [Qwen3.6 35B A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) | Recommended mixture-of-experts (MoE) alternative | Activates about 3B of its 35B parameters per token, but memory must still hold all the weights. Supports Reasoning and Instruct |
-| [Qwen3 VL 8B Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) | Smaller model for limited memory | Use Instruct; choose a quantization that fits alongside the media and context budget |
+| [Qwen3.6 35B A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) | Recommended mixture-of-experts (MoE) alternative | Activates about 3B of its 35B parameters per token, so most can be offloaded to system memory. Supports Reasoning and Instruct |
+| [Inkling 2 Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini) | Smaller MoE model for limited memory | Activates about 3.4B of its 26.4B parameters per token. Reasoning cannot be fully turned off, so cap the output tokens. llama.cpp needs b12600 or newer |
 | [Qwen3-Omni 30B A3B Instruct](https://huggingface.co/Qwen/Qwen3-Omni-30B-A3B-Instruct) | Captions video audio as well as frames | Use Instruct and turn on Caption audio; the server must accept `input_audio` parts |
 | [Gemma 4 31B](https://huggingface.co/google/gemma-4-31B-it) / [26B A4B](https://huggingface.co/google/gemma-4-26B-A4B-it) | Alternative dense / MoE models | Start with Instruct and repeat penalty `1.1`. Its chat template leaves thinking off unless the server turns it on, and ignores effort |
 
-Community variants of [Qwen3.8 27B](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF) and [Qwen3.6 35B A3B](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive) aim to reduce refusals. Check their captions on a small, representative selection before a full run.
+Community variants of [Qwen3.8 27B](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF), [Qwen3.6 35B A3B](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive), and [Inkling 2 Mini](https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF) aim to reduce refusals. Check their captions on a small, representative selection before a full run.
 
 Load the matching projector and a compatible chat template for your model. Hardware needs depend on quantization, context, and media budgets; DataForge itself needs no GPU.
 
@@ -141,7 +141,7 @@ Tune sampling last, once the connection and media budgets work. Reasoning and In
 - Instruct sends `chat_template_kwargs.enable_thinking=false`.
 - Reasoning sends effort both as `reasoning_effort` and in `chat_template_kwargs`, along with `preserve_thinking`.
 
-Whether these controls work depends on the server and its chat template. With the models' own templates, Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value. Gemma 4 thinks only when the server sets `enable_thinking` to true, because Reasoning does not send it.
+Whether these controls work depends on the server and its chat template. DataForge offers `low`, `medium`, `high`, `xhigh`, and `max`, but each template defines its own subset and may reject the others, failing the request. Pick a level the loaded model's template lists. With the models' own templates, Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value. Gemma 4 thinks only when the server sets `enable_thinking` to true, because Reasoning does not send it.
 
 ## Job dialog options
 
@@ -150,7 +150,7 @@ These are choices in each job's dialog, not environment variables. Most are reme
 | Option | Jobs | Default / behavior |
 | --- | --- | --- |
 | **Mode** | Auto-caption, Verify captions, Edit captions | Reasoning for Auto-caption and Verify captions; Instruct for Edit captions. Picks the sampling profile and thinking controls |
-| **Reasoning effort** | All three | `medium`; also `low` and `xhigh`. Reasoning mode only |
+| **Reasoning effort** | All three | `medium`; also `low`, `high`, `xhigh`, and `max`. Reasoning mode only; use a level the model's chat template supports |
 | **Preserve thinking** | All three | On; keeps earlier reasoning in multi-turn prompts when the template supports it. Current jobs use single-turn prompts |
 | **Caption audio** | Auto-caption | Off; sends audio alongside video frames |
 | **Additional context** | Verify captions | Optional dataset facts for the checker |

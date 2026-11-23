@@ -89,16 +89,30 @@ export function FieldGroup({
 interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   /** md in dialogs and settings; sm in tool bars and popovers; xs in the editor inspector. */
   size?: "md" | "sm" | "xs";
+  /**
+   * Inside the field's end, such as a unit or a small IconButton; `className` then sizes the box.
+   * Pass null while it is empty, not undefined, or the input remounts when it appears.
+   */
+  end?: ReactNode;
   ref?: Ref<HTMLInputElement>;
 }
 
-export function TextInput({ size = "md", type = "text", className, ...props }: TextInputProps) {
+export function TextInput({
+  size = "md",
+  type = "text",
+  className,
+  end,
+  ...props
+}: TextInputProps) {
+  const classes = classNames("text-input", size !== "md" && `text-input--${size}`, className);
+  if (end === undefined) {
+    return <input {...props} type={type} className={classes} />;
+  }
   return (
-    <input
-      {...props}
-      type={type}
-      className={classNames("text-input", size !== "md" && `text-input--${size}`, className)}
-    />
+    <div className={classNames(classes, "text-input--adorned")}>
+      <input {...props} type={type} className="text-input__field" />
+      <span className="text-input__end">{end}</span>
+    </div>
   );
 }
 

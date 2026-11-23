@@ -168,7 +168,7 @@ class OpenAISettingsTests(unittest.TestCase):
 
     def test_thinking_carries_each_supported_effort(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
-            for effort in ("low", "medium", "xhigh"):
+            for effort in ("low", "medium", "high", "xhigh", "max"):
                 extra = build_sampling_extra_body("thinking", effort=effort)
                 kwargs = extra["chat_template_kwargs"]
                 assert isinstance(kwargs, dict)

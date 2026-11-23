@@ -429,33 +429,21 @@
     margin-bottom: 0;
   }
 
-  &__unit {
-    text-transform: none;
-    letter-spacing: normal;
-    font-weight: var(--font-normal);
-    color: var(--text-subtle);
+  &__label-unit {
+    @include visually-hidden;
   }
 
   &__input {
     @include tabular-nums;
 
-    &[type="number"] {
+    &--number {
       text-align: right;
     }
   }
 
-  &__foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
+  // Shown as the badge's tooltip; kept in the tree as the input's description.
   &__detail {
-    @include truncate;
-    min-width: 0;
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
+    @include visually-hidden;
   }
 }
 

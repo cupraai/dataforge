@@ -54,6 +54,7 @@ import {
   editDraftValue,
   editedSettingKeys,
   resetDraftValue,
+  savedText,
   type SettingsDraft,
 } from "../lib/settingsForm";
 import { AboutSection } from "./AboutSection";
@@ -181,14 +182,14 @@ const SECTIONS: Section[] = [
           {
             title: "Connection",
             icon: iconLink,
-            hint: "An OpenAI-compatible server for Auto-caption, Verify captions, and Edit captions. A running job keeps the server it started with.",
+            hint: "An OpenAI-compatible server for Auto-caption, Verify captions, and Edit captions.",
             rows: [["vision_base_url"], ["vision_api_key", "vision_model"]],
             probe: "vision",
           },
           {
             title: "Limits",
             icon: iconGauge,
-            hint: "Max tokens caps each reply. Auto-caption leaves captions longer than the draft threshold alone and retries shorter results.",
+            hint: "Max tokens caps for each reply from the server.",
             rows: [["vision_max_tokens", "vision_top_k", "draft_caption_threshold"]],
           },
         ],
@@ -201,13 +202,11 @@ const SECTIONS: Section[] = [
           {
             title: "Reasoning",
             icon: iconBrain,
-            hint: "Used by jobs set to Reasoning. Tune sampling last, once the server and limits work.",
             rows: samplingRows("thinking"),
           },
           {
             title: "Instruct",
             icon: iconZap,
-            hint: "Used by jobs set to Instruct. Each job's dialog picks which of the two applies.",
             rows: samplingRows("instruct"),
           },
         ],
@@ -616,6 +615,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         suggestions={key === "vision_model" ? modelSuggestions : undefined}
         onChange={(value) => editField(key, value)}
         onReset={() => updateDraft(resetDraftValue(draft, settings, key))}
+        onUndoReset={() => updateDraft(editDraftValue(draft, key, savedText(settings[key])))}
       />
     );
   };
