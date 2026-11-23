@@ -77,4 +77,4 @@ On Linux and macOS, use `backend/.venv/bin/python`. Report vulnerabilities priva
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](LICENSE). See also [Third-party notices](docs/THIRD_PARTY_NOTICES.md).

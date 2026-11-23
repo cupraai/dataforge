@@ -21,4 +21,5 @@ New here? Start with [Getting started](getting-started.md), then use the [User g
 | Show off or compare a trained LoRA | [Showcases](comfyui.md#showcases) |
 | Train a LoRA | [AI-Toolkit](ai-toolkit.md) |
 | Develop or contribute | [Development](development.md) |
+| Read third-party notices | [Third-party notices](THIRD_PARTY_NOTICES.md) |
 | Report a vulnerability | [Security policy](../SECURITY.md) |

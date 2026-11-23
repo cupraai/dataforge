@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 640" fill="none" role="img" aria-label="DataForge">
+  <!-- Adapted from the Font Awesome Free hammer icon by @fontawesome - https://fontawesome.com
+       License - https://fontawesome.com/license/free (CC BY 4.0). Copyright Fonticons, Inc.
+       See docs/THIRD_PARTY_NOTICES.md in the DataForge repository. -->
   <defs>
     <linearGradient id="hammer-fill" x1="0" y1="0" x2="320" y2="320" gradientUnits="userSpaceOnUse">
       <stop stop-color="#7c9cff" />

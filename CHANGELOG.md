@@ -22,6 +22,10 @@ version heading when a minor or major version is cut.
 - While automation jobs run, the robot on the jobs button looks left and right, its antenna swinging after it, and blinks now and then, instead of rocking side to side.
 - The jobs drawer groups older jobs under **Last week** (the seven days before yesterday) and **Last month** before **Earlier**.
 
+### Removed
+
+- The chat templates and MiniMax H3 prompt files in `llm_templates/`. Use the chat template that comes with your model; with Gemma 4, turn thinking on in the server to use Reasoning.
+
 ## 0.15.0 - 2026-11-20
 
 ### Added

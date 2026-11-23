@@ -49,15 +49,15 @@ Some download-based llama.cpp setups load the projector automatically; see its [
 
 | Model | When to choose it | Setup notes |
 | --- | --- | --- |
-| [Qwen3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B) | Default recommendation for image and video captioning | Start in Reasoning; the bundled template supports low, medium, and xhigh effort |
+| [Qwen3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B) | Default recommendation for image and video captioning | Start in Reasoning; its chat template supports low, medium, and xhigh effort |
 | [Qwen3.6 35B A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) | Recommended mixture-of-experts (MoE) alternative | Activates about 3B of its 35B parameters per token, but memory must still hold all the weights. Supports Reasoning and Instruct |
 | [Qwen3 VL 8B Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) | Smaller model for limited memory | Use Instruct; choose a quantization that fits alongside the media and context budget |
 | [Qwen3-Omni 30B A3B Instruct](https://huggingface.co/Qwen/Qwen3-Omni-30B-A3B-Instruct) | Captions video audio as well as frames | Use Instruct and turn on Caption audio; the server must accept `input_audio` parts |
-| [Gemma 4 31B](https://huggingface.co/google/gemma-4-31B-it) / [26B A4B](https://huggingface.co/google/gemma-4-26B-A4B-it) | Alternative dense / MoE models | Start with Instruct and repeat penalty `1.1`. The bundled template also supports thinking, but ignores effort |
+| [Gemma 4 31B](https://huggingface.co/google/gemma-4-31B-it) / [26B A4B](https://huggingface.co/google/gemma-4-26B-A4B-it) | Alternative dense / MoE models | Start with Instruct and repeat penalty `1.1`. Its chat template leaves thinking off unless the server turns it on, and ignores effort |
 
 Community variants of [Qwen3.8 27B](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF) and [Qwen3.6 35B A3B](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive) aim to reduce refusals. Check their captions on a small, representative selection before a full run.
 
-Load the matching projector and a compatible chat template for your model. Templates for Qwen3.8, Qwen3.6, and Gemma 4 are in [`llm_templates/`](../llm_templates/). Hardware needs depend on quantization, context, and media budgets; DataForge itself needs no GPU.
+Load the matching projector and a compatible chat template for your model. Hardware needs depend on quantization, context, and media budgets; DataForge itself needs no GPU.
 
 ### Vision model settings
 
@@ -141,7 +141,7 @@ Tune sampling last, once the connection and media budgets work. Reasoning and In
 - Instruct sends `chat_template_kwargs.enable_thinking=false`.
 - Reasoning sends effort both as `reasoning_effort` and in `chat_template_kwargs`, along with `preserve_thinking`.
 
-Whether these controls work depends on the server and its chat template. The [bundled templates](../llm_templates/) format messages and thinking controls for each model. Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value.
+Whether these controls work depends on the server and its chat template. With the models' own templates, Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value. Gemma 4 thinks only when the server sets `enable_thinking` to true, because Reasoning does not send it.
 
 ## Job dialog options
 

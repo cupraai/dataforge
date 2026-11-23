@@ -54,7 +54,6 @@ docs/                  User and contributor documentation
 comfy_workflows/       ComfyUI presets
 comfy_fill_templates/  Generative fill workflows
 ostris_templates/      AI-Toolkit training templates
-llm_templates/         Local model chat templates
 sample_media/          Example dataset
 .agents/skills/        Shared agent skills (.claude/skills/ links to them)
 .github/workflows/     CI: backend, frontend, and end-to-end jobs
@@ -155,6 +154,7 @@ When a change moves a control, changes what is kept or replaced, or touches star
 - **History and retention:** the docs say what a new run keeps or replaces, and for how long.
 - **Scope:** jobs and Review follow [one scope rule](user-guide.md#scope); link to it rather than paraphrasing it.
 - **Recovery text:** in-app help and docs name the command for every platform, or link to [Getting started](getting-started.md).
+- **Third-party works:** when the repository gains or loses third-party code or assets whose license requires attribution, update [Third-party notices](THIRD_PARTY_NOTICES.md).
 - **Tables:** one fact per cell; move conditions and caveats into a sentence below the table.
 
 ## Versioning
