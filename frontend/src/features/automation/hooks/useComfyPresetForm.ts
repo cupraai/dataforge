@@ -1,27 +1,20 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { comfyPresetsQueryOptions } from "@/features/automation/lib/automationQueries";
+import {
+  useComfyPresetList,
+  type ComfyPresetKind,
+  type PresetsState,
+} from "@/features/automation/hooks/useComfyPresets";
+import { useListedPreset } from "@/features/automation/hooks/useListedPreset";
 import {
   embeddedPresetSummary,
   embeddedWorkflowName,
 } from "@/features/automation/lib/embeddedGenerate";
+import { inputText, KIND_NOUNS, parseInput } from "@/features/automation/lib/comfyInputs";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import { formatApiError } from "@/shared/api/http";
-import type {
-  ComfyInputValue,
-  ComfyPresetInput,
-  ComfyPresetSettings,
-  ComfyPresetSummary,
-} from "@/shared/types";
+import type { ComfyInputValue, ComfyPresetSettings } from "@/shared/types";
 
-/** Which ComfyUI job a form serves: edit presets load a source file, generate presets do not. */
-export type ComfyPresetKind = "edit" | "generate";
-
-/** Lists a preset under one job. An unparseable preset (null) lists under both, so queueing it
- * names the fix. */
-export function presetBelongsTo(preset: ComfyPresetSummary, kind: ComfyPresetKind): boolean {
-  return kind === "generate" ? preset.generates !== false : preset.generates !== true;
-}
+/** A showcase has a form of its own. */
+export type ComfyFormKind = Exclude<ComfyPresetKind, "showcase">;
 
 interface PresetMemory {
   preset: string;
@@ -47,11 +40,6 @@ interface PresetDraft {
 
 const EMPTY_DRAFT: PresetDraft = { seedText: "", promptText: "", inputs: {} };
 
-function inputText(value: ComfyInputValue): string {
-  if (typeof value === "boolean") return value ? "on" : "off";
-  return String(value);
-}
-
 function toDraft(settings: ComfyPresetSettings): PresetDraft {
   return {
     seedText: settings.seed == null ? "" : String(settings.seed),
@@ -71,30 +59,7 @@ function sameDraft(a: PresetDraft, b: PresetDraft): boolean {
   );
 }
 
-const KIND_NOUNS: Record<ComfyPresetInput["kind"], string> = {
-  boolean: "on or off",
-  integer: "a whole number",
-  number: "a number",
-  text: "text",
-};
-
-/** The value to send, null for an empty field, or undefined when the text does not parse. */
-function parseInput(input: ComfyPresetInput, text: string): ComfyInputValue | null | undefined {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  if (input.kind === "text") return text;
-  if (input.kind === "boolean") return trimmed === "on";
-  if (input.kind === "integer") return /^-?\d+$/.test(trimmed) ? Number(trimmed) : undefined;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-export type PresetsState =
-  | { status: "loading" }
-  | { status: "ready"; presets: ComfyPresetSummary[]; available: boolean; baseUrl: string }
-  | { status: "error"; message: string };
-
-const EMPTY_SEED_MEANING: Record<ComfyPresetKind, string> = {
+const EMPTY_SEED_MEANING: Record<ComfyFormKind, string> = {
   edit: "or empty to use the preset's own",
   generate: "or empty for a random seed",
 };
@@ -116,44 +81,33 @@ function embeddedMemory(embedded: EmbeddedGenerateWorkflow): PresetMemory {
  */
 export function useComfyPresetForm(
   remembered: PresetMemory,
-  kind: ComfyPresetKind,
+  kind: ComfyFormKind,
   embedded?: EmbeddedGenerateWorkflow,
 ) {
   const initial = useMemo(
     () => (embedded ? embeddedMemory(embedded) : remembered),
     [embedded, remembered],
   );
-  const presetsQuery = useQuery(comfyPresetsQueryOptions());
-  const state: PresetsState = presetsQuery.data
-    ? {
-        status: "ready",
-        presets: embedded
-          ? [embeddedPresetSummary(embedded)]
-          : presetsQuery.data.presets.filter((entry) => presetBelongsTo(entry, kind)),
-        available: presetsQuery.data.available,
-        baseUrl: presetsQuery.data.base_url,
-      }
-    : presetsQuery.isError
-      ? { status: "error", message: formatApiError(presetsQuery.error) }
-      : { status: "loading" };
+  const listed = useComfyPresetList(kind);
+  const state: PresetsState =
+    embedded && listed.status === "ready"
+      ? { ...listed, presets: [embeddedPresetSummary(embedded)] }
+      : listed;
   const [chosenPreset, setChosenPreset] = useState(initial.preset);
-  // Honour a stored name only once the list is known, or the select shows a missing option.
   const loadedPresets = state.status === "ready" ? state.presets : undefined;
-  const resolvePreset = (name: string) =>
-    loadedPresets && !loadedPresets.some((entry) => entry.name === name)
-      ? (loadedPresets[0]?.name ?? "")
-      : name;
-  const preset = resolvePreset(chosenPreset);
+  const names = loadedPresets?.map((entry) => entry.name);
+  const opened = useListedPreset(names, initial.preset);
+  const { preset, target, removed } = useListedPreset(names, chosenPreset);
   const [drafts, setDrafts] = useState<Record<string, PresetDraft>>(() =>
     Object.fromEntries(
       Object.entries(initial.by_preset).map(([name, saved]) => [name, toDraft(saved)]),
     ),
   );
-  const draft = drafts[preset] ?? EMPTY_DRAFT;
+  const draft = drafts[target] ?? EMPTY_DRAFT;
   const updateDraft = (patch: Partial<PresetDraft>) =>
     setDrafts((current) => ({
       ...current,
-      [preset]: { ...(current[preset] ?? EMPTY_DRAFT), ...patch },
+      [target]: { ...(current[target] ?? EMPTY_DRAFT), ...patch },
     }));
 
   const selected = loadedPresets?.find((entry) => entry.name === preset) ?? null;
@@ -168,7 +122,7 @@ export function useComfyPresetForm(
   }
 
   const changed =
-    preset !== resolvePreset(initial.preset) ||
+    target !== opened.target ||
     Object.entries(drafts).some(([name, entry]) => {
       const saved = initial.by_preset[name];
       return !sameDraft(entry, saved ? toDraft(saved) : EMPTY_DRAFT);
@@ -208,6 +162,8 @@ export function useComfyPresetForm(
   return {
     state,
     preset,
+    /** The selected preset's name once it has left the list; nothing is selected then. */
+    removed,
     selectPreset: setChosenPreset,
     draft,
     updateDraft,

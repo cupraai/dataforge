@@ -17,6 +17,7 @@ from schemas import (
     ComfyPresetSettings,
     ComfyProcessJobSettings,
     ComfyProcessSettingsResponse,
+    ComfyShowcaseJobSettings,
     EditCaptionsJobSettings,
     FindDuplicatesJobSettings,
     ReplaceCaptionsJobSettings,
@@ -48,6 +49,8 @@ JOB_SETTINGS_MODELS: dict[str, type[BaseModel]] = {
     "resize": ResizeJobSettings,
     "split_video": SplitVideoJobSettings,
     "trim_video": TrimVideoJobSettings,
+    # Seeds and all: a showcase is run again to compare, so it must repeat.
+    "comfy_showcase": ComfyShowcaseJobSettings,
 }
 
 __all__ = [

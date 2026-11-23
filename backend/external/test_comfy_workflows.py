@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from external.comfy_workflows import (
+    ComfyWorkflow,
     ComfyWorkflowError,
     build_comfy_prompt,
     list_comfy_presets,
@@ -676,6 +677,20 @@ class PresetDiscoveryTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ComfyWorkflowError):
                 read_comfy_preset_text(name)
 
+    def test_the_listing_says_what_a_showcase_can_use(self) -> None:
+        self.write("t2i", model_graph())
+        self.write("i2v", model_graph(**{"7": node("LoadImage", {"image": "start.png"})}))
+        self.write("upscale", graph())
+        presets = {preset.name: preset for preset in list_comfy_presets()}
+
+        self.assertEqual(presets["t2i"].accepts_loras, True)
+        self.assertIsNone(presets["t2i"].source_kind)
+        self.assertEqual(presets["i2v"].source_kind, "image")
+        # Edit never seeds the sampler of a preset that loads a file; a showcase does.
+        self.assertEqual(presets["i2v"].accepts_seed, False)
+        self.assertEqual(presets["i2v"].accepts_showcase_seed, True)
+        self.assertEqual(presets["upscale"].accepts_loras, False)
+
 
 class ShippedExampleTests(unittest.TestCase):
     def test_the_example_preset_parses(self) -> None:
@@ -734,6 +749,40 @@ class PresetRoleTests(unittest.TestCase):
 
     def test_a_missing_preset_reports_unknown(self) -> None:
         self.assertEqual(preset_roles(Path("no-such-preset.json")), (None, None))
+
+
+def model_graph(**overrides: dict) -> dict:
+    """A text-to-image graph: one diffusion model feeding one sampler."""
+    base = {
+        "1": node("UNETLoader", {"unet_name": "base.safetensors", "weight_dtype": "default"}),
+        "2": node("CLIPLoader", {"clip_name": "te.safetensors"}),
+        "3": node("KSampler", {"seed": 1, "model": ["1", 0], "positive": ["4", 0]}),
+        "4": node("CLIPTextEncode", {"text": "a cat", "clip": ["2", 0]}),
+        "9": node("SaveImage", {"filename_prefix": "out", "images": ["3", 0]}),
+    }
+    base.update(overrides)
+    return base
+
+
+def parse_t2i(payload: dict) -> ComfyWorkflow:
+    return parse_comfy_workflow(json.dumps(payload), source="showcase")
+
+
+class ModelNodeTests(unittest.TestCase):
+    def test_a_titled_model_node_is_a_role_not_a_custom_input(self) -> None:
+        payload = model_graph()
+        payload["1"]["_meta"] = {"title": "DataForge Model"}
+        workflow = parse_t2i(payload)
+
+        self.assertEqual(workflow.model_nodes, ("1",))
+        self.assertEqual(workflow.custom_inputs, ())
+
+    def test_the_only_loader_needs_no_title(self) -> None:
+        self.assertEqual(parse_t2i(model_graph()).model_nodes, ("1",))
+
+    def test_two_untitled_loaders_are_none(self) -> None:
+        payload = model_graph(**{"5": node("CheckpointLoaderSimple", {"ckpt_name": "x"})})
+        self.assertEqual(parse_t2i(payload).model_nodes, ())
 
 
 if __name__ == "__main__":

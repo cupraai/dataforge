@@ -21,6 +21,7 @@ from constants import (
     DEFAULT_SPLIT_LONGEST_SECONDS,
     DEFAULT_SPLIT_SHORTEST_SECONDS,
     DEFAULT_TRIM_LENGTH_SECONDS,
+    LORA_STRENGTH_LIMIT,
     MAX_COMFY_GENERATE_COUNT,
     MAX_COMFY_GENERATE_PREFIX_LENGTH,
     MAX_FILL_INSTRUCTION_LENGTH,
@@ -29,6 +30,11 @@ from constants import (
     MAX_RESIZE_MULTIPLE,
     MAX_SAVED_SNIPPET_NAME_LENGTH,
     MAX_SAVED_SNIPPET_TEXT_LENGTH,
+    MAX_SHOWCASE_ITEM_LORAS,
+    MAX_SHOWCASE_ITEMS,
+    MAX_SHOWCASE_LABEL_LENGTH,
+    MAX_SHOWCASE_SET_NAME_LENGTH,
+    MAX_SHOWCASE_SUBJECT_LORAS,
     MAX_SPLIT_CLIP_SECONDS,
     MAX_TRIM_LENGTH_SECONDS,
     MAX_WORKFLOW_NAME_LENGTH,
@@ -88,6 +94,8 @@ type ComfyMediaKind = Literal["image", "video", "audio"]
 #: How the dialog edits a ``DataForge <name>`` node: a checkbox, whole number, number or text.
 type ComfyInputKind = Literal["boolean", "integer", "number", "text"]
 type ComfyInputValue = bool | int | float | str
+#: What a preset's source loader takes: a still or a clip.
+type ComfySourceKind = Literal["image", "video"]
 
 #: Keys of ``TRAINING_TEMPLATES``; ``h3_*`` are video, the rest image.
 type TrainingModel = Literal[
@@ -124,6 +132,7 @@ type JobType = Literal[
     "trim_video",
     "comfy_process",
     "comfy_generate",
+    "comfy_showcase",
 ]
 
 type NotificationVariant = Literal["danger", "warning", "success"]
@@ -1347,6 +1356,12 @@ class ComfyPresetSummary(BaseModel):
     inputs: list[ComfyPresetInput] = Field(default_factory=list)
     #: True without a source loader: listed under Generate, not Edit. Null when unparseable.
     generates: bool | None = None
+    #: Whether a showcase can chain LoRAs after its model; null when unparseable.
+    accepts_loras: bool | None = None
+    #: What its source loader takes; null for a generation preset.
+    source_kind: ComfySourceKind | None = None
+    #: A showcase seeds its seed node, else every sampler, for source presets too.
+    accepts_showcase_seed: bool | None = None
 
 
 class ComfyLogsResponse(BaseModel):
@@ -1368,6 +1383,95 @@ class ComfyPresetsResponse(BaseModel):
     available: bool = False
     #: Sent even when available so the dialog can name the origin that was probed.
     base_url: str = ""
+
+
+type LoraStrength = Annotated[float, Field(ge=-LORA_STRENGTH_LIMIT, le=LORA_STRENGTH_LIMIT)]
+
+
+class ComfyShowcaseLora(BaseModel):
+    """One LoRA in an item's own stack, beside the one being showcased."""
+
+    #: Exactly as ComfyUI lists it, subfolder and separator included.
+    name: str = Field(min_length=1)
+    strength: LoraStrength = 1.0
+    enabled: bool = True
+
+
+class ComfyShowcaseItem(BaseModel):
+    label: str = Field("", max_length=MAX_SHOWCASE_LABEL_LENGTH)
+    #: Off keeps the item in the set without rendering it.
+    enabled: bool = True
+    #: Empty runs the prompt the preset was saved with.
+    prompt_text: str = ""
+    #: Of the LoRA being showcased; every compared LoRA runs at this strength.
+    subject_strength: LoraStrength = 1.0
+    loras: list[ComfyShowcaseLora] = Field(default_factory=list, max_length=MAX_SHOWCASE_ITEM_LORAS)
+    #: None draws one random seed for the item, reused for every LoRA compared.
+    seed: int | None = Field(None, ge=0)
+    #: Over the showcase's own ``inputs``, by custom input name.
+    inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
+    #: Absolute path of the start file; none runs the preset without its source loader.
+    source_path: str | None = None
+
+
+class ComfyShowcaseContent(BaseModel):
+    """What a saved set holds: everything but the LoRA it showcases."""
+
+    #: A stem, not a Literal: unknown names are the job's own 400.
+    preset: str = ""
+    #: Every item's custom inputs unless the item overrides them.
+    inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
+    items: list[ComfyShowcaseItem] = Field(default_factory=list, max_length=MAX_SHOWCASE_ITEMS)
+
+
+class ComfyShowcaseJobSettings(ComfyShowcaseContent):
+    """Remembered per folder, seeds included: a showcase is meant to be repeatable."""
+
+    #: The LoRAs showcased, as ComfyUI lists them; more than one compares them.
+    subject_loras: list[str] = Field(default_factory=list, max_length=MAX_SHOWCASE_SUBJECT_LORAS)
+    #: Empty names the files after the preset.
+    name_prefix: str = Field("", max_length=MAX_COMFY_GENERATE_PREFIX_LENGTH)
+    caption_from_prompt: bool = False
+    #: Lays the finished results out on one labelled grid.
+    make_sheet: bool = False
+
+
+class ComfyShowcaseStartRequest(JobSelectionRequest, ComfyShowcaseJobSettings):
+    """``paths`` is accepted like every job's and ignored: a showcase writes new files."""
+
+
+class ComfyShowcaseSet(ComfyShowcaseContent):
+    """Names are unique ignoring case."""
+
+    name: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=1, max_length=MAX_SHOWCASE_SET_NAME_LENGTH
+        ),
+    ]
+
+
+class ComfyShowcaseSetsResponse(BaseModel):
+    #: Sorted by name, ignoring case.
+    sets: list[ComfyShowcaseSet] = Field(default_factory=list)
+
+
+class ComfyLora(BaseModel):
+    #: Exactly as ComfyUI lists it.
+    name: str
+    #: The file name without folder or extension.
+    stem: str
+    #: The training run a numbered save belongs to; the stem otherwise.
+    run: str
+    #: Set for AI-Toolkit's numbered saves, ``<run>_<9 digits>``.
+    step: int | None = None
+
+
+class ComfyLorasResponse(BaseModel):
+    loras: list[ComfyLora] = Field(default_factory=list)
+    available: bool = False
+    #: Why the list is empty although ComfyUI answered.
+    error: str | None = None
 
 
 class VerifyCaptionsJobSettings(BaseModel):
@@ -1618,6 +1722,7 @@ class AutomationSettingsResponse(BaseModel):
     comfy_generate: ComfyGenerateSettingsResponse = Field(
         default_factory=ComfyGenerateSettingsResponse
     )
+    comfy_showcase: ComfyShowcaseJobSettings = Field(default_factory=ComfyShowcaseJobSettings)
 
 
 class TrainingTemplateResponse(BaseModel):
@@ -3108,6 +3213,12 @@ class FolderEvent(BaseModel):
     fingerprint: str = ""
 
 
+class ComfyPresetsEvent(BaseModel):
+    """The presets folder changed; the client reads the list again."""
+
+    type: Literal["comfy_presets"] = "comfy_presets"
+
+
 #: Every event is a complete snapshot, never a delta.
 class VideoEditEvent(BaseModel):
     """Addressed to the tab that asked, not broadcast."""
@@ -3195,6 +3306,7 @@ type ServerEvent = Annotated[
     | ExternalJobsEvent
     | HeartbeatEvent
     | FolderEvent
+    | ComfyPresetsEvent
     | VideoEditEvent
     | AudioEditEvent
     | VideoProjectExportEvent

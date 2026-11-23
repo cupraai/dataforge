@@ -19,6 +19,7 @@ const ready: JobStartContext = {
     ostrisAvailable: true,
     comfyPresetsAvailable: true,
     comfyGeneratePresetsAvailable: true,
+    comfyShowcasePresetsAvailable: true,
   },
 };
 
@@ -42,6 +43,7 @@ describe("jobStartBlock scope", () => {
 
     expect(JOB_TYPES.filter((type) => !jobStartBlock(type, empty).blocked)).toEqual([
       "comfy_generate",
+      "comfy_showcase",
     ]);
   });
 });
@@ -92,6 +94,11 @@ describe("JOB_GROUPS", () => {
       "backup_captions",
       "restore_captions",
     ]);
-    expect(byId.integrations).toEqual(["comfy_generate", "comfy_process", "train_lora"]);
+    expect(byId.integrations).toEqual([
+      "comfy_generate",
+      "comfy_showcase",
+      "comfy_process",
+      "train_lora",
+    ]);
   });
 });

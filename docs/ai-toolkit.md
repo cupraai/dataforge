@@ -11,28 +11,28 @@ Start AI-Toolkit, then open **Settings > Integrations**. Enter its origin in **A
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `OSTRIS_BASE_URL` | `http://127.0.0.1:8675` | HTTP(S) origin; also in Settings |
-| `OSTRIS_TOOLKIT_ROOT` | unset | AI-Toolkit's installation folder, used to resolve relative state paths; environment-only |
+| `OSTRIS_TOOLKIT_ROOT` | unset | AI-Toolkit's installation folder, where **Stop** looks for its database; environment-only |
 
 Environment changes need a restart. A URL saved in Settings wins over `.env`; **Reset**, then **Save**, removes it.
 
 **Shared paths.** DataForge sends AI-Toolkit a dataset path, not the media, so both must see the same files:
 
 - AI-Toolkit must be able to read the dataset at the exact path DataForge supplies.
-- DataForge needs filesystem access to AI-Toolkit's state and training folder to show samples.
+- DataForge needs filesystem access to AI-Toolkit's training folder to show samples, and to its database (`aitk_db.db`) to stop a running job.
 
 A reachable API on another machine is not enough without those shared paths.
 
-If AI-Toolkit reports relative state paths, set its installation folder in `.env` and restart DataForge:
+**Stop** looks for the database beside the training folder. If it is elsewhere, set AI-Toolkit's installation folder in `.env` and restart DataForge:
 
 ```dotenv
 OSTRIS_TOOLKIT_ROOT=C:\AI-Toolkit
 ```
 
-This only helps DataForge find AI-Toolkit's files; it does not start the service or change its address. Prefer an absolute path; a relative one resolves against the server's working directory, normally `backend/`.
+This only helps DataForge find that file; it does not start the service or change its address. Prefer an absolute path; a relative one resolves against the server's working directory, normally `backend/`.
 
 ## Start a run
 
-1. Open the dataset. Training uses **the whole folder** and its `.txt` captions, regardless of selection or filters.
+1. Open the dataset. Training uses **the whole folder** and its `.txt` captions, regardless of selection or filters. AI-Toolkit reads its subfolders too, except those starting with a dot, so `staging/`, `clips/`, and `watermarked/` are trained on: empty or move them first.
 2. Choose **LoRA training** and a template that matches your media:
 
    | Model | Media | Template |
@@ -59,15 +59,15 @@ Templates set the architecture, resolution, steps, optimizer, learning rate, sam
 
 AI-Toolkit must support the selected model and adapter.
 
-**Editing a template** in the dialog affects that run only; switching models restores the stock template, and the files in `ostris_templates/` never change. DataForge checks that the YAML is valid and has a `config.process` list whose first entry contains dataset and sample sections. It fills in the name, training folder, the first dataset's path, the trigger word, and the sample prompts; every other value is yours.
+**Editing a template** in the dialog affects that run only: each model keeps its edit while the dialog is open, and the files in `ostris_templates/` never change. DataForge checks that the YAML is valid and has a `config.process` list whose first entry contains dataset and sample sections. It fills in the name, training folder, the first dataset's path, the trigger word, and the sample prompts; every other value is yours.
 
 AI-Toolkit reads the dataset itself and writes checkpoints and samples to its configured training folder.
 
 ## Monitor
 
-The jobs drawer shows AI-Toolkit runs with status, progress, time remaining, the latest samples, and a link to the dataset folder. Samples refresh after each completed sample step. **Stop** asks AI-Toolkit to save a checkpoint and stop, which can take a moment.
+The jobs drawer shows AI-Toolkit runs with status, progress, time remaining, the latest samples, and a link to the dataset folder. Samples refresh every 10 seconds while it runs. **Stop** asks AI-Toolkit to save a checkpoint and stop, which can take a moment.
 
-Checkpoints and samples stay in AI-Toolkit's training folder; DataForge only displays them and keeps its own job history separately. Finished `.safetensors` files can be inspected in the gallery's [Models section](user-guide.md#model-files) once they are in a folder you open.
+Checkpoints and samples stay in AI-Toolkit's training folder; DataForge shows the samples and keeps its own job history. Open a folder with `.safetensors` files to inspect them in the gallery's [Models section](user-guide.md#model-files), or copy one into ComfyUI to [showcase it](comfyui.md#showcases).
 
 ## Troubleshooting
 
@@ -75,6 +75,8 @@ Checkpoints and samples stay in AI-Toolkit's training folder; DataForge only dis
 
 **Name rejected.** Use a unique name of at most 80 characters, without `< > : " / \ | ? *`, and not `.` or `..`.
 
-**Template rejected.** Fix the reported YAML or structure error, or switch models and back to restore the stock template.
+**Template rejected.** Fix the reported YAML or structure error, or reset it in the template editor.
 
-**Dataset unreadable or samples missing.** Check that both services can reach the files. For relative state paths, set `OSTRIS_TOOLKIT_ROOT`. Check that the template enables sampling; queued runs have no samples yet.
+**Stop cannot find the database.** Set `OSTRIS_TOOLKIT_ROOT`.
+
+**Dataset unreadable or samples missing.** Check that both services can reach the files. Check that the template enables sampling; queued runs have no samples yet.

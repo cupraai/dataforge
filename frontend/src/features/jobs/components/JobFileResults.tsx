@@ -2,6 +2,7 @@ import { Badge } from "@/shared/ui/Badge";
 import { DisclosureButton } from "@/shared/ui/Disclosure";
 import { Button } from "@/shared/ui/Button";
 import { useId, useState } from "react";
+import { optionalThumbnailUrl } from "@/features/gallery/api/media";
 import { useJobFileResults } from "@/features/jobs/hooks/useJobFileResults";
 import {
   cancelledCountFromStats,
@@ -57,10 +58,23 @@ function ResultRow({
   onOpenItem?: (path: string) => void;
 }) {
   const tone = resultToneOf(result);
+  const [thumbFailed, setThumbFailed] = useState(false);
+  // A file the job made shows itself; the status still says it was done.
+  const thumb = tone === "done" && result.preview && !thumbFailed ? result.preview : null;
 
   const content = (
     <>
-      <Icon icon={TONE_ICONS[tone]} className="job-file-results__row-icon" />
+      {thumb ? (
+        <img
+          className="job-file-results__thumb"
+          src={optionalThumbnailUrl(thumb, 96)}
+          alt=""
+          loading="lazy"
+          onError={() => setThumbFailed(true)}
+        />
+      ) : (
+        <Icon icon={TONE_ICONS[tone]} className="job-file-results__row-icon" />
+      )}
       <span className="job-file-results__name" title={result.path}>
         {result.name}
       </span>

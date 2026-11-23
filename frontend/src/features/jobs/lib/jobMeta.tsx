@@ -21,6 +21,7 @@ import {
   iconTimer,
   iconWandSparkles,
 } from "@/shared/icons";
+import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import type { JobType } from "@/shared/types";
 
 type JobStartUi = "dialog" | "confirm";
@@ -31,6 +32,7 @@ export interface JobAvailability {
   ostrisAvailable: boolean;
   comfyPresetsAvailable: boolean;
   comfyGeneratePresetsAvailable: boolean;
+  comfyShowcasePresetsAvailable: boolean;
 }
 
 /** Tools menu sections by what a job changes; external tools last. */
@@ -194,6 +196,17 @@ export const JOB_TYPE_META = {
       reason: "No ComfyUI generation presets are available. Add one to the presets folder.",
     },
   },
+  comfy_showcase: {
+    type: "comfy_showcase" as const,
+    group: "integrations" as const,
+    icon: iconComfyUi,
+    startUi: "dialog" as const,
+    menuDescription: "Show off a LoRA: several prompts with their own LoRAs, rendered in one run.",
+    requires: {
+      flag: "comfyShowcasePresetsAvailable",
+      reason: "No ComfyUI preset loads a model to add LoRAs to. Add one to the presets folder.",
+    },
+  },
   comfy_process: {
     type: "comfy_process" as const,
     group: "integrations" as const,
@@ -272,13 +285,12 @@ export interface JobStartBlock {
 export function jobStartBlock(type: JobType, context: JobStartContext): JobStartBlock {
   const requirement = jobTypeMeta(type).requires;
   const reason = requirement && !context.availability[requirement.flag] ? requirement.reason : null;
-  // Generation reads no files, so even an empty folder can take it.
-  const emptyScope =
-    type === "comfy_generate"
-      ? false
-      : type === "train_lora"
-        ? context.folderCount === 0
-        : context.itemCount === 0;
+  // Even an empty folder can take new files.
+  const emptyScope = GENERATING_JOBS.has(type)
+    ? false
+    : type === "train_lora"
+      ? context.folderCount === 0
+      : context.itemCount === 0;
   return {
     blocked: !context.hasFolder || context.starting || emptyScope || reason !== null,
     reason,

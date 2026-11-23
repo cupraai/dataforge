@@ -20,6 +20,7 @@ from schemas import (
     ComfyGenerateStartRequest,
     ComfyProcessSettingsResponse,
     ComfyProcessStartRequest,
+    ComfyShowcaseStartRequest,
     EditCaptionsStartRequest,
     FindDuplicatesStartRequest,
     ReplaceCaptionsStartRequest,
@@ -47,6 +48,7 @@ START_REQUESTS = {
     "resize": ResizeStartRequest,
     "split_video": SplitVideoStartRequest,
     "trim_video": TrimVideoStartRequest,
+    "comfy_showcase": ComfyShowcaseStartRequest,
 }
 
 

@@ -18,6 +18,7 @@ from automation.backup_captions import run_backup_captions_job
 from automation.jobs import JOB_SPECS, job_manager
 from automation.watermark import watermark_image_path
 from automation_settings import AUTOMATION_SETTINGS_KEY_PREFIX, JOB_SETTINGS_MODELS
+from comfy_settings import get_comfy_workflows_dir
 from image_edit import apply_image_edit, read_image_edit_spec
 from routes._test_client import client
 from schemas import ColorAdjust, EditCropRect, ImageEditSpec
@@ -33,6 +34,33 @@ from testing_fixtures import (
     write_sysprompt,
     write_txt_caption,
 )
+
+#: The shipped examples load no model, so a showcase start needs a preset of its own.
+SHOWCASE_PRESET = {
+    "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "base.safetensors"}},
+    "3": {"class_type": "KSampler", "inputs": {"seed": 7, "model": ["1", 0]}},
+    "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["3", 0]}},
+}
+
+_presets = tempfile.TemporaryDirectory()
+_previous_presets = os.environ.get("COMFY_WORKFLOWS_DIR")
+
+
+def setUpModule() -> None:
+    """The shipped presets plus a showcase one, for every start in this module."""
+    folder = Path(_presets.name)
+    for shipped in get_comfy_workflows_dir().glob("example_*.json"):
+        (folder / shipped.name).write_bytes(shipped.read_bytes())
+    (folder / "showcase_example.json").write_text(json.dumps(SHOWCASE_PRESET), encoding="utf-8")
+    os.environ["COMFY_WORKFLOWS_DIR"] = str(folder)
+
+
+def tearDownModule() -> None:
+    if _previous_presets is None:
+        os.environ.pop("COMFY_WORKFLOWS_DIR", None)
+    else:
+        os.environ["COMFY_WORKFLOWS_DIR"] = _previous_presets
+    _presets.cleanup()
 
 
 @contextmanager
@@ -165,6 +193,29 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "count": 3,
             "name_prefix": "swatch",
             "caption_from_prompt": True,
+        },
+    ),
+    "comfy_showcase": (
+        "comfy-showcase",
+        {
+            "preset": "showcase_example",
+            "inputs": {},
+            "items": [
+                {
+                    "label": "Beach",
+                    "enabled": True,
+                    "prompt_text": "",
+                    "subject_strength": 0.8,
+                    "loras": [{"name": "style.safetensors", "strength": 0.5, "enabled": True}],
+                    "seed": 42,
+                    "inputs": {},
+                    "source_path": None,
+                }
+            ],
+            "subject_loras": ["loras\\subject_000001000.safetensors"],
+            "name_prefix": "show",
+            "caption_from_prompt": True,
+            "make_sheet": True,
         },
     ),
     "auto_adjust": ("auto-adjust", {"replace_adjustments": True}),

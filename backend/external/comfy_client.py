@@ -327,6 +327,30 @@ def fetch_node_info(client: httpx.Client, class_type: str) -> dict[str, Any] | N
     return info if isinstance(info, dict) else None
 
 
+def combo_options(info: dict[str, Any], key: str) -> list[str] | None:
+    """Lists as ``[[names], {...}]`` or, newer, ``["COMBO", {"options": [names]}]``."""
+    inputs = info.get("input")
+    required = inputs.get("required") if isinstance(inputs, dict) else None
+    spec = required.get(key) if isinstance(required, dict) else None
+    if not isinstance(spec, list) or not spec:
+        return None
+    if isinstance(spec[0], list):
+        return [str(option) for option in spec[0]]
+    if len(spec) > 1 and isinstance(spec[1], dict) and isinstance(spec[1].get("options"), list):
+        return [str(option) for option in spec[1]["options"]]
+    return None
+
+
+#: Core, so every ComfyUI lists its LoRA folder through it.
+_LORA_LIST_CLASS = "LoraLoaderModelOnly"
+
+
+def fetch_lora_names(client: httpx.Client) -> list[str] | None:
+    """As ComfyUI names them, subfolder included; None when its LoRA loader is missing."""
+    info = fetch_node_info(client, _LORA_LIST_CLASS)
+    return None if info is None else combo_options(info, "lora_name")
+
+
 def fetch_raw_log_entries(client: httpx.Client) -> list[dict[str, Any]]:
     """Oldest first; ComfyUI bounds the window."""
     try:

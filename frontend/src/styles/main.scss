@@ -76,7 +76,10 @@
 @use "components/stats-dialog";
 @use "components/folder-instructions-dialog";
 @use "components/filter-ranges-dialog";
-@use "components/saved-snippets";
+@use "components/saved-menu";
+@use "components/search-select";
+@use "components/showcase";
+@use "components/start-file-picker";
 @use "components/workflows";
 @use "components/toolbar";
 @use "components/tooltip";

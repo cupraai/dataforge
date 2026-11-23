@@ -125,6 +125,15 @@
     color: var(--text-subtle);
   }
 
+  &__thumb {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    object-fit: cover;
+  }
+
   &__row--failed &__row-icon {
     color: var(--danger);
   }

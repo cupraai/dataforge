@@ -171,8 +171,8 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 
 | Media | Formats | Tools |
 | --- | --- | --- |
-| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Adjust, Effects, masks, [generative fill](#generative-fill) |
-| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Adjust, Effects, masks. Rendering shows progress and can be cancelled |
+| Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Color, Effects, masks, [generative fill](#generative-fill) |
+| Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Color, Effects, masks. Rendering shows progress and can be cancelled |
 | Audio | WAV, MP3, FLAC | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
 
 - **Masks** blur, pixelate, or black out regions.
@@ -181,9 +181,9 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 - While you resize a crop, the preview shows its pixel size; a free crop also shows its ratio.
 - Hints float over the picture to say what to do next, and fade out while the pointer is over them.
 
-### Adjust in the editor
+### Color in the editor
 
-Adjust has Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Black Point, White Point, Saturation, Vibrance, Warmth, Tint, Hue, Definition, and Noise Reduction. Choose a tool, then drag or click its slider, or use the arrow keys (`Shift` for larger steps). Double-click a slider to return it to its marked resting value. Scroll the tool row with the mouse wheel when it does not fit.
+Color has Exposure, Brilliance, Highlights, Shadows, Contrast, Brightness, Black Point, White Point, Saturation, Vibrance, Warmth, Tint, Hue, Definition, and Noise Reduction. Choose a tool, then drag or click its slider, or use the arrow keys (`Shift` for larger steps). Double-click a slider to return it to its marked resting value. Scroll the tool row with the mouse wheel when it does not fit.
 
 The **Auto** wand analyzes the original inside the crop, ignoring masks; for videos, it samples the trimmed range. It corrects exposure, contrast, color intensity, and color casts toward a natural look. Its slider sets the amount; click the wand again to turn it off.
 
@@ -191,7 +191,7 @@ Hold the compare button to see the original. Click the preview to inspect it at 
 
 ### Effects in the editor
 
-Open **Effects** next to **Adjust** to choose a look. For cooler colors, try **Arctic** for crisp whites, **Glacier** for teal shadows, **Blue Hour** for deeper blues, or **Moonlight** for softer violet tones. Drag **Strength** to blend the look with your adjustments. Choose **None** to remove the look, or **Apply** to save it.
+Open **Effects** next to **Color** to choose a look. For cooler colors, try **Arctic** for crisp whites, **Glacier** for teal shadows, **Blue Hour** for deeper blues, or **Moonlight** for softer violet tones. Drag **Strength** to blend the look with your adjustments. Choose **None** to remove the look, or **Apply** to save it.
 
 ### Generative fill
 
@@ -205,7 +205,7 @@ Open **Effects** next to **Adjust** to choose a look. For cooler colors, try **A
 3. Choose **Fast** (Turbo LoRA, 8 steps) or **Quality** (base model), then **Generate**, or press `Enter` in the instruction. The painted area pulses while it is generated; **Cancel** stops only this generation in ComfyUI.
 4. **Compare and decide.** Hold the mouse button on the picture, or toggle **Before**, to see it before the fill. Then **Keep fill** or **Discard**. You can also reword the instruction and **Regenerate**, which tries a new seed; the previous result stays until the new one arrives.
 
-A kept fill joins the edit like any other change: crop, masks, turns, size, and Adjust all work on the filled picture, and **Apply** writes it without generating again.
+A kept fill joins the edit like any other change: crop, masks, turns, size, and Color all work on the filled picture, and **Apply** writes it without generating again.
 
 - **Fills stack**, each generated on top of the ones before it. **Undo last fill** removes the newest; an earlier fill cannot be removed without the ones built on it.
 - **Reset** returns to the saved edit, and **Revert original** removes every fill with the rest of the edit.
@@ -231,11 +231,11 @@ Noise reduction and pitch render on the server before you hear them (**Preparing
 
 ### Auto-adjust a batch
 
-**Auto-adjust** applies the Auto wand to each eligible image and video and saves it. Crops, masks, trims, other edits, and manual Adjust values stay; an earlier Auto result is replaced, not stacked. Originals are kept, so you can tune or revert each file in its editor. Unchanged files are skipped, and cancelling keeps the finished files.
+**Auto-adjust** applies the Auto wand to each eligible image and video and saves it. Crops, masks, trims, other edits, and manual Color values stay; an earlier Auto result is replaced, not stacked. Originals are kept, so you can tune or revert each file in its editor. Unchanged files are skipped, and cancelling keeps the finished files.
 
 Two options start off every run:
 
-- **Replace earlier adjustments** resets every Adjust tool before applying Auto, discarding manual values.
+- **Replace earlier adjustments** resets every Color tool before applying Auto, discarding manual values.
 - **Reset all color adjustments to zero** clears manual and Auto color without applying Auto. Other edits stay.
 
 ### Split videos into clips
@@ -276,7 +276,7 @@ A job runs on the first of these that applies:
 2. The files the search and filters show, when either is active.
 3. The whole folder.
 
-The dialog shows the count and freezes the file list when it opens, previews included. An empty scope cannot start a job. **LoRA training** is the exception: it always uses the whole folder, and its dialog says so. **Generate with ComfyUI** reads no files: its dialog names the folder the new files go to, and it runs even in an empty folder.
+The dialog shows the count and freezes the file list when it opens, previews included. An empty scope cannot start a job. **LoRA training** is the exception: it always uses the whole folder, and its dialog says so. **Generate with ComfyUI** and **Create showcase** read no files: their dialogs name the folder the new files go to, and they run even in an empty folder.
 
 ### Running and history
 
@@ -291,7 +291,7 @@ A workflow is a saved chain of jobs, each with its own settings, such as Resize,
 - **Create and edit.** Click **Workflows** in the toolbar, then **New workflow...** or **Manage workflows...**. The editor lists your workflows on the left, the selected one's steps in the middle, and every job you can add on the right (filter them by name). Type the name at the top, then click a job to add it as the last step: a job with settings opens its usual dialog, whose button reads **Save step**, and a job without settings is added as it is. Each step shows a one-line summary of its settings. Change one with **Settings**, reorder with the arrows, by dragging the grip, or with `Alt+Up`/`Alt+Down`, and remove it with the bin. **Save** stores the workflow, **Run...** runs the saved version, and **Close** asks first when there are unsaved changes.
 - **Run.** Pick a workflow in the **Workflows** menu or in Quick actions (**Run workflow: <name>**). The confirmation lists the steps and the scope: the selection, else the files in view, fixed when you click **Run workflow**. The steps join the folder's [queue](#jobs) back to back and follow its rules: each starts when the one before it finishes cleanly, and a failure cancels the rest. Each job's card and the strip say which workflow and step it is. In the Jobs drawer, waiting jobs sit under **Queued** in the order they will start, each saying which job it starts after.
 - **Settings are the workflow's own.** Running a workflow does not change what a job's dialog remembers for the folder, and the dialogs' one-run choices, such as **Overwrite existing captions** or **Reset size**, are kept with the step.
-- **Limits.** LoRA training and Generate with ComfyUI cannot be steps. **Rename** can only be the last step, because the steps after it would look for the old file names. A workflow holds up to 12 steps, and up to 50 workflows can be saved.
+- **Limits.** LoRA training, Generate with ComfyUI, and Create showcase cannot be steps. **Rename** can only be the last step, because the steps after it would look for the old file names. A workflow holds up to 12 steps, and up to 50 workflows can be saved.
 
 The first step is checked when you run the workflow; later steps are checked when they start, since an earlier step may create what they need (for example, Backup captions before Restore captions).
 
@@ -324,6 +324,7 @@ Finished runs are kept for the [job history](configuration.md#server-storage-and
 | **Trim to length** | Videos in place, originals kept | Shortens videos to a longest length, keeping the start, middle, or end; see [Trim videos to a length](#trim-videos-to-a-length) |
 | **Edit with ComfyUI** | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
 | **Generate with ComfyUI** | New files in the folder | Never replaces a file; see [ComfyUI](comfyui.md#generate-media) |
+| **Create showcase** | New files in the folder | Renders several prompts with one LoRA, or compares LoRAs; see [Showcases](comfyui.md#showcases) |
 | **LoRA training** | Nothing in the folder | Starts and monitors a run in [AI-Toolkit](ai-toolkit.md) |
 
 Jobs that change captions run once per caption, so `scene.jpg` and `scene.png` sharing `scene.txt` are changed once, and the result names both.
@@ -391,7 +392,7 @@ Files with the same stem, such as `scene.jpg` and `scene.png`, share one caption
 | Watermarked media | `watermarked/` | Watermark | You delete it |
 | `<stem>_001.mp4`, ... | `clips/` | Split into clips | You delete it, or split the same video again |
 | Result, `<result-name>.comfy.json` | `staging/` | Edit with ComfyUI | It is accepted, rejected, or deleted |
-| `<prefix>_0001.png`, ... | The folder | Generate with ComfyUI | You delete it |
+| `<prefix>_0001.png`, ... | The folder | Generate with ComfyUI, Create showcase | You delete it |
 | Database, thumbnails | `backend/data/` | The app: settings, jobs, notifications, tags | Pruned by [retention](configuration.md#server-storage-and-logging) |
 | Unkept fill results | `backend/data/fill_results/` | Generative fill, until you keep or discard a result | Discard, or a day later |
 | `watermark.png` | `backend/data/` | The PNG chosen in the Watermark dialog | Choosing another PNG replaces it |
@@ -450,7 +451,7 @@ Press `?` outside a text field to see the shortcut list in the app. On macOS, us
 | --- | --- |
 | `Ctrl+F` | Find in the focused text editor |
 | `Ctrl+Space` | Show caption word completions; `Escape` closes them first |
-| Arrow keys | Nudge a focused crop, mask, or trim handle, or Adjust slider; `Shift` for larger steps |
+| Arrow keys | Nudge a focused crop, mask, or trim handle, or Color slider; `Shift` for larger steps |
 | `Delete` | Remove the focused mask |
 | `B` / `E` | Fill: paint or erase the selection |
 | `[` / `]` | Fill: smaller or bigger brush |

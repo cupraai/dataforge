@@ -31,6 +31,7 @@ from automation.check_caption_rules import (
 )
 from automation.comfy_generate import run_comfy_generate_job, validate_comfy_generate_folder
 from automation.comfy_process import run_comfy_process_job, validate_comfy_process_folder
+from automation.comfy_showcase import run_comfy_showcase_job
 from automation.edit_captions import run_edit_captions_job, validate_edit_captions_folder
 from automation.find_duplicates import (
     DEFAULT_THRESHOLD as DEFAULT_DUPLICATE_THRESHOLD,
@@ -46,6 +47,7 @@ from automation.job_messages import (
     check_caption_rules_error_message,
     comfy_generate_error_message,
     comfy_process_error_message,
+    comfy_showcase_error_message,
     edit_captions_failure_message,
     find_duplicates_error_message,
     rename_media_error_message,
@@ -74,6 +76,7 @@ from automation.replace_captions import (
 )
 from automation.resize import run_resize_job, validate_resize_folder
 from automation.set_captions import run_set_captions_job, validate_set_captions_folder
+from automation.showcase_plan import plan_showcase
 from automation.split_video import run_split_video_job, validate_split_video_folder
 from automation.strip_metadata import run_strip_metadata_job, validate_strip_metadata_folder
 from automation.train_lora import run_train_lora_job, validate_train_lora_folder
@@ -324,6 +327,10 @@ def _validate_comfy_generate(folder: Path, **params: object) -> None:
     )
 
 
+def _validate_comfy_showcase(folder: Path, **params: object) -> None:
+    plan_showcase(folder, **params)
+
+
 def _comfy_source(params: dict[str, object]) -> dict[str, object] | None:
     source = params.get("source")
     return source if isinstance(source, dict) else None
@@ -498,6 +505,13 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         failure_message=comfy_generate_error_message,
         validate=_validate_comfy_generate,
         workflow=_comfy_generate_workflow,
+    ),
+    "comfy_showcase": JobSpec(
+        thread_prefix="comfy-showcase",
+        run=run_comfy_showcase_job,
+        failure_message=comfy_showcase_error_message,
+        validate=_validate_comfy_showcase,
+        workflow=_comfy_workflow,
     ),
     "train_lora": JobSpec(
         thread_prefix="train-lora",

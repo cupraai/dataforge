@@ -9,6 +9,7 @@ from comfy_computed import math_expression, math_expression_output, resolution_s
 from comfy_editor_graph import EditorNode, flatten_editor_graph
 from comfy_embedded_generation import embedded_generation, generation_workflow
 from comfy_metadata import read_media_metadata_values
+from comfy_switches import BOOLEAN_SWITCHES, INDEXED_INPUT, INDEXED_SWITCHES
 from external.comfy_workflows import ComfyWorkflow, ComfyWorkflowError
 from media_dimensions import media_dimensions
 from schemas import ComfyMapNodeKind, ComfyMediaKind, ComfyPassStatus, ComfyPromptRole
@@ -50,14 +51,6 @@ _REFINER_CLASS_MARKERS = ("detailer", "ultimatesdupscale")
 _NAME_INPUT_KEYS = ("filename_prefix", "filename")
 #: Switched off, VHS's combine writes to the temp folder, as a preview does.
 _SAVE_FLAG_INPUTS = ("save_output",)
-#: The input each selector value evaluates; the rest never run.
-_BOOLEAN_SWITCHES = {
-    "ComfySwitchNode": ("switch", "on_true", "on_false"),
-    "ImpactConditionalBranch": ("cond", "tt_value", "ff_value"),
-}
-#: Impact Pack's indexed switches evaluate only `input{select}`.
-_INDEXED_SWITCHES = frozenset({"ImpactSwitch", "LatentSwitch", "SEGSSwitch"})
-_INDEXED_INPUT = re.compile(r"input\d+")
 #: Sampler nodes such as SamplerLCM, whose class names the sampler.
 _SAMPLER_OBJECT_PREFIX = "Sampler"
 #: Where a class name's words meet; `DPMPP_2M` already has `_`.
@@ -305,16 +298,16 @@ def _skipped_inputs(graph: dict[str, dict], node: object) -> set[str]:
     """None when the selector cannot be read."""
     inputs = _node_inputs(node)
     class_type = _node_class(node)
-    if class_type in _BOOLEAN_SWITCHES:
-        selector, when_true, when_false = _BOOLEAN_SWITCHES[class_type]
+    if class_type in BOOLEAN_SWITCHES:
+        selector, when_true, when_false = BOOLEAN_SWITCHES[class_type]
         chosen = _scalar_at(graph, inputs.get(selector))
         if isinstance(chosen, bool):
             return {when_false if chosen else when_true}
-    elif class_type in _INDEXED_SWITCHES:
+    elif class_type in INDEXED_SWITCHES:
         chosen = _scalar_at(graph, inputs.get("select"))
         if isinstance(chosen, int) and not isinstance(chosen, bool):
             return {
-                key for key in inputs if _INDEXED_INPUT.fullmatch(key) and key != f"input{chosen}"
+                key for key in inputs if INDEXED_INPUT.fullmatch(key) and key != f"input{chosen}"
             }
     return set()
 

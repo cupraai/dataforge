@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 
+import showcase_sets
 from automation.auto_caption import preview_auto_caption
 from automation.backup_captions import preview_restore_captions
 from automation.comfy_generate import load_generation
@@ -18,6 +19,7 @@ from automation.watermark import (
     watermark_image_path,
 )
 from automation_settings import remember_job_settings
+from comfy_loras import list_comfy_loras
 from comfy_prompts import extract_graph_branch
 from comfy_settings import get_comfy_base_url
 from external.comfy_client import probe_available, read_log_lines
@@ -46,6 +48,7 @@ from schemas import (
     CheckCaptionRulesStartRequest,
     ComfyGenerateStartRequest,
     ComfyLogsResponse,
+    ComfyLorasResponse,
     ComfyOutputBranch,
     ComfyPresetInput,
     ComfyPresetMapResponse,
@@ -53,6 +56,9 @@ from schemas import (
     ComfyPresetSummary,
     ComfyPresetTextResponse,
     ComfyProcessStartRequest,
+    ComfyShowcaseSet,
+    ComfyShowcaseSetsResponse,
+    ComfyShowcaseStartRequest,
     ComfyWorkflowMapRequest,
     EditCaptionsPreviewRequest,
     EditCaptionsPreviewResponse,
@@ -339,6 +345,39 @@ def start_comfy_generate_job(
     return _start_job("comfy_generate", path, body)
 
 
+@router.post("/automation/comfy-showcase", response_model=JobResponse)
+def start_comfy_showcase_job(
+    path: str = FOLDER_QUERY, body: ComfyShowcaseStartRequest = ComfyShowcaseStartRequest()
+) -> JobResponse:
+    return _start_job("comfy_showcase", path, body)
+
+
+@router.get("/automation/comfy-showcase/loras", response_model=ComfyLorasResponse)
+def list_comfy_showcase_loras() -> ComfyLorasResponse:
+    """Always a 200: a stopped ComfyUI is just unavailable."""
+    return list_comfy_loras()
+
+
+@router.get("/automation/comfy-showcase/sets", response_model=ComfyShowcaseSetsResponse)
+def list_comfy_showcase_sets() -> ComfyShowcaseSetsResponse:
+    return showcase_sets.list_showcase_sets()
+
+
+@router.put("/automation/comfy-showcase/sets", response_model=ComfyShowcaseSetsResponse)
+def save_comfy_showcase_set(body: ComfyShowcaseSet) -> ComfyShowcaseSetsResponse:
+    try:
+        return showcase_sets.save_showcase_set(body)
+    except showcase_sets.TooManyShowcaseSetsError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.delete("/automation/comfy-showcase/sets", response_model=ComfyShowcaseSetsResponse)
+def delete_comfy_showcase_set(
+    name: str = Query(..., description="The set's name, matched ignoring case"),
+) -> ComfyShowcaseSetsResponse:
+    return showcase_sets.delete_showcase_set(name)
+
+
 @router.get("/automation/comfy-process/presets", response_model=ComfyPresetsResponse)
 def list_comfy_process_presets() -> ComfyPresetsResponse:
     """And whether ComfyUI is answering."""
@@ -354,6 +393,9 @@ def list_comfy_process_presets() -> ComfyPresetsResponse:
                     for entry in preset.custom_inputs
                 ],
                 generates=preset.generates,
+                accepts_loras=preset.accepts_loras,
+                source_kind=preset.source_kind,
+                accepts_showcase_seed=preset.accepts_showcase_seed,
             )
             for preset in list_comfy_presets()
         ],

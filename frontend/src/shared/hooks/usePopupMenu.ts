@@ -57,7 +57,7 @@ function usePanelFocus(
       // user choice, not ours.
       const active = document.activeElement;
       if (active !== document.body && !panel?.contains(active)) return;
-      root?.querySelector<HTMLElement>('[aria-haspopup="menu"]')?.focus();
+      root?.querySelector<HTMLElement>("[aria-haspopup]")?.focus();
     };
   }, [open, panelRef, rootRef]);
 }

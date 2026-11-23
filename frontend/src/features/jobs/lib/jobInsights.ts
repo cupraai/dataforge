@@ -2,6 +2,7 @@ import { formatCount, formatModifiedAt, formatRelativeTime } from "@/shared/lib/
 import { trainingModelLabel } from "@/features/automation/lib/training";
 import type { Job, TrainingModel } from "@/shared/types";
 import { cancelledCountFromStats, failedCountFromStats, SKIPPED_STATUSES } from "./jobFileResults";
+import { GENERATING_JOBS } from "./generatingJobs";
 import { isUnseenJob, jobFinishedMs } from "./jobSeen";
 import {
   isActiveJobStatus,
@@ -30,7 +31,7 @@ export function jobUnitWord(job: Job, count: number): string {
   const [one, many] =
     job.job_type === "train_lora"
       ? ["step", "steps"]
-      : job.job_type === "comfy_generate"
+      : GENERATING_JOBS.has(job.job_type)
         ? ["generation", "generations"]
         : ["file", "files"];
   return count === 1 ? one : many;
@@ -110,6 +111,7 @@ export function jobWorkflow(job: Job): JobWorkflow | null {
   switch (job.job_type) {
     case "comfy_process":
     case "comfy_generate":
+    case "comfy_showcase":
       return { kind: "Workflow", name: job.workflow, edited: false };
     case "train_lora":
       return {

@@ -31,6 +31,7 @@ type UseAutomationHostOptions = {
   ostrisAvailable: boolean;
   comfyPresetsAvailable: boolean;
   comfyGeneratePresetsAvailable: boolean;
+  comfyShowcasePresetsAvailable: boolean;
   getJobPaths: () => string[] | undefined;
   jobScopeKind?: BulkScopeKind;
   requestTransition?: WorkspaceTransition;
@@ -57,6 +58,7 @@ export function useAutomationHost({
   ostrisAvailable,
   comfyPresetsAvailable,
   comfyGeneratePresetsAvailable,
+  comfyShowcasePresetsAvailable,
   getJobPaths,
   jobScopeKind,
   requestTransition,
@@ -107,6 +109,7 @@ export function useAutomationHost({
     startingJobType: automation.startingJobType,
     itemCount: jobItemCount,
     folderItemCount: items.length,
+    folderItems: items,
     scopeKind,
     startJob,
     getJobPaths,
@@ -133,12 +136,14 @@ export function useAutomationHost({
         ostrisAvailable,
         comfyPresetsAvailable,
         comfyGeneratePresetsAvailable,
+        comfyShowcasePresetsAvailable,
       },
     }),
     [
       automation.startingJobType,
       comfyGeneratePresetsAvailable,
       comfyPresetsAvailable,
+      comfyShowcasePresetsAvailable,
       folder,
       hasCaptionBackup,
       items.length,

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from comfy_settings import get_comfy_workflows_dir
-from schemas import ComfyInputKind, ComfyInputValue
+from schemas import ComfyInputKind, ComfyInputValue, ComfySourceKind
 
 WORKFLOW_EXTENSION = ".json"
 
@@ -22,13 +22,24 @@ SEED_NODE_TITLE = "DataForge Seed"
 PROMPT_NODE_TITLE = "DataForge Prompt"
 #: A second uploaded image: white regenerates, black keeps.
 MASK_NODE_TITLE = "DataForge Mask"
+#: A showcase chains its LoRAs after this node's model output; several nodes each get the chain.
+MODEL_NODE_TITLE = "DataForge Model"
 
 #: Other nodes with this prefix are custom inputs, named by the rest of the title.
 CUSTOM_INPUT_TITLE_PREFIX = "DataForge "
 _ROLE_TITLES = frozenset(
-    {INPUT_NODE_TITLE, OUTPUT_NODE_TITLE, SEED_NODE_TITLE, PROMPT_NODE_TITLE, MASK_NODE_TITLE}
+    {
+        INPUT_NODE_TITLE,
+        OUTPUT_NODE_TITLE,
+        SEED_NODE_TITLE,
+        PROMPT_NODE_TITLE,
+        MASK_NODE_TITLE,
+        MODEL_NODE_TITLE,
+    }
 )
 
+#: Found without a title when the graph holds exactly one of them.
+MODEL_LOADER_CLASSES = frozenset({"UNETLoader", "CheckpointLoaderSimple"})
 #: The keys are also the inferrable input classes.
 INPUT_KEYS = {"LoadImage": "image", "LoadImageMask": "image", "VHS_LoadVideo": "video"}
 #: A mask loader never stands in for an untitled source.
@@ -93,6 +104,10 @@ class ComfyPreset:
     custom_inputs: tuple[ComfyCustomInput, ...] = ()
     #: True without a source loader; None when unparseable.
     generates: bool | None = None
+    accepts_loras: bool | None = None
+    source_kind: ComfySourceKind | None = None
+    #: A showcase seeds every sampler of a source preset too.
+    accepts_showcase_seed: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -124,10 +139,18 @@ class ComfyWorkflow:
     mask_key: str | None = None
     #: Runs when no prompt is supplied.
     saved_prompt_text: str | None = None
+    #: Where a showcase's LoRAs go; empty when no model node can be told apart.
+    model_nodes: tuple[str, ...] = ()
 
     @property
     def generates(self) -> bool:
         return self.input_node is None
+
+    @property
+    def source_kind(self) -> ComfySourceKind | None:
+        if self.input_key == "image" or self.input_key == "video":
+            return self.input_key
+        return None
 
 
 def require_source_input(workflow: ComfyWorkflow) -> None:
@@ -149,13 +172,27 @@ def require_generation(workflow: ComfyWorkflow) -> None:
         )
 
 
-def _node_title(node: dict[str, Any]) -> str:
+def _model_nodes(prompt: dict[str, Any]) -> tuple[str, ...]:
+    titled = tuple(
+        node_id for node_id, node in graph_nodes(prompt) if node_title(node) == MODEL_NODE_TITLE
+    )
+    if titled:
+        return titled
+    loaders = tuple(
+        node_id
+        for node_id, node in graph_nodes(prompt)
+        if node["class_type"] in MODEL_LOADER_CLASSES
+    )
+    return loaders if len(loaders) == 1 else ()
+
+
+def node_title(node: dict[str, Any]) -> str:
     meta = node.get("_meta")
     title = meta.get("title") if isinstance(meta, dict) else None
     return title.strip() if isinstance(title, str) else ""
 
 
-def _nodes(prompt: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+def graph_nodes(prompt: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
     return [
         (node_id, node)
         for node_id, node in prompt.items()
@@ -163,9 +200,16 @@ def _nodes(prompt: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
     ]
 
 
-def _node_inputs(node: dict[str, Any]) -> dict[str, Any]:
+def node_inputs(node: dict[str, Any]) -> dict[str, Any]:
     inputs = node.get("inputs")
     return inputs if isinstance(inputs, dict) else {}
+
+
+def link_of(value: object) -> tuple[str, int] | None:
+    """The node and output an input is linked to; None for a literal."""
+    if isinstance(value, list) and len(value) == 2 and isinstance(value[1], int):
+        return str(value[0]), value[1]
+    return None
 
 
 def _is_editor_format(payload: object) -> bool:
@@ -181,7 +225,7 @@ def _resolve_role(
     classes: frozenset[str],
     role: str,
 ) -> str:
-    titled = [node_id for node_id, node in _nodes(prompt) if _node_title(node) == title]
+    titled = [node_id for node_id, node in graph_nodes(prompt) if node_title(node) == title]
     if len(titled) == 1:
         return titled[0]
     if len(titled) > 1:
@@ -190,7 +234,7 @@ def _resolve_role(
             f"Only one node can be the {role}."
         )
 
-    matched = [node_id for node_id, node in _nodes(prompt) if node["class_type"] in classes]
+    matched = [node_id for node_id, node in graph_nodes(prompt) if node["class_type"] in classes]
     if len(matched) == 1:
         return matched[0]
 
@@ -207,21 +251,21 @@ def _resolve_role(
 
 
 def _optional_titled_node(prompt: dict[str, Any], title: str) -> str | None:
-    titled = [node_id for node_id, node in _nodes(prompt) if _node_title(node) == title]
+    titled = [node_id for node_id, node in graph_nodes(prompt) if node_title(node) == title]
     return titled[0] if len(titled) == 1 else None
 
 
 def _has_source_loader(prompt: dict[str, Any]) -> bool:
     """Any loader that could stand in for an input makes this an edit preset."""
     return any(
-        _node_title(node) == INPUT_NODE_TITLE or node["class_type"] in INPUT_CLASSES
-        for _, node in _nodes(prompt)
+        node_title(node) == INPUT_NODE_TITLE or node["class_type"] in INPUT_CLASSES
+        for _, node in graph_nodes(prompt)
     )
 
 
 def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     """A linked input is a list and must not match."""
-    inputs = _node_inputs(node)
+    inputs = node_inputs(node)
     for key in keys:
         if isinstance(inputs.get(key), int | float):
             return key
@@ -230,7 +274,7 @@ def _numeric_key(node: dict[str, Any], keys: tuple[str, ...]) -> str | None:
 
 def prompt_input_key(node: dict[str, Any]) -> str | None:
     """A linked input is a list and must not match."""
-    inputs = _node_inputs(node)
+    inputs = node_inputs(node)
     for key in _PROMPT_INPUT_KEYS:
         if isinstance(inputs.get(key), str):
             return key
@@ -241,17 +285,17 @@ def _seed_key(node: dict[str, Any]) -> str | None:
     return _numeric_key(node, _SEED_INPUT_KEYS)
 
 
-def _sampler_seed_nodes(prompt: dict[str, Any]) -> tuple[str, ...]:
+def sampler_seed_nodes(prompt: dict[str, Any]) -> tuple[str, ...]:
     """Left alone, a generation run repeats one image."""
     return tuple(
         node_id
-        for node_id, node in _nodes(prompt)
+        for node_id, node in graph_nodes(prompt)
         if _numeric_key(node, _SAMPLER_SEED_KEYS) is not None
     )
 
 
 def _input_widget_key(node: dict[str, Any]) -> str | None:
-    inputs = _node_inputs(node)
+    inputs = node_inputs(node)
     known = INPUT_KEYS.get(node["class_type"])
     if known is not None:
         return known if isinstance(inputs.get(known), str) else None
@@ -262,7 +306,7 @@ def _input_widget_key(node: dict[str, Any]) -> str | None:
 
 
 def _output_widget_key(node: dict[str, Any]) -> str | None:
-    inputs = _node_inputs(node)
+    inputs = node_inputs(node)
     for key in OUTPUT_WIDGET_KEYS:
         if isinstance(inputs.get(key), str):
             return key
@@ -271,7 +315,7 @@ def _output_widget_key(node: dict[str, Any]) -> str | None:
 
 def _custom_input_key(node: dict[str, Any]) -> str | None:
     """``value``, else the node's only literal scalar."""
-    inputs = _node_inputs(node)
+    inputs = node_inputs(node)
     literals = [key for key, value in inputs.items() if isinstance(value, bool | int | float | str)]
     if "value" in literals:
         return "value"
@@ -291,8 +335,8 @@ def _custom_input_kind(node: dict[str, Any], value: ComfyInputValue) -> ComfyInp
 
 def _custom_inputs(payload: dict[str, Any], source: str) -> tuple[ComfyCustomInput, ...]:
     titled: dict[str, list[str]] = {}
-    for node_id, node in _nodes(payload):
-        title = _node_title(node)
+    for node_id, node in graph_nodes(payload):
+        title = node_title(node)
         if title.startswith(CUSTOM_INPUT_TITLE_PREFIX) and title not in _ROLE_TITLES:
             name = title.removeprefix(CUSTOM_INPUT_TITLE_PREFIX).strip()
             if name:
@@ -311,7 +355,7 @@ def _custom_inputs(payload: dict[str, Any], source: str) -> tuple[ComfyCustomInp
                 "single value to write. Title a node holding its own value, such as Int, Float, "
                 "String or Boolean."
             )
-        default = _node_inputs(node)[key]
+        default = node_inputs(node)[key]
         found.append(
             ComfyCustomInput(
                 name=name,
@@ -368,10 +412,10 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
             f'The preset "{source}" is an editor workflow, not an API-format one. {_EXPORT_HINT}'
         )
 
-    if not isinstance(payload, dict) or not _nodes(payload):
+    if not isinstance(payload, dict) or not graph_nodes(payload):
         raise ComfyWorkflowError(f'The preset "{source}" holds no ComfyUI nodes. {_EXPORT_HINT}')
 
-    for _, node in _nodes(payload):
+    for _, node in graph_nodes(payload):
         if node["class_type"] in PATH_LOADERS:
             raise ComfyWorkflowError(
                 f'The preset "{source}" loads from a filesystem path. DataForge uploads the '
@@ -421,7 +465,7 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
     if seed_node is not None:
         seed_nodes: tuple[str, ...] = (seed_node,)
     elif input_node is None:
-        seed_nodes = _sampler_seed_nodes(payload)
+        seed_nodes = sampler_seed_nodes(payload)
     else:
         seed_nodes = ()
 
@@ -459,7 +503,13 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
         custom_inputs=_custom_inputs(payload, source),
         mask_node=mask_node,
         mask_key=mask_key,
+        model_nodes=_model_nodes(payload),
     )
+
+
+def showcase_seed_nodes(workflow: ComfyWorkflow) -> tuple[str, ...]:
+    """A showcase item is a generation even when it starts from an image."""
+    return workflow.seed_nodes or sampler_seed_nodes(workflow.prompt)
 
 
 def _preset_path(name: str) -> Path:
@@ -513,11 +563,29 @@ def list_comfy_presets() -> list[ComfyPreset]:
                 accepts_seed=None if workflow is None else bool(workflow.seed_nodes),
                 custom_inputs=() if workflow is None else workflow.custom_inputs,
                 generates=None if workflow is None else workflow.generates,
+                accepts_loras=None if workflow is None else bool(workflow.model_nodes),
+                source_kind=None if workflow is None else workflow.source_kind,
+                accepts_showcase_seed=(
+                    None if workflow is None else bool(showcase_seed_nodes(workflow))
+                ),
             )
         )
 
     presets.sort(key=lambda preset: preset.name.lower())
     return presets
+
+
+def comfy_presets_fingerprint() -> str:
+    """Moves when a preset is added, removed, renamed or written again."""
+    parts: list[str] = []
+    for path in get_comfy_workflows_dir().glob(f"*{WORKFLOW_EXTENSION}"):
+        try:
+            # A directory entry's own times lag behind on Windows.
+            stat = path.stat()
+        except OSError:
+            continue
+        parts.append(f"{path.name}|{stat.st_mtime_ns}|{stat.st_size}")
+    return "\n".join(sorted(parts))
 
 
 def read_comfy_preset_text(name: str) -> str:

@@ -1,32 +1,27 @@
-import { useId, useRef, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type {
   ComfyPresetForm,
-  ComfyPresetKind,
+  ComfyFormKind,
 } from "@/features/automation/hooks/useComfyPresetForm";
-import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import { iconLoader2, iconTriangleAlert } from "@/shared/icons";
-import { classNames } from "@/shared/lib/classNames";
-import type { ComfyPresetInput, ComfyPresetSummary, ComfyWorkflowMapRequest } from "@/shared/types";
-import { DialogSelect } from "@/shared/ui/DialogSelect";
-import { Field, TextArea, TextInput } from "@/shared/ui/Field";
-import { Icon } from "@/shared/ui/Icon";
+import type { ComfyWorkflowMapRequest } from "@/shared/types";
+import { Field, TextInput } from "@/shared/ui/Field";
 import { ComfyPresetMap } from "./ComfyPresetMap";
-import { SavedSnippetMenu } from "./SavedSnippetMenu";
+import { ComfyPresetSection, ComfyStatus } from "./ComfyPresetSection";
+import { ComfyPromptField } from "./ComfyPromptField";
+import { CustomInputField } from "./CustomInputField";
 
-type BooleanChoice = "" | "on" | "off";
-
-const PROMPT_PLACEHOLDERS: Record<ComfyPresetKind, string> = {
+const PROMPT_PLACEHOLDERS: Record<ComfyFormKind, string> = {
   edit: "e.g. sharp studio photograph, no watermark",
   generate: "e.g. a lighthouse on a cliff at dusk",
 };
 
-const SEED_PLACEHOLDERS: Record<ComfyPresetKind, string> = {
+const SEED_PLACEHOLDERS: Record<ComfyFormKind, string> = {
   edit: "e.g. 424242",
   generate: "Random",
 };
 
-function EmptyHint({ kind }: { kind: ComfyPresetKind }) {
+function EmptyHint({ kind }: { kind: ComfyFormKind }) {
   return kind === "generate" ? (
     <p className="field__hint">
       No generation presets found. Export a workflow without a source loader from ComfyUI with{" "}
@@ -46,7 +41,7 @@ function NodeHint({
   promptBlocked,
   seedBlocked,
 }: {
-  kind: ComfyPresetKind;
+  kind: ComfyFormKind;
   promptBlocked: boolean;
   seedBlocked: boolean;
 }): ReactNode {
@@ -96,95 +91,9 @@ function NodeHint({
   );
 }
 
-/** Whether ComfyUI answered when the presets were listed; the job only needs it later. */
-function ComfyStatus({ available, baseUrl }: { available: boolean; baseUrl: string }) {
-  return available ? (
-    <span className="comfy-preset-layout__status" title={baseUrl}>
-      <span className="comfy-preset-layout__status-dot" aria-hidden="true" />
-      ComfyUI ready
-    </span>
-  ) : (
-    <p className="comfy-preset-layout__status comfy-preset-layout__status--offline" role="alert">
-      <Icon icon={iconTriangleAlert} className="comfy-preset-layout__status-icon" />
-      <span>
-        ComfyUI is not answering at <strong>{baseUrl}</strong>. Start it before the job begins, or
-        point <strong>COMFY_BASE_URL</strong> at the port it listens on.
-      </span>
-    </p>
-  );
-}
-
-/** What a preset takes from the dialog, so the list says it before the preset is chosen. */
-function presetTakes(entry: ComfyPresetSummary): string {
-  if (entry.generates === null) return "Could not be read";
-  const parts: string[] = [];
-  if (entry.accepts_prompt) parts.push("Prompt");
-  if (entry.accepts_seed) parts.push("Seed");
-  if (entry.inputs.length > 0) {
-    parts.push(entry.inputs.length === 1 ? "1 input" : `${entry.inputs.length} inputs`);
-  }
-  return parts.length > 0 ? parts.join(" · ") : "Runs as saved";
-}
-
-interface PresetListProps {
-  presets: readonly ComfyPresetSummary[];
-  value: string;
-  labelledById: string;
-  disabled: boolean;
-  onChange: (name: string) => void;
-}
-
-/** Every preset at once, with what each one takes, instead of a select that hides the rest. */
-function PresetList({ presets, value, labelledById, disabled, onChange }: PresetListProps) {
-  const name = useId();
-  return (
-    <div className="comfy-preset-list" role="radiogroup" aria-labelledby={labelledById}>
-      {presets.map((entry, index) => {
-        const checked = entry.name === value;
-        const metaId = `${name}-${index}`;
-        return (
-          <label
-            key={entry.name}
-            className={classNames(
-              "comfy-preset-list__item",
-              checked && "comfy-preset-list__item--current",
-            )}
-          >
-            <input
-              type="radio"
-              className="comfy-preset-list__radio"
-              name={name}
-              value={entry.name}
-              checked={checked}
-              disabled={disabled}
-              // The visible text runs name and meta together; the meta is the description.
-              aria-label={entry.name}
-              aria-describedby={metaId}
-              onChange={() => onChange(entry.name)}
-            />
-            {/* Truncated in the narrow column, so the whole name is a hover away. */}
-            <span className="comfy-preset-list__name" title={entry.name}>
-              {entry.name}
-            </span>
-            <span
-              id={metaId}
-              className={classNames(
-                "comfy-preset-list__meta",
-                entry.generates === null && "comfy-preset-list__meta--problem",
-              )}
-            >
-              {presetTakes(entry)}
-            </span>
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
 interface ComfyPresetFieldsProps {
   form: ComfyPresetForm;
-  kind: ComfyPresetKind;
+  kind: ComfyFormKind;
   busy: boolean;
   /** Called on every edit, so the dialog can clear a stale error. */
   onEdited: () => void;
@@ -207,8 +116,6 @@ export function ComfyPresetFields({
   embedded,
 }: ComfyPresetFieldsProps) {
   const nodeHintId = useId();
-  const presetsId = useId();
-  const promptRef = useRef<HTMLTextAreaElement>(null);
   const { state, preset, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
   const ready = state.status === "ready";
   const mapRequest: ComfyWorkflowMapRequest = embedded
@@ -218,34 +125,18 @@ export function ComfyPresetFields({
 
   return (
     <div className="comfy-preset-layout">
-      <section className="comfy-preset-layout__presets" aria-labelledby={presetsId}>
-        <h3 id={presetsId} className="comfy-preset-layout__heading">
-          {embedded ? "File workflow" : "Workflow presets"}
-        </h3>
-        {state.status === "loading" && (
-          <p className="comfy-preset-fields__loading" role="status">
-            <Icon icon={iconLoader2} spin className="comfy-preset-fields__loading-icon" />
-            Loading workflow presets...
-          </p>
-        )}
-        {state.status === "error" && (
-          <p className="dialog__error" role="alert">
-            Could not load workflow presets. {state.message}
-          </p>
-        )}
-        {ready && state.presets.length === 0 && <EmptyHint kind={kind} />}
-        {hasPresets && (
-          <PresetList
-            presets={state.presets}
-            value={preset}
-            labelledById={presetsId}
-            disabled={busy}
-            onChange={(value) => {
-              form.selectPreset(value);
-              onEdited();
-            }}
-          />
-        )}
+      <ComfyPresetSection
+        title={embedded ? "File workflow" : undefined}
+        state={state}
+        value={preset}
+        removed={form.removed}
+        disabled={busy}
+        emptyHint={<EmptyHint kind={kind} />}
+        onChange={(value) => {
+          form.selectPreset(value);
+          onEdited();
+        }}
+      >
         {embedded && (
           <p className="field__hint">
             Output <strong>{embedded.branch.label}</strong> of the workflow in{" "}
@@ -253,7 +144,7 @@ export function ComfyPresetFields({
             preset.
           </p>
         )}
-      </section>
+      </ComfyPresetSection>
 
       <section className="comfy-preset-layout__preview" aria-label="Workflow preview">
         <div className="comfy-preset-layout__preview-head">
@@ -265,10 +156,10 @@ export function ComfyPresetFields({
             {state.status === "loading" && (
               <div className="comfy-preset-map__skeleton" aria-hidden="true" />
             )}
-            {hasPresets && (
+            {hasPresets && preset && (
               <ComfyPresetMap request={mapRequest} saved={embedded ? embedded.branch : undefined} />
             )}
-            {ready && state.presets.length === 0 && (
+            {ready && !preset && (
               <p className="comfy-preset-map__message">The selected workflow is drawn here.</p>
             )}
           </div>
@@ -276,43 +167,18 @@ export function ComfyPresetFields({
       </section>
 
       <div className="comfy-preset-layout__form">
-        <Field
-          label="Prompt"
-          labelEnd={
-            <>
-              {promptLabelEnd}
-              <SavedSnippetMenu
-                book="comfy_prompts"
-                text={promptBlocked ? "" : draft.promptText}
-                disabled={busy || promptBlocked}
-                onInsert={(text) => {
-                  form.updateDraft({ promptText: appendSnippet(draft.promptText, text) });
-                  onEdited();
-                  promptRef.current?.focus();
-                }}
-              />
-            </>
-          }
-          className="comfy-preset-layout__prompt"
-        >
-          {(control) => (
-            <TextArea
-              {...control}
-              ref={promptRef}
-              aria-describedby={nodeHintId}
-              rows={4}
-              value={promptBlocked ? "" : draft.promptText}
-              onChange={(event) => {
-                form.updateDraft({ promptText: event.target.value });
-                onEdited();
-              }}
-              placeholder={
-                promptBlocked ? "This preset has no prompt node" : PROMPT_PLACEHOLDERS[kind]
-              }
-              disabled={busy || promptBlocked}
-            />
-          )}
-        </Field>
+        <ComfyPromptField
+          value={draft.promptText}
+          blocked={promptBlocked}
+          placeholder={PROMPT_PLACEHOLDERS[kind]}
+          hintId={nodeHintId}
+          disabled={busy}
+          labelEnd={promptLabelEnd}
+          onChange={(promptText) => {
+            form.updateDraft({ promptText });
+            onEdited();
+          }}
+        />
 
         <p id={nodeHintId} className="field__hint comfy-preset-layout__hint">
           <NodeHint kind={kind} promptBlocked={promptBlocked} seedBlocked={seedBlocked} />
@@ -362,50 +228,5 @@ export function ComfyPresetFields({
         )}
       </div>
     </div>
-  );
-}
-
-interface CustomInputFieldProps {
-  input: ComfyPresetInput;
-  text: string;
-  disabled: boolean;
-  onChange: (text: string) => void;
-}
-
-/** One `DataForge <name>` node; the saved value is the placeholder an empty field runs with. */
-function CustomInputField({ input, text, disabled, onChange }: CustomInputFieldProps) {
-  if (input.kind === "boolean") {
-    return (
-      <DialogSelect<BooleanChoice>
-        label={input.name}
-        value={text === "on" || text === "off" ? text : ""}
-        options={[
-          { value: "", title: `Default (${input.default ? "on" : "off"})` },
-          { value: "on", title: "On" },
-          { value: "off", title: "Off" },
-        ]}
-        disabled={disabled}
-        onChange={onChange}
-      />
-    );
-  }
-
-  const numeric = input.kind !== "text";
-  return (
-    <Field label={input.name} className={numeric ? undefined : "comfy-preset-fields__cell--wide"}>
-      {(control) => (
-        <TextInput
-          {...control}
-          type={numeric ? "number" : "text"}
-          step={input.kind === "integer" ? 1 : numeric ? "any" : undefined}
-          value={text}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={String(input.default)}
-          spellCheck={false}
-          autoComplete="off"
-          disabled={disabled}
-        />
-      )}
-    </Field>
   );
 }

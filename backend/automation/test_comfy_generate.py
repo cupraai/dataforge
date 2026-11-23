@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
 from PIL import Image
 
-from automation import comfy_generate
+import numbered_files
 from automation.comfy_generate import run_comfy_generate_job, validate_comfy_generate_folder
 from constants import STAGING_DIR_NAME
 from testing_fixtures import COMFY_TEST_URL, write_media
@@ -150,7 +150,7 @@ def run_with(handler, folder: Path, *, preset: str = "txt2img", **kwargs: object
     ) -> httpx.Client:
         return real_client(base_url=base_url, transport=httpx.MockTransport(handler))
 
-    with patch("automation.comfy_generate.httpx.Client", make_client):
+    with patch("external.comfy_client.httpx.Client", make_client):
         return run_comfy_generate_job(folder, preset=preset, **kwargs)
 
 
@@ -248,9 +248,9 @@ class RunJobTests(unittest.TestCase):
             temp.write_bytes(png_bytes())
 
             # Another writer takes the name between the check and the publish.
-            with patch.object(comfy_generate, "_name_is_free", return_value=True):
-                published = comfy_generate._publish(
-                    temp, workspace.folder, "txt2img", ".png", first=1
+            with patch.object(numbered_files, "name_is_free", return_value=True):
+                published = numbered_files.publish_numbered(
+                    temp, workspace.folder, "txt2img", ".png", 1, "generate"
                 )
 
             self.assertEqual(published.name, "txt2img_0002.png")

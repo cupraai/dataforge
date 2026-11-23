@@ -10,6 +10,7 @@ import {
   type JobSettingsByType,
 } from "@/features/automation/preferences/automationPreferences";
 import type { AutomationDialogsState, EmbeddedGenerateWorkflow } from "@/features/automation/types";
+import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import type { JobStartBodies, JobStartBody } from "@/shared/api/jobStartBodies";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import {
@@ -19,7 +20,9 @@ import {
 } from "@/features/automation/lib/bulkScope";
 import type {
   AutoAdjustRunSettings,
+  ComfyShowcaseJobSettings,
   DuplicateThreshold,
+  GalleryItem,
   EditCaptionsRunSettings,
   JobType,
   TrimVideoRunSettings,
@@ -38,6 +41,8 @@ type UseAutomationDialogOverlaysOptions = {
   itemCount: number;
   /** Every file in the folder, for jobs the selection cannot narrow. */
   folderItemCount: number;
+  /** The folder's media, for dialogs that pick files themselves. */
+  folderItems?: readonly GalleryItem[];
   scopeKind?: BulkScopeKind;
   startJob: (
     jobType: JobType,
@@ -51,7 +56,9 @@ type UseAutomationDialogOverlaysOptions = {
 };
 
 /** Jobs the selection cannot narrow: they read the whole folder, or no files at all. */
-const FOLDER_WIDE_JOBS: ReadonlySet<JobType> = new Set<JobType>(["train_lora", "comfy_generate"]);
+const FOLDER_WIDE_JOBS: ReadonlySet<JobType> = new Set<JobType>(["train_lora", ...GENERATING_JOBS]);
+
+const NO_ITEMS: readonly GalleryItem[] = [];
 
 /** What `openDialogForJobType` can preset: the scope, and a workflow step's own settings. */
 export interface DialogOpenOverride extends Partial<BulkScopeSnapshot> {
@@ -68,6 +75,7 @@ export function useAutomationDialogOverlays({
   startingJobType,
   itemCount,
   folderItemCount,
+  folderItems = NO_ITEMS,
   scopeKind = "folder",
   startJob,
   getJobPaths,
@@ -251,6 +259,19 @@ export function useAutomationDialogOverlays({
             caption_from_prompt: draft.captionFromPrompt,
           }),
       },
+      comfyShowcase: {
+        ...shared("comfy_showcase"),
+        scope: generateScope,
+        folderPath: folderPath ?? "",
+        folderItems,
+        // Stays open until the job is accepted: a refusal must not cost a list of prompts.
+        onConfirm: (body: ComfyShowcaseJobSettings) => {
+          if (!folderPath) return;
+          void startJob("comfy_showcase", folderPath, body).then((job) => {
+            if (job) closeDialog();
+          });
+        },
+      },
       resize: {
         ...shared("resize"),
         onConfirm: (
@@ -316,6 +337,7 @@ export function useAutomationDialogOverlays({
     getJobPaths,
     openJobType,
     settings,
+    startJob,
     startJobFromDialog,
     startingJobType,
     stepMode?.confirmLabel,
@@ -325,6 +347,7 @@ export function useAutomationDialogOverlays({
     generateScope,
     embedded,
     snapshot,
+    folderItems,
   ]);
 
   /** Shows a job type's dialog, loading this folder's saved settings first. */

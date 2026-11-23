@@ -30,6 +30,7 @@ export type JobSettingsByType = {
   trim_video: AutomationSettings["trim_video"];
   comfy_process: AutomationSettings["comfy_process"];
   comfy_generate: AutomationSettings["comfy_generate"];
+  comfy_showcase: AutomationSettings["comfy_showcase"];
 };
 
 const DEFAULT_REASONING_EFFORT: ReasoningEffort = "medium";
@@ -109,6 +110,15 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       name_prefix: "",
       caption_from_prompt: false,
       by_preset: {},
+    },
+    comfy_showcase: {
+      preset: "",
+      inputs: {},
+      items: [],
+      subject_loras: [],
+      name_prefix: "",
+      caption_from_prompt: false,
+      make_sheet: false,
     },
   };
 }

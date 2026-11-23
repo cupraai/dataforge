@@ -50,6 +50,7 @@ function setupHost(
       ostrisAvailable: options.ostrisAvailable ?? false,
       comfyPresetsAvailable: options.comfyPresetsAvailable ?? false,
       comfyGeneratePresetsAvailable: false,
+      comfyShowcasePresetsAvailable: false,
       getJobPaths: () => undefined,
       // The hook only reads the fields asserted here.
       automation: automation as never,

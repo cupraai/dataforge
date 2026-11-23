@@ -18,6 +18,7 @@ New here? Start with [Getting started](getting-started.md), then use the [User g
 | Show CPU temperature and power on Windows | [Hardware sensors on Windows](configuration.md#hardware-sensors-on-windows) |
 | Process media and review ComfyUI results | [ComfyUI](comfyui.md) |
 | Generate new media into a folder | [Generate with ComfyUI](comfyui.md#generate-media) |
+| Show off or compare a trained LoRA | [Showcases](comfyui.md#showcases) |
 | Train a LoRA | [AI-Toolkit](ai-toolkit.md) |
 | Develop or contribute | [Development](development.md) |
 | Report a vulnerability | [Security policy](../SECURITY.md) |

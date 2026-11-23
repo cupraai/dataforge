@@ -9,7 +9,12 @@ from typing import Any
 import httpx
 
 from comfy_settings import FILL_TEMPLATES_DIR, FillSettings, get_comfy_base_url, get_fill_settings
-from external.comfy_client import ComfyError, ComfyUnavailableError, fetch_node_info
+from external.comfy_client import (
+    ComfyError,
+    ComfyUnavailableError,
+    combo_options,
+    fetch_node_info,
+)
 from external.comfy_workflows import (
     ComfyWorkflow,
     ComfyWorkflowError,
@@ -139,20 +144,6 @@ def build_fill_prompt(
     return prompt
 
 
-def _combo_options(info: dict[str, Any], key: str) -> list[str] | None:
-    """Lists as ``[[names], {...}]`` or, newer, ``["COMBO", {"options": [names]}]``."""
-    inputs = info.get("input")
-    required = inputs.get("required") if isinstance(inputs, dict) else None
-    spec = required.get(key) if isinstance(required, dict) else None
-    if not isinstance(spec, list) or not spec:
-        return None
-    if isinstance(spec[0], list):
-        return [str(option) for option in spec[0]]
-    if len(spec) > 1 and isinstance(spec[1], dict) and isinstance(spec[1].get("options"), list):
-        return [str(option) for option in spec[1]["options"]]
-    return None
-
-
 def _missing_nodes_reason(missing: list[str]) -> str:
     names = ", ".join(sorted(missing))
     return f"Update ComfyUI for Qwen-Image 2.1 support: it lacks {names}."
@@ -176,7 +167,7 @@ def _preset_reason(
         key, setting, folder = _LOADERS[class_type]
         wanted = getattr(settings, setting)
         info = nodes[class_type]
-        options = _combo_options(info, key) if info is not None else None
+        options = combo_options(info, key) if info is not None else None
         if options is not None and wanted not in options:
             return (
                 f'ComfyUI has no {folder} file "{wanted}". Download it, or choose another in '

@@ -7,6 +7,8 @@ import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type {
   AutoAdjustRunSettings,
   ComfyEmbeddedGeneration,
+  ComfyShowcaseJobSettings,
+  GalleryItem,
   ComfyOutputBranch,
   DuplicateThreshold,
   EditCaptionsRunSettings,
@@ -83,6 +85,13 @@ export type AutomationDialogsState = {
   > & {
     /** Set when the dialog runs a file's own workflow instead of a preset. */
     embedded?: EmbeddedGenerateWorkflow;
+  };
+  comfyShowcase: FolderBusyDialogState<
+    (settings: ComfyShowcaseJobSettings) => void,
+    JobSettingsByType["comfy_showcase"]
+  > & {
+    folderPath: string;
+    folderItems: readonly GalleryItem[];
   };
   resize: FolderBusyDialogState<
     (

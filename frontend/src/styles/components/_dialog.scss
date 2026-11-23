@@ -847,7 +847,7 @@
 
 // Both ComfyUI dialogs take the workflow editor's footprint and its three-column shape: the
 // presets down the side, the selected one's map in the middle, the values it takes on the right.
-.dialog__panel:is(.comfy-process-dialog, .comfy-generate-dialog) {
+.dialog__panel:is(.comfy-process-dialog, .comfy-generate-dialog, .comfy-showcase-dialog) {
   display: flex;
   flex-direction: column;
   width: min($dialog-width-full, 100%);
@@ -1066,6 +1066,13 @@
   [type="number"] {
     @include tabular-nums;
     text-align: right;
+  }
+
+  &__removed {
+    color: var(--warning);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    overflow-wrap: anywhere;
   }
 
   // Left of the footer's buttons, which stay where they are.

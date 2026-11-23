@@ -8,6 +8,7 @@ import { FindDuplicatesDialog } from "./FindDuplicatesDialog";
 import { BatchRenameDialog } from "./BatchRenameDialog";
 import { CheckCaptionRulesDialog } from "./CheckCaptionRulesDialog";
 import { ComfyGenerateDialog } from "./ComfyGenerateDialog";
+import { ComfyShowcaseDialog } from "./ComfyShowcaseDialog";
 import { ComfyProcessDialog } from "./ComfyProcessDialog";
 import { TrainLoraDialog } from "./TrainLoraDialog";
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
@@ -39,6 +40,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     trimVideo,
     comfyProcess,
     comfyGenerate,
+    comfyShowcase,
     autoAdjust,
     checkCaptionRules,
     restoreCaptions,
@@ -170,6 +172,18 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           embedded={comfyGenerate.embedded}
           onConfirm={comfyGenerate.onConfirm}
           onCancel={comfyGenerate.onCancel}
+        />
+      )}
+
+      {comfyShowcase.open && comfyShowcase.initialSettings && (
+        <ComfyShowcaseDialog
+          scope={comfyShowcase.scope}
+          initialSettings={comfyShowcase.initialSettings}
+          busy={comfyShowcase.busy}
+          folderPath={comfyShowcase.folderPath}
+          folderItems={comfyShowcase.folderItems}
+          onConfirm={comfyShowcase.onConfirm}
+          onCancel={comfyShowcase.onCancel}
         />
       )}
 

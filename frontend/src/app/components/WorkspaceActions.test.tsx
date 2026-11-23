@@ -50,6 +50,7 @@ function renderActions(
         ostrisAvailable: true,
         comfyPresetsAvailable: true,
         comfyGeneratePresetsAvailable: true,
+        comfyShowcasePresetsAvailable: true,
       },
       ...context,
     },
@@ -380,6 +381,7 @@ describe("Workspace tools", () => {
           ostrisAvailable: false,
           comfyPresetsAvailable: false,
           comfyGeneratePresetsAvailable: false,
+          comfyShowcasePresetsAvailable: false,
         },
       },
     );
@@ -423,6 +425,7 @@ describe("Workspace tools", () => {
           ostrisAvailable: false,
           comfyPresetsAvailable: false,
           comfyGeneratePresetsAvailable: false,
+          comfyShowcasePresetsAvailable: false,
         },
       },
     );

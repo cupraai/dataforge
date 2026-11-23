@@ -170,6 +170,12 @@ def comfy_generate_error_message(stats: dict[str, int]) -> str | None:
     )
 
 
+def comfy_showcase_error_message(stats: dict[str, int]) -> str | None:
+    """A failed sheet leaves every result it would have shown."""
+    sheet = "The showcase sheet could not be made." if _count(stats, "sheet_error") else None
+    return " ".join(filter(None, (comfy_generate_error_message(stats), sheet))) or None
+
+
 def check_caption_rules_error_message(stats: dict[str, int]) -> str | None:
     failed = _count(stats, "read_error", "write_error")
     if failed == 0:

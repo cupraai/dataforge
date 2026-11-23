@@ -48,6 +48,7 @@ import { JobCard, type JobFollowUp } from "./JobCard";
 import { JobsSectionTitle } from "./JobsSectionTitle";
 import type { AutomationActions } from "@/features/automation/lib/automationActions";
 import type { Job } from "@/shared/types";
+import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import { reviewScopeSuffix } from "@/features/gallery/lib/reviewScope";
 
 const RETICK_MS = 30_000;
@@ -259,7 +260,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
         }
         onRetryFailed={
           // A failed generation has no file to retry on; starting the job again is the retry.
-          actions?.onRetryFailed && job.job_type !== "comfy_generate"
+          actions?.onRetryFailed && !GENERATING_JOBS.has(job.job_type)
             ? (paths) => {
                 closeDrawer();
                 actions.onRetryFailed?.(job.job_type, paths);

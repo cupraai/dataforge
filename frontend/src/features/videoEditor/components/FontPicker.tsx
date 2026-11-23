@@ -1,14 +1,13 @@
 import { Select } from "@/shared/ui/Select";
 import { SearchInput } from "@/shared/ui/SearchInput";
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useRef, type CSSProperties } from "react";
 import { iconCheck, iconChevronDown, iconTriangleAlert } from "@/shared/icons";
-import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
+import { useSearchPopup } from "@/shared/hooks/useSearchPopup";
 import { classNames } from "@/shared/lib/classNames";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 import { Icon } from "@/shared/ui/Icon";
 import type { VideoProjectFont, VideoProjectFontFamily } from "@/shared/types";
 import { useFontFamilies } from "@/features/videoEditor/hooks/useFontFamilies";
-import { useChanged } from "@/shared/hooks/useChanged";
 import { DURATION_INSTANT_MS } from "@/shared/lib/motion";
 
 const DEFAULT_LABEL = "Default";
@@ -90,30 +89,34 @@ function FamilyMenu({
   value: string | null;
   onPick: (family: VideoProjectFontFamily | null) => void;
 }) {
-  const { open, close, menuId, rootRef, panelRef, triggerProps } = usePopupMenu();
-  const [search, setSearch] = useState("");
-  const [active, setActive] = useState(0);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const {
+    open,
+    close,
+    menuId,
+    rootRef,
+    panelRef,
+    triggerProps,
+    needle,
+    activeOf,
+    setActive,
+    listId,
+    optionId,
+    searchRef,
+    searchProps,
+  } = useSearchPopup({
+    // After the default, which comes first.
+    opensAt: () =>
+      value
+        ? families.findIndex((family) => family.family.toLowerCase() === value.toLowerCase()) + 1
+        : 0,
+  });
   const listRef = useRef<HTMLUListElement>(null);
-  const listId = useId();
 
-  const needle = search.trim().toLowerCase();
   const options: (VideoProjectFontFamily | null)[] = [
     ...(needle ? [] : [null]),
     ...families.filter((family) => family.family.toLowerCase().includes(needle)),
   ];
-
-  // Only on opening: a refreshing list must not move the cursor.
-  if (useChanged(open) && open) {
-    setSearch("");
-    const index = value
-      ? families.findIndex((family) => family.family.toLowerCase() === value.toLowerCase()) + 1
-      : 0;
-    setActive(Math.max(0, index));
-  }
-  useEffect(() => {
-    if (open) searchRef.current?.focus();
-  }, [open]);
+  const active = activeOf(options.length);
 
   useEffect(() => {
     listRef.current
@@ -155,23 +158,10 @@ function FamilyMenu({
           ref={searchRef}
           label="Search fonts"
           placeholder="Search fonts"
-          aria-controls={listId}
-          aria-activedescendant={options.length ? `${listId}-${active}` : undefined}
-          value={search}
-          onChange={(value) => {
-            setSearch(value);
-            setActive(0);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-              event.preventDefault();
-              const step = event.key === "ArrowDown" ? 1 : -1;
-              setActive((index) => Math.min(options.length - 1, Math.max(0, index + step)));
-            } else if (event.key === "Enter" && options.length > 0) {
-              event.preventDefault();
-              pick(options[Math.min(active, options.length - 1)]);
-            }
-          }}
+          {...searchProps({
+            count: options.length,
+            onPick: (index) => pick(options[index]),
+          })}
         />
         <ul
           ref={listRef}
@@ -189,7 +179,7 @@ function FamilyMenu({
                  -- activedescendant option; the input keeps focus */
               <li
                 key={name ?? ""}
-                id={`${listId}-${index}`}
+                id={optionId(index)}
                 data-index={index}
                 role="option"
                 aria-selected={chosen}

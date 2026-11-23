@@ -6,6 +6,7 @@ import type {
   CheckCaptionRulesStartRequest,
   ComfyGenerateStartRequest,
   ComfyProcessStartRequest,
+  ComfyShowcaseStartRequest,
   FindDuplicatesStartRequest,
   JobType,
   ReplaceCaptionsStartRequest,
@@ -35,6 +36,7 @@ export interface JobStartBodies {
   watermark: WatermarkStartRequest;
   comfy_process: ComfyProcessStartRequest;
   comfy_generate: ComfyGenerateStartRequest;
+  comfy_showcase: ComfyShowcaseStartRequest;
   strip_metadata: StripMetadataStartRequest;
   backup_captions: BackupCaptionsStartRequest;
   restore_captions: RestoreCaptionsStartRequest;

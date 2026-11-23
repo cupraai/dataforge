@@ -10,6 +10,8 @@ from comfy_prompts import (
     extract_graph_branch,
     extract_workflow_prompts,
 )
+from external.comfy_lora_chain import LoraRef, with_loras
+from external.comfy_workflows import build_comfy_prompt, parse_comfy_workflow
 from testing_fixtures import TempMediaFolder, write_media, write_mp4_video
 
 LOADER = {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "landscape.safetensors"}}
@@ -1692,6 +1694,22 @@ class PresetGraphMapTests(unittest.TestCase):
 
     def test_an_unknown_output_maps_nothing(self) -> None:
         self.assertIsNone(extract_graph_branch(self.UPSCALE, "42"))
+
+    def test_the_loras_a_showcase_adds_are_listed(self) -> None:
+        workflow = parse_comfy_workflow(json.dumps(self.TXT2IMG), source="t2i")
+        prompt = with_loras(
+            workflow,
+            build_comfy_prompt(workflow, media_ref=None, filename_prefix="out"),
+            [LoraRef("subject.safetensors", 0.8), LoraRef("style.safetensors", 1.0)],
+            {},
+        )
+
+        branch = extract_graph_branch(prompt, "9")
+        assert branch is not None
+        self.assertCountEqual(
+            branch.loras, ["subject.safetensors (0.8)", "style.safetensors (1.0)"]
+        )
+        self.assertIn("loras", {node.kind for node in branch.map})
 
     def test_a_sampler_node_names_the_sampler_its_pass_uses(self) -> None:
         """SamplerLCM has no sampler_name: its class is the choice."""

@@ -15,6 +15,7 @@ from external.comfy_client import (
     ComfyError,
     ComfyPromptError,
     ComfyUnavailableError,
+    combo_options,
     delete_queued,
     download_view_to,
     fetch_history,
@@ -365,6 +366,19 @@ class ReadLogLinesTests(unittest.TestCase):
 
         with patch("external.comfy_client.fetch_raw_log_entries", return_value=entries):
             self.assertEqual(read_log_lines(), ["phase one"])
+
+
+class ComboOptionsTests(unittest.TestCase):
+    def test_both_combo_shapes_are_read(self) -> None:
+        old = {"input": {"required": {"lora_name": [["a", "b"], {}]}}}
+        new = {"input": {"required": {"lora_name": ["COMBO", {"options": ["a", "b"]}]}}}
+
+        self.assertEqual(combo_options(old, "lora_name"), ["a", "b"])
+        self.assertEqual(combo_options(new, "lora_name"), ["a", "b"])
+
+    def test_a_missing_or_free_input_has_no_options(self) -> None:
+        self.assertIsNone(combo_options({"input": {"required": {}}}, "lora_name"))
+        self.assertIsNone(combo_options({"input": {"required": {"x": ["FLOAT", {}]}}}, "x"))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,251 @@
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+// Built on the ComfyUI dialogs' layout: presets left, the LoRA and items where their map sits,
+// the selected item's form right. Only the item list and, as a last resort, the form scroll.
+.comfy-showcase {
+  &__middle {
+    @include app-scrollbar;
+    gap: 0.75rem;
+    // A last resort for a short window; the item list normally absorbs the difference.
+    overflow-y: auto;
+  }
+
+  // Stacked under the presets, the list gives up height before the items do.
+  @media (max-width: 72rem) {
+    .comfy-preset-layout__presets {
+      max-height: 9.5rem;
+    }
+  }
+
+  &__subjects {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    min-width: 0;
+    max-width: 100%;
+    height: 1.875rem;
+    padding: 0 0.125rem 0 0.625rem;
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+  }
+
+  &__chip-label {
+    min-width: 0;
+    @include truncate;
+  }
+
+  &__note {
+    margin: 0;
+  }
+
+  &__items-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+
+    > h3 {
+      margin: 0;
+    }
+  }
+
+  &__totals {
+    flex: 1;
+    min-width: 0;
+    @include truncate;
+    color: var(--text-subtle);
+    font-size: var(--text-2xs);
+    @include tabular-nums;
+  }
+
+  // The menu pushes itself right; here the totals already do.
+  &__items-head .saved-menu {
+    margin-left: 0;
+  }
+
+  // Absorbs the pane's spare height and scrolls; the panel itself never does.
+  &__items {
+    min-height: 7.5rem;
+    margin: 0 -0.25rem;
+    padding: 0 0.25rem;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 3.25rem;
+    font: inherit;
+    text-align: left;
+  }
+
+  &__row-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    > * {
+      max-width: 100%;
+      @include truncate;
+    }
+  }
+
+  // The preset list dims a row holding any disabled control; a row's edge tools (Move up on
+  // the first) are disabled while the row is plainly usable, so only busy dims it here.
+  &__row:has(:disabled) {
+    opacity: 1;
+    cursor: auto;
+  }
+
+  &__row:has(.checkbox__input:disabled) {
+    @include disabled-state;
+  }
+
+  &__row--off &__row-main {
+    opacity: 0.5;
+  }
+
+  // Label takes the room; strength and seed are short numbers.
+  &__fields {
+    grid-template-columns: minmax(0, 1fr) 5.5rem 7.5rem;
+  }
+
+  &__row-toggle,
+  &__lora-toggle {
+    flex: none;
+    margin: 0;
+  }
+
+  &__hidden {
+    @include visually-hidden;
+  }
+
+  &__number {
+    margin-right: 0.5rem;
+    color: var(--text-subtle);
+    @include tabular-nums;
+  }
+
+  &__row-thumb {
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  &__row-tools {
+    display: flex;
+    flex: none;
+    gap: 0.125rem;
+  }
+
+  &__loras {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__lora-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 4.5rem auto;
+    align-items: center;
+    gap: 0.5rem;
+
+    .search-select {
+      min-width: 0;
+    }
+  }
+
+  // A trigger that fills its cell and cuts a long name instead of widening the form.
+  &__wide-trigger {
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__strength {
+    width: 100%;
+  }
+
+  &__add {
+    align-self: flex-start;
+  }
+
+  &__output {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+
+    @media (max-width: 44rem) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    > .field {
+      margin: 0;
+    }
+  }
+
+  &__shared {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  &__warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    color: var(--warning);
+    @include icon-scope-sm;
+
+    > span {
+      color: var(--text-muted);
+    }
+
+    .lucide {
+      flex: none;
+      margin-top: 0.125rem;
+    }
+  }
+}

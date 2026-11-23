@@ -15,6 +15,7 @@ load_env_file()
 
 from api_errors import ApiError, ConflictError, api_error_handler, conflict_error_handler
 from automation.jobs import job_manager
+from comfy_preset_watch import run_comfy_preset_feed
 from db import init_db
 from external_jobs_feed import run_external_jobs_feed
 from folder_watch import run_folder_watch_feed
@@ -39,6 +40,7 @@ async def lifespan(_app: FastAPI):
     prune = asyncio.create_task(asyncio.to_thread(prune_thumbnail_cache))
     external_jobs = asyncio.create_task(run_external_jobs_feed())
     folder_watch = asyncio.create_task(run_folder_watch_feed())
+    preset_watch = asyncio.create_task(run_comfy_preset_feed())
     retention = asyncio.create_task(run_history_retention())
     stop_tagging = start_tagging_worker()
 
@@ -47,13 +49,12 @@ async def lifespan(_app: FastAPI):
     finally:
         stop_tagging()
         # Bounded: cancel does not interrupt the prune thread.
-        for task in (external_jobs, folder_watch, retention, prune):
+        tasks = (external_jobs, folder_watch, preset_watch, retention, prune)
+        for task in tasks:
             task.cancel()
         with suppress(asyncio.TimeoutError):
             await asyncio.wait_for(
-                asyncio.gather(
-                    external_jobs, folder_watch, retention, prune, return_exceptions=True
-                ),
+                asyncio.gather(*tasks, return_exceptions=True),
                 timeout=1.0,
             )
 

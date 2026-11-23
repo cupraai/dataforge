@@ -1,3 +1,4 @@
+import { GENERATING_JOBS } from "@/features/jobs/lib/generatingJobs";
 import { JOB_GROUPS } from "@/features/jobs/lib/jobMeta";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { MAX_WORKFLOW_STEPS } from "@/shared/constants";
@@ -5,8 +6,8 @@ import type { JobType, Workflow, WorkflowStep } from "@/shared/types";
 
 export type WorkflowJobType = WorkflowStep["job_type"];
 
-/** LoRA training ignores the scope; Generate makes files outside it. */
-const NOT_A_STEP: ReadonlySet<JobType> = new Set<JobType>(["train_lora", "comfy_generate"]);
+/** LoRA training ignores the scope; generation makes files outside it. */
+const NOT_A_STEP: ReadonlySet<JobType> = new Set<JobType>(["train_lora", ...GENERATING_JOBS]);
 
 export function isWorkflowJobType(type: JobType): type is WorkflowJobType {
   return !NOT_A_STEP.has(type);

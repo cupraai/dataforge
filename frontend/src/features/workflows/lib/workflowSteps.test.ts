@@ -24,10 +24,11 @@ const rename: WorkflowStep = {
 
 describe("workflow steps", () => {
   it("uses the Tools groups with LoRA training and generation excluded", () => {
+    const excluded = new Set(["train_lora", "comfy_generate", "comfy_showcase"]);
     expect(WORKFLOW_STEP_GROUPS).toEqual(
       JOB_GROUPS.map(({ label, types }) => ({
         label,
-        types: types.filter((type) => type !== "train_lora" && type !== "comfy_generate"),
+        types: types.filter((type) => !excluded.has(type)),
       })),
     );
     expect(isWorkflowJobType("train_lora")).toBe(false);

@@ -67,6 +67,23 @@ function setupOverlays(
   return { result, startJob };
 }
 
+describe("useAutomationDialogOverlays showcase", () => {
+  it("keeps the dialog and its items until the job is accepted", async () => {
+    const { result, startJob } = setupOverlays();
+    await act(async () => result.current.openDialogForJobType("comfy_showcase"));
+    const body = emptyAutomationSettings("C:\\Photos").comfy_showcase;
+
+    // The context answers null once it has reported a refusal.
+    startJob.mockResolvedValueOnce(null);
+    await act(async () => result.current.dialogs.comfyShowcase.onConfirm(body));
+    expect(result.current.dialogs.comfyShowcase.open).toBe(true);
+
+    await act(async () => result.current.dialogs.comfyShowcase.onConfirm(body));
+    expect(startJob).toHaveBeenLastCalledWith("comfy_showcase", "C:\\Photos", body);
+    expect(result.current.dialogs.comfyShowcase.open).toBe(false);
+  });
+});
+
 describe("useAutomationDialogOverlays scope", () => {
   it("freezes target paths and preview counts before loading the dialog", async () => {
     const paths = ["C:\\Photos\\one.png"];

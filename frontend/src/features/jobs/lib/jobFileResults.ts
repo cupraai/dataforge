@@ -36,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
   read_error: "Read error",
   rejected: "Rejected",
   rename_error: "Rename error",
+  sheet_error: "Sheet error",
   skipped: "Skipped",
   skipped_long: "Caption long enough",
   success: "Done",

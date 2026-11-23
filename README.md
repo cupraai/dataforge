@@ -30,7 +30,7 @@ The app opens at `http://localhost:18081`. Open [`sample_media/`](sample_media/)
 - **Review:** model checks, caption-rule linting, near-duplicate detection, and dataset statistics.
 - **Edit media:** crop, resize, color adjustment and Auto-adjust, blur or black out regions, generative fill, video trim/speed/audio, and audio editing. The original is kept so you can revert.
 - **Video editor:** cut videos, stills, sound, and titles together on a multi-track timeline with dissolves, fades, and per-clip color, then export an MP4. See the [Video editor guide](docs/video-editor.md).
-- **Process:** run ComfyUI workflows and review each result before accepting it, one by one or in bulk, or generate new media into a folder.
+- **Process:** run ComfyUI workflows and review each result before accepting it, one by one or in bulk, generate new media into a folder, or showcase a trained LoRA.
 - **Train:** start and monitor LoRA training on the current folder through Ostris AI-Toolkit, then inspect the resulting `.safetensors` files in the gallery.
 
 AI is optional. Browsing, manual captioning, editing, and most bulk tools work without a model. Install and run the services you want separately, then connect them in **Settings**:
@@ -38,7 +38,7 @@ AI is optional. Browsing, manual captioning, editing, and most bulk tools work w
 | Service | Default address | Used for | Guide |
 | --- | --- | --- | --- |
 | OpenAI-compatible vision server | `http://127.0.0.1:8888/v1` | Auto-caption, Verify captions, Edit captions | [Configuration](docs/configuration.md#connect-a-vision-model) |
-| ComfyUI | `http://127.0.0.1:9000` | Edit and Generate with ComfyUI, generative fill | [ComfyUI](docs/comfyui.md) |
+| ComfyUI | `http://127.0.0.1:9000` | Edit and Generate with ComfyUI, LoRA showcases, generative fill | [ComfyUI](docs/comfyui.md) |
 | AI-Toolkit | `http://127.0.0.1:8675` | LoRA training | [LoRA training](docs/ai-toolkit.md) |
 
 <a id="your-data-stays-local"></a>
@@ -59,7 +59,7 @@ A few operations cannot be undone: accepting a ComfyUI result (it replaces the s
 | [User guide](docs/user-guide.md) | Browse, caption, review, edit, and run jobs; formats, files, and shortcuts |
 | [Video editor](docs/video-editor.md) | Edit timelines, manage projects, preview, export, and editor shortcuts |
 | [Configuration](docs/configuration.md) | Recommended models, Settings, input budgets, and environment variables |
-| [ComfyUI](docs/comfyui.md) | Process media, review results, generate media, write presets, and set up generative fill |
+| [ComfyUI](docs/comfyui.md) | Process media, review results, generate media, showcase LoRAs, write presets, and set up generative fill |
 | [AI-Toolkit](docs/ai-toolkit.md) | Choose a template, start training, and monitor LoRA runs |
 | [Development](docs/development.md) | Hot reload, generated code, checks, CI, and versioning |
 

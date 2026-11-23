@@ -47,6 +47,8 @@ export interface MockBackendOptions {
   jobs?: Job[];
   /** Per-file results keyed by job id. */
   jobResults?: Record<string, JobFileResult[]>;
+  /** LoRA names as ComfyUI lists them; two numbered saves of one run when absent. */
+  comfyLoras?: string[];
   /** Favorite folder paths; the home folder alone when absent. */
   folderFavorites?: string[];
   /** The background tagger's status; idle when absent. */
@@ -117,6 +119,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
   const savedSnippets = new Map<string, { name: string; text: string }[]>();
+  let showcaseSets: { name: string }[] = [];
   let workflows: Workflow[] = options.workflows ?? [];
   let tagVocabulary = { text: "# mine\nred dress\n", default_count: 302, added_count: 1 };
   let thumbnailCache = {
@@ -632,6 +635,34 @@ export function installMockBackend(options: MockBackendOptions = {}) {
     if (url.pathname === "/api/duplicates/dismiss" && method === "POST") {
       const body = init?.body ? JSON.parse(init.body as string) : {};
       return jsonResponse({ cleared: body.paths ?? [], failed: [] });
+    }
+
+    if (url.pathname === "/api/automation/comfy-showcase/loras") {
+      const names = options.comfyLoras ?? [
+        "LORAS/subject_000001000.safetensors",
+        "LORAS/subject_000001500.safetensors",
+      ];
+      return jsonResponse({
+        available: true,
+        error: null,
+        loras: names.map((name) => {
+          const stem = (name.split(/[\\/]/).pop() ?? name).replace(/\.[^.]+$/, "");
+          const match = /^(.+)_(\d{9})$/.exec(stem);
+          return { name, stem, run: match?.[1] ?? stem, step: match ? Number(match[2]) : null };
+        }),
+      });
+    }
+
+    if (url.pathname === "/api/automation/comfy-showcase/sets") {
+      if (method === "PUT") {
+        const saved = JSON.parse(init?.body as string) as { name: string };
+        const key = saved.name.toLowerCase();
+        showcaseSets = [...showcaseSets.filter((entry) => entry.name.toLowerCase() !== key), saved];
+      } else if (method === "DELETE") {
+        const key = (url.searchParams.get("name") ?? "").toLowerCase();
+        showcaseSets = showcaseSets.filter((entry) => entry.name.toLowerCase() !== key);
+      }
+      return jsonResponse({ sets: showcaseSets });
     }
 
     const snippetBook = /^\/api\/preferences\/snippets\/([a-z_]+)$/.exec(url.pathname)?.[1];

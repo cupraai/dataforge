@@ -1,7 +1,10 @@
 import { splitModels } from "@/features/gallery/lib/models";
 import { useCallback, useInsertionEffect, useMemo, useRef } from "react";
 import { useAutomationHost } from "@/features/automation/hooks/useAutomationHost";
-import { useComfyPresetsAvailable } from "@/features/automation/hooks/useComfyPresets";
+import {
+  useComfyPresetsAvailable,
+  useLiveComfyPresets,
+} from "@/features/automation/hooks/useComfyPresets";
 import { useFolderAutomation } from "@/features/automation/hooks/useFolderAutomation";
 import { useCreateFolderDialog } from "@/features/folder/hooks/useCreateFolderDialog";
 import { useDeleteFolderDialog } from "@/features/folder/hooks/useDeleteFolderDialog";
@@ -49,6 +52,7 @@ export function useAppWorkspace() {
   const selection = useGallerySelection();
   const { ostrisAvailable } = useJobs();
   const comfyPresets = useComfyPresetsAvailable();
+  useLiveComfyPresets();
 
   const {
     folder,
@@ -308,6 +312,7 @@ export function useAppWorkspace() {
     ostrisAvailable,
     comfyPresetsAvailable: comfyPresets.edit,
     comfyGeneratePresetsAvailable: comfyPresets.generate,
+    comfyShowcasePresetsAvailable: comfyPresets.showcase,
     getJobPaths: gallery.getJobPaths,
     jobScopeKind: gallery.jobScopeKind,
     requestTransition,
