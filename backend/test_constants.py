@@ -57,8 +57,8 @@ class MediaExtensionInvariantTests(unittest.TestCase):
         self.assertLessEqual(DISPLAY_RENDITION_EXTENSIONS, IMAGE_EXTENSIONS)
         self.assertEqual(DISPLAY_RENDITION_EXTENSIONS & NATIVE_IMAGE_EXTENSIONS, set())
 
-    def test_audio_is_edited_and_placed_only_in_formats_with_an_encoder(self) -> None:
-        self.assertLess(set(AUDIO_EDIT_MUXERS), AUDIO_EXTENSIONS)
+    def test_every_listed_audio_format_is_edited_and_placed(self) -> None:
+        self.assertEqual(set(AUDIO_EDIT_MUXERS), AUDIO_EXTENSIONS)
         self.assertEqual(VIDEO_PROJECT_AUDIO_EXTENSIONS, set(AUDIO_EDIT_MUXERS))
 
     def test_comfy_workflow_extensions_are_png_plus_isobmff(self) -> None:

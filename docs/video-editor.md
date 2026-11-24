@@ -71,7 +71,7 @@ Keep the files you want to use in the project's folder.
 | --- | --- |
 | Video | `.mp4`, `.mov`, `.m4v` |
 | Still image | `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp` |
-| Audio | `.wav`, `.mp3`, `.flac` |
+| Audio | `.wav`, `.mp3`, `.flac`, `.aac`, `.m4a`, `.ogg`, `.opus` |
 
 GIF and other gallery video formats are not editor sources. A supported video suffix does not guarantee that the browser can play its codec; see [Preview problems](#preview-problems).
 

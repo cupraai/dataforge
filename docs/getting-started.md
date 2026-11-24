@@ -10,7 +10,7 @@
 | Memory and disk | About 8 GB RAM and 2 GB disk for the app | Plus space for datasets and the thumbnail cache. 16 GB RAM and an SSD are practical starting points |
 | Python | 3.13.x, any final release | Windows setup supplies 3.13.12 |
 | Node | 26.x LTS, with npm | Windows setup and CI use the release pinned in [`.node-version`](../.node-version) |
-| FFmpeg | 7.1.x, with `drawtext` and `libmp3lame` | Needed for video and audio work. Windows x64 setup supplies 7.1.1 |
+| FFmpeg | 7.1.x, with `drawtext`, `libmp3lame`, `libvorbis`, and `libopus` | Needed for video and audio work. Windows x64 setup supplies 7.1.1 |
 | GPU | None | Model servers, ComfyUI, and AI-Toolkit have their own hardware requirements |
 
 Pillow handles images. Browser playback depends on the browser's codec support.
@@ -95,7 +95,7 @@ Rebuild and no-build cannot be combined. To change the port, set `DATAFORGE_UI_P
 **Setup cannot find FFmpeg 7.1.x.**
 
 - Install a 7.1.x build, put its binary folder on PATH, and run setup again. A global 8.x, 9.x, or unversioned development build does not count.
-- The build must include the `drawtext` filter (libfreetype and libharfbuzz) for watermarking and the `libmp3lame` encoder for MP3 audio edits.
+- The build must include the `drawtext` filter (libfreetype and libharfbuzz) for watermarking and the `libmp3lame`, `libvorbis`, and `libopus` encoders for MP3, OGG, and Opus audio edits.
 - On Windows x64, setup installs a matching build into `.ffmpeg/`. To repair it, delete that folder and run setup again.
 - Check which FFmpeg DataForge selects with `backend/.venv/Scripts/python scripts/check_ffmpeg.py` on Windows or `backend/.venv/bin/python scripts/check_ffmpeg.py` on Linux/macOS.
 

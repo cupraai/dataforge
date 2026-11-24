@@ -72,6 +72,8 @@ ENCODER_LISTING = """Encoders:
  ------
  A....D aac                  AAC (Advanced Audio Coding)
  A....D libmp3lame           libmp3lame MP3 (MPEG audio layer 3) (codec mp3)
+ A....D libopus              libopus Opus (codec opus)
+ A....D libvorbis            libvorbis (codec vorbis)
 """
 
 
@@ -140,6 +142,13 @@ class CheckFfmpegTests(unittest.TestCase):
     def test_rejects_a_build_without_the_mp3_encoder(self) -> None:
         without = ENCODER_LISTING.replace(" libmp3lame ", " libshine ")
         with self.assertRaisesRegex(RuntimeError, r"/tools/ffmpeg lacks the libmp3lame encoder"):
+            self._verify("ffmpeg version 7.1.5", encoders=without)
+
+    def test_rejects_a_build_without_the_ogg_encoders(self) -> None:
+        without = ENCODER_LISTING.replace(" libvorbis ", " vorbis ").replace(" libopus ", " opus ")
+        with self.assertRaisesRegex(
+            RuntimeError, r"/tools/ffmpeg lacks the libvorbis, libopus encoder"
+        ):
             self._verify("ffmpeg version 7.1.5", encoders=without)
 
     def test_reads_filter_names_whatever_the_flag_column_width(self) -> None:

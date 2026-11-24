@@ -2,16 +2,23 @@ from __future__ import annotations
 
 import io
 import os
+import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import quote
 
+import mutagen
 from PIL import Image
 
+from audio_info import adts_duration
+from constants import EDIT_BACKUP_SUFFIX
+from ffmpeg_bin import ffmpeg_path
 from gif_frames import clear_gif_caches_for_tests
 from routes._test_client import client
 from testing_fixtures import (
+    CacheFolderTestCase,
     TempMediaFolder,
     claimed_elsewhere,
     write_gif,
@@ -83,6 +90,7 @@ class MediaEndpointTests(unittest.TestCase):
             "tone.ogg": "audio/ogg",
             "voice.opus": "audio/ogg",
             "song.m4a": "audio/mp4",
+            "song.aac": "audio/aac",
             "TRACK.FLAC": "audio/flac",
         }
 
@@ -272,6 +280,63 @@ class MediaEndpointTests(unittest.TestCase):
 
 def rename_media(media: object, name: str):
     return client.post(f"/api/media/rename?path={quote(str(media))}&name={quote(name)}")
+
+
+def write_adts(path: Path, seconds: float) -> Path:
+    """Silence, then noise: a bitrate guess from the opening frames gets the length wrong."""
+    executable = ffmpeg_path()
+    assert executable
+    subprocess.run(
+        [
+            *(executable, "-v", "error", "-y"),
+            *("-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono:d={seconds / 2}"),
+            *("-f", "lavfi", "-i", f"anoisesrc=d={seconds / 2}:r=44100"),
+            *("-filter_complex", "[0][1]concat=n=2:v=0:a=1", "-c:a", "aac", "-q:a", "2"),
+            *("-f", "adts", str(path)),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return path
+
+
+class AdtsPlaybackTests(CacheFolderTestCase):
+    """Browsers read raw AAC's length from a bitrate guess, so they get the same frames in MP4."""
+
+    def served_seconds(self, root: Path, url: str) -> float:
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "audio/mp4")
+        served = root / "served.m4a"
+        served.write_bytes(response.content)
+        return mutagen.File(served).info.length
+
+    def test_raw_aac_is_served_as_mp4_with_its_counted_length(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_adts(root / "speech.aac", 6.0)
+
+            seconds = self.served_seconds(root, f"/api/media?path={quote(str(media))}")
+
+            self.assertAlmostEqual(seconds, adts_duration(media) or 0, delta=0.03)
+
+    def test_the_original_of_an_edited_aac_is_served_the_same_way(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_adts(root / "speech.aac", 2.0)
+            backup = write_adts(root / f"speech.aac{EDIT_BACKUP_SUFFIX}", 6.0)
+
+            seconds = self.served_seconds(root, f"/api/media?path={quote(str(media))}&original=1")
+
+            self.assertAlmostEqual(seconds, adts_duration(backup) or 0, delta=0.03)
+
+    def test_an_aac_that_is_not_adts_is_served_as_it_is(self) -> None:
+        with TempMediaFolder() as root:
+            media = root / "odd.aac"
+            media.write_bytes(b"ADIF" + bytes(64))
+
+            response = client.get(f"/api/media?path={quote(str(media))}")
+
+            self.assertEqual(response.headers["content-type"], "audio/aac")
+            self.assertEqual(response.content, media.read_bytes())
 
 
 class MediaRenameEndpointTests(unittest.TestCase):

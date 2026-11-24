@@ -173,7 +173,7 @@ If the file is replaced outside DataForge, the next edit or revert treats the re
 | --- | --- | --- |
 | Images | JPG/JPEG, PNG, WebP, BMP | Crop to a ratio or freely, rotate by quarter turns, mirror, resize by scale or exact size, Color, Effects, masks, [generative fill](#generative-fill) |
 | Videos | MP4, MOV, M4V the browser can play | Trim, crop, resize, speed, frame rate, volume, mute, Color, Effects, masks. Rendering shows progress and can be cancelled |
-| Audio | WAV, MP3, FLAC | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
+| Audio | WAV, MP3, FLAC, AAC, M4A, OGG, Opus | Trim, fades, volume, speed, pitch, EQ, noise reduction; see [Edit audio](#edit-audio) |
 
 - **Masks** blur, pixelate, or black out regions.
 - **Save frame as JPG** writes a video or GIF frame beside the source, named with its timestamp or frame number.
@@ -227,7 +227,7 @@ The audio editor plays the original while you work.
 | **EQ** | **Low cut** removes rumble, **High cut** hiss; **Bass**, **Mid**, and **Treble** move their range by up to 12 dB |
 | **Clean** | Noise reduction learns the noise from the quietest half second and lowers it by up to 30 dB |
 
-Noise reduction and pitch render on the server before you hear them (**Preparing preview...**), and the saved file uses that same render. A file keeps its format: a WAV its sample format, a FLAC its bit depth, and an MP3 its bitrate, tags, and cover. An MP3 is re-encoded once per edit, always from the original.
+Noise reduction and pitch render on the server before you hear them (**Preparing preview...**), and the saved file uses that same render. A file keeps its format: a WAV its sample format, a FLAC its bit depth, an MP3 or M4A its bitrate, tags, and cover, and an AAC, OGG, or Opus file its codec, bitrate, and tags. An OGG, Opus, or AAC file loses an embedded cover. A lossy file is re-encoded once per edit, always from the original.
 
 ### Auto-adjust a batch
 
@@ -352,8 +352,7 @@ Every format below shows in the gallery and takes a `.txt` caption. AI caption j
 | MP4, MOV, M4V | Playback and frame capture if the browser has the codec | Video | Yes | Yes | Yes |
 | WebM | Playback and frame capture if the browser has the codec | — | — | — | — |
 | AVI, MKV, WMV, FLV | Thumbnail only | — | — | — | — |
-| WAV, MP3, FLAC | Waveform and playback | Audio | — | — | — |
-| OGG, M4A, Opus | Waveform and playback | — | — | — | — |
+| WAV, MP3, FLAC, AAC, M4A, OGG, Opus | Waveform and playback | Audio | — | — | — |
 
 Browsers cannot decode HEIC or TIFF, so the viewer shows a WebP copy made from the file and kept in the thumbnail cache; the file itself is never changed, and caption jobs read the original. Auto-adjust covers the image and video editor formats. Caption jobs use a GIF's first frame and sample frames across a video, including containers the browser cannot play. A watermarked GIF stays an animated GIF with its frame timing, loop count, and transparency.
 

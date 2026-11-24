@@ -189,9 +189,39 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(probe.kbps, 192)
         self.assertTrue(probe.has_picture)
 
+    def test_an_opus_takes_the_files_bitrate_for_want_of_its_own(self) -> None:
+        summary = (
+            "  Duration: 00:00:08.01, start: 0.000000, bitrate: 107 kb/s\n"
+            "  Stream #0:0: Audio: opus, 48000 Hz, stereo, fltp\n"
+        )
+        self.assertEqual(parse_audio_probe(summary).kbps, 107)
+
     def test_a_file_without_sound_reports_nothing_about_it(self) -> None:
         probe = parse_audio_probe("  Stream #0:0: Video: h264, yuv420p, 64x48\n")
         self.assertIsNone(probe.sample_rate)
+
+    def test_an_aac_reports_its_counted_length_and_average_bitrate(self) -> None:
+        """ffmpeg reads this file as about four minutes at 4 kb/s from its silent opening."""
+        with TempMediaFolder() as root:
+            media = root / "speech.aac"
+            subprocess.run(
+                [
+                    *(ffmpeg(), "-v", "error", "-y"),
+                    *("-f", "lavfi", "-i", f"anullsrc=r={RATE}:cl=stereo:d=4"),
+                    *("-f", "lavfi", "-i", f"anoisesrc=d=6:r={RATE}"),
+                    *("-filter_complex", "[0][1]concat=n=2:v=0:a=1", "-c:a", "aac", "-q:a", "2"),
+                    str(media),
+                ],
+                check=True,
+                capture_output=True,
+            )
+
+            probe = probe_audio(ffmpeg(), media)
+
+            self.assertEqual(probe.codec, "aac")
+            self.assertAlmostEqual(probe.duration or 0, 10.0, delta=0.05)
+            expected_kbps = media.stat().st_size * 8 / (probe.duration or 1) / 1000
+            self.assertAlmostEqual(probe.kbps or 0, expected_kbps, delta=1)
 
 
 class PitchTests(unittest.TestCase):

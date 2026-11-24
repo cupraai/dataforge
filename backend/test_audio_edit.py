@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import mutagen
+import numpy as np
 from pydantic import ValidationError
 
 import audio_edit
@@ -45,6 +47,39 @@ def tone(root: Path, name: str, *output: str, seconds: float = 3.0, amplitude: f
         *("-f", "lavfi", "-i", f"aevalsrc={amplitude}*sin(2*PI*440*t):s=44100:d={seconds}"),
         *output,
     )
+
+
+def tags_of(media: Path) -> dict[str, str]:
+    """What ffmpeg reads back, for containers mutagen has no tag reader for."""
+    summary = subprocess.run(
+        [ffmpeg(), "-hide_banner", "-i", str(media)], capture_output=True, check=False
+    ).stderr.decode("utf-8", errors="replace")
+    pairs = re.findall(r"^\s+(\w+)\s*: (.+)$", summary, re.MULTILINE)
+    return {key.lower(): value.strip() for key, value in pairs}
+
+
+def tail_rms(media: Path, seconds: float, rate: int = 44100) -> float:
+    """Decoded whole: ``-sseof`` cannot seek in a file that stores no length."""
+    decoded = subprocess.run(
+        [
+            ffmpeg(),
+            "-v",
+            "error",
+            "-i",
+            str(media),
+            "-ac",
+            "1",
+            "-ar",
+            str(rate),
+            "-f",
+            "f32le",
+            "-",
+        ],
+        capture_output=True,
+        check=True,
+    ).stdout
+    tail = np.frombuffer(decoded, dtype="<f4")[-round(seconds * rate) :].astype(np.float64)
+    return float(np.sqrt(np.mean(tail**2)))
 
 
 class SpecTests(unittest.TestCase):
@@ -132,6 +167,47 @@ class EncoderTests(unittest.TestCase):
         fallback = audio_edit.encoder_arguments("mp3", AudioProbe())
         self.assertIn("-q:a", fallback)
 
+    def test_an_aac_keeps_its_bitrate_and_writes_its_tags_as_id3(self) -> None:
+        arguments = audio_edit.encoder_arguments("adts", AudioProbe(codec="aac", kbps=105))
+        self.assertEqual(arguments[:4], ["-c:a", "aac", "-b:a", "128k"])
+        self.assertEqual(arguments[-2:], ["-write_id3v2", "1"])
+        fallback = audio_edit.encoder_arguments("adts", AudioProbe(codec="aac"))
+        self.assertIn(f"{audio_edit.AAC_FALLBACK_KBPS}k", fallback)
+
+    def test_an_m4a_stays_lossless_or_keeps_its_bitrate(self) -> None:
+        alac = audio_edit.encoder_arguments("ipod", AudioProbe(codec="alac", kbps=900))
+        self.assertEqual(alac[:2], ["-c:a", "alac"])
+        self.assertNotIn("-b:a", alac)
+        self.assertIn("128k", audio_edit.encoder_arguments("adts", AudioProbe(kbps=133)))
+        aac = audio_edit.encoder_arguments("ipod", AudioProbe(codec="aac", kbps=250))
+        self.assertEqual(aac[:4], ["-c:a", "aac", "-b:a", "256k"])
+        self.assertIn("+faststart", aac)
+
+    def test_an_ogg_keeps_its_codec(self) -> None:
+        def codec(probe: AudioProbe) -> str:
+            arguments = audio_edit.encoder_arguments("ogg", probe)
+            return arguments[arguments.index("-c:a") + 1]
+
+        self.assertEqual(codec(AudioProbe(codec="vorbis", kbps=112)), "libvorbis")
+        self.assertEqual(codec(AudioProbe(codec="opus")), "libopus")
+        self.assertEqual(codec(AudioProbe(codec="flac", sample_format="s16")), "flac")
+        self.assertIn("-q:a", audio_edit.encoder_arguments("ogg", AudioProbe(codec="vorbis")))
+
+    def test_only_containers_that_hold_a_cover_are_given_one(self) -> None:
+        cases = {"mp3": True, "flac": True, "ipod": True, "ogg": False, "adts": False, "wav": False}
+        for muxer, keeps in cases.items():
+            with self.subTest(muxer=muxer):
+                command = audio_edit.build_audio_edit_command(
+                    Path("in"),
+                    Path("out"),
+                    [],
+                    executable="ffmpeg",
+                    muxer=muxer,
+                    probe=AudioProbe(codec="aac", kbps=128, has_picture=True),
+                    tagged=Path("in"),
+                )
+                self.assertEqual("0:v?" in command, keeps)
+
     def test_a_proxy_source_takes_its_tags_and_cover_from_the_original(self) -> None:
         command = audio_edit.build_audio_edit_command(
             Path("proxy.flac"),
@@ -198,6 +274,84 @@ class ApplyAudioEditTests(CacheFolderTestCase):
 
             self.assertEqual(probe_audio(ffmpeg(), media).kbps, 160)
             self.assertEqual(str(mutagen.File(media)["TIT2"]), "Song")
+
+    def test_an_aac_keeps_its_bitrate_and_tags_and_reverts_byte_identical(self) -> None:
+        with TempMediaFolder() as root:
+            # Noise, so the encoder spends its whole budget; a tone undershoots it.
+            media = generate(
+                root,
+                "song.aac",
+                *("-f", "lavfi", "-i", "anoisesrc=d=3:r=44100:a=0.3"),
+                *("-c:a", "aac", "-b:a", "128k", "-write_id3v2", "1", "-metadata", "title=Song"),
+            )
+            original = media.read_bytes()
+
+            response = audio_edit.apply_audio_edit(media, AudioEditSpec(trim_end=2.0, volume=0.5))
+
+            probe = probe_audio(ffmpeg(), media)
+            self.assertEqual(probe.codec, "aac")
+            self.assertAlmostEqual(probe.kbps or 0, 128, delta=8)
+            self.assertAlmostEqual(response.duration or 0, 2.0, delta=0.05)
+            self.assertEqual(tags_of(media).get("title"), "Song")
+
+            audio_edit.revert_audio_edit(media)
+            self.assertEqual(media.read_bytes(), original)
+
+    def test_an_aac_fades_out_at_its_counted_end(self) -> None:
+        """ffmpeg's bitrate guess puts this file's end minutes late, past any fade."""
+        with TempMediaFolder() as root:
+            media = generate(
+                root,
+                "speech.aac",
+                *("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono:d=3"),
+                *("-f", "lavfi", "-i", "anoisesrc=d=3:r=44100:a=0.5"),
+                *("-filter_complex", "[0][1]concat=n=2:v=0:a=1", "-c:a", "aac", "-q:a", "2"),
+            )
+            loud = tail_rms(media, 0.2)
+
+            audio_edit.apply_audio_edit(media, AudioEditSpec(fade_out=1.0))
+
+            self.assertLess(tail_rms(media, 0.2), loud / 4)
+
+    def test_an_m4a_keeps_its_cover_and_tags(self) -> None:
+        with TempMediaFolder() as root:
+            media = generate(
+                root,
+                "song.m4a",
+                *("-f", "lavfi", "-i", "aevalsrc=0.1*sin(2*PI*440*t):s=44100:d=2"),
+                *("-f", "lavfi", "-i", "color=red:s=32x32:d=1", "-map", "0:a", "-map", "1:v"),
+                *("-c:a", "aac", "-b:a", "192k", "-c:v", "mjpeg", "-frames:v", "1"),
+                *("-disposition:v", "attached_pic", "-metadata", "title=Song"),
+            )
+
+            audio_edit.apply_audio_edit(media, AudioEditSpec(volume=0.5))
+
+            probe = probe_audio(ffmpeg(), media)
+            self.assertEqual(probe.codec, "aac")
+            self.assertTrue(probe.has_picture)
+            self.assertEqual(mutagen.File(media)["\xa9nam"], ["Song"])
+
+    def test_an_alac_m4a_stays_lossless(self) -> None:
+        with TempMediaFolder() as root:
+            media = tone(root, "take.m4a", "-c:a", "alac")
+
+            audio_edit.apply_audio_edit(media, AudioEditSpec(volume=0.5))
+
+            self.assertEqual(probe_audio(ffmpeg(), media).codec, "alac")
+
+    def test_an_ogg_and_an_opus_keep_their_codec_and_tags(self) -> None:
+        cases = (
+            ("tone.ogg", ("-c:a", "libvorbis", "-b:a", "128k"), "vorbis"),
+            ("voice.opus", ("-c:a", "libopus", "-b:a", "96k"), "opus"),
+        )
+        for name, encoding, codec in cases:
+            with self.subTest(name=name), TempMediaFolder() as root:
+                media = tone(root, name, *encoding, "-metadata", "title=Take")
+
+                audio_edit.apply_audio_edit(media, AudioEditSpec(fade_in=0.5))
+
+                self.assertEqual(probe_audio(ffmpeg(), media).codec, codec)
+                self.assertEqual(mutagen.File(media)["title"], ["Take"])
 
     def test_normalize_brings_the_sound_to_the_target(self) -> None:
         with TempMediaFolder() as root:

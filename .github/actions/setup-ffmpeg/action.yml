@@ -14,7 +14,7 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y build-essential pkg-config nasm libx264-dev libwebp-dev zlib1g-dev libfreetype-dev libharfbuzz-dev libmp3lame-dev
+        sudo apt-get install --no-install-recommends -y build-essential pkg-config nasm libx264-dev libwebp-dev zlib1g-dev libfreetype-dev libharfbuzz-dev libmp3lame-dev libvorbis-dev libopus-dev
 
     - name: Cache pinned FFmpeg
       id: ffmpeg-cache
@@ -36,8 +36,8 @@ runs:
         tar -xf "$archive" -C "$RUNNER_TEMP"
         cd "$RUNNER_TEMP/ffmpeg-$FFMPEG_VERSION"
         # The watermark's drawtext filter needs freetype and harfbuzz; audio edits write MP3 with
-        # LAME. scripts/check_ffmpeg.py verifies both.
-        ./configure --prefix="$HOME/.cache/dataforge-ffmpeg" --disable-autodetect --disable-doc --disable-debug --disable-ffplay --enable-gpl --enable-libx264 --enable-libwebp --enable-zlib --enable-libfreetype --enable-libharfbuzz --enable-libmp3lame
+        # LAME and Ogg with libvorbis and libopus. scripts/check_ffmpeg.py verifies them.
+        ./configure --prefix="$HOME/.cache/dataforge-ffmpeg" --disable-autodetect --disable-doc --disable-debug --disable-ffplay --enable-gpl --enable-libx264 --enable-libwebp --enable-zlib --enable-libfreetype --enable-libharfbuzz --enable-libmp3lame --enable-libvorbis --enable-libopus
         make -j"$(nproc)"
         make install
 

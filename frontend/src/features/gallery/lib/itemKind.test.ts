@@ -133,6 +133,7 @@ describe("isAudio", () => {
         "tone.ogg",
         "song.m4a",
         "voice.opus",
+        "song.aac",
       ].filter((name) => !isAudioName(name)),
     ).toEqual([]);
     expect(["track.aiff", "clip.mp4", "photo.png"].filter(isAudioName)).toEqual([]);
@@ -141,8 +142,9 @@ describe("isAudio", () => {
   });
 
   it("edits only the formats the server can write back", () => {
-    expect(isEditableAudio(item("song.mp3", "audio"))).toBe(true);
-    expect(isEditableAudio(item("tone.ogg", "audio"))).toBe(false);
+    for (const name of ["song.mp3", "tone.ogg", "song.m4a", "voice.opus", "song.aac"]) {
+      expect(isEditableAudio(item(name, "audio"))).toBe(true);
+    }
     expect(isEditableImage(item("photo.png", "image"))).toBe(true);
     expect(isEditableImage(item("photo.heic", "image"))).toBe(false);
     expect(isEditableImage(item("photo.avif", "image"))).toBe(false);

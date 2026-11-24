@@ -437,6 +437,30 @@ class CompositeTests(unittest.TestCase):
             )
             self.assertLess(loudness(render(root, muted), 1.2, 0.6), -60)
 
+    def test_an_aac_clip_starts_at_its_in_point(self) -> None:
+        """Raw AAC stores no length or index; a seek guessed from its bitrate would miss."""
+        with TempMediaFolder() as root:
+            subprocess.run(
+                [
+                    *(ffmpeg_path() or "", "-v", "error", "-y"),
+                    *("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono:d=2"),
+                    *("-f", "lavfi", "-i", "sine=f=440:r=44100:d=2"),
+                    *("-filter_complex", "[0][1]concat=n=2:v=0:a=1", "-c:a", "aac", "-q:a", "2"),
+                    str(root / "speech.aac"),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            sound = VideoProjectClip(
+                id=new_id(), track_id="a1", kind="audio", source_id="speech.aac", start=1.0,
+                duration=1.0, source_in=2.0,
+            )  # fmt: skip
+            project = project_with(root, [spacer(3), sound], sources=["speech.aac"])
+
+            video = render(root, project)
+            self.assertLess(loudness(video, 0.1, 0.7), -60)
+            self.assertGreater(loudness(video, 1.1, 0.8), -30)
+
     def test_a_span_renders_only_that_part_of_the_edit_from_its_start(self) -> None:
         with TempMediaFolder() as root:
             write_image(root, "red.png", color=RED)

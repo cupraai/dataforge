@@ -15,7 +15,7 @@ MOTION_EXTENSIONS = VIDEO_EXTENSIONS | {GIF_EXTENSION}
 
 MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | MOTION_EXTENSIONS
 
-AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".opus"}
+AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".opus", ".aac"}
 
 # Pickled checkpoints stay out: reading one runs code.
 MODEL_EXTENSIONS = {".safetensors"}
@@ -40,8 +40,18 @@ WATERMARK_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS | ISOBMFF_EXTENSIONS | {GIF_EXTEN
 VIDEO_EDIT_EXTENSIONS = ISOBMFF_EXTENSIONS
 VIDEO_EDIT_MUXERS = {".mp4": "mp4", ".m4v": "mp4", ".mov": "mov"}
 
-# Edited in place, so each keeps its own format.
-AUDIO_EDIT_MUXERS = {".wav": "wav", ".mp3": "mp3", ".flac": "flac"}
+# Edited in place, so each keeps its own format; `.aac` is raw ADTS, `ipod` writes M4A.
+AUDIO_EDIT_MUXERS = {
+    ".wav": "wav",
+    ".mp3": "mp3",
+    ".flac": "flac",
+    ".aac": "adts",
+    ".m4a": "ipod",
+    ".ogg": "ogg",
+    ".opus": "ogg",
+}
+# The rest drop an embedded cover on edit.
+AUDIO_COVER_MUXERS = {"mp3", "flac", "ipod"}
 
 # Shared with the browser's BiquadFilterNode so preview and render agree.
 AUDIO_EQ_BASS_HZ = 120.0
@@ -175,6 +185,7 @@ MEDIA_MIME_TYPES = {
     ".ogg": "audio/ogg",
     ".opus": "audio/ogg",
     ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
     ".safetensors": "application/octet-stream",
 }
 

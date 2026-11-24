@@ -15,6 +15,7 @@ version heading when a minor or major version is cut.
 - **Verify captions** has the same **Saved** menu beside **Additional context**, with its own list of contexts to reuse in any folder.
 - **Reasoning effort** in Auto-caption, Verify captions and Edit captions can also be **High** or **Max**. With llama.cpp or Unsloth Studio, the dialogs name the model the server has loaded and offer only the levels its chat template accepts, such as Low, Medium and Extra high for Qwen3.8. A remembered level the model lacks moves to the nearest one it has, and a model without levels, such as Gemma 4, is sent none. If the server cannot be read, the dialog says why. Until the server answers, the model name and levels show as loading instead of options that change, and the answer is kept until Settings are saved.
 - **LoRA showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
+- AAC audio files (`.aac`), which AI-Toolkit trains on, are listed, played, captioned and editable like other audio. Their length is counted exactly, so trims and fades land where you set them.
 
 ### Changed
 
@@ -26,6 +27,7 @@ version heading when a minor or major version is cut.
 - While automation jobs run, the robot on the jobs button looks left and right, its antenna swinging after it, and blinks now and then, instead of rocking side to side.
 - The jobs drawer groups older jobs under **Last week** (the seven days before yesterday) and **Last month** before **Earlier**.
 - **Dataset statistics** is as wide as the jobs drawer and shows the 32 most frequent words and tags as clouds of round bubbles packed around the commonest one in the middle. Bubbles grow and shade from cool to warm the more often a word appears. Each one shows its exact count on hover and searches the gallery when clicked.
+- OGG, M4A and Opus audio can now be edited in the audio edit panel and placed in the video editor. An edit keeps the file's codec and bitrate; an M4A also keeps its cover, while an OGG, Opus or AAC file loses an embedded cover.
 - In Settings, a saved value resets with a small button inside its field, which you can click again to undo the reset before saving. Units such as **chars** and **pixels** show inside the field after the number, so labels are no longer cut short.
 
 ### Removed

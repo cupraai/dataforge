@@ -122,6 +122,7 @@ class MediaTypeTests(unittest.TestCase):
                 "track.ogg",
                 "track.m4a",
                 "track.opus",
+                "track.aac",
             ):
                 with self.subTest(name=name):
                     self.assertEqual(get_media_type(root / name), "audio")

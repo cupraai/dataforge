@@ -9,7 +9,7 @@ from pathlib import Path
 #: Filters and encoders that need optional libraries; a minimal build compiles without them and
 #: fails per job.
 REQUIRED_FILTERS = ("drawtext",)
-REQUIRED_ENCODERS = ("libmp3lame",)
+REQUIRED_ENCODERS = ("libmp3lame", "libvorbis", "libopus")
 
 
 def _listed(executable: str, listing: str) -> set[str]:
@@ -69,8 +69,8 @@ def verify_ffmpeg(expected_version: str | None = None) -> str:
     missing = missing_encoders(executable)
     if missing:
         raise RuntimeError(
-            f"FFmpeg at {executable} lacks the {', '.join(missing)} encoder that MP3 audio edits "
-            "need. Use a build configured with libmp3lame."
+            f"FFmpeg at {executable} lacks the {', '.join(missing)} encoder that audio edits "
+            "need. Use a build configured with libmp3lame, libvorbis and libopus."
         )
     return f"{executable}\n{banner}"
 

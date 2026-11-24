@@ -5,12 +5,13 @@ from __future__ import annotations
 import re
 import subprocess
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 
+from audio_info import adts_duration, is_adts
 from constants import (
     AUDIO_EQ_BASS_HZ,
     AUDIO_EQ_MID_HZ,
@@ -29,6 +30,10 @@ MIN_NOISE_REDUCTION_DB = 0.01
 AUDIO_PROXY_TIMEOUT_SECONDS = 1800
 #: Bump when a proxy is rendered differently.
 AUDIO_PROXY_VERSION = 1
+#: Bump when the browser's copy of an ADTS file is made differently.
+ADTS_PLAYBACK_VERSION = 1
+ADTS_PLAYBACK_SUFFIX = ".m4a"
+ADTS_PLAYBACK_TIMEOUT_SECONDS = 300
 PROBE_TIMEOUT_SECONDS = 15
 DELAY_CLICK_SECONDS = 0.1
 DELAY_PROBE_SECONDS = 0.4
@@ -102,6 +107,8 @@ _AUDIO_STREAM = re.compile(
     re.MULTILINE,
 )
 _DURATION = re.compile(r"Duration: (\d+):(\d\d):(\d\d(?:\.\d+)?)")
+#: The whole file's rate: the fallback for a stream that states none, as Opus never does.
+_CONTAINER_KBPS = re.compile(r"Duration: .*, bitrate: (\d+) kb/s")
 _PICTURE = re.compile(r"^\s*Stream #\S+: Video: ", re.MULTILINE)
 
 
@@ -114,12 +121,13 @@ def parse_audio_probe(summary: str) -> AudioProbe:
         seconds = int(hours) * 3600 + int(minutes) * 60 + float(rest)
     if stream is None:
         return AudioProbe(duration=seconds)
+    kbps = stream["kbps"] or ((container := _CONTAINER_KBPS.search(summary)) and container[1])
     return AudioProbe(
         codec=stream["codec"],
         sample_rate=int(stream["rate"]),
         sample_format=stream["format"],
         bits=int(stream["bits"]) if stream["bits"] else None,
-        kbps=int(stream["kbps"]) if stream["kbps"] else None,
+        kbps=int(kbps) if kbps else None,
         duration=seconds,
         has_picture=_PICTURE.search(summary) is not None,
     )
@@ -136,7 +144,23 @@ def probe_audio(executable: str, media: Path) -> AudioProbe:
         )
     except (OSError, subprocess.SubprocessError):
         return AudioProbe()
-    return parse_audio_probe(result.stderr.decode("utf-8", errors="replace"))
+    return _with_adts_length(
+        parse_audio_probe(result.stderr.decode("utf-8", errors="replace")), media
+    )
+
+
+def _with_adts_length(probe: AudioProbe, media: Path) -> AudioProbe:
+    """ffmpeg guesses an ADTS file's length and bitrate from its first frames."""
+    try:
+        if probe.codec != "aac" or not is_adts(media):
+            return probe
+        seconds = adts_duration(media)
+        size = media.stat().st_size
+    except OSError:
+        return probe
+    if not seconds:
+        return probe
+    return replace(probe, duration=seconds, kbps=round(size * 8 / seconds / 1000))
 
 
 def _afftdn(reduction: float) -> str:
@@ -275,6 +299,29 @@ def audio_proxy_command(
         *("-i", str(source), "-filter_complex", ";".join(links), "-map", "[proxy]"),
         *("-c:a", "flac", "-sample_fmt", "s32", "-f", "flac", str(destination)),
     ]
+
+
+def adts_playback_copy(executable: str, source: Path) -> Path:
+    """The same AAC frames in MP4, cached by stat.
+
+    Chromium seeks raw ADTS by a bitrate guess and reads a variable-bitrate file's length wrong
+    many times over; MP4 carries the exact length and a seek index.
+    """
+    destination = cache_path(
+        source, "adts-playback", ADTS_PLAYBACK_VERSION, suffix=ADTS_PLAYBACK_SUFFIX
+    )
+
+    def build(partial: Path) -> None:
+        run_ffmpeg(
+            [
+                *(executable, "-nostdin", "-hide_banner", "-loglevel", "error", "-y"),
+                *("-i", str(source), "-map", "0:a:0", "-c", "copy"),
+                *("-movflags", "+faststart", "-f", "mp4", str(partial)),
+            ],
+            timeout=ADTS_PLAYBACK_TIMEOUT_SECONDS,
+        )
+
+    return cached_render(destination, build)
 
 
 def audio_proxy(executable: str, source: Path, *, noise_reduction: float, pitch: int = 0) -> Path:

@@ -1,3 +1,4 @@
+import logging
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import asdict
@@ -12,8 +13,14 @@ from audio_edit import FFMPEG_MISSING_MESSAGE as AUDIO_FFMPEG_MISSING_MESSAGE
 from audio_edit import apply_audio_edit, measure_loudness, read_audio_edit_spec, revert_audio_edit
 from audio_edit import expected_output_seconds as expected_audio_seconds
 from audio_edit import is_identity_spec as is_identity_audio_spec
-from audio_effects import audio_proxy, needs_proxy, probe_audio
-from audio_info import audio_duration
+from audio_effects import (
+    ADTS_PLAYBACK_SUFFIX,
+    adts_playback_copy,
+    audio_proxy,
+    needs_proxy,
+    probe_audio,
+)
+from audio_info import audio_duration, is_adts
 from color_auto import image_analysis_pixels, suggest_adjust, video_analysis_pixels
 from comfy_candidates import (
     NoCandidateError,
@@ -22,6 +29,7 @@ from comfy_candidates import (
     reject_candidate,
 )
 from constants import (
+    AUDIO_EXTENSIONS,
     AUDIO_PITCH_MAX_SEMITONES,
     DISPLAY_RENDITION_EXTENSIONS,
     GALLERY_EXTENSIONS,
@@ -144,6 +152,8 @@ from video_edit import (
     revert_video_edit,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 _ORIGINAL_DESCRIPTION = (
@@ -243,13 +253,33 @@ def serve_media(
 
     # The backup suffix is deliberately non-media.
     served_path = original_path_for(file_path) if original else file_path
+    media_type = MEDIA_MIME_TYPES.get(file_path.suffix.lower())
+
+    playback = _adts_playback(served_path) if file_path.suffix.lower() in AUDIO_EXTENSIONS else None
+    if playback is not None:
+        served_path, media_type = playback, MEDIA_MIME_TYPES[ADTS_PLAYBACK_SUFFIX]
 
     # Windows cannot lock deletes on a share-delete handle.
     return MediaFileResponse(
-        served_path,
-        media_type=MEDIA_MIME_TYPES.get(file_path.suffix.lower()),
-        headers={"Cache-Control": _cache_control(v)},
+        served_path, media_type=media_type, headers={"Cache-Control": _cache_control(v)}
     )
+
+
+def _adts_playback(source: Path) -> Path | None:
+    """An MP4 copy of raw AAC for the browser; ``None`` serves the file itself."""
+    try:
+        if not is_adts(source):
+            return None
+    except OSError:
+        return None
+    executable = ffmpeg_path()
+    if not executable:
+        return None
+    try:
+        return adts_playback_copy(executable, source)
+    except (OSError, RuntimeError):
+        logger.warning("Serving %s as raw ADTS: the MP4 copy failed", source, exc_info=True)
+        return None
 
 
 @router.get("/media/model-info", response_model=ModelInfoResponse)

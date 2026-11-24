@@ -18,7 +18,7 @@ from audio_effects import (
 )
 from audio_info import audio_duration
 from audio_level import MEASURE_FILTER, audio_level_filters, parse_loudness
-from constants import AUDIO_EDIT_MUXERS
+from constants import AUDIO_COVER_MUXERS, AUDIO_EDIT_MUXERS
 from edit_sidecars import (
     begin_edit,
     publish_with_spec,
@@ -42,6 +42,15 @@ AUDIO_EDIT_TIMEOUT_SECONDS = 1800
 MP3_BITRATES = (32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320)
 #: LAME's high-quality variable rate, when the source reports no bitrate.
 MP3_FALLBACK_QUALITY = "2"
+#: The usual AAC rates. A source's average rounds up to one: easy sound undershoots its target.
+AAC_BITRATES = (32, 48, 64, 96, 128, 160, 192, 256, 320)
+#: Hard sound lands a little over its target, which must not round up a whole step.
+AAC_OVERSHOOT = 1.05
+#: The rest are for sources that report no bitrate.
+AAC_FALLBACK_KBPS = 192
+OPUS_FALLBACK_KBPS = 128
+#: libvorbis's variable quality, about 192 kb/s.
+VORBIS_FALLBACK_QUALITY = "6"
 
 
 def read_audio_edit_spec(media: Path) -> AudioEditSpec | None:
@@ -112,15 +121,39 @@ def _nearest_mp3_bitrate(kbps: int) -> int:
     return min(MP3_BITRATES, key=lambda rate: abs(rate - kbps))
 
 
+def _bitrate(probe: AudioProbe, fallback: int) -> list[str]:
+    return ["-b:a", f"{probe.kbps or fallback}k"]
+
+
+def _aac_bitrate(probe: AudioProbe) -> list[str]:
+    if not probe.kbps:
+        return ["-b:a", f"{AAC_FALLBACK_KBPS}k"]
+    target = probe.kbps / AAC_OVERSHOOT
+    rate = next((rate for rate in AAC_BITRATES if rate >= target), AAC_BITRATES[-1])
+    return ["-b:a", f"{rate}k"]
+
+
 def encoder_arguments(muxer: str, probe: AudioProbe) -> list[str]:
     """The source's own encoding, as near as the encoder allows."""
     rate = ["-ar", str(probe.sample_rate)] if probe.sample_rate else []
     if muxer == "wav":
         codec = probe.codec if probe.codec and probe.codec.startswith("pcm_") else "pcm_s16le"
         return ["-c:a", codec, *rate]
-    if muxer == "flac":
+    if muxer == "flac" or (muxer == "ogg" and probe.codec == "flac"):
         sample_format = "s16" if probe.sample_format == "s16" else "s32"
         return ["-c:a", "flac", "-sample_fmt", sample_format, *rate]
+    if muxer == "adts":
+        # ADTS has no tag block of its own.
+        return ["-c:a", "aac", *_aac_bitrate(probe), *rate, "-write_id3v2", "1"]
+    if muxer == "ipod":
+        lossless = probe.codec == "alac"
+        codec = ["-c:a", "alac"] if lossless else ["-c:a", "aac", *_aac_bitrate(probe)]
+        return [*codec, *rate, "-movflags", "+faststart"]
+    if muxer == "ogg":
+        if probe.codec == "opus":
+            return ["-c:a", "libopus", *_bitrate(probe, OPUS_FALLBACK_KBPS), *rate]
+        quality = ["-b:a", f"{probe.kbps}k"] if probe.kbps else ["-q:a", VORBIS_FALLBACK_QUALITY]
+        return ["-c:a", "libvorbis", *quality, *rate]
     if probe.kbps:
         quality = ["-b:a", f"{_nearest_mp3_bitrate(probe.kbps)}k"]
     else:
@@ -148,8 +181,7 @@ def build_audio_edit_command(
         command += ["-i", str(tagged)]
         tags = 1
     command += ["-map", "0:a:0", "-map_metadata", str(tags)]
-    # A WAV keeps no cover.
-    if muxer != "wav" and probe.has_picture:
+    if muxer in AUDIO_COVER_MUXERS and probe.has_picture:
         command += ["-map", f"{tags}:v?", "-c:v", "copy", "-disposition:v", "attached_pic"]
     if filters:
         command += ["-af", ",".join(filters)]
