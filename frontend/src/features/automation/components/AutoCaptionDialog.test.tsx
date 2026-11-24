@@ -158,13 +158,16 @@ describe("AutoCaptionDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith({ ...DEFAULTS, reasoning_effort: "xhigh" });
   });
 
-  it("offers no level for a model without any and keeps the remembered one", async () => {
+  it("shows a disabled None level for a model without any and keeps the remembered one", async () => {
     served({ model: "gemma", servedModel: "gemma", reasoningEfforts: [] });
     const user = userEvent.setup();
     const onConfirm = renderDialog(false, undefined, { reasoning_effort: "high" });
 
-    expect(await screen.findByText(/has no effort levels/)).toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: "Reasoning effort" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "None" })).toBeChecked();
+    const efforts = within(screen.getByRole("radiogroup", { name: "Reasoning effort" }));
+    const radios = efforts.getAllByRole("radio");
+    expect(radios.map((radio) => (radio as HTMLInputElement).value)).toEqual(["none"]);
+    expect(radios[0]).toBeDisabled();
 
     await confirm(user);
 

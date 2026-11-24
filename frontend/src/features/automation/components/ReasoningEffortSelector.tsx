@@ -13,6 +13,11 @@ const EFFORTS: ReadonlyArray<SegmentOption<ReasoningEffort>> = [
   { value: "max", label: "Max" },
 ];
 
+// Stands in for the levels of a model that has none, so the dialog keeps its shape.
+const NO_EFFORT: ReadonlyArray<SegmentOption<"none">> = [
+  { value: "none", label: "None", hint: "The loaded model has no effort levels, so none is sent." },
+];
+
 interface ReasoningEffortSelectorProps {
   value: ReasoningEffort;
   /** The loaded model's levels; null offers every level, empty says it has none. */
@@ -55,7 +60,14 @@ export function ReasoningEffortSelector({
           onChange={onChange}
         />
       ) : (
-        <p className="field__hint">The loaded model has no effort levels, so none is sent.</p>
+        <SegmentedControl
+          labelledBy={labelId}
+          value={NO_EFFORT[0].value}
+          options={NO_EFFORT}
+          stretch
+          disabled
+          onChange={() => {}}
+        />
       )}
     </div>
   );
