@@ -22,7 +22,6 @@ vi.mock("@/features/automation/preferences/automationPreferences", async (import
 function setupHost(
   options: {
     hasCaptionBackup?: boolean;
-    ostrisAvailable?: boolean;
     comfyEditPresetsAvailable?: boolean;
   } = {},
 ) {
@@ -47,7 +46,6 @@ function setupHost(
       items: [mediaItem("sunset.png", "C:\\Photos")],
       syspromptApplies: false,
       hasCaptionBackup: options.hasCaptionBackup ?? true,
-      ostrisAvailable: options.ostrisAvailable ?? false,
       comfyEditPresetsAvailable: options.comfyEditPresetsAvailable ?? false,
       comfyRunPresetsAvailable: false,
       comfyShowcasePresetsAvailable: false,

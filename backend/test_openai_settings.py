@@ -175,6 +175,14 @@ class OpenAISettingsTests(unittest.TestCase):
                 self.assertEqual(kwargs["reasoning_effort"], effort)
                 self.assertEqual(extra["reasoning_effort"], effort)
 
+    def test_a_model_without_levels_gets_no_effort_key(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            extra = build_sampling_extra_body("thinking", effort=None)
+            self.assertNotIn("reasoning_effort", extra)
+            self.assertEqual(
+                extra["chat_template_kwargs"], {"preserve_thinking": DEFAULT_PRESERVE_THINKING}
+            )
+
     def test_thinking_carries_preserve_thinking_off(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             kwargs = build_sampling_extra_body("thinking", preserve_thinking=False)[

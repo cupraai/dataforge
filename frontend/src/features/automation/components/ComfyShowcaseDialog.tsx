@@ -1,13 +1,11 @@
 import { useId, useState } from "react";
-import {
-  ComfyPresetSection,
-  ComfyStatus,
-} from "@/features/automation/components/ComfyPresetSection";
+import { ComfyPresetSection } from "@/features/automation/components/ComfyPresetSection";
+import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
 import { ShowcaseItemForm } from "@/features/automation/components/ShowcaseForms";
 import { ShowcaseItemList } from "@/features/automation/components/ShowcaseItemList";
 import { ShowcaseSetMenu } from "@/features/automation/components/ShowcaseSetMenu";
 import { ShowcaseSubjects } from "@/features/automation/components/ShowcaseSubjects";
-import { useComfyPresetList } from "@/features/automation/hooks/useComfyPresets";
+import { comfyServiceState, useComfyPresetList } from "@/features/automation/hooks/useComfyPresets";
 import { useListedPreset } from "@/features/automation/hooks/useListedPreset";
 import {
   resolveContent,
@@ -72,6 +70,8 @@ export function ComfyShowcaseDialog({
   const itemsId = useId();
 
   const listed = presets.status === "ready" ? presets.presets : undefined;
+  const comfyReady = presets.status === "ready" && presets.service === "ready";
+  const comfyService = comfyServiceState(presets);
   const { preset: presetName, removed } = useListedPreset(
     listed?.map((entry) => entry.name),
     draft.preset,
@@ -83,7 +83,7 @@ export function ComfyShowcaseDialog({
   const error = problem?.draft === draft ? problem.message : null;
 
   const handleConfirm = () => {
-    if (busy || !listed) return;
+    if (busy || !listed || !comfyReady) return;
     const start = resolveShowcase(draft, preset);
     if ("error" in start) {
       setProblem({ message: start.error, draft });
@@ -96,7 +96,7 @@ export function ComfyShowcaseDialog({
 
   return (
     <GuardedDialog
-      confirmDisabled={busy || !presetName}
+      confirmDisabled={busy || !presetName || !comfyReady}
       unsavedChanges={state.changed}
       scope={scope}
       title="Create a LoRA showcase?"
@@ -114,21 +114,12 @@ export function ComfyShowcaseDialog({
       describedById={error ? errorId : undefined}
       footer={
         <>
-          {/* In the footer, so a message never shifts the columns. */}
-          {error ? (
-            <p id={errorId} className="dialog__error comfy-preset-layout__error" role="alert">
-              {error}
-            </p>
-          ) : (
-            trainedHere && (
-              <p className="comfy-preset-layout__error comfy-showcase__warning" role="note">
-                <Icon icon={iconTriangleAlert} />
-                <span>
-                  <strong>{trainedHere}</strong> trained on this folder, and AI-Toolkit trains on
-                  every file in it and its subfolders.
-                </span>
-              </p>
-            )
+          {comfyService && (
+            <ServiceStatus
+              service="comfy"
+              state={comfyService}
+              address={presets.status === "ready" ? presets.baseUrl : undefined}
+            />
           )}
           <DialogActions
             confirmLabel="Start showcase"
@@ -160,9 +151,6 @@ export function ComfyShowcaseDialog({
             <h3 id={subjectsId} className="comfy-preset-layout__heading">
               LoRA to showcase
             </h3>
-            {presets.status === "ready" && (
-              <ComfyStatus available={presets.available} baseUrl={presets.baseUrl} />
-            )}
           </div>
           <ShowcaseSubjects
             subjects={draft.subjects}
@@ -171,6 +159,15 @@ export function ComfyShowcaseDialog({
             disabled={busy}
             onChange={(subjects) => state.update({ subjects })}
           />
+          {trainedHere && (
+            <p className="comfy-showcase__warning" role="note">
+              <Icon icon={iconTriangleAlert} />
+              <span>
+                <strong>{trainedHere}</strong> trained on this folder, and AI-Toolkit trains on
+                every file in it and its subfolders.
+              </span>
+            </p>
+          )}
 
           <div className="comfy-showcase__items-head">
             <h3 id={itemsId} className="comfy-preset-layout__heading">
@@ -229,6 +226,11 @@ export function ComfyShowcaseDialog({
             folderItems={folderItems}
             disabled={busy}
           />
+          {error && (
+            <p id={errorId} className="dialog__error comfy-preset-layout__error" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </GuardedDialog>

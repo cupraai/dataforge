@@ -6,7 +6,7 @@
 
 ## Connect AI-Toolkit
 
-Start AI-Toolkit, then open **Settings > Integrations**. Enter its origin in **AI-Toolkit URL**, use **Test connection**, and **Save**. The default is `http://127.0.0.1:8675`. Training is disabled while the service is unreachable.
+Start AI-Toolkit, then open **Settings > Integrations**. Enter its origin in **AI-Toolkit URL**, use **Test connection**, and **Save**. The default is `http://127.0.0.1:8675`.
 
 | Variable | Default | Effect |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ Checkpoints and samples stay in AI-Toolkit's training folder; DataForge shows th
 
 ## Troubleshooting
 
-**Training disabled.** Start AI-Toolkit and test its URL in Settings.
+**AI-Toolkit offline.** You can open **LoRA training** and prepare the run while AI-Toolkit is stopped. Start AI-Toolkit or check its URL under **Settings > Integrations**. The dialog checks again automatically and enables **Start training** when AI-Toolkit answers.
 
 **Name rejected.** Use a unique name of at most 80 characters, without `< > : " / \ | ? *`, and not `.` or `..`.
 

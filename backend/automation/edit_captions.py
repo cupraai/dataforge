@@ -18,6 +18,7 @@ from automation.llm import (
     strip_code_fences,
 )
 from automation.selection import filter_media_list, list_folder_media
+from automation.served_model import resolve_reasoning_effort
 from automation.vision import (
     FRAME_ERROR,
     MediaFrames,
@@ -221,7 +222,7 @@ def edit_caption(
     model: str | None = None,
     max_tokens: int | None = None,
     mode: AutomationMode = "instruct",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     frames: MediaFrames | None = None,
     media_kind: MediaKind = "image",
@@ -267,7 +268,7 @@ def process_media(
     vision: bool = False,
     model: str | None = None,
     mode: AutomationMode = "instruct",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     should_cancel: ShouldCancel | None = None,
     reference_caption: str | None = None,
@@ -340,6 +341,7 @@ def preview_caption_edits(
     samples: list[CaptionEditPreviewSample] = []
 
     with model_client() as client:
+        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
         # A shared caption is edited once.
         for target in caption_targets(media_files):
             media_path = target.primary
@@ -353,7 +355,7 @@ def preview_caption_edits(
                 vision=vision,
                 model=resolved_model,
                 mode=mode,
-                effort=reasoning_effort,
+                effort=effort,
                 preserve_thinking=preserve_thinking,
                 reference_caption=original,
             )
@@ -417,6 +419,7 @@ def run_edit_captions_job(
             raise ValueError(f"Could not create the .backup folder: {exc}") from exc
 
     with model_client() as client:
+        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
@@ -432,7 +435,7 @@ def run_edit_captions_job(
                 vision=vision,
                 model=resolved_model,
                 mode=mode,
-                effort=reasoning_effort,
+                effort=effort,
                 preserve_thinking=preserve_thinking,
                 should_cancel=should_cancel,
                 reference_caption=draft,

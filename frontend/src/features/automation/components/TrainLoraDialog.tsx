@@ -20,6 +20,8 @@ import { DialogSelect } from "@/shared/ui/DialogSelect";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { TrainingTemplateEditorDialog } from "./TrainingTemplateEditorDialog";
+import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { useAiToolkitStatus } from "@/features/automation/hooks/useAiToolkitStatus";
 
 interface PromptRow {
   id: number;
@@ -53,6 +55,7 @@ export function TrainLoraDialog({
   );
   const [error, setError] = useState<string | null>(null);
   const templateDraft = useTrainingTemplateDraft(model);
+  const aiToolkit = useAiToolkitStatus();
 
   // Rows keep their identity across edits so removing one cannot move focus.
   const nextPromptId = useRef(initialPrompts.length);
@@ -76,7 +79,7 @@ export function TrainLoraDialog({
   }, []);
 
   const handleConfirm = useCallback(() => {
-    if (busy) return;
+    if (busy || aiToolkit !== "ready") return;
 
     const nameError = validateLoraName(loraName);
     if (nameError) {
@@ -99,7 +102,7 @@ export function TrainLoraDialog({
       model,
       template: templateDraft.template,
     });
-  }, [busy, loraName, model, onConfirm, prompts, templateDraft.template, triggerWord]);
+  }, [aiToolkit, busy, loraName, model, onConfirm, prompts, templateDraft.template, triggerWord]);
 
   return (
     <GuardedDialog
@@ -115,13 +118,21 @@ export function TrainLoraDialog({
       description={<>Trains a {trainingModelLabel(model)} LoRA on them in Ostris AI-Toolkit.</>}
       panelClassName="train-lora-dialog"
       busy={busy}
+      confirmDisabled={aiToolkit !== "ready"}
       suspended={templateDraft.editorOpen}
       onConfirm={handleConfirm}
       onClose={onCancel}
       initialFocusRef={nameRef}
       describedById={error || templateDraft.loadError ? errorId : undefined}
       footer={
-        <DialogActions confirmLabel="Start training" busyLabel="Starting..." onCancel={onCancel} />
+        <>
+          <ServiceStatus service="ai_toolkit" state={aiToolkit} />
+          <DialogActions
+            confirmLabel="Start training"
+            busyLabel="Starting..."
+            onCancel={onCancel}
+          />
+        </>
       }
     >
       <div className="train-lora-dialog__body" data-scroll-lock-allow>

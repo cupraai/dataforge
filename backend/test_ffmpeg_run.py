@@ -6,7 +6,7 @@ isolate_test_database()
 
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ffmpeg_run import FfmpegCancelled, parse_progress_seconds, run_ffmpeg, stream_ffmpeg
 
@@ -78,15 +78,15 @@ class RunFfmpegTests(unittest.TestCase):
             run_ffmpeg(SLEEP_FOREVER, should_cancel=lambda: True)
 
     def test_does_not_cancel_a_process_that_finishes_first(self) -> None:
-        cancelled = {"asked": False}
+        should_cancel = Mock(return_value=True)
+        with patch("ffmpeg_run.subprocess.Popen") as popen:
+            process = popen.return_value
+            process.wait.return_value = 0
+            process.returncode = 0
+            process.stderr.read.return_value = b""
+            run_ffmpeg(["ffmpeg"], should_cancel=should_cancel)
 
-        def should_cancel() -> bool:
-            cancelled["asked"] = True
-            return True
-
-        run_ffmpeg(_script("pass"), should_cancel=should_cancel)
-
-        self.assertFalse(cancelled["asked"])
+        should_cancel.assert_not_called()
 
     def test_kills_a_process_that_outlives_its_deadline(self) -> None:
         with self.assertRaises(RuntimeError) as caught:

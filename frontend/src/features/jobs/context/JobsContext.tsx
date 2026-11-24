@@ -18,7 +18,7 @@ import {
   fetchJobs,
   fetchLatestFolderJob,
 } from "@/features/jobs/api/jobs";
-import { fetchOstrisJobs, stopOstrisJob } from "@/features/jobs/api/externalJobs";
+import { stopOstrisJob } from "@/features/jobs/api/externalJobs";
 import { useServerEvent, useStreamConnected } from "@/shared/events/serverEvents";
 import { formatApiError } from "@/shared/api/http";
 import {
@@ -52,6 +52,7 @@ import {
   writeJobsSeenAt,
 } from "@/features/jobs/lib/jobSeen";
 import { jobKeys } from "@/features/jobs/lib/jobQueries";
+import { externalJobsQueryOptions, NO_EXTERNAL_JOBS } from "@/features/jobs/lib/externalJobsQuery";
 import {
   EMPTY_LIVE_JOBS,
   PENDING_REMOVAL_REVISION,
@@ -83,25 +84,11 @@ function jobsPollDelay(streamConnected: boolean, hasActiveJobs: boolean): number
   return hasActiveJobs ? DISCONNECTED_ACTIVE_POLL_MS : DISCONNECTED_IDLE_POLL_MS;
 }
 
-const NO_EXTERNAL_JOBS: ExternalOstrisJobsResponse = {
-  jobs: [],
-  active_count: 0,
-  available: false,
-  revision: 0,
-};
-
 const readLiveJobs = mergedRead((signal) => fetchJobs({ signal }), mergeJobsListing);
-
-const readExternalJobs = mergedRead(
-  // A missing AI-Toolkit is an expected state, not an error to retry.
-  (signal) => fetchOstrisJobs(signal).catch(() => NO_EXTERNAL_JOBS),
-  newerExternalJobs,
-);
 
 interface JobsContextValue {
   jobs: Job[];
   externalJobs: ExternalOstrisJob[];
-  ostrisAvailable: boolean;
   /** Video exports still rendering; they run outside the job queue but show beside its jobs. */
   videoExports: VideoProjectExportState[];
   activeCount: number;
@@ -211,12 +198,10 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   });
 
   const externalQuery = useQuery({
-    queryKey: jobKeys.external,
-    queryFn: readExternalJobs,
+    ...externalJobsQueryOptions(),
     refetchInterval: (query) =>
       jobsPollDelay(streamConnected, (query.state.data?.active_count ?? 0) > 0),
     refetchIntervalInBackground: true,
-    meta: { pushFed: true },
   });
 
   useJobPushes(queryClient);
@@ -451,7 +436,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     () => ({
       jobs,
       externalJobs: external.jobs,
-      ostrisAvailable: external.available,
       videoExports,
       activeCount,
       seenAtMs,

@@ -12,7 +12,9 @@ import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
+import { comfyServiceState } from "@/features/automation/hooks/useComfyPresets";
 import { ComfyPresetFields } from "./ComfyPresetFields";
+import { ServiceStatus } from "./ServiceStatus";
 
 export interface ComfyRunSettings extends ResolvedPresetValues {
   /** The selected preset makes new files, so the job ignores the scope. */
@@ -35,7 +37,7 @@ interface ComfyRunDialogProps {
   confirmLabel?: string;
   /** Lists only presets that edit files: a workflow step runs on files chosen beforehand. */
   editOnly?: boolean;
-  /** Runs this file's own workflow, once, instead of a preset. */
+  /** Uses the workflow embedded in the selected file for each generation. */
   embedded?: EmbeddedGenerateWorkflow;
   onConfirm: (settings: ComfyRunSettings) => void;
   onCancel: () => void;
@@ -95,13 +97,17 @@ export function ComfyRunDialog({
   const [error, setError] = useState<string | null>(null);
   const errorId = useId();
   const ready = form.state.status === "ready";
+  const comfyService = comfyServiceState(form.state);
+  // A workflow step runs later, so only starting now needs ComfyUI to answer.
+  const comfyBlocks =
+    !editOnly && !(form.state.status === "ready" && form.state.service === "ready");
   const defaultPrefix = embedded ? embeddedNamePrefix(embedded) : form.preset;
   const shownPrefix = namePrefix.trim() || defaultPrefix || "generated";
   // A step's scope is fixed when the workflow runs, not now.
   const nothingToEdit = !generates && !editOnly && scope.itemCount === 0;
 
   const handleConfirm = () => {
-    if (busy || !ready || nothingToEdit) return;
+    if (busy || !ready || nothingToEdit || comfyBlocks) return;
 
     const resolved = form.resolve();
     if ("error" in resolved) {
@@ -136,7 +142,7 @@ export function ComfyRunDialog({
 
   return (
     <GuardedDialog
-      confirmDisabled={busy || !ready || !form.preset || nothingToEdit}
+      confirmDisabled={busy || !ready || !form.preset || nothingToEdit || comfyBlocks}
       unsavedChanges={
         form.changed ||
         overwrite !== initialSettings.overwrite_candidates ||
@@ -167,11 +173,12 @@ export function ComfyRunDialog({
       describedById={error ? errorId : undefined}
       footer={
         <>
-          {/* In the footer, so a message never shifts the columns. */}
-          {error && (
-            <p id={errorId} className="dialog__error comfy-preset-layout__error" role="alert">
-              {error}
-            </p>
+          {comfyService && (
+            <ServiceStatus
+              service="comfy"
+              state={comfyService}
+              address={form.state.status === "ready" ? form.state.baseUrl : undefined}
+            />
           )}
           <DialogActions
             confirmLabel={confirmLabel ?? (generates ? "Start generating" : "Start processing")}
@@ -186,6 +193,13 @@ export function ComfyRunDialog({
         embedded={embedded}
         busy={busy}
         onEdited={edited}
+        problem={
+          error && (
+            <p id={errorId} className="dialog__error comfy-preset-layout__error" role="alert">
+              {error}
+            </p>
+          )
+        }
         promptLabelEnd={
           generates && (
             <Checkbox

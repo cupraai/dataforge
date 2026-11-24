@@ -18,6 +18,7 @@ from automation.llm import (
     model_client,
 )
 from automation.selection import filter_media_list, list_folder_media
+from automation.served_model import resolve_reasoning_effort
 from automation.vision import (
     MediaKind,
     MediaLoadError,
@@ -231,7 +232,7 @@ def complete_caption(
     model: str | None = None,
     max_tokens: int | None = None,
     mode: str = "thinking",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     timestamps: list[float] | None = None,
     audio_wav: bytes | None = None,
@@ -284,7 +285,7 @@ def process_media(
     model: str | None = None,
     max_tokens: int | None = None,
     mode: str = "thinking",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     caption_audio: bool = False,
     should_cancel: ShouldCancel | None = None,
@@ -438,6 +439,7 @@ def run_auto_caption_job(
     resolved_model = model if model is not None else get_openai_model()
 
     with model_client() as client:
+        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
@@ -449,7 +451,7 @@ def run_auto_caption_job(
                 system_prompts,
                 model=resolved_model,
                 mode=mode,
-                effort=reasoning_effort,
+                effort=effort,
                 preserve_thinking=preserve_thinking,
                 caption_audio=caption_audio,
                 should_cancel=should_cancel,

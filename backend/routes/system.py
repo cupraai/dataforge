@@ -4,7 +4,9 @@ from fastapi import APIRouter, HTTPException
 
 import tagger
 from about import describe_installation
-from openai_settings import get_openai_model
+from automation.llm import model_client
+from automation.served_model import read_served_model
+from openai_settings import get_openai_base_url, get_openai_model
 from schemas import (
     AboutResponse,
     SystemPerformanceResponse,
@@ -34,7 +36,17 @@ def read_system_performance() -> SystemPerformanceResponse:
 
 @router.get("/system/vision-llm", response_model=VisionLlmInfoResponse)
 def read_vision_llm_info() -> VisionLlmInfoResponse:
-    return VisionLlmInfoResponse(model=get_openai_model())
+    configured = get_openai_model()
+    with model_client() as client:
+        served = read_served_model(client, configured)
+    return VisionLlmInfoResponse(
+        model=configured,
+        base_url=get_openai_base_url(),
+        served_model=served.model,
+        reasoning_efforts=None if served.efforts is None else list(served.efforts),
+        detail=served.problem,
+        reachable=served.reachable,
+    )
 
 
 @router.get("/system/tagging", response_model=TaggingStatusResponse)

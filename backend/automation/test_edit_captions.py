@@ -22,6 +22,7 @@ from automation.edit_captions import (
     validate_edit_captions_folder,
 )
 from automation.llm import MAX_MODEL_ATTEMPTS
+from automation.served_model import ServedModel
 from testing_fixtures import (
     FakeChatClient,
     TempMediaFolder,
@@ -491,6 +492,27 @@ class EditCaptionsRequestTests(unittest.TestCase):
         self.assertIsInstance(user_message["content"], str)
         self.assertIn(ORIGINAL, user_message["content"])
         self.assertEqual(client.last["extra_body"]["reasoning_effort"], "low")
+
+    def test_a_run_sends_the_level_the_served_template_accepts(self) -> None:
+        cases = ((("low", "xhigh"), "max", "xhigh"), ((), "medium", None))
+        for efforts, chosen, sent in cases:
+            with self.subTest(efforts=efforts), TempMediaFolder() as root:
+                _captioned(root, "photo.png")
+                client = FakeChatClient(EDITED)
+
+                with (
+                    patch("automation.edit_captions.model_client") as factory,
+                    patch(
+                        "automation.served_model.read_served_model",
+                        return_value=ServedModel("served", efforts),
+                    ),
+                ):
+                    factory.return_value.__enter__.return_value = client
+                    _run(root, mode="thinking", reasoning_effort=chosen)
+
+                self.assertEqual(client.last["extra_body"].get("reasoning_effort"), sent)
+                kwargs = client.last["extra_body"]["chat_template_kwargs"]
+                self.assertEqual(kwargs.get("reasoning_effort"), sent)
 
 
 class EditCaptionsVisionTests(unittest.TestCase):

@@ -34,7 +34,7 @@ The bundled [`example_solid_color.json`](../comfy_workflows/example_solid_color.
 1. Open the dataset itself, not its `staging/` folder.
 2. Select files, or search and filter, to limit the run; otherwise it covers the whole folder. See [job scope](user-guide.md#scope).
 3. Choose **Run ComfyUI workflow**, then an [edit preset](#edit-and-generation-presets) from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs.
-4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Workflow inputs**. Each field is enabled only when the workflow has the matching titled node.
+4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Workflow inputs**. For edit presets, each field is enabled only when the workflow has the matching titled node.
 5. Under **Output**, choose whether to overwrite previously staged results, then start.
 
 DataForge uploads one file at a time and stages the workflow's output with a `.comfy.json` run record.
@@ -80,7 +80,7 @@ LoRAs are added with ComfyUI's core **LoraLoaderModelOnly**, so they patch the d
 
 ### Run a showcase
 
-1. Open the folder the files should go to. Results are named and numbered like [Generate's](#generate-media), and nothing is replaced. If a LoRA was trained on this folder, the dialog warns you, because [training reads every file in it](ai-toolkit.md#start-a-run).
+1. Open the folder the files should go to. Showcase results use the same [file naming and numbering as generation presets](#generate-media). If a LoRA was trained on this folder, the dialog warns you, because [training reads every file in it](ai-toolkit.md#start-a-run).
 2. Choose **LoRA showcase**, a preset, and under **LoRA to showcase** up to 8 LoRAs. **Every save of** a recent training run picks that run's saves in training order.
 3. Add up to 50 items. Untick one to keep it without rendering it. Each item sets its own [custom inputs](#custom-inputs); an empty one runs the value the preset was saved with.
 4. Optionally set a **File name prefix**, turn on **Save as caption** beside **Prompt** for every item, or **Make a showcase sheet**, then start.
@@ -114,8 +114,6 @@ The **Run ComfyUI workflow** dialog draws the selected preset between the preset
 - The map follows the **Workflow inputs** you set: switching a boolean that drives an If/Else or Impact switch marks the pass it turns off as not run, or draws the one it turns on. An input whose value does not parse is drawn as saved.
 - A preset without a sampler shows its loaders feeding the output directly. One that loads nothing shows only the output.
 - A preset that cannot be parsed shows the reason instead of a map, so you can fix it before starting.
-
-The dot at the top right says **ComfyUI ready** when ComfyUI answered as the dialog opened. If it did not, a warning names the address that was tried. The job can still start; ComfyUI only has to be running when the first file or generation is sent.
 
 ## Review candidates
 
@@ -188,11 +186,13 @@ Not supported:
 | Node title | Input DataForge changes |
 | --- | --- |
 | `DataForge Prompt` | `text`, `value`, or `prompt`, if a prompt is entered |
-| `DataForge Seed` | `seed`, `noise_seed`, or `value`; Edit leaves it alone when no seed is entered |
+| `DataForge Seed` | `seed`, `noise_seed`, or `value`. Edit presets keep the saved seed when the field is empty |
 | `DataForge Mask` | `image`, set to an uploaded black-and-white mask |
 | `DataForge Model` | None; a [showcase](#showcases) adds its LoRAs after this node's model |
 
-Without these nodes, or with their fields left empty, the workflow uses its saved values. The dialog disables Prompt or Seed when the matching node is missing. A prompt or custom input value must belong to the titled node itself, not arrive through a connection from another node; a supplied prompt is refused if its node cannot take it.
+**Prompt** is available when a node is titled `DataForge Prompt`. A blank prompt or custom input uses the value saved in the preset. To expose an input, set its value directly on the titled node.
+
+**Seed** is available for an edit preset with a `DataForge Seed` node. Generation presets and showcases also recognize samplers with their own `seed` or `noise_seed` input. See [generation seeds](#generate-media) and [showcase seeds](#showcases) for how each run uses them.
 
 Only the editor's [generative fill](#generative-fill) uploads a mask; **Run ComfyUI workflow** runs a mask node with its saved file.
 
@@ -208,7 +208,7 @@ Values are remembered per preset with the prompt. An edit preset remembers the s
 
 ## Generative fill
 
-The image editor's **Fill** tool ([how to use it](user-guide.md#generative-fill)) runs Qwen-Image 2.1 with ComfyUI's native masked sampler. Its two workflows ship with DataForge in [`comfy_fill_templates/`](../comfy_fill_templates/); they are not presets and do not appear under **Edit with ComfyUI**. Fill and processing share one queue, so they never run at the same time.
+The image editor's **Fill** tool runs Qwen-Image 2.1 with ComfyUI's native masked sampler. The Fast and Quality workflows ship in [`comfy_fill_templates/`](../comfy_fill_templates/) and are selected in the image editor. Fill shares ComfyUI's queue with **Run ComfyUI workflow** and **LoRA showcase**. [Using generative fill](user-guide.md#generative-fill)
 
 ### Install
 
@@ -268,6 +268,8 @@ DataForge scales the result back, blends it into the original through a feathere
 Click the **ComfyUI** badge in a file's detail view to inspect its embedded prompts, models, LoRAs, settings, and saved output names. This works for PNG, MP4, MOV, and M4V, including files made outside DataForge. Stripping metadata removes the embedded workflow.
 
 **Copy workflow** copies the part of the workflow that leads to the selected output. Paste it onto the ComfyUI canvas to load it; this replaces the open tab's graph. It needs the editor workflow ComfyUI embeds alongside the prompt, so it is unavailable for files that carry only the API format.
+
+For an output that can run without a source file, **Generate with this workflow...** opens **Run ComfyUI workflow** with that output and its prompt. Choose the number of generations and start the run directly from the embedded workflow.
 
 **Outputs and passes.**
 

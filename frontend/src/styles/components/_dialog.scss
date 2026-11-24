@@ -1,7 +1,8 @@
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
-.dialog-scope {
+// A thin box of small facts, one per line, each led by an accent icon.
+@mixin dialog-info-box {
   padding: 0.375rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -11,6 +12,8 @@
     display: flex;
     align-items: center;
     gap: 0.375rem;
+    // Lets a long file name end in an ellipsis instead of widening the box.
+    min-width: 0;
     margin: 0;
     // xs, not prose: the tallest dialogs have no height to spare.
     font-size: var(--text-xs);
@@ -29,6 +32,10 @@
     flex-shrink: 0;
     color: var(--accent);
   }
+}
+
+.dialog-scope {
+  @include dialog-info-box;
 
   &__folder {
     word-break: break-word;
@@ -39,6 +46,35 @@
     font-size: var(--text-xs);
     line-height: var(--leading-snug);
     color: var(--text-subtle);
+  }
+}
+
+// What a run will read and do, boxed like the scope above it.
+.dialog-facts {
+  @include dialog-info-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  // The description above has no bottom margin; the fields below bring their own.
+  margin-top: 0.75rem;
+
+  // Each fact may be absent, as the prompt file is while a step is edited.
+  &:empty {
+    display: none;
+  }
+
+  &__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__line--problem {
+    color: var(--danger);
+
+    .dialog-facts__icon {
+      color: var(--danger);
+    }
   }
 }
 
@@ -102,6 +138,15 @@
     padding-left: var(--panel-padding);
     padding-right: var(--panel-padding);
     border-top: 1px solid var(--border);
+  }
+
+  // Stands in for the model's name while the vision server is asked.
+  &__model-badge-loading {
+    display: inline-block;
+    width: 7rem;
+    height: 0.875em;
+    vertical-align: middle;
+    border-radius: var(--radius-sm);
   }
 
   &__model-badge {
@@ -186,12 +231,10 @@
   .backup-captions-dialog,
   .batch-rename-dialog,
   .create-folder-dialog,
-  .edit-captions-dialog,
   .filter-ranges-dialog,
   .find-duplicates-dialog,
   .folder-note-dialog,
   .rename-dialog,
-  .replace-captions-dialog,
   .resize-dialog,
   .set-captions-dialog,
   .split-video-dialog,
@@ -207,7 +250,14 @@
   width: min($dialog-width-md, 100%);
 }
 
-.dialog__panel:is(.comfy-workflow-dialog, .shortcuts-dialog, .watermark-dialog) {
+// The caption edit jobs put their preview beside the form, so the samples get its height.
+.dialog__panel:is(
+  .comfy-workflow-dialog,
+  .edit-captions-dialog,
+  .replace-captions-dialog,
+  .shortcuts-dialog,
+  .watermark-dialog
+) {
   width: min($dialog-width-lg, 100%);
 }
 
@@ -219,10 +269,6 @@
 }
 
 .edit-captions-dialog {
-  &__dry-run-action {
-    margin-right: auto;
-  }
-
   // Same chain as Find & replace: only the preview's sample list gives way to the form.
   &__body {
     @include app-scrollbar;
@@ -325,33 +371,6 @@
 }
 
 // Footer lead-in: sits at the far side of the actions and yields width to the buttons.
-.instruction-file-source {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-width: 0;
-  margin: 0 auto 0 0;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-
-  &__icon {
-    flex-shrink: 0;
-    @include icon-size(var(--icon-size-base));
-    opacity: var(--icon-muted);
-  }
-
-  &__text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  strong {
-    color: var(--text);
-    font-weight: var(--font-medium);
-  }
-}
-
 .replace-captions-dialog {
   &__body {
     @include app-scrollbar;
@@ -1038,41 +1057,6 @@
     }
   }
 
-  &__status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-
-  &__status-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: var(--radius-pill);
-    background: var(--success);
-    box-shadow: 0 0 0 3px var(--success-soft);
-  }
-
-  &__status--offline {
-    flex-basis: 100%;
-    align-items: flex-start;
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--warning-border);
-    border-radius: var(--radius-sm);
-    background: var(--warning-soft);
-    color: var(--text);
-    line-height: 1.45;
-  }
-
-  &__status-icon {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-    color: var(--warning);
-    @include icon-size(var(--icon-size-sm));
-  }
-
   [type="number"] {
     @include tabular-nums;
     text-align: right;
@@ -1085,11 +1069,14 @@
     overflow-wrap: anywhere;
   }
 
-  // Left of the footer's buttons, which stay where they are.
+  // Pinned to the bottom of the inputs, which scroll, so the columns never move for it.
   &__error {
-    flex: 1;
-    align-self: center;
-    margin: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin: auto 0 0;
+    // The red is translucent; the panel's colour under it keeps scrolled inputs from showing.
+    background: linear-gradient(var(--danger-soft), var(--danger-soft)), var(--bg-elevated);
   }
 }
 
@@ -1298,6 +1285,81 @@
     // A step up from inline hints: here the keys are the content.
     .shortcut-keys {
       font-size: var(--text-xs);
+    }
+  }
+}
+
+// The server a job needs, at the left of the action bar; the buttons keep the right.
+.service-status {
+  --status-dot: var(--text-muted);
+  --status-glow: var(--border);
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+
+  &__dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--status-dot);
+    // A hard-edged ring, not a blur, so the colour reads at a glance.
+    box-shadow: 0 0 0 3px var(--status-glow);
+  }
+
+  &--ready {
+    --status-dot: var(--success);
+    --status-glow: var(--success-soft);
+  }
+
+  &--warning {
+    --status-dot: var(--warning);
+    --status-glow: var(--warning-soft);
+  }
+
+  &--offline {
+    --status-dot: var(--danger);
+    --status-glow: var(--danger-soft);
+  }
+}
+
+// Holds the reasoning levels' place, at their height, while the vision server is asked.
+.reasoning-effort__loading {
+  height: var(--control-height);
+  border-radius: var(--radius-pill);
+}
+
+// A caption job's form with its preview: stacked in a narrow panel, side by side once each column
+// can hold the form's tiles. The dialog's own `__body` keeps the flex chain for the stacked case.
+.dialog-preview-split {
+  &__form {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+  }
+
+  // The preview is sized by the form (`contain: size` keeps its samples from stretching the
+  // row), and its list scrolls inside.
+  @media (min-width: 54rem) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+    align-items: stretch;
+
+    .caption-preview-field {
+      contain: size;
+    }
+
+    .caption-preview {
+      flex: 1;
+    }
+
+    .caption-preview__samples {
+      max-height: none;
     }
   }
 }

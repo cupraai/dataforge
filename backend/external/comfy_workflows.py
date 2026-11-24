@@ -93,10 +93,7 @@ class ComfyWorkflowError(Exception):
 
 @dataclass(frozen=True)
 class ComfyPreset:
-    """Only its optional roles are read."""
-
     name: str
-    path: Path
     modified_at: float
     #: None when unparseable: it still lists, and fails at queue time.
     accepts_prompt: bool | None = None
@@ -529,14 +526,6 @@ def _parse_preset_file(path: Path) -> ComfyWorkflow | None:
         return None
 
 
-def preset_roles(path: Path) -> tuple[bool | None, bool | None]:
-    """``(None, None)`` if unparseable."""
-    workflow = _parse_preset_file(path)
-    if workflow is None:
-        return None, None
-    return workflow.prompt_node is not None, bool(workflow.seed_nodes)
-
-
 def list_comfy_presets() -> list[ComfyPreset]:
     folder = get_comfy_workflows_dir()
     presets: list[ComfyPreset] = []
@@ -557,7 +546,6 @@ def list_comfy_presets() -> list[ComfyPreset]:
         presets.append(
             ComfyPreset(
                 name=path.stem,
-                path=path,
                 modified_at=stat.st_mtime,
                 accepts_prompt=None if workflow is None else workflow.prompt_node is not None,
                 accepts_seed=None if workflow is None else bool(workflow.seed_nodes),

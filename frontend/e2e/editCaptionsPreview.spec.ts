@@ -31,10 +31,14 @@ test("previews caption edits without writes, then starts the normal backed-up jo
   await page.getByRole("menuitem", { name: /Edit captions/ }).click();
   const dialog = page.getByRole("dialog", { name: "Start edit captions?" });
   await dialog.getByLabel("Edit instruction").fill("Rewrite in present tense.");
-  const preview = dialog.locator(".dialog__actions").getByRole("button", { name: "Dry run" });
+  // Beside the Preview label, with the results it produces.
+  const previewField = dialog.locator(".caption-preview-field");
+  const preview = previewField.getByRole("button", { name: "Dry run" });
+  // Disabled until the vision server says which model it runs.
+  await expect(preview).toBeEnabled();
   await preview.focus();
   await preview.press("Enter");
-  const samples = dialog.getByRole("status");
+  const samples = previewField.getByRole("status");
   await expect(samples.getByRole("listitem")).toHaveCount(3, { timeout: 30_000 });
   await expect(samples).toContainText("four.png");
   await expect(samples).toContainText("one.png");

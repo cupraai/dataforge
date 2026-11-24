@@ -5,8 +5,23 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { emptyAutomationSettings } from "@/features/automation/preferences/automationPreferences";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
+import type { VisionLlmState } from "@/features/automation/hooks/useVisionLlmInfo";
 import { EditCaptionsDialog } from "./EditCaptionsDialog";
 import { appendSnippet } from "@/features/automation/lib/appendSnippet";
+
+const visionLlm = vi.hoisted(() => ({
+  state: {
+    ready: true,
+    info: null,
+    unreachable: false,
+    service: "ready",
+    issue: null,
+  } as VisionLlmState,
+}));
+
+vi.mock("@/features/automation/hooks/useVisionLlmInfo", () => ({
+  useVisionLlmInfo: () => visionLlm.state,
+}));
 
 let requestsTo: ReturnType<typeof installMockBackend>["requestsTo"];
 

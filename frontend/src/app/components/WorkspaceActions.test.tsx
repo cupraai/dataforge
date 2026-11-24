@@ -47,7 +47,6 @@ function renderActions(
       availability: {
         syspromptApplies: true,
         hasCaptionBackup: true,
-        ostrisAvailable: true,
         comfyRunPresetsAvailable: true,
         comfyShowcasePresetsAvailable: true,
       },
@@ -377,7 +376,6 @@ describe("Workspace tools", () => {
         availability: {
           syspromptApplies: true,
           hasCaptionBackup: false,
-          ostrisAvailable: false,
           comfyRunPresetsAvailable: false,
           comfyShowcasePresetsAvailable: false,
         },
@@ -404,12 +402,15 @@ describe("Workspace tools", () => {
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("menuitem", { name: "Backup captions" })).toHaveFocus();
 
-    // Every integration is disabled, so Right from Files wraps to Captions.
+    // LoRA training is the only enabled integration, so Right from Files lands on it.
     focusTool("Rename");
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("menuitem", { name: "Set captions" })).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: "LoRA training" })).toHaveFocus();
+    // The last group wraps to Captions.
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("menuitem", { name: "Find & replace" })).toHaveFocus();
     await user.keyboard("{ArrowLeft}");
-    expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: "LoRA training" })).toHaveFocus();
   });
 
   it("shows why unavailable tools are disabled in Tools and Quick actions", async () => {
@@ -420,7 +421,6 @@ describe("Workspace tools", () => {
         availability: {
           syspromptApplies: false,
           hasCaptionBackup: false,
-          ostrisAvailable: false,
           comfyRunPresetsAvailable: false,
           comfyShowcasePresetsAvailable: false,
         },
@@ -431,7 +431,6 @@ describe("Workspace tools", () => {
     const commands = buildRunJobItems({ startContext: panel.startContext, onRequestStart });
     const unavailable = [
       ["auto_caption", "Create folder instructions to enable auto-captioning."],
-      ["train_lora", "AI-Toolkit is unavailable"],
       ["comfy_run", "No ComfyUI"],
       ["restore_captions", "No caption backup in this folder."],
     ] as const;
@@ -442,9 +441,11 @@ describe("Workspace tools", () => {
       expect(command.disabled).toBe(true);
       expect(command.detail).toContain(reason);
     }
+    // AI-Toolkit is checked in the dialog instead, which opens but cannot start without it.
+    expect(within(drawer).getByText(jobMenuLabelFor("train_lora")).closest("button")).toBeEnabled();
     // A disabled button gets no pointer events, so the hover lands on the tooltip wrapper.
-    const blocked = within(drawer).getByText(jobMenuLabelFor("train_lora")).closest("button")!;
+    const blocked = within(drawer).getByText(jobMenuLabelFor("comfy_run")).closest("button")!;
     await user.hover(blocked.parentElement!);
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("AI-Toolkit is unavailable");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("No ComfyUI workflow presets");
   });
 });

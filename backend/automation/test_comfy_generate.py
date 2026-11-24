@@ -401,17 +401,6 @@ class RunJobTests(unittest.TestCase):
         self.assertEqual(result["processed"], 0)
         self.assertEqual(submitted, [])
 
-    def test_the_selection_is_ignored(self) -> None:
-        with Workspace() as workspace:
-            result = run_with(
-                comfy_handler(),
-                workspace.folder,
-                count=1,
-                selected_paths=[workspace.folder / "elsewhere.png"],
-            )
-
-            self.assertEqual(result["stats"]["success"], 1)
-
 
 def _embedded_graph() -> dict:
     graph = json.loads(json.dumps(GENERATE_WORKFLOW))

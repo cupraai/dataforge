@@ -9,6 +9,7 @@ import {
 } from "@/features/automation/preferences/automationPreferences";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { ComponentProps } from "react";
+import type { ServiceState } from "./ServiceStatus";
 
 const DEFAULTS: JobSettingsByType["train_lora"] =
   emptyAutomationSettings("C:/datasets/photos").train_lora;
@@ -19,6 +20,12 @@ const checkTrainingTemplate = vi.fn<(...args: unknown[]) => unknown>();
 vi.mock("@/features/automation/api/jobs", () => ({
   fetchTrainingTemplate: (...args: unknown[]) => fetchTrainingTemplate(...args),
   checkTrainingTemplate: (...args: unknown[]) => checkTrainingTemplate(...args),
+}));
+
+const aiToolkit = vi.hoisted(() => ({ state: "ready" as ServiceState }));
+
+vi.mock("@/features/automation/hooks/useAiToolkitStatus", () => ({
+  useAiToolkitStatus: () => aiToolkit.state,
 }));
 
 const KREA_TEMPLATE = "model:\n  arch: krea2:turbo\n";
@@ -41,12 +48,34 @@ function renderDialog(
 
 describe("TrainLoraDialog", () => {
   beforeEach(() => {
+    aiToolkit.state = "ready";
     fetchTrainingTemplate.mockReset();
     checkTrainingTemplate.mockReset();
     fetchTrainingTemplate.mockImplementation(async (model: unknown) =>
       model === "h3_fl2va" ? H3_TEMPLATE : KREA_TEMPLATE,
     );
     checkTrainingTemplate.mockResolvedValue({ ok: true, error: null });
+  });
+
+  it("opens without AI-Toolkit but cannot start until it answers", async () => {
+    aiToolkit.state = "offline";
+    const user = userEvent.setup();
+    const onConfirm = renderDialog();
+
+    const footer = screen.getByRole("dialog").querySelector("footer") as HTMLElement;
+    expect(within(footer).getByRole("status")).toHaveTextContent("AI-Toolkit offline");
+    await user.type(screen.getByRole("textbox", { name: "LoRA name" }), "mountain_style_v1");
+
+    expect(screen.getByRole("button", { name: "Start training" })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("says it is checking AI-Toolkit before it can start", () => {
+    aiToolkit.state = "checking";
+    renderDialog();
+
+    expect(screen.getByRole("status")).toHaveTextContent("Checking AI-Toolkit...");
+    expect(screen.getByRole("button", { name: "Start training" })).toBeDisabled();
   });
 
   it("focuses the name field and seeds the default prompts", () => {

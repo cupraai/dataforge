@@ -1,28 +1,10 @@
 import { useId, type ReactNode } from "react";
 import type { PresetsState } from "@/features/automation/hooks/useComfyPresets";
 import { presetTakes } from "@/features/automation/lib/presetTakes";
-import { iconLoader2, iconTriangleAlert } from "@/shared/icons";
+import { iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import type { ComfyPresetSummary } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
-
-/** Whether ComfyUI answered when the presets were listed; the job only needs it later. */
-export function ComfyStatus({ available, baseUrl }: { available: boolean; baseUrl: string }) {
-  return available ? (
-    <span className="comfy-preset-layout__status" title={baseUrl}>
-      <span className="comfy-preset-layout__status-dot" aria-hidden="true" />
-      ComfyUI ready
-    </span>
-  ) : (
-    <p className="comfy-preset-layout__status comfy-preset-layout__status--offline" role="alert">
-      <Icon icon={iconTriangleAlert} className="comfy-preset-layout__status-icon" />
-      <span>
-        ComfyUI is not answering at <strong>{baseUrl}</strong>. Start it before the job begins, or
-        point <strong>COMFY_BASE_URL</strong> at the port it listens on.
-      </span>
-    </p>
-  );
-}
 
 interface PresetListProps {
   presets: readonly ComfyPresetSummary[];

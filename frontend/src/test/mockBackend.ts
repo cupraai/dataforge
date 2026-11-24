@@ -746,7 +746,14 @@ export function installMockBackend(options: MockBackendOptions = {}) {
     }
 
     if (url.pathname === "/api/system/vision-llm") {
-      return jsonResponse({ model: "qwen38" });
+      return jsonResponse({
+        model: "qwen38",
+        base_url: "http://127.0.0.1:8888/v1",
+        served_model: null,
+        reasoning_efforts: null,
+        detail: null,
+        reachable: true,
+      });
     }
 
     if (url.pathname === "/api/preferences/ui") {

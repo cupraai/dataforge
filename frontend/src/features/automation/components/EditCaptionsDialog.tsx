@@ -11,7 +11,10 @@ import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetM
 import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
+import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffort";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
+import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { CAPTION_EDIT_PREVIEW_LIMIT } from "@/shared/constants";
@@ -27,6 +30,8 @@ interface EditCaptionsDialogProps {
   folderPath: string;
   selectedPaths?: string[];
   busy?: boolean;
+  /** Saves a workflow step, which runs later, so the server need not answer now. */
+  editingStep?: boolean;
   /** Replaces the start label, as when the dialog edits a workflow step instead. */
   confirmLabel?: string;
   onConfirm: (settings: EditCaptionsRunSettings) => void;
@@ -39,13 +44,14 @@ export function EditCaptionsDialog({
   folderPath,
   selectedPaths,
   busy = false,
+  editingStep = false,
   confirmLabel,
   onConfirm,
   onCancel,
 }: EditCaptionsDialogProps) {
   const [mode, setMode] = useState(initialSettings.mode);
   const [instruction, setInstruction] = useState(initialSettings.instruction);
-  const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
+  const effort = useReasoningEffort(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const [vision, setVision] = useState(initialSettings.vision);
   // Reset on every open so opting out only applies to the current run.
@@ -53,11 +59,12 @@ export function EditCaptionsDialog({
   const [error, setError] = useState<string | null>(null);
   const instructionRef = useRef<HTMLTextAreaElement>(null);
   const errorId = useId();
+  const server = useVisionLlmInfo();
 
   const settings = {
     instruction: instruction.trim(),
     mode,
-    reasoning_effort: reasoningEffort,
+    reasoning_effort: effort.value,
     preserve_thinking: preserveThinking,
     vision,
   };
@@ -71,7 +78,7 @@ export function EditCaptionsDialog({
   });
   const controlsBusy = busy || preview.isFetching;
 
-  // The results land below the form, which may be scrolled out of view on a short window.
+  // Stacked on a narrow window, the results land below the form and may be out of view.
   const previewRef = useRef<HTMLDivElement>(null);
   const previewShown = preview.isFetching || preview.isError || preview.data !== undefined;
   const previewResult = preview.data ?? preview.error;
@@ -126,11 +133,12 @@ export function EditCaptionsDialog({
 
   return (
     <GuardedDialog
-      confirmDisabled={preview.isFetching}
+      // A workflow step runs later, so only starting now needs the server to answer.
+      confirmDisabled={!server.ready || (!editingStep && server.unreachable) || preview.isFetching}
       unsavedChanges={
         mode !== initialSettings.mode ||
         instruction !== initialSettings.instruction ||
-        reasoningEffort !== initialSettings.reasoning_effort ||
+        effort.changed ||
         preserveThinking !== initialSettings.preserve_thinking ||
         vision !== initialSettings.vision ||
         !backup
@@ -139,7 +147,8 @@ export function EditCaptionsDialog({
       title="Start edit captions?"
       description={
         <>
-          Rewrites each caption with <VisionModelBadge /> from your instruction.{" "}
+          Rewrites each caption with <VisionModelBadge info={server.info} loading={!server.ready} />{" "}
+          from your instruction.{" "}
           {vision
             ? "Each caption is sent with its image or video keyframes."
             : "Only the caption text is sent, never the media."}
@@ -153,18 +162,12 @@ export function EditCaptionsDialog({
       describedById={error ? errorId : undefined}
       footer={
         <>
-          <div className="edit-captions-dialog__dry-run-action">
-            <Button
-              busy={preview.isFetching}
-              disabled={busy}
-              onClick={handlePreview}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.stopPropagation();
-              }}
-            >
-              {preview.isFetching ? "Running..." : "Dry run"}
-            </Button>
-          </div>
+          <ServiceStatus
+            service="vision"
+            state={server.service}
+            address={server.info?.baseUrl}
+            issue={server.issue}
+          />
           <DialogActions
             confirmLabel={confirmLabel ?? "Start edit captions"}
             busyLabel="Starting..."
@@ -173,82 +176,100 @@ export function EditCaptionsDialog({
         </>
       }
     >
-      <div className="edit-captions-dialog__body">
-        <AutomationModeSelector value={mode} disabled={controlsBusy} onChange={setMode} />
+      <div className="edit-captions-dialog__body dialog-preview-split">
+        <div className="dialog-preview-split__form">
+          <AutomationModeSelector value={mode} disabled={controlsBusy} onChange={setMode} />
 
-        <ReasoningEffortSelector
-          value={reasoningEffort}
-          disabled={mode === "instruct" || controlsBusy}
-          onChange={setReasoningEffort}
-        />
-
-        <div className="field edit-captions-dialog__toggles">
-          <Checkbox
-            label="Preserve thinking"
-            checked={preserveThinking}
+          <ReasoningEffortSelector
+            value={effort.value}
+            levels={effort.levels}
+            loading={effort.loading}
             disabled={mode === "instruct" || controlsBusy}
-            onChange={setPreserveThinking}
-            hint="Keeps earlier reasoning in the prompt."
+            onChange={effort.onChange}
           />
 
-          <Checkbox
-            label="Send media"
-            checked={vision}
-            disabled={controlsBusy}
-            onChange={setVision}
-            hint="Edits can check what the media shows."
-          />
-        </div>
-
-        <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
-
-        <Field
-          label="Edit instruction"
-          labelEnd={
-            <SavedSnippetMenu
-              book="instructions"
-              text={instruction}
-              disabled={controlsBusy}
-              onInsert={(text) => {
-                setInstruction((current) => appendSnippet(current, text));
-                setError(null);
-                instructionRef.current?.focus();
-              }}
+          <div className="field edit-captions-dialog__toggles">
+            <Checkbox
+              label="Preserve thinking"
+              checked={preserveThinking}
+              disabled={mode === "instruct" || controlsBusy}
+              onChange={setPreserveThinking}
+              hint="Keeps earlier reasoning in the prompt."
             />
-          }
-        >
-          {(control) => (
-            <TextArea
-              {...control}
-              ref={instructionRef}
-              grow
-              className="edit-captions-dialog__instruction"
-              value={instruction}
-              onChange={(event) => {
-                setInstruction(event.target.value);
-                setError(null);
-              }}
-              placeholder="e.g. Rewrite each caption in present tense"
-              rows={2}
+
+            <Checkbox
+              label="Send media"
+              checked={vision}
               disabled={controlsBusy}
-              data-scroll-lock-allow
+              onChange={setVision}
+              hint="Edits can check what the media shows."
             />
+          </div>
+
+          <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
+
+          <Field
+            label="Edit instruction"
+            labelEnd={
+              <SavedSnippetMenu
+                book="instructions"
+                text={instruction}
+                disabled={controlsBusy}
+                onInsert={(text) => {
+                  setInstruction((current) => appendSnippet(current, text));
+                  setError(null);
+                  instructionRef.current?.focus();
+                }}
+              />
+            }
+          >
+            {(control) => (
+              <TextArea
+                {...control}
+                ref={instructionRef}
+                grow
+                className="edit-captions-dialog__instruction"
+                value={instruction}
+                onChange={(event) => {
+                  setInstruction(event.target.value);
+                  setError(null);
+                }}
+                placeholder="e.g. Rewrite each caption in present tense"
+                rows={2}
+                disabled={controlsBusy}
+                data-scroll-lock-allow
+              />
+            )}
+          </Field>
+
+          {error && (
+            <p id={errorId} className="dialog__error" role="alert">
+              {error}
+            </p>
           )}
-        </Field>
+        </div>
 
         <CaptionPreviewPanel
           ref={previewRef}
           summary={previewSummary}
+          labelEnd={
+            <Button
+              size="xs"
+              busy={preview.isFetching}
+              disabled={busy || !server.ready || server.unreachable}
+              onClick={handlePreview}
+              // Enter runs the preview here, not the dialog's start.
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.stopPropagation();
+              }}
+            >
+              {preview.isFetching ? "Running..." : "Dry run"}
+            </Button>
+          }
           samples={preview.isFetching ? [] : preview.data?.samples}
           pending={preview.isFetching}
           error={preview.isError}
         />
-
-        {error && (
-          <p id={errorId} className="dialog__error" role="alert">
-            {error}
-          </p>
-        )}
       </div>
     </GuardedDialog>
   );

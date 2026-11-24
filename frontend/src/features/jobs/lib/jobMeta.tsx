@@ -29,7 +29,6 @@ type JobStartUi = "dialog" | "confirm";
 export interface JobAvailability {
   syspromptApplies: boolean;
   hasCaptionBackup: boolean;
-  ostrisAvailable: boolean;
   comfyRunPresetsAvailable: boolean;
   comfyShowcasePresetsAvailable: boolean;
 }
@@ -218,10 +217,6 @@ export const JOB_TYPE_META = {
     startUi: "dialog" as const,
     menuLabel: "LoRA training",
     menuDescription: "Train a LoRA on this folder with Ostris AI-Toolkit.",
-    requires: {
-      flag: "ostrisAvailable",
-      reason: "AI-Toolkit is unavailable. Check its connection in Settings.",
-    },
   },
 } satisfies Record<JobType, JobTypeMeta>;
 

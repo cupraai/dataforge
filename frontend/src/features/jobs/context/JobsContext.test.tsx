@@ -11,6 +11,7 @@ import { installFakeEventSource, type FakeStream } from "@/test/fakeEventSource"
 import { JOBS_SEEN_AT_KEY } from "@/features/jobs/lib/jobSeen";
 import { job } from "@/test/fixtures";
 import { queryWrapper } from "@/test/queryClient";
+import { jobKeys } from "@/features/jobs/lib/jobQueries";
 import {
   CONNECTED_ACTIVE_POLL_MS,
   DISCONNECTED_ACTIVE_POLL_MS,
@@ -304,7 +305,10 @@ describe("JobsProvider", () => {
     const held = deferred<ExternalOstrisJobsResponse>();
     listExternalJobs.mockReturnValueOnce(held.promise).mockReturnValue(new Promise(() => {}));
     const stream = installFakeEventSource();
-    const latest = renderProvider();
+    const query = queryWrapper();
+    renderProvider(query);
+    const available = () =>
+      query.client.getQueryData<ExternalOstrisJobsResponse>(jobKeys.external)?.available;
     await waitFor(() => expect(listExternalJobs).toHaveBeenCalled());
 
     act(() => {
@@ -317,7 +321,7 @@ describe("JobsProvider", () => {
       });
     });
     // Query observers notify on a timer, so wait for the push to render before racing it.
-    await waitFor(() => expect(latest.current?.ostrisAvailable).toBe(true));
+    await waitFor(() => expect(available()).toBe(true));
     await act(async () => {
       held.resolve(externalSnapshot(4, false));
     });
@@ -326,7 +330,7 @@ describe("JobsProvider", () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
-    expect(latest.current?.ostrisAvailable).toBe(true);
+    expect(available()).toBe(true);
   });
 
   it("refetches when the jobs drawer opens", async () => {

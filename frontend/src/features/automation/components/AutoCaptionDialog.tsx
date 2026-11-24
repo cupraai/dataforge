@@ -7,10 +7,15 @@ import { autoCaptionPlan } from "@/features/automation/lib/autoCaptionPlan";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { InstructionFileSource } from "@/features/automation/components/InstructionFileSource";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
+import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffort";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
+import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
 import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
 import { instructionApplies } from "@/shared/api/folderInstructions";
 import { DialogActions } from "@/shared/ui/Dialog";
+import { Icon } from "@/shared/ui/Icon";
+import { iconListChecks } from "@/shared/icons";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 
@@ -43,9 +48,10 @@ export function AutoCaptionDialog({
 }: AutoCaptionDialogProps) {
   const [mode, setMode] = useState(initialSettings.mode);
   const [captionAudio, setCaptionAudio] = useState(initialSettings.caption_audio);
-  const [reasoningEffort, setReasoningEffort] = useState(initialSettings.reasoning_effort);
+  const effort = useReasoningEffort(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const { state, instructions } = useFolderInstructions(folderPath);
+  const vision = useVisionLlmInfo();
   const promptReady = instructions !== null && instructionApplies(instructions.sysprompt);
   // What the run will do, before it starts: a fresh dataset is captioned from scratch.
   const plan = useQuery({
@@ -57,19 +63,20 @@ export function AutoCaptionDialog({
 
   return (
     <GuardedDialog
-      confirmDisabled={!editingStep && !promptReady}
+      // A workflow step runs later, so only starting now needs the server and the prompt.
+      confirmDisabled={!vision.ready || (!editingStep && (vision.unreachable || !promptReady))}
       unsavedChanges={
         mode !== initialSettings.mode ||
         captionAudio !== initialSettings.caption_audio ||
-        reasoningEffort !== initialSettings.reasoning_effort ||
+        effort.changed ||
         preserveThinking !== initialSettings.preserve_thinking
       }
       scope={scope}
       title="Start auto-caption?"
       description={
         <>
-          Writes captions with <VisionModelBadge />: short drafts are expanded, and files without a
-          caption are captioned from the media alone.
+          Writes captions with <VisionModelBadge info={vision.info} loading={!vision.ready} />:
+          short drafts are expanded, and files without a caption are captioned from the media alone.
         </>
       }
       panelClassName="auto-caption-dialog"
@@ -78,14 +85,19 @@ export function AutoCaptionDialog({
         onConfirm({
           mode,
           caption_audio: captionAudio,
-          reasoning_effort: reasoningEffort,
+          reasoning_effort: effort.value,
           preserve_thinking: preserveThinking,
         })
       }
       onClose={onCancel}
       footer={
         <>
-          {!editingStep && <InstructionFileSource state={state} kind="sysprompt" />}
+          <ServiceStatus
+            service="vision"
+            state={vision.service}
+            address={vision.info?.baseUrl}
+            issue={vision.issue}
+          />
           <DialogActions
             confirmLabel={confirmLabel ?? "Start auto-caption"}
             busyLabel="Starting..."
@@ -94,18 +106,24 @@ export function AutoCaptionDialog({
         </>
       }
     >
-      {plan.data && (
-        <p className="field__hint" role="status">
-          {autoCaptionPlan(plan.data)}
-        </p>
-      )}
+      <div className="dialog-facts">
+        {!editingStep && <InstructionFileSource state={state} kind="sysprompt" />}
+        {plan.data && (
+          <p className="dialog-facts__line" role="status">
+            <Icon icon={iconListChecks} className="dialog-facts__icon" />
+            <span>{autoCaptionPlan(plan.data)}</span>
+          </p>
+        )}
+      </div>
 
       <AutomationModeSelector value={mode} disabled={busy} onChange={setMode} />
 
       <ReasoningEffortSelector
-        value={reasoningEffort}
+        value={effort.value}
+        levels={effort.levels}
+        loading={effort.loading}
         disabled={mode === "instruct" || busy}
-        onChange={setReasoningEffort}
+        onChange={effort.onChange}
       />
 
       <Checkbox

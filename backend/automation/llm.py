@@ -126,7 +126,7 @@ def run_chat_completion(
     messages: list[dict],
     *,
     mode: str,
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     model: str | None = None,
     max_tokens: int | None = None,

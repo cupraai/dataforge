@@ -239,6 +239,11 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+
+  // At the row's end, like the Saved menu beside other labels.
+  .field__label-row > :last-child {
+    margin-left: auto;
+  }
 }
 
 .caption-preview {

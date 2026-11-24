@@ -100,6 +100,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           scope={verifyCaptions.scope}
           initialSettings={verifyCaptions.initialSettings}
           busy={verifyCaptions.busy}
+          editingStep={verifyCaptions.editingStep}
           confirmLabel={verifyCaptions.confirmLabel}
           onConfirm={verifyCaptions.onConfirm}
           onCancel={verifyCaptions.onCancel}
@@ -113,6 +114,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
           selectedPaths={editCaptions.selectedPaths}
           initialSettings={editCaptions.initialSettings}
           busy={editCaptions.busy}
+          editingStep={editCaptions.editingStep}
           confirmLabel={editCaptions.confirmLabel}
           onConfirm={editCaptions.onConfirm}
           onCancel={editCaptions.onCancel}

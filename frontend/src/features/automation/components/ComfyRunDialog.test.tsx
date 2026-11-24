@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { fetchComfyWorkflowMap, fetchComfyPresets } from "@/features/automation/api/jobs";
@@ -14,7 +14,7 @@ import type {
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { ComfyRunDialog, type ComfyRunSettings } from "./ComfyRunDialog";
 import { installMockBackend } from "@/test/mockBackend";
-import { renderWithQueryClient } from "@/test/queryClient";
+import { queryWrapper, renderWithQueryClient } from "@/test/queryClient";
 import { stubDialogClock } from "@/test/dialogClock";
 
 vi.mock("@/features/automation/api/jobs", () => ({
@@ -135,6 +135,12 @@ function renderDialog(initialSettings = settings(), options: RenderOptions = {})
   return { onConfirm, onCancel };
 }
 
+/** The ComfyUI indicator at the left of the action bar. */
+function comfyStatus(): HTMLElement {
+  const footer = screen.getByRole("dialog").querySelector("footer") as HTMLElement;
+  return within(footer).getByRole("status");
+}
+
 function presetNames(): (string | null)[] {
   return screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"));
 }
@@ -180,11 +186,13 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     });
 
     it("shows that ComfyUI answered", async () => {
+      const user = userEvent.setup();
       renderDialog();
 
-      expect(await screen.findByText("ComfyUI ready")).toHaveAttribute(
-        "title",
-        "http://127.0.0.1:9000",
+      await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI ready"));
+      await user.hover(comfyStatus());
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        "Answering at http://127.0.0.1:9000",
       );
     });
   });
@@ -290,25 +298,71 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
   });
 
-  it("warns but does not block when ComfyUI is not answering", async () => {
-    // ComfyUI is started and stopped all day; the job only needs it by the first image.
+  it("cannot start while ComfyUI is not answering", async () => {
     fetchPresets.mockResolvedValue(presets(["upscale-2x"], false));
 
     renderDialog();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("not answering");
+    await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+  });
+
+  it("still saves a workflow step while ComfyUI is not answering", async () => {
+    // A step runs later, when ComfyUI may be up again.
+    fetchPresets.mockResolvedValue(presets(["upscale-2x"], false));
+
+    renderDialog(settings(), { editOnly: true });
+
+    await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Start processing" })).toBeEnabled(),
     );
   });
 
-  it("names the origin it probed so a wrong port is visible", async () => {
-    // A wrong COMFY_BASE_URL must not read as "ComfyUI is stopped".
+  it("checks ComfyUI again on opening before it can start", async () => {
+    // The list is cached from an earlier dialog, when ComfyUI may have been in another state.
+    fetchPresets.mockResolvedValue(presets(["upscale-2x"], false));
+    const { client, wrapper } = queryWrapper();
+    const dialog = (
+      <ComfyRunDialog
+        scope={SCOPE}
+        destinationScope={DESTINATION}
+        initialSettings={settings()}
+        onConfirm={vi.fn<(settings: ComfyRunSettings) => void>()}
+        onCancel={vi.fn<() => void>()}
+      />
+    );
+    const first = render(dialog, { wrapper });
+    await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
+    first.unmount();
+    let answer: (value: ComfyPresetsResponse) => void = () => {};
+    fetchPresets.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+
+    render(dialog, { wrapper });
+
+    expect(comfyStatus()).toHaveTextContent("Checking ComfyUI...");
+    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    answer(presets(["upscale-2x"]));
+    await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI ready"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start processing" })).toBeEnabled(),
+    );
+    expect(client.getQueryData(["comfy-presets"])).toMatchObject({ available: true });
+  });
+
+  it("names the origin it probed and the fix in the status tooltip", async () => {
+    // A wrong address must not read as "ComfyUI is stopped".
     fetchPresets.mockResolvedValue(presets(["upscale-2x"], false, "http://127.0.0.1:9123"));
+    const user = userEvent.setup();
 
     renderDialog();
+    await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
+    await user.hover(comfyStatus());
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("http://127.0.0.1:9123");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "ComfyUI is not answering at http://127.0.0.1:9123. Start it or check its address in Settings.",
+    );
   });
 
   it("spins while the presets are still loading", async () => {
@@ -323,14 +377,14 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     renderDialog();
 
     // The dialog is portalled, so the spinner is found inside the status row.
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Loading workflow presets");
-    expect(status.querySelector(".app-icon--spin")).toBeTruthy();
+    const status = screen.getByText("Loading workflow presets...").closest("[role=status]");
+    expect(status?.querySelector(".app-icon--spin")).toBeTruthy();
+    expect(comfyStatus()).toHaveTextContent("Checking ComfyUI...");
 
     resolvePresets(presets(["upscale-2x"]));
 
     expect(await screen.findByRole("radiogroup", { name: "Workflow presets" })).toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading workflow presets...")).not.toBeInTheDocument();
   });
 
   it("starts with the chosen preset and seed", async () => {

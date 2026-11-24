@@ -193,95 +193,97 @@ export function ReplaceCaptionsDialog({
         />
       }
     >
-      <div className="replace-captions-dialog__body">
-        <RadioTileGroup
-          value={mode}
-          options={MODE_OPTIONS}
-          label="Edit"
-          disabled={busy}
-          onChange={(value) => {
-            setMode(value);
-            clearError();
-          }}
-        />
-
-        <div className="field field-row replace-captions-dialog__terms">
-          {/* Multi-line, so a term can span lines; kept visible in prepend/append mode to say it is unused. */}
-          <Field label="Search for">
-            {(control) => (
-              <TextArea
-                {...control}
-                ref={searchRef}
-                grow
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  clearError();
-                }}
-                placeholder={isReplace ? "e.g. dog" : "Not used in this mode"}
-                rows={1}
-                spellCheck={false}
-                autoComplete="off"
-                disabled={busy || !isReplace}
-              />
-            )}
-          </Field>
-
-          <Field label={isReplace ? "Replace with" : "Text to add"}>
-            {(control) => (
-              <TextArea
-                {...control}
-                grow
-                value={replacement}
-                onChange={(event) => {
-                  setReplacement(event.target.value);
-                  clearError();
-                }}
-                placeholder={isReplace ? "e.g. cat" : "e.g. sks person, "}
-                rows={1}
-                spellCheck={false}
-                autoComplete="off"
-                disabled={busy}
-              />
-            )}
-          </Field>
-        </div>
-
-        <div className="field replace-captions-dialog__toggles">
-          <Checkbox
-            className="replace-captions-dialog__toggle"
-            label="Regular expression"
-            checked={useRegex}
-            disabled={busy || !isReplace}
-            onChange={(checked) => {
-              setUseRegex(checked);
-              clearError();
-            }}
-          />
-
-          <Checkbox
-            className="replace-captions-dialog__toggle"
-            label="Match case"
-            checked={caseSensitive}
+      <div className="replace-captions-dialog__body dialog-preview-split">
+        <div className="dialog-preview-split__form">
+          <RadioTileGroup
+            value={mode}
+            options={MODE_OPTIONS}
+            label="Edit"
             disabled={busy}
-            onChange={(checked) => {
-              setCaseSensitive(checked);
+            onChange={(value) => {
+              setMode(value);
               clearError();
             }}
           />
+
+          <div className="field field-row replace-captions-dialog__terms">
+            {/* Multi-line, so a term can span lines; kept visible in prepend/append mode to say it is unused. */}
+            <Field label="Search for">
+              {(control) => (
+                <TextArea
+                  {...control}
+                  ref={searchRef}
+                  grow
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    clearError();
+                  }}
+                  placeholder={isReplace ? "e.g. dog" : "Not used in this mode"}
+                  rows={1}
+                  spellCheck={false}
+                  autoComplete="off"
+                  disabled={busy || !isReplace}
+                />
+              )}
+            </Field>
+
+            <Field label={isReplace ? "Replace with" : "Text to add"}>
+              {(control) => (
+                <TextArea
+                  {...control}
+                  grow
+                  value={replacement}
+                  onChange={(event) => {
+                    setReplacement(event.target.value);
+                    clearError();
+                  }}
+                  placeholder={isReplace ? "e.g. cat" : "e.g. sks person, "}
+                  rows={1}
+                  spellCheck={false}
+                  autoComplete="off"
+                  disabled={busy}
+                />
+              )}
+            </Field>
+          </div>
+
+          <div className="field replace-captions-dialog__toggles">
+            <Checkbox
+              className="replace-captions-dialog__toggle"
+              label="Regular expression"
+              checked={useRegex}
+              disabled={busy || !isReplace}
+              onChange={(checked) => {
+                setUseRegex(checked);
+                clearError();
+              }}
+            />
+
+            <Checkbox
+              className="replace-captions-dialog__toggle"
+              label="Match case"
+              checked={caseSensitive}
+              disabled={busy}
+              onChange={(checked) => {
+                setCaseSensitive(checked);
+                clearError();
+              }}
+            />
+          </div>
+
+          {hint && <p className="field__hint">{hint}</p>}
+
+          <CaptionBackupOption checked={backup} disabled={busy} onChange={setBackup} />
+
+          {error && (
+            <p id={errorId} className="dialog__error" role="alert">
+              {error}
+            </p>
+          )}
         </div>
-
-        {hint && <p className="field__hint">{hint}</p>}
-
-        <CaptionBackupOption checked={backup} disabled={busy} onChange={setBackup} />
 
         <ReplacePreview preview={preview} pending={previewPending} />
-
-        {error && (
-          <p id={errorId} className="dialog__error" role="alert">
-            {error}
-          </p>
-        )}
       </div>
     </GuardedDialog>
   );
@@ -289,7 +291,7 @@ export function ReplaceCaptionsDialog({
 
 function ReplacePreview({ preview, pending }: { preview: PreviewState | null; pending: boolean }) {
   let summary: ReactNode;
-  if (!preview) summary = "Fill in the fields above to preview the change.";
+  if (!preview) summary = "Fill in the fields to preview the change.";
   else if (preview.error) summary = preview.error;
   else if (preview.matched === 0) {
     summary = <>No captions match — nothing would change in {preview.total} files.</>;

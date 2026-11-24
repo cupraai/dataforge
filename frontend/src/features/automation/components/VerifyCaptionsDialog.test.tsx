@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   emptyAutomationSettings,
   type JobSettingsByType,
@@ -8,7 +8,26 @@ import {
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
+import type { VisionLlmState } from "@/features/automation/hooks/useVisionLlmInfo";
 import type { ComponentProps } from "react";
+
+const visionLlm = vi.hoisted(() => ({
+  state: {
+    ready: true,
+    info: null,
+    unreachable: false,
+    service: "ready",
+    issue: null,
+  } as VisionLlmState,
+}));
+
+vi.mock("@/features/automation/hooks/useVisionLlmInfo", () => ({
+  useVisionLlmInfo: () => visionLlm.state,
+}));
+
+beforeEach(() => {
+  visionLlm.state = { ready: true, info: null, unreachable: false, service: "ready", issue: null };
+});
 
 const DEFAULTS: JobSettingsByType["verify_captions"] =
   emptyAutomationSettings("C:/datasets/photos").verify_captions;
@@ -34,6 +53,41 @@ function confirm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("VerifyCaptionsDialog", () => {
+  it("cannot start without the vision server, but saves a workflow step", () => {
+    visionLlm.state = {
+      ready: true,
+      info: null,
+      unreachable: true,
+      service: "offline",
+      issue: null,
+    };
+    const scope = { itemCount: 12, folderLabel: "Photos", kind: "folder" as const };
+    const { rerender } = renderWithQueryClient(
+      <VerifyCaptionsDialog
+        scope={scope}
+        initialSettings={DEFAULTS}
+        onConfirm={vi.fn<ComponentProps<typeof VerifyCaptionsDialog>["onConfirm"]>()}
+        onCancel={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Vision server offline");
+    expect(screen.getByRole("button", { name: "Start verify captions" })).toBeDisabled();
+
+    rerender(
+      <VerifyCaptionsDialog
+        scope={scope}
+        initialSettings={DEFAULTS}
+        editingStep
+        confirmLabel="Save step"
+        onConfirm={vi.fn<ComponentProps<typeof VerifyCaptionsDialog>["onConfirm"]>()}
+        onCancel={vi.fn<() => void>()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Save step" })).toBeEnabled();
+  });
+
   it("starts from the settings the last run used", () => {
     renderDialog({
       mode: "thinking",

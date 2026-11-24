@@ -125,7 +125,7 @@ The **Checks** workflow has three jobs: backend, frontend, and end-to-end. All u
 
 The E2E suite drives Chromium against its own backend on port 18090 and Vite on 18091. It covers the gallery, inspector, toolbar, captioning jobs, caption backups, folder instructions, review queues, media editing and generative fill, the video editor and preview playback, the workflow inspector, notifications, quick actions, and LoRA training. Results do not depend on what runs on the machine:
 
-- **No real services.** `scripts/e2e_backend.py` clears every app variable from the environment, answers vision requests with a stand-in model, and points ComfyUI and AI-Toolkit at a stub that refuses every request. Tagging is off, and the database and thumbnail cache are temporary.
+- **Local service fixtures.** `scripts/e2e_backend.py` clears app settings from the environment and uses temporary storage with tagging off. A stand-in model answers caption requests. The ComfyUI stub handles generative fill, including cancellation, and reports the service offline for connection checks. The AI-Toolkit stub returns HTTP 503.
 - **One folder per run.** `frontend/e2e/runDirectory.ts` makes a `dataforge-e2e-*` temp folder with an owner marker. A run deletes only folders whose marker names a process that has exited, so the last run's fixtures stay for inspection until the next run, and two runs never delete each other's. Two runs at once still collide on the ports; the second fails to start.
 
 ## Agent workflows

@@ -409,8 +409,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     mutationFn: saveAppSettings,
     onSuccess: (saved) => {
       queryClient.setQueryData(settingsKeys.app, saved);
-      // The badge names the configured model, which this save may just have changed.
-      void queryClient.invalidateQueries({ queryKey: VISION_MODEL_QUERY_KEY });
+      // The kept answer may describe another server now; the next job dialog asks again.
+      queryClient.removeQueries({ queryKey: VISION_MODEL_QUERY_KEY });
     },
   });
   const savedTheme = useThemePreference();

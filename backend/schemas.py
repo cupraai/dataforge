@@ -470,7 +470,19 @@ class SystemPerformanceResponse(BaseModel):
 
 
 class VisionLlmInfoResponse(BaseModel):
+    """``model`` is the configured id; the rest is what the server reports, when it does."""
+
     model: str
+    #: The server asked, so a dialog can name it when it does not answer.
+    base_url: str = ""
+    #: A single-model server answers any id with its one model; ``None`` when it cannot tell.
+    served_model: str | None = None
+    #: Weakest first. Empty when the chat template reads no level; ``None`` when unknown.
+    reasoning_efforts: list[ReasoningEffort] | None = None
+    #: Why no served model could be named, such as a refused API key.
+    detail: str | None = None
+    #: False only when the server did not answer, so no job can start.
+    reachable: bool = True
 
 
 type GallerySort = Literal[
@@ -1304,7 +1316,7 @@ class ComfyEmbeddedSource(BaseModel):
 class ComfyRunStartRequest(JobSelectionRequest, ComfyRunJobSettings):
     """A generation preset accepts ``paths`` like every job and ignores them."""
 
-    #: Runs a file's own workflow instead of ``preset``, once: nothing is saved or remembered.
+    #: Uses the file's embedded workflow for each generation. Its settings are not remembered.
     source: ComfyEmbeddedSource | None = None
 
 
@@ -1624,7 +1636,7 @@ class ComfyRunStep(BaseModel):
     settings: ComfyEditJobSettings = Field(default_factory=ComfyEditJobSettings)
 
 
-#: Every job but LoRA training, whose run name is a per-run resume key and which ignores the scope.
+#: Each step operates on the workflow's fixed file scope.
 type WorkflowStep = Annotated[
     AutoCaptionStep
     | StripMetadataStep

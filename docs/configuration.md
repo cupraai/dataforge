@@ -31,7 +31,7 @@ Auto-caption and Verify captions need an OpenAI-compatible chat-completions serv
 2. Enter the API URL, including `/v1`, and a key if the server requires one. The default URL is `http://127.0.0.1:8888/v1`.
 3. Select **Test connection**. It tests the entered address and key and lists the model ids the server reports.
 4. Choose the server's model id, then **Save**. The default `qwen38` is only an id, not a model download.
-5. Open your dataset, select a few files, and choose **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**. For Auto-caption, use **Create instructions** to write a system prompt if the folder has none to inherit.
+5. Open your dataset, select a few files, and choose **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**. The dialog asks the server which model it has loaded; until it answers, the model name and the reasoning levels show as loading. For Auto-caption, use **Create instructions** to write a system prompt if the folder has none to inherit.
 
 The connection test only checks the server's model list; it does not prove that image or audio input works. A saved key is never displayed again. If the key field is blank during a test, the saved or environment key is used.
 
@@ -141,7 +141,7 @@ Tune sampling last, once the connection and media budgets work. Reasoning and In
 - Instruct sends `chat_template_kwargs.enable_thinking=false`.
 - Reasoning sends effort both as `reasoning_effort` and in `chat_template_kwargs`, along with `preserve_thinking`.
 
-Whether these controls work depends on the server and its chat template. DataForge offers `low`, `medium`, `high`, `xhigh`, and `max`, but each template defines its own subset and may reject the others, failing the request. Pick a level the loaded model's template lists. With the models' own templates, Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value. Gemma 4 thinks only when the server sets `enable_thinking` to true, because Reasoning does not send it.
+Whether these controls work depends on the server and its chat template. DataForge knows `low`, `medium`, `high`, `xhigh`, and `max`, but each template defines its own subset and may reject the others, failing the request. With llama.cpp or Unsloth Studio, DataForge reads the loaded model and its template from the server's `/props` and tries each level on it, so the job dialogs name that model and offer only the levels it accepts; levels that produce the same prompt show once. Jobs move a level the template lacks to the nearest one it has, and send no level to a template that ignores it. Other servers do not report a template, so every level is offered and sent as chosen. With the models' own templates, Qwen3.8 accepts only `low`, `medium`, and `xhigh`: low asks for brief thinking, medium adds nothing, and xhigh asks the model to check assumptions and alternatives. The Qwen3.6 and Gemma 4 templates support thinking but ignore the effort value. Gemma 4 thinks only when the server sets `enable_thinking` to true, because Reasoning does not send it.
 
 ## Job dialog options
 
@@ -150,7 +150,7 @@ These are choices in each job's dialog, not environment variables. Most are reme
 | Option | Jobs | Default / behavior |
 | --- | --- | --- |
 | **Mode** | Auto-caption, Verify captions, Edit captions | Reasoning for Auto-caption and Verify captions; Instruct for Edit captions. Picks the sampling profile and thinking controls |
-| **Reasoning effort** | All three | `medium`; also `low`, `high`, `xhigh`, and `max`. Reasoning mode only; use a level the model's chat template supports |
+| **Reasoning effort** | All three | `medium`; also `low`, `high`, `xhigh`, and `max`. Reasoning mode only; with llama.cpp or Unsloth Studio, only the loaded model's levels are offered |
 | **Preserve thinking** | All three | On; keeps earlier reasoning in multi-turn prompts when the template supports it. Current jobs use single-turn prompts |
 | **Caption audio** | Auto-caption | Off; sends audio alongside video frames |
 | **Additional context** | Verify captions | Optional dataset facts for the checker |

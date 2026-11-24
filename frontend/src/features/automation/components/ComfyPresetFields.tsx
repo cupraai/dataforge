@@ -8,7 +8,7 @@ import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type { ComfyWorkflowMapRequest } from "@/shared/types";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { ComfyPresetMap } from "./ComfyPresetMap";
-import { ComfyPresetSection, ComfyStatus } from "./ComfyPresetSection";
+import { ComfyPresetSection } from "./ComfyPresetSection";
 import { ComfyPromptField } from "./ComfyPromptField";
 import { CustomInputField } from "./CustomInputField";
 
@@ -82,6 +82,8 @@ interface ComfyPresetFieldsProps {
   children?: ReactNode;
   /** A file's own workflow, listed alone in place of the presets. */
   embedded?: EmbeddedGenerateWorkflow;
+  /** Why the job cannot start, kept in view at the bottom of the inputs. */
+  problem?: ReactNode;
 }
 
 /** Presets down the side, the selected one's map in the middle, its inputs on the right. */
@@ -92,6 +94,7 @@ export function ComfyPresetFields({
   promptLabelEnd,
   children,
   embedded,
+  problem,
 }: ComfyPresetFieldsProps) {
   const promptHintId = useId();
   const seedHintId = useId();
@@ -128,7 +131,6 @@ export function ComfyPresetFields({
       <section className="comfy-preset-layout__preview" aria-label="Workflow preview">
         <div className="comfy-preset-layout__preview-head">
           <h3 className="comfy-preset-layout__heading">Workflow map</h3>
-          {ready && <ComfyStatus available={state.available} baseUrl={state.baseUrl} />}
         </div>
         <div className="comfy-preset-layout__map">
           <div className="comfy-preset-layout__map-scroll">
@@ -207,6 +209,7 @@ export function ComfyPresetFields({
             {children}
           </fieldset>
         )}
+        {problem}
       </div>
     </div>
   );

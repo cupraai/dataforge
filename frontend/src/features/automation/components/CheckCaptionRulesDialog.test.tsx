@@ -58,17 +58,16 @@ describe("CheckCaptionRulesDialog", () => {
     expect(screen.getByRole("button", { name: "Lint captions" })).toBeDisabled();
   });
 
-  it("names the folder's own rule file at the bottom and starts the check", async () => {
+  it("names the folder's own rule file above the notes and starts the check", async () => {
     const user = userEvent.setup();
     fetchFolderInstructions.mockResolvedValue(
       rulesResponse({ has_file: true, text: "trigger: x\n" }),
     );
     const { onConfirm } = renderDialog();
 
-    expect(await within(footer()).findByText(".captionrules")).toBeInTheDocument();
-    expect(footer().querySelector(".instruction-file-source")).toHaveTextContent(
-      "Uses .captionrules",
-    );
+    expect(await screen.findByText(".captionrules")).toBeInTheDocument();
+    expect(document.querySelector(".dialog-facts")).toHaveTextContent("Uses .captionrules");
+    expect(within(footer()).queryByText(".captionrules")).not.toBeInTheDocument();
     expect(fetchFolderInstructions).toHaveBeenCalledWith(FOLDER, expect.anything());
     await user.click(screen.getByRole("button", { name: "Lint captions" }));
 
@@ -85,7 +84,7 @@ describe("CheckCaptionRulesDialog", () => {
     );
     renderDialog();
 
-    expect(await within(footer()).findByText("..\\.captionrules")).toHaveAttribute(
+    expect(await screen.findByText("..\\.captionrules")).toHaveAttribute(
       "title",
       "C:\\datasets\\sample\\.captionrules",
     );
@@ -98,7 +97,7 @@ describe("CheckCaptionRulesDialog", () => {
     );
     renderDialog();
 
-    await within(footer()).findByText(".captionrules");
+    await screen.findByText(".captionrules");
 
     expect(screen.queryByRole("button", { name: /Edit/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
@@ -112,7 +111,7 @@ describe("CheckCaptionRulesDialog", () => {
       await screen.findByText(/No caption rules apply to this folder yet/),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lint captions" })).toBeDisabled();
-    expect(footer().querySelector(".instruction-file-source")).toBeNull();
+    expect(screen.queryByText(/^Uses/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit/ })).not.toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });

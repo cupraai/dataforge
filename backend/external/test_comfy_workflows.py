@@ -13,7 +13,6 @@ from external.comfy_workflows import (
     list_comfy_presets,
     load_comfy_workflow,
     parse_comfy_workflow,
-    preset_roles,
     read_comfy_preset_text,
     require_generation,
     require_source_input,
@@ -638,7 +637,7 @@ class PresetDiscoveryTests(unittest.TestCase):
             [preset.name for preset in list_comfy_presets()], ["fix-faces", "upscale-2x"]
         )
 
-    def test_listing_says_which_job_each_preset_belongs_to(self) -> None:
+    def test_listing_distinguishes_edit_and_generation_presets(self) -> None:
         self.write("upscale-2x", graph())
         self.write("txt2img", {"9": node("SaveImage", {"filename_prefix": "out"})})
         self.write("broken", "{not json")
@@ -648,11 +647,32 @@ class PresetDiscoveryTests(unittest.TestCase):
             {"broken": None, "txt2img": True, "upscale-2x": False},
         )
 
-    def test_a_broken_preset_still_lists(self) -> None:
-        # Listing does not parse; a broken preset fails at queue time.
+    def test_listing_reports_the_prompt_and_seed_fields_the_dialog_can_offer(self) -> None:
+        self.write("plain", graph())
+        self.write("sampler", model_graph())
+        self.write(
+            "both",
+            graph(
+                **{
+                    "5": node("KSampler", {"seed": 1}, "DataForge Seed"),
+                    "7": node("CLIPTextEncode", {"text": "as saved"}, "DataForge Prompt"),
+                }
+            ),
+        )
         self.write("broken", "{not json")
 
-        self.assertEqual([preset.name for preset in list_comfy_presets()], ["broken"])
+        self.assertEqual(
+            {
+                preset.name: (preset.accepts_prompt, preset.accepts_seed)
+                for preset in list_comfy_presets()
+            },
+            {
+                "plain": (False, False),
+                "sampler": (False, True),
+                "both": (True, True),
+                "broken": (None, None),
+            },
+        )
 
     def test_a_missing_folder_lists_nothing(self) -> None:
         import os
@@ -707,48 +727,6 @@ class ShippedExampleTests(unittest.TestCase):
 
         self.assertTrue(workflow.generates)
         self.assertEqual([entry.name for entry in workflow.custom_inputs], ["Batch size", "Color"])
-
-
-class PresetRoleTests(unittest.TestCase):
-    """The dialog greys out fields the preset cannot take."""
-
-    def write(self, folder: Path, name: str, payload: object) -> Path:
-        path = folder / f"{name}.json"
-        path.write_text(
-            payload if isinstance(payload, str) else json.dumps(payload), encoding="utf-8"
-        )
-        return path
-
-    def test_a_preset_reports_the_roles_it_carries(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            both = self.write(
-                Path(temp),
-                "both",
-                graph(
-                    **{
-                        "5": node("KSampler", {"seed": 1}, "DataForge Seed"),
-                        "7": node("CLIPTextEncode", {"text": "as saved"}, "DataForge Prompt"),
-                    }
-                ),
-            )
-
-            self.assertEqual(preset_roles(both), (True, True))
-
-    def test_a_preset_without_either_node_reports_false(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            plain = self.write(Path(temp), "plain", graph())
-
-            self.assertEqual(preset_roles(plain), (False, False))
-
-    def test_an_unparseable_preset_reports_unknown_rather_than_no(self) -> None:
-        # The queue-time message names the fix.
-        with tempfile.TemporaryDirectory() as temp:
-            broken = self.write(Path(temp), "broken", "{not json")
-
-            self.assertEqual(preset_roles(broken), (None, None))
-
-    def test_a_missing_preset_reports_unknown(self) -> None:
-        self.assertEqual(preset_roles(Path("no-such-preset.json")), (None, None))
 
 
 def model_graph(**overrides: dict) -> dict:

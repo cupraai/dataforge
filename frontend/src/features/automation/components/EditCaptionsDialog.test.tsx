@@ -8,11 +8,34 @@ import {
 } from "@/features/automation/preferences/automationPreferences";
 import { EditCaptionsDialog } from "./EditCaptionsDialog";
 import { renderWithQueryClient } from "@/test/queryClient";
+import type { VisionLlmState } from "@/features/automation/hooks/useVisionLlmInfo";
 import type { ComponentProps } from "react";
+
+const visionLlm = vi.hoisted(() => ({
+  state: {
+    ready: true,
+    info: null,
+    unreachable: false,
+    service: "ready",
+    issue: null,
+  } as VisionLlmState,
+}));
+
+vi.mock("@/features/automation/hooks/useVisionLlmInfo", () => ({
+  useVisionLlmInfo: () => visionLlm.state,
+}));
 
 vi.mock("@/features/automation/api/jobs", () => ({
   previewCaptionEdits: vi.fn<typeof previewCaptionEdits>(),
 }));
+
+/** The Preview field's live region; the action bar has a status of its own. */
+function previewPanel(): HTMLElement {
+  return screen
+    .getByText(/Preview/, { selector: ".field__label" })
+    .closest(".caption-preview-field")!
+    .querySelector(".caption-preview") as HTMLElement;
+}
 
 const DEFAULTS: JobSettingsByType["edit_captions"] =
   emptyAutomationSettings("C:/datasets/photos").edit_captions;
@@ -73,15 +96,19 @@ describe("EditCaptionsDialog", () => {
       paths,
     );
     expect(previewCaptionEdits).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent(/Dry run rewrites up to \d+ readable/);
+    // The button sits with the results it produces, not in the action bar.
+    const dryRun = screen.getByRole("button", { name: "Dry run" });
+    expect(dryRun.closest(".caption-preview-field")).not.toBeNull();
+    expect(dryRun.closest("footer")).toBeNull();
+    expect(previewPanel()).toHaveTextContent(/Dry run rewrites up to \d+ readable/);
     await user.click(screen.getByRole("button", { name: "Dry run" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("one.png"));
+    await waitFor(() => expect(previewPanel()).toHaveTextContent("one.png"));
     expect(screen.getByText("dog").tagName).toBe("DEL");
     expect(screen.getByText("cat").tagName).toBe("INS");
-    const [changed, unchanged] = within(screen.getByRole("status")).getAllByRole("listitem");
+    const [changed, unchanged] = within(previewPanel()).getAllByRole("listitem");
     expect(within(changed).getByTitle("1 word removed, 1 word added")).toHaveTextContent("−1+1");
     expect(within(unchanged).getByText("Unchanged")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("2 sample edits; nothing was saved.");
+    expect(previewPanel()).toHaveTextContent("2 sample edits; nothing was saved.");
     expect(unchanged).toHaveTextContent("a lake");
     expect(previewCaptionEdits).toHaveBeenCalledWith(
       "C:/datasets/photos",
@@ -115,7 +142,7 @@ describe("EditCaptionsDialog", () => {
     await user.click(screen.getByRole("button", { name: "Dry run" }));
     expect(screen.getByRole("button", { name: "Start edit captions" })).toBeDisabled();
     expect(instructionField()).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(previewPanel()).toHaveAttribute("aria-busy", "true");
     expect(onConfirm).not.toHaveBeenCalled();
     await act(async () => {
       finish({ samples: [{ name: "one.png", before: "a red dog", after: "a dog", error: null }] });
@@ -143,14 +170,12 @@ describe("EditCaptionsDialog", () => {
     renderDialog({ instruction: "Drop colours." });
     const previewButton = () => screen.getByRole("button", { name: "Dry run" });
     await user.click(previewButton());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Model unavailable."));
+    await waitFor(() => expect(previewPanel()).toHaveTextContent("Model unavailable."));
     await user.click(previewButton());
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("too little text"));
+    await waitFor(() => expect(previewPanel()).toHaveTextContent("too little text"));
     await user.click(previewButton());
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "No readable captions found in this scope.",
-      ),
+      expect(previewPanel()).toHaveTextContent("No readable captions found in this scope."),
     );
   });
 

@@ -35,7 +35,6 @@ import { countResolvableIssues } from "@/features/gallery/lib/issues";
 import { useStatsDialog } from "@/features/gallery/hooks/useStatsDialog";
 import { useSettingsDialog } from "@/features/settings/hooks/useSettingsDialog";
 import { useShortcutsDialog } from "@/features/shortcuts/hooks/useShortcutsDialog";
-import { useJobs } from "@/features/jobs/context/JobsContext";
 import { useQuickActionHost } from "@/features/quickAction/hooks/useQuickActionHost";
 import { filterSubfoldersBySearch, searchRegexError } from "@/features/gallery/lib/query";
 import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
@@ -50,7 +49,6 @@ export function useAppWorkspace() {
   const { transitionRef, requestTransition } = useWorkspaceTransitions();
   const mainRef = useRef<HTMLElement>(null);
   const selection = useGallerySelection();
-  const { ostrisAvailable } = useJobs();
   const comfyPresets = useComfyPresetsAvailable();
   useLiveComfyPresets();
 
@@ -309,7 +307,6 @@ export function useAppWorkspace() {
     items: jobItems,
     syspromptApplies: folder?.sysprompt_applies ?? false,
     hasCaptionBackup: folder?.has_caption_backup ?? false,
-    ostrisAvailable,
     comfyEditPresetsAvailable: comfyPresets.edit,
     comfyRunPresetsAvailable: comfyPresets.run,
     comfyShowcasePresetsAvailable: comfyPresets.showcase,

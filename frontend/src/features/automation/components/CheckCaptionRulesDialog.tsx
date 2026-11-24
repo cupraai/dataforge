@@ -45,7 +45,6 @@ export function CheckCaptionRulesDialog({
       onClose={onCancel}
       footer={
         <>
-          <InstructionFileSource state={state} kind="caption_rules" />
           <DialogActions
             confirmLabel={confirmLabel ?? "Lint captions"}
             busyLabel="Starting..."
@@ -54,6 +53,9 @@ export function CheckCaptionRulesDialog({
         </>
       }
     >
+      <div className="dialog-facts">
+        <InstructionFileSource state={state} kind="caption_rules" />
+      </div>
       {state.status === "error" && (
         <p className="dialog__error" role="alert">
           Could not load the caption rules. {state.message}

@@ -5,6 +5,8 @@ import {
 } from "@/features/automation/lib/automationQueries";
 import { formatApiError } from "@/shared/api/http";
 import { useOptionalServerEvent } from "@/shared/events/serverEvents";
+import type { ServiceState } from "@/features/automation/components/ServiceStatus";
+import { SERVICE_POLL_MS } from "@/features/automation/lib/servicePoll";
 import type { ComfyPresetSummary } from "@/shared/types";
 
 /** Which presets a list offers: `run` every one, `edit` those that load a source file (a
@@ -19,18 +21,32 @@ export function presetBelongsTo(preset: ComfyPresetSummary, kind: ComfyPresetKin
 
 export type PresetsState =
   | { status: "loading" }
-  | { status: "ready"; presets: ComfyPresetSummary[]; available: boolean; baseUrl: string }
+  | {
+      status: "ready";
+      presets: ComfyPresetSummary[];
+      /** ComfyUI's answer to this dialog: checking until the list is read again on opening,
+       * then whatever the silent polls find. */
+      service: ServiceState;
+      baseUrl: string;
+    }
   | { status: "error"; message: string };
+
+/** ComfyUI's state for a dialog's status indicator; null when the presets could not be listed. */
+export function comfyServiceState(state: PresetsState): ServiceState | null {
+  if (state.status === "loading") return "checking";
+  return state.status === "ready" ? state.service : null;
+}
 
 /** One job's presets, live while the presets folder changes. */
 export function useComfyPresetList(kind: ComfyPresetKind): PresetsState {
-  const query = useQuery(comfyPresetsQueryOptions());
+  // Polled for ComfyUI's status: listing the presets is cheap next to ComfyUI's own answer.
+  const query = useQuery({ ...comfyPresetsQueryOptions(), refetchInterval: SERVICE_POLL_MS });
   // A failed refresh leaves the last list usable.
   if (query.data) {
     return {
       status: "ready",
       presets: query.data.presets.filter((entry) => presetBelongsTo(entry, kind)),
-      available: query.data.available,
+      service: !query.isFetchedAfterMount ? "checking" : query.data.available ? "ready" : "offline",
       baseUrl: query.data.base_url,
     };
   }

@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from automation.served_model import ServedModel
 from routes._test_client import client
 
 
@@ -80,12 +81,36 @@ class SystemPerformanceEndpointTests(unittest.TestCase):
 
 
 class VisionLlmInfoEndpointTests(unittest.TestCase):
+    @patch("routes.system.model_client")
+    @patch("routes.system.get_openai_base_url", return_value="http://127.0.0.1:8888/v1")
     @patch("routes.system.get_openai_model", return_value="qwen38")
-    def test_returns_configured_model_id(self, _get_model_mock) -> None:
-        response = client.get("/api/system/vision-llm")
+    def test_returns_the_configured_and_served_model(self, _model, _base_url, _client) -> None:
+        cases = (
+            (ServedModel("Qwen3.8-27B.gguf", ("low", "xhigh")), ["low", "xhigh"]),
+            (ServedModel("gemma", ()), []),
+            (ServedModel(problem="The server refused the API key"), None),
+            (ServedModel(problem="The server did not answer", reachable=False), None),
+        )
+        for served, efforts in cases:
+            with (
+                self.subTest(served=served),
+                patch("routes.system.read_served_model", return_value=served) as read,
+            ):
+                response = client.get("/api/system/vision-llm")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"model": "qwen38"})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.json(),
+                    {
+                        "model": "qwen38",
+                        "base_url": "http://127.0.0.1:8888/v1",
+                        "served_model": served.model,
+                        "reasoning_efforts": efforts,
+                        "detail": served.problem,
+                        "reachable": served.reachable,
+                    },
+                )
+                self.assertEqual(read.call_args.args[1], "qwen38")
 
 
 class RetagEndpointTests(unittest.TestCase):

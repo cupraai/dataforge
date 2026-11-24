@@ -18,6 +18,7 @@ from automation.llm import (
     strip_code_fences,
 )
 from automation.selection import filter_media_list, list_folder_media
+from automation.served_model import resolve_reasoning_effort
 from automation.vision import (
     MediaKind,
     MediaLoadError,
@@ -326,7 +327,7 @@ def verify_caption(
     model: str | None = None,
     max_tokens: int | None = None,
     mode: AutomationMode = "thinking",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     timestamps: list[float] | None = None,
     attempt: int = 1,
@@ -356,7 +357,7 @@ def process_media(
     *,
     model: str | None = None,
     mode: AutomationMode = "thinking",
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     should_cancel: ShouldCancel | None = None,
 ) -> tuple[VerificationResult | None, str, str | None]:
@@ -456,6 +457,7 @@ def run_verify_captions_job(
     resolved_model = model if model is not None else get_openai_model()
 
     with model_client() as client:
+        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
 
         def process(media_path: Path) -> FileOutcome:
             verification, status, message = process_media(
@@ -464,7 +466,7 @@ def run_verify_captions_job(
                 system_prompts,
                 model=resolved_model,
                 mode=mode,
-                effort=reasoning_effort,
+                effort=effort,
                 preserve_thinking=preserve_thinking,
                 should_cancel=should_cancel,
             )

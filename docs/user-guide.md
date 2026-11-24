@@ -30,7 +30,7 @@ Press `Ctrl+P` for **Quick actions**: search jobs, commands, filters, and folder
 
 Cards mark missing, empty, and unreadable captions, and show badges for findings, ComfyUI candidates, and edits. Hovering a card shows its **card actions**: Open, Copy caption, and Delete by default. **Settings > Appearance > Gallery** adds others from the inspector, such as Edit, Move file, or Rename file, and controls what cards show.
 
-The **statistics** drawer covers the whole folder, ignoring filters: caption coverage and lengths, frequent words and tags, issues, duplicates, formats, durations, megapixels, aspect ratios, and files whose size or length could not be read.
+The **statistics** drawer covers the whole folder, ignoring filters. It shows caption coverage and lengths, issues, duplicates, formats, durations, megapixels, aspect ratios, and files whose size or length could not be read. The word and tag clouds each show up to 32 terms. Hover over a bubble for its count or select it to search the gallery.
 
 **Review** appears when there are findings. It opens caption issues, duplicate groups, or ComfyUI candidates for the same [scope as jobs](#scope), named at the bottom of the menu, as in **Tools** and **Workflows**. A duplicate group always opens with all its members.
 

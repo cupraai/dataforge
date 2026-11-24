@@ -28,7 +28,6 @@ type UseAutomationHostOptions = {
   items: GalleryItem[];
   syspromptApplies: boolean;
   hasCaptionBackup: boolean;
-  ostrisAvailable: boolean;
   comfyEditPresetsAvailable: boolean;
   comfyRunPresetsAvailable: boolean;
   comfyShowcasePresetsAvailable: boolean;
@@ -55,7 +54,6 @@ export function useAutomationHost({
   items,
   syspromptApplies,
   hasCaptionBackup,
-  ostrisAvailable,
   comfyEditPresetsAvailable,
   comfyRunPresetsAvailable,
   comfyShowcasePresetsAvailable,
@@ -133,7 +131,6 @@ export function useAutomationHost({
       availability: {
         syspromptApplies,
         hasCaptionBackup,
-        ostrisAvailable,
         comfyRunPresetsAvailable,
         comfyShowcasePresetsAvailable,
       },
@@ -146,7 +143,6 @@ export function useAutomationHost({
       hasCaptionBackup,
       items.length,
       jobItemCount,
-      ostrisAvailable,
       syspromptApplies,
     ],
   );

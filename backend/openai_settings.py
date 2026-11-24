@@ -78,10 +78,10 @@ def get_sampling_profile(mode: str) -> SamplingProfile:
 def build_sampling_extra_body(
     mode: str,
     *,
-    effort: str = DEFAULT_REASONING_EFFORT,
+    effort: str | None = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
 ) -> dict[str, object]:
-    """Reasoning effort is always sent: the template falls back to ``xhigh``."""
+    """``effort=None`` leaves the level to the template, for models that have none."""
     profile = get_sampling_profile(mode)
 
     extra: dict[str, object] = {
@@ -93,11 +93,11 @@ def build_sampling_extra_body(
     if mode == "instruct":
         extra["chat_template_kwargs"] = {"enable_thinking": False}
     else:
-        extra["chat_template_kwargs"] = {
-            "reasoning_effort": effort,
-            "preserve_thinking": preserve_thinking,
-        }
-        extra["reasoning_effort"] = effort
+        kwargs: dict[str, object] = {"preserve_thinking": preserve_thinking}
+        if effort is not None:
+            kwargs["reasoning_effort"] = effort
+            extra["reasoning_effort"] = effort
+        extra["chat_template_kwargs"] = kwargs
 
     return extra
 

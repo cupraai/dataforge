@@ -18,7 +18,6 @@ const ready: JobStartContext = {
   availability: {
     syspromptApplies: true,
     hasCaptionBackup: true,
-    ostrisAvailable: true,
     comfyRunPresetsAvailable: true,
     comfyShowcasePresetsAvailable: true,
   },
@@ -28,7 +27,6 @@ describe("jobStartBlock", () => {
   it.each([
     ["auto_caption", "syspromptApplies"],
     ["restore_captions", "hasCaptionBackup"],
-    ["train_lora", "ostrisAvailable"],
     ["comfy_run", "comfyRunPresetsAvailable"],
   ] as const)("blocks only %s when %s is missing", (jobType, flag) => {
     const context = { ...ready, availability: { ...ready.availability, [flag]: false } };

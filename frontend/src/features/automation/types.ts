@@ -50,13 +50,14 @@ export type AutomationDialogsState = {
   verifyCaptions: FolderBusyDialogState<
     (settings: JobSettingsByType["verify_captions"]) => void,
     JobSettingsByType["verify_captions"]
-  >;
+  > & { editingStep: boolean };
   editCaptions: FolderBusyDialogState<
     (settings: EditCaptionsRunSettings) => void,
     JobSettingsByType["edit_captions"]
   > & {
     folderPath: string;
     selectedPaths?: string[];
+    editingStep: boolean;
   };
   findDuplicates: FolderBusyDialogState<
     (threshold: DuplicateThreshold) => void,

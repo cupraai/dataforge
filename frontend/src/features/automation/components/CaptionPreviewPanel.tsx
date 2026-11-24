@@ -21,6 +21,8 @@ interface CaptionPreviewPanelProps {
   /** A request is in flight; whatever is shown is dimmed rather than cleared. */
   pending?: boolean;
   error?: boolean;
+  /** Beside the label, such as the button that runs the preview. */
+  labelEnd?: ReactNode;
   ref?: Ref<HTMLDivElement>;
 }
 
@@ -31,11 +33,20 @@ export function CaptionPreviewPanel({
   more = 0,
   pending = false,
   error = false,
+  labelEnd,
   ref,
 }: CaptionPreviewPanelProps) {
+  const label = <div className="field__label">Preview</div>;
   return (
     <div className="field caption-preview-field">
-      <div className="field__label">Preview</div>
+      {labelEnd ? (
+        <div className="field__label-row">
+          {label}
+          {labelEnd}
+        </div>
+      ) : (
+        label
+      )}
       <div
         ref={ref}
         className={classNames(

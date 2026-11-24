@@ -114,9 +114,7 @@ def run_comfy_generate_job(
     name_prefix: str = "",
     caption_from_prompt: bool = False,
     source: Mapping[str, object] | None = None,
-    selected_paths: list[Path] | None = None,
 ) -> dict[str, object]:
-    del selected_paths
     # The preset or file may have changed while queued.
     workflow = validate_comfy_generate_folder(
         folder,

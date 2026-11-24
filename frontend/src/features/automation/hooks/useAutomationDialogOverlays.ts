@@ -208,11 +208,13 @@ export function useAutomationDialogOverlays({
       },
       verifyCaptions: {
         ...shared("verify_captions"),
+        editingStep,
         onConfirm: (settings: JobSettingsByType["verify_captions"]) =>
           startJobFromDialog("verify_captions", settings),
       },
       editCaptions: {
         ...shared("edit_captions"),
+        editingStep,
         folderPath: folderPath ?? "",
         selectedPaths: snapshot?.paths ?? getJobPaths?.(),
         onConfirm: (settings: EditCaptionsRunSettings) =>
