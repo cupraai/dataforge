@@ -10,24 +10,20 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'scripts\dev-common.ps1')
 
-$Host.UI.RawUI.WindowTitle = 'DataForge - Backend'
-
 $paths = Get-DevPaths
 Set-Location $paths.Root
+$reloadNote = if ($NoReload) { 'no reload (-NoReload)' } else { 'uvicorn reloader' }
 
-if (-not (Test-DevPrerequisites -SkipFrontend)) {
-    Read-Host 'Press Enter to exit' | Out-Null
-    exit 1
-}
+Write-ConsoleTitle 'DataForge - Backend' @(('API  {0}  {1}' -f $DevApiUrl, $reloadNote))
+
+if (-not (Test-DevPrerequisites -SkipFrontend)) { Exit-Launcher }
 Test-BackendDependencyDrift | Out-Null
 
-if (-not (Clear-DevPort -Port $DevApiPort -Label 'backend')) {
-    Read-Host 'Press Enter to exit' | Out-Null
-    exit 1
-}
+if (-not (Clear-DevPort -Port $DevApiPort)) { Exit-Launcher 'The API port is taken.' }
 
 $serverArgs = @($paths.DevServer)
 if ($NoReload) { $serverArgs += '--no-reload' }
 
-Write-Host ('Starting backend on {0} ...' -f $DevApiUrl)
+Write-ConsoleResult "Starting the API at $DevApiUrl." -Lines @('Its log follows; Ctrl+C stops it.')
+Write-Host ''
 & $paths.VenvPy $serverArgs

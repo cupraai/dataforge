@@ -41,28 +41,13 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'scripts\dev-common.ps1')
 
-$Host.UI.RawUI.WindowTitle = 'DataForge Launcher'
-
-# A non-zero exit makes start.bat pause, keeping the error on screen.
-function Exit-Launcher {
-    param([int]$Code = 1)
-    Write-Host ''
-    exit $Code
-}
-
 if ($Rebuild -and $NoBuild) {
-    Write-Host '[ERROR] -Rebuild and -NoBuild cannot be combined.' -ForegroundColor Red
-    Exit-Launcher
+    Exit-Launcher '-Rebuild and -NoBuild cannot be combined.'
 }
 
 $paths = Get-DevPaths
 
-Write-Host '================================================'
-Write-Host '  Starting DataForge'
-Write-Host ('  App      : {0}' -f $DevUiUrl)
-Write-Host '  Mode     : production - bundled UI, no hot reload'
-Write-Host '================================================'
-Write-Host ''
+Write-ConsoleTitle 'DataForge' @(('{0}  production build, no hot reload' -f $DevUiUrl))
 
 # Regenerated first, so a branch switch cannot leave a falsely fresh dist.
 Update-DevGeneratedSources | Out-Null
@@ -73,28 +58,25 @@ Test-BackendDependencyDrift | Out-Null
 
 if ($NoBuild) {
     if (-not (Test-Path -LiteralPath (Join-Path $paths.Dist 'index.html') -PathType Leaf)) {
-        Write-Host '[ERROR] No frontend build in frontend\dist, and -NoBuild was passed.' -ForegroundColor Red
-        Write-Host '        Run start.bat without -NoBuild, or build it yourself:'
-        Write-Host '          cd frontend'
-        Write-Host '          npm run build'
-        Exit-Launcher
+        Write-ConsoleStep -Label 'Frontend build' -Status fail -Detail 'frontend\dist is empty'
+        Exit-Launcher 'There is no frontend build to serve.' @('Run start.bat without -NoBuild.')
     }
-    Write-Host 'Skipping the build (-NoBuild). Serving the existing frontend\dist.'
-} elseif ($Rebuild -or -not (Test-DistFresh)) {
+    Write-ConsoleStep -Label 'Frontend build' -Status skip -Detail 'serving the existing frontend\dist (-NoBuild)'
+} elseif ($Rebuild) {
+    if (-not (Invoke-FrontendBuild -Reason 'rebuilt (-Rebuild)')) { Exit-Launcher }
+} elseif (-not (Test-DistFresh)) {
     if (-not (Invoke-FrontendBuild)) { Exit-Launcher }
 } else {
-    Write-Host 'Frontend build is up to date. Pass -Rebuild to force a rebuild.'
+    Write-ConsoleStep -Label 'Frontend build' -Detail 'up to date'
 }
-Write-Host ''
 
 # A leftover dev window's Vite holds this port too.
-if (-not (Clear-DevPort -Port $DevUiPort -Label 'app')) { Exit-Launcher }
+if (-not (Clear-DevPort -Port $DevUiPort)) { Exit-Launcher 'The app port is taken.' }
 
 $appProc = $null
 $leaveRunning = $false
 
 try {
-    Write-Host ('Starting the server on port {0}...' -f $DevUiPort)
     $appProc = Start-DevConsole `
         -Title 'DataForge - Server' `
         -WorkingDirectory $paths.Root `
@@ -103,48 +85,42 @@ try {
     # Armed before the readiness wait, the likeliest time for a close to orphan a server.
     Register-DevExitGuard -ProcessId @($appProc.Id)
 
-    Write-Host ''
-    Write-Host '  Waiting for the app to answer /api/health...' -NoNewline
-    $ready = Wait-HttpReady -Url $DevAppHealthUrl -TimeoutSec 60 -Process $appProc
-    if ($ready) { Write-Host ' ready.' -ForegroundColor Green } else { Write-Host ' FAILED.' -ForegroundColor Red }
-
-    if (-not $ready) {
-        Write-Host ''
-        Write-Host '[ERROR] The server never became ready. Check the "DataForge - Server" window.' -ForegroundColor Red
-        Write-Host '        That window was left open so the error stays readable.'
+    Start-ConsoleStep 'Server'
+    if (Wait-HttpReady -Url $DevAppHealthUrl -TimeoutSec 60 -Process $appProc) {
+        Complete-ConsoleStep -Detail ('ready on port {0}' -f $DevUiPort)
+    } else {
+        Complete-ConsoleStep -Status fail -Detail 'never answered /api/health'
         $leaveRunning = $true
         Unregister-DevExitGuard
-        Exit-Launcher
+        Exit-Launcher 'DataForge did not start.' @(
+            'Check the "DataForge - Server" window for the error; it stays open.'
+        )
     }
 
     if (-not $NoBrowser) {
         try { Start-Process $DevUiUrl | Out-Null } catch { }
     }
 
-    Write-Host ''
     if ($Detach) {
         $leaveRunning = $true
         Unregister-DevExitGuard
-        Write-Host 'The server is running in its own window. Run stop.bat to stop it.'
+        Write-ConsoleResult "Running at $DevUiUrl." -Lines @('The server keeps running in its own window; stop.bat stops it.')
         exit 0
     }
 
-    Write-Host 'The app is running. This window supervises it.'
-    Write-Host 'Press any key here to stop it, or just close this window.' -ForegroundColor Cyan
-    try {
-        [void]$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    } catch {
-        # No interactive console (redirected stdin) - fall back to a line read.
-        Read-Host 'Press Enter to stop the server' | Out-Null
-    }
+    Write-ConsoleResult "Running at $DevUiUrl."
+    Wait-ConsoleKey 'Press any key here to stop the server, or close this window.'
 } finally {
     if (-not $leaveRunning) {
-        Write-Host ''
-        Write-Host 'Stopping the server...'
+        Write-ConsoleBlank
+        Start-ConsoleStep 'Stopping'
         if ($appProc -and -not $appProc.HasExited) { Stop-DevTree -ProcessId $appProc.Id }
         # Backstop for a console closed by hand.
-        Clear-DevPort -Port $DevUiPort -Label 'app' | Out-Null
-        Write-Host 'Stopped.'
+        if (Clear-DevPort -Port $DevUiPort -Quiet) {
+            Complete-ConsoleStep -Detail 'server stopped'
+        } else {
+            Complete-ConsoleStep -Status fail -Detail 'the port is still in use; stop.bat retries'
+        }
     }
 }
 

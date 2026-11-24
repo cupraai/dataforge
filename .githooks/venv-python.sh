@@ -5,10 +5,9 @@ elif [ -f "backend/.venv/bin/python" ]; then
   PYTHON="backend/.venv/bin/python"
 fi
 
+# POSIX sh, so the shape of scripts/console.sh without its colors.
 if [ -z "$PYTHON" ]; then
-  echo "git hook: backend/.venv was not found. Create it first:" >&2
-  echo "  cd backend" >&2
-  echo "  python -m venv .venv" >&2
-  echo "  .venv/Scripts/pip install -r requirements.txt -r requirements-dev.txt" >&2
+  echo "  x git hook: backend/.venv was not found." >&2
+  echo "      Run setup.bat or ./setup.sh first, then commit again." >&2
   exit 1
 fi

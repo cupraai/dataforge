@@ -1,4 +1,4 @@
-"""Server port settings shared by the API, its CORS policy, and the bundled UI."""
+"""Server settings shared by the API, its CORS policy, the bundled UI and the server scripts."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import os
 
 from env_file import env_str
 
+DEFAULT_API_PORT = 18080
 DEFAULT_UI_PORT = 18081
 
 # A browser treats the two spellings of loopback as distinct origins.
@@ -14,7 +15,6 @@ _LOOPBACK_HOSTS = ("localhost", "127.0.0.1")
 _MIN_PORT = 1
 _MAX_PORT = 65535
 
-# Same spellings scripts/dev_server.py treats as off.
 _FALSEY = {"0", "false", "no", "off", ""}
 
 
@@ -38,8 +38,17 @@ def _env_port(name: str, default: int) -> int:
     return port
 
 
+def get_api_port() -> int:
+    # Same validation as the launchers, so both wait on the port the server binds.
+    return _env_port("DATAFORGE_API_PORT", DEFAULT_API_PORT)
+
+
 def get_ui_port() -> int:
     return _env_port("DATAFORGE_UI_PORT", DEFAULT_UI_PORT)
+
+
+def reload_enabled() -> bool:
+    return _env_flag("DATAFORGE_RELOAD", True)
 
 
 def get_cors_origins() -> tuple[str, ...]:

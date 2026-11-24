@@ -1,3 +1,5 @@
 # Shell scripts keep LF whatever core.autocrlf says: a CRLF shebang fails as "bad interpreter".
 *.sh text eol=lf
 .githooks/* text eol=lf
+# cmd.exe reads batch files by byte offset and can misparse LF-only ones. ZIP downloads follow suit.
+*.bat text eol=crlf

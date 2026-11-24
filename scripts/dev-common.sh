@@ -21,29 +21,8 @@ DEV_BUILD_STAMP_NAME=".dataforge-build-stamp"
 # Written by setup.sh, and by setup.ps1, after a successful pip install.
 DEV_DEPS_STAMP="$DEV_BACKEND/.venv/.dataforge-deps-stamp"
 
-# ---------------------------------------------------------------------------
-# Output
-# ---------------------------------------------------------------------------
-
-if [ -t 1 ] && [ -z "$NO_COLOR" ]; then
-    DEV_RED=$'\033[31m'
-    DEV_GREEN=$'\033[32m'
-    DEV_YELLOW=$'\033[33m'
-    DEV_CYAN=$'\033[36m'
-    DEV_RESET=$'\033[0m'
-else
-    DEV_RED=""
-    DEV_GREEN=""
-    DEV_YELLOW=""
-    DEV_CYAN=""
-    DEV_RESET=""
-fi
-
-say()  { printf '%s\n' "$*"; }
-ok()   { printf '%s%s%s\n' "$DEV_GREEN" "$*" "$DEV_RESET"; }
-hint() { printf '%s%s%s\n' "$DEV_CYAN" "$*" "$DEV_RESET"; }
-warn() { printf '%s[WARN] %s%s\n' "$DEV_YELLOW" "$*" "$DEV_RESET" >&2; }
-err()  { printf '%s[ERROR] %s%s\n' "$DEV_RED" "$*" "$DEV_RESET" >&2; }
+# shellcheck source=scripts/console.sh
+. "$DEV_SCRIPTS/console.sh"
 
 # ---------------------------------------------------------------------------
 # .env, mirroring backend/env_file.py
@@ -130,14 +109,14 @@ dev_port() {
 
     case "$raw" in
         *[!0-9]*)
-            warn "Ignoring $name=$raw: not a port number. Using $default."
+            console_warning "Ignoring $name=$raw: not a port number. Using $default."
             printf '%s\n' "$default"
             return 0
             ;;
     esac
 
     if [ "$raw" -lt 1 ] || [ "$raw" -gt 65535 ]; then
-        warn "Ignoring $name=$raw: not a port number. Using $default."
+        console_warning "Ignoring $name=$raw: not a port number. Using $default."
         printf '%s\n' "$default"
         return 0
     fi
@@ -160,19 +139,37 @@ DEV_APP_HEALTH_URL="$DEV_UI_URL/api/health"
 
 update_generated_sources() {
     # Always regenerates: gitignored files survive a branch switch with a plausible mtime.
-    # A missing venv or a failed generation is reported elsewhere.
+    # A missing or broken venv is reported by check_prerequisites instead.
     [ -x "$DEV_VENV_PY" ] || return 0
+    "$DEV_VENV_PY" -c pass >/dev/null 2>&1 || return 0
 
-    printf '%s' "Generating the frontend API types..."
     # Only changed files are rewritten, so dist freshness is unaffected.
-    if "$DEV_VENV_PY" "$DEV_SCRIPTS/generate_types.py" >/dev/null 2>&1; then
-        ok " done."
-        return 0
+    console_start "API types"
+    console_run "$DEV_VENV_PY" "$DEV_SCRIPTS/generate_types.py"
+    if [ "$CONSOLE_EXIT" != "0" ]; then
+        console_done warn "left as they were; the UI may not match the API"
+        console_output "python scripts/generate_types.py" "$CONSOLE_EXIT" "$CONSOLE_OUTPUT"
+        return 1
     fi
+    console_done ok "$(generated_detail "$CONSOLE_OUTPUT")"
+}
 
-    err " FAILED."
-    warn "The frontend API types were left as they were. The UI may not match the API."
-    return 1
+generated_detail() {
+    # generated_detail <output file>
+    local written
+    written="$(grep -c '^Wrote ' "$1" || true)"
+    if [ "${written:-0}" = "0" ]; then
+        printf 'up to date'
+    else
+        printf '%s updated' "$(console_count "$written" file)"
+    fi
+}
+
+npm_detail() {
+    # npm_detail <output file>
+    local added
+    added="$(sed -n 's/.*added \([0-9][0-9]*\) package.*/\1/p' "$1" | head -n 1)"
+    if [ -n "$added" ]; then console_count "$added" package; else printf 'up to date'; fi
 }
 
 check_prerequisites() {
@@ -183,35 +180,36 @@ check_prerequisites() {
     status=0
 
     if [ "$check_backend" = "1" ] && [ ! -x "$DEV_VENV_PY" ]; then
-        err "Python venv not found at backend/.venv."
-        say "        Run ./setup.sh from the project root, or:"
-        say "          python3 -m venv backend/.venv"
-        say "          backend/.venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt"
+        console_step fail "Backend venv" "not found at backend/.venv"
+        status=1
+    elif [ "$check_backend" = "1" ] && ! "$DEV_VENV_PY" -c pass >/dev/null 2>&1; then
+        # A moved folder or a removed base Python leaves a venv that no longer starts.
+        console_step fail "Backend venv" "does not start; was the folder moved?"
         status=1
     fi
 
     if [ "$check_frontend" = "1" ]; then
         if [ ! -d "$DEV_FRONTEND/node_modules" ]; then
-            err "Frontend dependencies not installed."
-            say "        Run ./setup.sh from the project root, or:"
-            say "          cd frontend && npm ci"
+            console_step fail "Frontend packages" "not installed (cd frontend && npm ci)"
             status=1
         fi
 
         missing=""
         for name in $DEV_GENERATED_SOURCES; do
             if [ ! -f "$DEV_FRONTEND/src/shared/$name" ]; then
-                missing="$missing $name"
+                missing="${missing:+$missing, }$name"
             fi
         done
         if [ -n "$missing" ]; then
-            err "Generated frontend sources missing:$missing."
-            say "        Run ./setup.sh from the project root, or:"
-            say "          backend/.venv/bin/python scripts/generate_types.py"
+            console_step fail "API types" "missing $missing"
             status=1
         fi
     fi
 
+    if [ "$status" != "0" ]; then
+        console_result fail "DataForge needs setup first." \
+            "Run ./setup.sh from the project root, then try again."
+    fi
     return "$status"
 }
 
@@ -223,23 +221,30 @@ sync_frontend_dependencies() {
         return 0
     fi
 
-    say "Syncing frontend dependencies from package-lock.json (npm ci)..."
-    (cd "$DEV_FRONTEND" && npm ci)
+    if ! console_run_step "Frontend packages" "The frontend packages could not be installed." \
+        -C "$DEV_FRONTEND" npm ci; then
+        console_result fail "$CONSOLE_FAILURE"
+        return 1
+    fi
+    console_done ok "$(npm_detail "$CONSOLE_OUTPUT"), package-lock.json changed"
 }
 
 check_backend_dependency_drift() {
     # Warns when a pull brought in uninstalled backend dependencies; advisory only.
     # No frontend arm: sync_frontend_dependencies already reinstalled from the lockfile.
-    local name req
+    local name req stale=0
 
     if [ -f "$DEV_DEPS_STAMP" ]; then
         for name in requirements.txt requirements-dev.txt requirements-tagging.txt; do
             req="$DEV_BACKEND/$name"
             if [ -f "$req" ] && [ "$req" -nt "$DEV_DEPS_STAMP" ]; then
-                warn "backend/$name is newer than the last dependency install."
-                say "       Run ./setup.sh if the API fails to import something."
+                console_step warn "Backend packages" "backend/$name changed since the last install"
+                stale=1
             fi
         done
+    fi
+    if [ "$stale" = "1" ]; then
+        console_note "Run ./setup.sh if the API fails to import something."
     fi
 
     return 0
@@ -278,19 +283,15 @@ dist_is_fresh() {
 }
 
 build_frontend() {
-    # In this terminal, so the caller reads the compiler errors.
-    say "Building the frontend (npm run build)..."
-    say ""
-
-    if ! (cd "$DEV_FRONTEND" && npm run build); then
-        say ""
-        err "Frontend build failed. Fix the errors above and try again."
+    # build_frontend [detail]: captured; a failure prints the compiler errors.
+    if ! console_run_step "Frontend build" \
+        "The frontend build failed. Fix the errors above and try again." \
+        -C "$DEV_FRONTEND" npm run build; then
+        console_result fail "$CONSOLE_FAILURE"
         return 1
     fi
-
-    say ""
     date +%Y-%m-%dT%H:%M:%S%z > "$DEV_DIST/$DEV_BUILD_STAMP_NAME"
-    ok "Frontend build complete."
+    console_done ok "${1:-sources changed}"
     return 0
 }
 
@@ -320,44 +321,53 @@ process_name() {
     ps -o comm= -p "$1" 2>/dev/null | sed 's|.*/||' | tr -d ' '
 }
 
-clear_port() {
-    # Frees a dev port held by a leftover python or node process; returns 0 when free.
-    # Anything else is named and left alone, never killed.
-    local port="$1" label="$2"
-    local pids pid name pgid deadline foreign rc
+process_is_ours() {
+    # Whether a PID is a DataForge server from this folder: its command line names a path
+    # inside the project root (the venv python, scripts/, or frontend/node_modules).
+    # Another project's server, or another DataForge checkout, does not match.
+    case "$(ps -o args= -p "$1" 2>/dev/null)" in
+        *"$DEV_ROOT/"*) return 0 ;;
+    esac
+    return 1
+}
 
-    [ -n "$label" ] || label="dev server"
+clear_port() {
+    # clear_port <port> [quiet|report-free]: frees a dev port held by a leftover DataForge
+    # server from this folder; returns 0 when free. Anything else is named and left alone.
+    # quiet reports only problems; report-free also reports a port that was already free.
+    local port="$1" mode="$2" label="Port $1"
+    local pids pid name pgid deadline foreign stopped rc
 
     rc=0
     pids="$(port_listener_pids "$port")" || rc=$?
     if [ "$rc" -eq 2 ]; then
-        warn "Neither lsof nor ss is available, so port $port was not checked."
-        say "       A leftover server there will show up as a bind error instead."
+        console_step warn "$label" "not checked: neither lsof nor ss is available"
         return 0
     fi
-    [ -n "$pids" ] || return 0
+    if [ -z "$pids" ]; then
+        [ "$mode" != "report-free" ] || console_step ok "$label" "free"
+        return 0
+    fi
 
-    foreign=0
+    foreign=""
+    stopped=""
     for pid in $pids; do
         name="$(process_name "$pid")"
-        case "$name" in
-            python | python[0-9]* | pythonw | node) : ;;
-            *)
-                err "Port $port is held by ${name:-PID $pid} (PID $pid)."
-                foreign=1
-                ;;
-        esac
+        if process_is_ours "$pid"; then
+            stopped="${stopped:+$stopped, }$name (PID $pid)"
+        else
+            foreign="${foreign:+$foreign, }${name:-unknown} (PID $pid)"
+        fi
     done
-    if [ "$foreign" = "1" ]; then
-        say "        That is not a leftover dev server, so it was left running."
-        say "        Free the port yourself and try again."
+    if [ -n "$foreign" ]; then
+        console_step fail "$label" "held by $foreign"
+        console_note "Not a DataForge server from this folder, so it was left running."
+        console_note "Stop it, or set DATAFORGE_API_PORT / DATAFORGE_UI_PORT in .env, and try again."
         return 1
     fi
 
+    [ "$mode" = "quiet" ] || console_start "$label"
     for pid in $pids; do
-        name="$(process_name "$pid")"
-        printf '%s  Port %s: stopping leftover %s (PID %s) from a previous %s run...%s\n' \
-            "$DEV_YELLOW" "$port" "$name" "$pid" "$label" "$DEV_RESET"
         # Kill the tree: python -> uvicorn reload child, npm -> node.
         pgid="$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')"
         if [ -n "$pgid" ]; then
@@ -371,7 +381,10 @@ clear_port() {
     deadline=$(( $(date +%s) + 5 ))
     while [ "$(date +%s)" -lt "$deadline" ]; do
         pids="$(port_listener_pids "$port")" || true
-        [ -n "$pids" ] || return 0
+        if [ -z "$pids" ]; then
+            [ "$mode" = "quiet" ] || console_done ok "stopped leftover $stopped"
+            return 0
+        fi
         sleep 0.2
     done
 
@@ -382,9 +395,15 @@ clear_port() {
 
     pids="$(port_listener_pids "$port")" || true
     if [ -n "$pids" ]; then
-        err "Port $port is still in use after stopping the old process."
+        if [ "$mode" = "quiet" ]; then
+            # The caller's own step stays open; it reports the overall outcome.
+            console_step fail "$label" "still in use after stopping $stopped"
+        else
+            console_done fail "still in use after stopping $stopped"
+        fi
         return 1
     fi
+    [ "$mode" = "quiet" ] || console_done ok "stopped leftover $stopped"
     return 0
 }
 
@@ -400,7 +419,7 @@ wait_http_ready() {
     [ -n "$timeout" ] || timeout=40
 
     if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
-        warn "Neither curl nor wget is available, so readiness was not checked."
+        console_note "Neither curl nor wget is available, so readiness was not checked."
         return 0
     fi
 
@@ -409,6 +428,7 @@ wait_http_ready() {
         if [ -n "$watch_pid" ] && ! kill -0 "$watch_pid" 2>/dev/null; then
             return 1
         fi
+        console_update "waiting for /${url#http://*/}"
         if command -v curl >/dev/null 2>&1; then
             if curl -fsS -o /dev/null -m 2 "$url" 2>/dev/null; then
                 return 0
@@ -434,6 +454,7 @@ wait_tcp_ready() {
         if [ -n "$watch_pid" ] && ! kill -0 "$watch_pid" 2>/dev/null; then
             return 1
         fi
+        console_update "waiting for port $port"
         if command -v nc >/dev/null 2>&1; then
             if nc -z "$host" "$port" >/dev/null 2>&1; then
                 return 0
@@ -469,7 +490,7 @@ start_server() {
         cd "$workdir" || exit 1
         # Unbuffered, or a piped server looks hung; the tag keeps interleaved logs readable.
         PYTHONUNBUFFERED=1 "$@" 2>&1 |
-            awk -v tag="[$label] " '{ print tag $0; fflush() }'
+            awk -v tag="${CONSOLE_DIM}[$label]${CONSOLE_RESET} " '{ print tag $0; fflush() }'
     ) &
     DEV_LAST_PID=$!
     set +m

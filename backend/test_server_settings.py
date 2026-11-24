@@ -5,9 +5,12 @@ import unittest
 from unittest.mock import patch
 
 from server_settings import (
+    DEFAULT_API_PORT,
     DEFAULT_UI_PORT,
+    get_api_port,
     get_cors_origins,
     get_ui_port,
+    reload_enabled,
     serve_ui_enabled,
 )
 
@@ -26,6 +29,23 @@ class ServerSettingsTests(unittest.TestCase):
             with self.subTest(raw=raw):
                 with patch.dict(os.environ, {"DATAFORGE_UI_PORT": raw}, clear=True):
                     self.assertEqual(get_ui_port(), DEFAULT_UI_PORT)
+
+    def test_api_port_rejects_what_the_launchers_reject(self) -> None:
+        # The launchers wait on the default port for these; the server must bind it too.
+        for raw in ("abc", "0", "65536", "99999", "-1", ""):
+            with self.subTest(raw=raw):
+                with patch.dict(os.environ, {"DATAFORGE_API_PORT": raw}, clear=True):
+                    self.assertEqual(get_api_port(), DEFAULT_API_PORT)
+        with patch.dict(os.environ, {"DATAFORGE_API_PORT": " 9080 "}, clear=True):
+            self.assertEqual(get_api_port(), 9080)
+
+    def test_reload_is_on_unless_switched_off(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(reload_enabled())
+        for raw in ("0", "false", "off", "no", ""):
+            with self.subTest(raw=raw):
+                with patch.dict(os.environ, {"DATAFORGE_RELOAD": raw}, clear=True):
+                    self.assertFalse(reload_enabled())
 
     def test_cors_origins_cover_both_loopback_spellings(self) -> None:
         with patch.dict(os.environ, {}, clear=True):

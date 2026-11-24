@@ -43,8 +43,8 @@ while [ $# -gt 0 ]; do
             exit 0
             ;;
         *)
-            err "Unknown option: $1"
-            say ""
+            console_result fail "Unknown option: $1"
+            console_blank
             usage
             exit 1
             ;;
@@ -53,7 +53,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$BACKEND_ONLY" = "1" ] && [ "$FRONTEND_ONLY" = "1" ]; then
-    err "--backend-only and --frontend-only cannot be combined."
+    console_result fail "--backend-only and --frontend-only cannot be combined."
     exit 1
 fi
 
@@ -61,30 +61,34 @@ START_BACKEND=1
 START_FRONTEND=1
 [ "$FRONTEND_ONLY" = "1" ] && START_BACKEND=0
 [ "$BACKEND_ONLY" = "1" ] && START_FRONTEND=0
+if [ "$NO_RELOAD" = "1" ]; then RELOAD_NOTE="no reload (--no-reload)"; else RELOAD_NOTE="uvicorn reloader"; fi
 
 LEAVE_RUNNING=0
 
 cleanup() {
     if [ "$LEAVE_RUNNING" = "0" ] && [ -n "$DEV_SUPERVISED" ]; then
-        say ""
-        say "Stopping dev servers..."
+        console_blank
+        console_start "Stopping"
         stop_supervised
-        # Backstop for a terminal closed by hand.
-        [ "$START_BACKEND" = "1" ] && clear_port "$DEV_API_PORT" "backend" >/dev/null 2>&1 || true
-        [ "$START_FRONTEND" = "1" ] && clear_port "$DEV_UI_PORT" "frontend" >/dev/null 2>&1 || true
-        say "Stopped."
+        # Backstop for a terminal closed by hand; it prints only problems.
+        local freed=1
+        if [ "$START_BACKEND" = "1" ]; then clear_port "$DEV_API_PORT" quiet || freed=0; fi
+        if [ "$START_FRONTEND" = "1" ]; then clear_port "$DEV_UI_PORT" quiet || freed=0; fi
+        if [ "$freed" = "1" ]; then
+            console_done ok "both servers stopped"
+        else
+            console_done fail "a port is still in use; ./stop.sh retries"
+        fi
     fi
 }
 
 trap 'exit 130' INT TERM
 trap cleanup EXIT
 
-say "================================================"
-say "  Starting DataForge Dev Servers"
-[ "$START_BACKEND" = "1" ] && say "  Backend  : $DEV_API_URL"
-[ "$START_FRONTEND" = "1" ] && say "  Frontend : $DEV_UI_URL"
-say "================================================"
-say ""
+TITLE_LINES=()
+[ "$START_BACKEND" = "1" ] && TITLE_LINES[${#TITLE_LINES[@]}]="API  $DEV_API_URL  $RELOAD_NOTE"
+[ "$START_FRONTEND" = "1" ] && TITLE_LINES[${#TITLE_LINES[@]}]="UI   $DEV_UI_URL  Vite HMR"
+console_title "DataForge development" "${TITLE_LINES[@]}"
 
 # Regenerating keeps the gitignored sources in step across branch switches.
 if [ "$START_FRONTEND" = "1" ]; then
@@ -99,17 +103,16 @@ if [ "$START_BACKEND" = "1" ]; then check_backend_dependency_drift; fi
 
 # Vite's strictPort makes a leftover node on the UI port fatal.
 if [ "$START_BACKEND" = "1" ]; then
-    clear_port "$DEV_API_PORT" "backend" || exit 1
+    clear_port "$DEV_API_PORT" || { console_result fail "The API port is taken."; exit 1; }
 fi
 if [ "$START_FRONTEND" = "1" ]; then
-    clear_port "$DEV_UI_PORT" "frontend" || exit 1
+    clear_port "$DEV_UI_PORT" || { console_result fail "The UI port is taken."; exit 1; }
 fi
 
 BACKEND_PID=""
 FRONTEND_PID=""
 
 if [ "$START_BACKEND" = "1" ]; then
-    say "Starting backend on port $DEV_API_PORT..."
     if [ "$NO_RELOAD" = "1" ]; then
         start_server "api" "$DEV_ROOT" "$DEV_VENV_PY" "$DEV_DEV_SERVER" --no-reload
     else
@@ -120,76 +123,58 @@ if [ "$START_BACKEND" = "1" ]; then
 fi
 
 if [ "$START_FRONTEND" = "1" ]; then
-    say "Starting frontend on port $DEV_UI_PORT..."
     start_server "ui" "$DEV_FRONTEND" npm run dev
     FRONTEND_PID="$DEV_LAST_PID"
     supervise "$FRONTEND_PID"
 fi
 
-say ""
-
-# Wait for real readiness, not a fixed sleep.
-BACKEND_READY=1
-FRONTEND_READY=1
+# Wait for real readiness, not a fixed sleep. The servers log to this terminal, so the
+# running line stays off until the step result.
+CONSOLE_LIVE_SAVED="$CONSOLE_LIVE"
+CONSOLE_LIVE=0
+FAILED=0
 
 if [ "$START_BACKEND" = "1" ]; then
-    printf '%s' "  Waiting for the API to answer /api/health..."
+    console_start "API"
     if wait_http_ready "$DEV_HEALTH_URL" 60 "$BACKEND_PID"; then
-        ok " ready."
+        console_done ok "ready on port $DEV_API_PORT"
     else
-        err " FAILED."
-        BACKEND_READY=0
+        console_done fail "never answered /api/health; see the [api] log above"
+        FAILED=1
     fi
 fi
 
 if [ "$START_FRONTEND" = "1" ]; then
-    printf '%s' "  Waiting for Vite to accept connections on $DEV_UI_PORT..."
+    console_start "UI"
     if wait_tcp_ready "$DEV_UI_PORT" 90 "$FRONTEND_PID"; then
-        ok " ready."
+        console_done ok "ready on port $DEV_UI_PORT"
     else
-        err " FAILED."
-        FRONTEND_READY=0
+        console_done fail "never accepted connections; see the [ui] log above"
+        FAILED=1
     fi
 fi
+CONSOLE_LIVE="$CONSOLE_LIVE_SAVED"
 
-if [ "$BACKEND_READY" = "0" ] || [ "$FRONTEND_READY" = "0" ]; then
-    say ""
-    [ "$BACKEND_READY" = "0" ] && err "The backend never became ready. See the [api] log above."
-    [ "$FRONTEND_READY" = "0" ] && err "The frontend never became ready. See the [ui] log above."
-    say "        Whatever did start was left running so the error stays readable."
-    say "        Run ./stop.sh to free the ports."
+if [ "$FAILED" = "1" ]; then
     LEAVE_RUNNING=1
     supervise_release
+    console_result fail "The dev servers did not start." \
+        "Whatever did start keeps running so the error stays readable; ./stop.sh frees the ports."
     exit 1
 fi
 
+if [ "$START_FRONTEND" = "1" ]; then APP_URL="$DEV_UI_URL"; else APP_URL="$DEV_API_URL"; fi
 if [ "$NO_BROWSER" = "0" ]; then
-    if [ "$START_FRONTEND" = "1" ]; then
-        open_browser "$DEV_UI_URL"
-    else
-        open_browser "$DEV_API_URL"
-    fi
+    open_browser "$APP_URL"
 fi
-
-say ""
-say "Hot reload:"
-[ "$START_FRONTEND" = "1" ] && say "  Frontend - Vite HMR on save"
-if [ "$START_BACKEND" = "1" ]; then
-    if [ "$NO_RELOAD" = "1" ]; then
-        say "  Backend  - disabled, restart manually to pick up changes"
-    else
-        say "  Backend  - uvicorn reloader on .py changes, tests excluded"
-    fi
-fi
-say ""
 
 if [ "$DETACH" = "1" ]; then
     LEAVE_RUNNING=1
     supervise_release
-    say "Servers are running in the background. Run ./stop.sh to stop them."
+    console_result ok "Running at $APP_URL." "The servers keep running in the background; ./stop.sh stops them."
     exit 0
 fi
 
-say "Both servers are running. This terminal supervises them."
-hint "Press any key here to stop them, or Ctrl+C."
+console_result ok "Running at $APP_URL."
+console_hint "Press any key here to stop the servers, or Ctrl+C."
 wait_for_key

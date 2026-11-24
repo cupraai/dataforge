@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -20,6 +23,30 @@ START_FRONTEND_PS1 = ROOT / "start-frontend.ps1"
 START_SH = ROOT / "start.sh"
 INSTALL_HOOKS_PS1 = ROOT / "scripts" / "install-git-hooks.ps1"
 INSTALL_HOOKS_SH = ROOT / "scripts" / "install-git-hooks.sh"
+UPDATE_SH = ROOT / "update.sh"
+CONSOLE_PS1 = ROOT / "scripts" / "console.ps1"
+CONSOLE_SH = ROOT / "scripts" / "console.sh"
+POWERSHELL_SCRIPTS = (
+    ROOT / "setup.ps1",
+    ROOT / "start.ps1",
+    ROOT / "dev.ps1",
+    ROOT / "stop.ps1",
+    ROOT / "update.ps1",
+    ROOT / "start-backend.ps1",
+    ROOT / "start-frontend.ps1",
+    ROOT / "scripts" / "dev-common.ps1",
+    ROOT / "scripts" / "install-git-hooks.ps1",
+    ROOT / "scripts" / "install-hardware-sensors.ps1",
+)
+BASH_SCRIPTS = (
+    ROOT / "setup.sh",
+    ROOT / "start.sh",
+    ROOT / "dev.sh",
+    ROOT / "stop.sh",
+    ROOT / "update.sh",
+    ROOT / "scripts" / "dev-common.sh",
+    ROOT / "scripts" / "install-git-hooks.sh",
+)
 
 
 def _read(path: Path) -> str:
@@ -51,7 +78,7 @@ class SetupPs1BootstrapTests(unittest.TestCase):
     def test_unix_setup_checks_the_pinned_ffmpeg_before_reporting_success(self) -> None:
         text = _read(SETUP_SH)
         self.assertLess(text.index("requirements.txt"), text.index("check_ffmpeg.py"))
-        self.assertLess(text.index("check_ffmpeg.py"), text.index("Setup complete."))
+        self.assertLess(text.index("check_ffmpeg.py"), text.index("Setup complete"))
 
     def test_setup_ps1_exists(self) -> None:
         self.assertTrue(SETUP_PS1.is_file())
@@ -97,7 +124,7 @@ class SetupPs1BootstrapTests(unittest.TestCase):
 
     def test_creates_the_venv_with_the_downloaded_python(self) -> None:
         text = _read(SETUP_PS1)
-        self.assertIn("-m venv", text)
+        self.assertIn("-FilePath $PyExe -ArgumentList @('-m', 'venv'", text)
         self.assertIn(".python", text)
         self.assertIn("backend\\.venv", text)
 
@@ -114,6 +141,65 @@ class SetupPs1BootstrapTests(unittest.TestCase):
         self.assertIn(".python", text)
         self.assertIn(".node", text)
         self.assertRegex(text, r"\$env:PATH\s*=")
+
+
+class SetupDownloadTests(unittest.TestCase):
+    def _function(self, name: str) -> str:
+        text = _read(SETUP_PS1)
+        start = text.index(f"function {name} ")
+        return text[start : text.index("\nfunction ", start + 1)]
+
+    def test_every_runtime_download_is_checked_against_a_published_digest(self) -> None:
+        for name, source in (
+            ("Install-PortablePython", "Get-NuGetPackageHash"),
+            ("Install-PortableNode", "Get-NodeArchiveHash"),
+            ("Install-PortableFfmpeg", "$FfmpegSha256"),
+        ):
+            with self.subTest(function=name):
+                body = self._function(name)
+                self.assertIn(source, body)
+                self.assertLess(body.index("Get-RemoteFile"), body.index("Assert-FileHash"))
+                self.assertLess(body.index("Assert-FileHash"), body.index("Expand-Archive"))
+
+    def test_downloads_retry_and_time_out(self) -> None:
+        body = self._function("Get-RemoteFile")
+        self.assertIn("'--retry'", body)
+        self.assertIn("'--connect-timeout'", body)
+
+
+class SafetyGuardTests(unittest.TestCase):
+    def test_ports_are_freed_only_from_this_projects_processes(self) -> None:
+        powershell = _read(DEV_COMMON)
+        clear = powershell[powershell.index("function Clear-DevPort") :]
+        self.assertIn("Test-DevOwnedProcess", clear)
+        self.assertNotIn("'pythonw'", powershell)
+        self.assertIn("Test-DevOwnedProcess", _read(ROOT / "update.ps1"))
+        bash = _read(DEV_COMMON_SH)
+        self.assertIn("process_is_ours", bash[bash.index("clear_port() {") :])
+        self.assertNotIn("python[0-9]*", bash)
+        self.assertIn("process_is_ours", _read(UPDATE_SH))
+
+    def test_windows_launchers_refuse_paths_npm_cannot_run_from(self) -> None:
+        self.assertIn("Get-DevRootPathProblem", _read(SETUP_PS1))
+        text = _read(DEV_COMMON)
+        prerequisites = text[text.index("function Test-DevPrerequisites") :]
+        self.assertIn("Get-DevRootPathProblem", prerequisites)
+
+    def test_a_broken_venv_is_reported_before_anything_runs_it(self) -> None:
+        text = _read(DEV_COMMON)
+        self.assertIn("Test-DevVenvWorks", text[text.index("function Test-DevPrerequisites") :])
+        generate = text[text.index("function Update-DevGeneratedSources") :]
+        self.assertIn("Test-DevVenvWorks", generate[: generate.index("Invoke-ConsoleStep")])
+        # PowerShell 5.1 drops an empty native argument, so -c '' would always fail.
+        self.assertNotIn("-c ''", text)
+
+    def test_unix_update_is_parsed_whole_before_the_pull_rewrites_it(self) -> None:
+        text = _read(UPDATE_SH)
+        self.assertIn("\nmain() {", text)
+        self.assertTrue(text.rstrip().endswith('main "$@"'))
+
+    def test_batch_files_check_out_with_crlf(self) -> None:
+        self.assertIn("*.bat text eol=crlf", _read(ROOT / ".gitattributes"))
 
 
 class StartLauncherBootstrapTests(unittest.TestCase):
@@ -155,8 +241,9 @@ class StartLauncherBootstrapTests(unittest.TestCase):
 
 class FrontendLockfileTests(unittest.TestCase):
     def test_setup_scripts_install_the_locked_frontend_dependency_tree(self) -> None:
-        self.assertIn("& $NpmCmd ci", _read(SETUP_PS1))
-        self.assertIn("npm ci", _read(SETUP_SH))
+        self.assertIn("-FilePath $NpmCmd", _read(SETUP_PS1))
+        self.assertIn("{ 'ci' } else { 'install' }", _read(SETUP_PS1))
+        self.assertIn("NPM_VERB=ci; else NPM_VERB=install", _read(SETUP_SH))
 
     def test_shared_launch_helpers_resync_changed_lockfiles_with_npm_ci(self) -> None:
         for path, function_name in (
@@ -217,13 +304,121 @@ class SetupTaggingTests(unittest.TestCase):
             ps1.index("setup_tagging.py") : ps1.index("Set-Content", ps1.index("setup_tagging.py"))
         ]
         self.assertNotIn("throw", block)
-        self.assertIn("[WARN]", block)
+        self.assertIn("-WarnOnly", block)
         sh = _read(SETUP_SH)
-        self.assertRegex(sh, r'setup_tagging\.py" \\\n\s+\|\| warn ')
+        block = sh[
+            sh.index("setup_tagging.py") : sh.index("DEV_DEPS_STAMP", sh.index("setup_tagging.py"))
+        ]
+        self.assertNotIn("fail", block)
+        self.assertIn("console_done warn", block)
 
     def test_dependency_drift_watches_the_tagging_requirements(self) -> None:
         for path in (DEV_COMMON, DEV_COMMON_SH):
             self.assertIn("requirements-tagging.txt", _read(path))
+
+
+class SharedConsoleTests(unittest.TestCase):
+    def test_every_script_prints_through_the_shared_console(self) -> None:
+        for path in POWERSHELL_SCRIPTS:
+            with self.subTest(path=path.name):
+                text = _read(path)
+                self.assertTrue(
+                    "console.ps1" in text or "dev-common.ps1" in text,
+                    msg=f"{path.name} must dot-source scripts/console.ps1",
+                )
+                self.assertNotIn("[ERROR]", text)
+                self.assertNotIn("[WARN]", text)
+                self.assertNotIn("-ForegroundColor", text)
+        for path in BASH_SCRIPTS:
+            with self.subTest(path=path.name):
+                text = _read(path)
+                self.assertTrue("console.sh" in text or "dev-common.sh" in text)
+                self.assertNotIn("[ERROR]", text)
+                self.assertNotIn("[WARN]", text)
+
+    def test_the_powershell_console_stays_ascii(self) -> None:
+        # Windows PowerShell 5.1 reads a BOM-less script as ANSI, so glyphs are built at runtime.
+        for path in (CONSOLE_PS1, DEV_COMMON):
+            with self.subTest(path=path.name):
+                path.read_bytes().decode("ascii")
+
+    def test_the_twins_offer_the_same_vocabulary(self) -> None:
+        powershell = _read(CONSOLE_PS1)
+        bash = _read(CONSOLE_SH)
+        for ps_name, sh_name in (
+            ("Write-ConsoleTitle", "console_title"),
+            ("Write-ConsoleStep", "console_step"),
+            ("Start-ConsoleStep", "console_start"),
+            ("Update-ConsoleStep", "console_update"),
+            ("Complete-ConsoleStep", "console_done"),
+            ("Add-ConsoleNote", "console_note"),
+            ("Write-ConsoleOutput", "console_output"),
+            ("Write-ConsoleWarning", "console_warning"),
+            ("Write-ConsoleResult", "console_result"),
+            ("Invoke-ConsoleCommand", "console_run"),
+            ("Invoke-ConsoleStep", "console_run_step"),
+        ):
+            with self.subTest(name=ps_name):
+                self.assertIn(f"function {ps_name} ", powershell)
+                self.assertIn(f"\n{sh_name}() {{", bash)
+
+
+@unittest.skipIf(os.name == "nt" or shutil.which("bash") is None, "needs a Unix bash")
+class ConsoleShBehaviourTests(unittest.TestCase):
+    def _run(self, script: str) -> str:
+        completed = subprocess.run(
+            ["bash", "-c", f'. "{CONSOLE_SH}"\n{script}'],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "LANG": "C.UTF-8", "NO_COLOR": "1"},
+        )
+        return completed.stdout + completed.stderr
+
+    def test_a_passing_step_hides_the_output_of_its_command(self) -> None:
+        output = self._run(
+            'console_run_step "Packages" "failed" sh -c "echo noisy log line"\n'
+            'console_done ok "3 packages"'
+        )
+        self.assertRegex(output, r"✓ Packages +(\d+s +)?3 packages")
+        self.assertNotIn("noisy log line", output)
+
+    def test_a_failing_step_shows_its_command_and_output(self) -> None:
+        output = self._run(
+            'console_run_step "Packages" "Install failed." sh -c "echo the real error; exit 3" '
+            '|| console_result fail "$CONSOLE_FAILURE"'
+        )
+        self.assertRegex(output, r"✗ Packages +(\d+s +)?exit 3")
+        self.assertIn("$ sh -c echo the real error; exit 3  (exit 3)", output)
+        self.assertIn("the real error", output)
+        self.assertTrue(output.rstrip().endswith("Install failed."))
+
+    def test_a_long_failure_keeps_its_end_and_points_at_the_full_log(self) -> None:
+        output = self._run('console_run_step "Build" "failed" sh -c "seq 1 100; exit 1" || true')
+        self.assertIn("40 earlier lines in", output)
+        self.assertNotIn("\n40\n", output)
+        self.assertIn("\n41\n", output)
+        self.assertIn("\n100\n", output)
+
+
+@unittest.skipIf(os.name == "nt" or shutil.which("bash") is None, "needs a Unix bash")
+class DevCommonShBehaviourTests(unittest.TestCase):
+    def test_only_processes_naming_this_folder_count_as_ours(self) -> None:
+        script = (
+            f'. "{DEV_COMMON_SH}"\n'
+            # A second command keeps sh from exec-ing sleep, which would drop the path.
+            'sh -c "sleep 30; :" "$DEV_ROOT/scripts/dev_server.py" & ours=$!\n'
+            "sleep 30 & other=$!\n"
+            "sleep 0.2\n"
+            'process_is_ours "$ours" && echo ours-yes\n'
+            'process_is_ours "$other" || echo other-no\n'
+            'kill "$ours" "$other"\n'
+        )
+        completed = subprocess.run(
+            ["bash", "-c", script], capture_output=True, text=True, check=False
+        )
+        self.assertIn("ours-yes", completed.stdout)
+        self.assertIn("other-no", completed.stdout)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 @echo off
-:: Thin shim so the default execution policy doesn't block the script.
 :: Right-click and choose "Run as administrator"; pass -Uninstall to remove.
-title DataForge hardware sensors
+:: Thin shim, so the default execution policy does not block the script.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-hardware-sensors.ps1" %*
 set "ERR=%ERRORLEVEL%"
 echo.

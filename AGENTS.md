@@ -16,6 +16,7 @@
 - When a change introduces a user-facing feature or fixes a critical bug, add one entry under `## Unreleased` in CHANGELOG.md (`### Added`, `### Changed`, `### Fixed`, or `### Removed`). Describe the effect for the user, not the implementation; skip refactors, tests, tooling, and minor fixes. Never edit released sections.
 - Follow existing lint and formatting rules. Import directly instead of adding re-export barrels. Use `@/shared/lib/classNames` for conditional classes.
 - Format names: lowercase wire values (`"yaml"`), dotted lowercase suffixes (`".txt"`), uppercase user-facing formats (`YAML`). Keep displayed filename suffixes dotted lowercase. Use `CAPTION_SIDECAR_EXTENSION_LIST` to list caption sidecars.
+- Launcher and installer output goes through `scripts/console.ps1` / `scripts/console.sh`; see "Script output" in `docs/development.md`.
 - Use `...` for UI labels, messages, logs, and console output; reserve `…` for truncated text. Preserve syntax such as spreads and `tuple[str, ...]`.
 
 ## Verification

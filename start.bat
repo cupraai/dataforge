@@ -1,7 +1,9 @@
 @echo off
-:: Production launcher - builds the UI, then serves everything from one process.
-:: For hot reload while developing, use dev.bat.
-:: Thin shim so the launcher lives in exactly one place (start.ps1).
-:: Any flags are passed through, e.g. start.bat -Rebuild
+:: Production launcher: builds the UI, then serves everything from one process.
+:: Thin shim, so the launcher lives in one place (start.ps1). Flags pass through: start.bat -Rebuild
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1" %*
-if errorlevel 1 pause
+if errorlevel 1 (
+  echo Press any key to close this window...
+  pause >nul
+  exit /b 1
+)

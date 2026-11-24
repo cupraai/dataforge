@@ -62,8 +62,7 @@ def build_uvicorn_kwargs(*, host: str, port: int, access_log: bool) -> dict[str,
 if __name__ == "__main__":
     if not DIST_INDEX.is_file():
         print(
-            f"[error] No frontend build at {DIST_INDEX}.\n"
-            "        Build it first: cd frontend && npm run build",
+            f"No frontend build at {DIST_INDEX}. Build it first: cd frontend && npm run build",
             file=sys.stderr,
             flush=True,
         )

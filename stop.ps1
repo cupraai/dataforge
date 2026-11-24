@@ -14,17 +14,16 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'scripts\dev-common.ps1')
 
-$Host.UI.RawUI.WindowTitle = 'DataForge - Stop'
+Write-ConsoleTitle 'DataForge stop'
 
-Write-Host 'Stopping DataForge servers...'
-
-# 18081 serves Vite under dev.ps1 and the whole app under start.ps1.
-$apiFreed = Clear-DevPort -Port $DevApiPort -Label 'DataForge'
-$uiFreed = Clear-DevPort -Port $DevUiPort -Label 'DataForge'
+# The UI port serves Vite under dev.ps1 and the whole app under start.ps1.
+$apiFreed = Clear-DevPort -Port $DevApiPort -ReportFree
+$uiFreed = Clear-DevPort -Port $DevUiPort -ReportFree
 
 if ($apiFreed -and $uiFreed) {
-    Write-Host ('Ports {0} and {1} are free.' -f $DevApiPort, $DevUiPort) -ForegroundColor Green
+    Write-ConsoleResult 'DataForge is stopped.'
     exit 0
 }
 
+Write-ConsoleResult -Status fail 'Some ports are still in use.'
 exit 1

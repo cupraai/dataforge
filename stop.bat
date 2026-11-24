@@ -1,4 +1,9 @@
 @echo off
-:: Frees the DataForge dev ports when a dev server outlived its console window.
+:: Frees the DataForge ports when a server outlived its launcher.
+:: Thin shim, so the script lives in one place (stop.ps1).
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0stop.ps1" %*
-if errorlevel 1 pause
+set "ERR=%ERRORLEVEL%"
+echo.
+echo Press any key to close this window...
+pause >nul
+exit /b %ERR%

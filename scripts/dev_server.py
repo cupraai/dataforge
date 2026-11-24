@@ -19,7 +19,6 @@ require_python()
 BACKEND = Path(__file__).resolve().parent.parent / "backend"
 
 DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 18080
 
 # Glob patterns for uvicorn's watchfiles filter (pathlib Path.match). Only *.py files reach it.
 RELOAD_EXCLUDES = [
@@ -37,28 +36,9 @@ RELOAD_DELAY = 1.0
 # Cap how long a reload waits for open connections; SSE streams otherwise never close.
 GRACEFUL_SHUTDOWN_SECONDS = 2
 
-_FALSEY = {"0", "false", "no", "off", ""}
-
-
-def _env_flag(name: str, default: bool) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() not in _FALSEY
-
-
-def _env_port(name: str, default: int) -> int:
-    raw = os.environ.get(name)
-    if not raw:
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        print(f"[warn] Ignoring {name}={raw!r}: not a port number.")
-        return default
-
-
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def _parse_args(
+    argv: list[str] | None, *, default_port: int, default_reload: bool
+) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the DataForge API with hot reload.")
     parser.add_argument(
         "--host",
@@ -68,8 +48,8 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--port",
         type=int,
-        default=_env_port("DATAFORGE_API_PORT", DEFAULT_PORT),
-        help=f"Port to bind (default: {DEFAULT_PORT}, or DATAFORGE_API_PORT).",
+        default=default_port,
+        help=f"Port to bind (default: {default_port}, from DATAFORGE_API_PORT).",
     )
     reload_flags = parser.add_mutually_exclusive_group()
     reload_flags.add_argument(
@@ -87,7 +67,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     args = parser.parse_args(argv)
     if args.reload is None:
-        args.reload = _env_flag("DATAFORGE_RELOAD", True)
+        args.reload = default_reload
     return args
 
 
@@ -117,8 +97,10 @@ if __name__ == "__main__":
     load_env_file()
     configure_logging()
 
+    from server_settings import get_api_port, reload_enabled
+
     # Parsed after .env so DATAFORGE_API_PORT can come from there.
-    options = _parse_args()
+    options = _parse_args(None, default_port=get_api_port(), default_reload=reload_enabled())
 
     # The request guard reads the bound address from here, and --host may have overridden it.
     os.environ["DATAFORGE_API_HOST"] = options.host

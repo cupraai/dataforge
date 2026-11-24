@@ -134,7 +134,8 @@ def download_model() -> None:
     model_name = tagger.select_model_name()
     print(f"Preparing {model_name} with the tag vocabulary; the first time downloads it...")
     tagger.TagModel(tagger.load_vocabulary(), model_name).close()
-    print(f"{model_name} is ready in {tagger.get_models_dir()}.")
+    # The last line: setup shows it as the outcome of the tagging step.
+    print(f"{model_name} ready, torch {installed_torch()}, in {tagger.get_models_dir()}")
 
 
 def main() -> int:

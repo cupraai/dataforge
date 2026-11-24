@@ -2,6 +2,8 @@
 # Keep this file ASCII-only: Windows PowerShell 5.1 reads BOM-less scripts as ANSI.
 # Mirrors scripts/dev-common.sh except for process supervision; change both together.
 
+. (Join-Path $PSScriptRoot 'console.ps1')
+
 function Get-DevEnvMap {
     <#
     .SYNOPSIS
@@ -63,7 +65,7 @@ function Get-DevPort {
 
     $port = 0
     if (-not [int]::TryParse($raw.Trim(), [ref]$port) -or $port -lt 1 -or $port -gt 65535) {
-        Write-Host ('[WARN] Ignoring {0}={1}: not a port number. Using {2}.' -f $Name, $raw, $Default) -ForegroundColor Yellow
+        Write-ConsoleWarning ('Ignoring {0}={1}: not a port number. Using {2}.' -f $Name, $raw, $Default)
         return $Default
     }
     return $port
@@ -78,6 +80,21 @@ $DevUiUrl = 'http://127.0.0.1:{0}' -f $DevUiPort
 $DevHealthUrl = '{0}/api/health' -f $DevApiUrl
 # Production serves both halves on the UI port, so its health check lives there.
 $DevAppHealthUrl = '{0}/api/health' -f $DevUiUrl
+
+function Exit-Launcher {
+    <#
+    .SYNOPSIS
+      Ends a launcher with exit code 1, after the reason when one is given.
+
+    .DESCRIPTION
+      Steps that already reported their failure call it bare. The .bat shims pause on a
+      non-zero exit, keeping the error on screen.
+    #>
+    param([string]$Message = '', [string[]]$Lines = @())
+    if ($Message) { Write-ConsoleFailure -Message $Message -Lines $Lines }
+    Write-Host ''
+    exit 1
+}
 
 function Get-DevPaths {
     <#
@@ -130,32 +147,60 @@ function Update-DevGeneratedSources {
 
     .DESCRIPTION
       Always regenerates: gitignored files survive a branch switch with a plausible
-      mtime. A missing venv or a failed generation is reported elsewhere.
+      mtime. A missing or broken venv is reported by Test-DevPrerequisites instead.
     #>
     $paths = Get-DevPaths
-    if (-not (Test-Path $paths.VenvPy)) { return $true }
+    if (-not (Test-Path $paths.VenvPy) -or -not (Test-DevVenvWorks)) { return $true }
 
-    Write-Host 'Generating the frontend API types...' -NoNewline
-    try {
-        # Only changed files are rewritten, so dist freshness is unaffected.
-        & $paths.VenvPy (Join-Path $paths.Scripts 'generate_types.py') | Out-Null
-        $exitCode = $LASTEXITCODE
-    } catch {
-        Write-Host ' FAILED.' -ForegroundColor Red
-        Write-Host ('[WARN] Could not run the generator: {0}' -f $_.Exception.Message) -ForegroundColor Yellow
-        return $false
-    }
-
-    if ($exitCode -ne 0) {
-        Write-Host ' FAILED.' -ForegroundColor Red
-        Write-Host '[WARN] The frontend API types were left as they were. The UI may not match the API.' -ForegroundColor Yellow
-        return $false
-    }
-
-    Write-Host ' done.' -ForegroundColor Green
-    return $true
+    # Only changed files are rewritten, so dist freshness is unaffected.
+    $output = Invoke-ConsoleStep -Label 'API types' -FilePath $paths.VenvPy `
+        -ArgumentList @((Join-Path $paths.Scripts 'generate_types.py')) `
+        -Detail { param($text) Get-DevGeneratedDetail $text } `
+        -WarnOnly 'left as they were; the UI may not match the API'
+    return $null -ne $output
 }
 
+function Get-DevGeneratedDetail {
+    param([string]$Output)
+    $written = @([regex]::Matches($Output, '(?m)^Wrote ')).Count
+    if ($written -eq 0) { return 'up to date' }
+    return '{0} updated' -f (Format-ConsoleCount $written 'file')
+}
+
+function Get-DevNpmDetail {
+    param([string]$Output)
+    $added = [regex]::Match($Output, 'added (\d+) packages?')
+    if ($added.Success) { return Format-ConsoleCount ([int]$added.Groups[1].Value) 'package' }
+    return 'up to date'
+}
+
+
+function Get-DevRootPathProblem {
+    <#
+    .SYNOPSIS
+      Why this folder's path cannot run DataForge on Windows, or an empty string.
+
+    .DESCRIPTION
+      npm's .cmd shims expand their own folder unquoted, so cmd.exe splits the path at an
+      ampersand or a caret and every npm script fails. Spaces are fine.
+    #>
+    param([string]$Root = (Get-DevPaths).Root)
+    $found = @([char[]]'&^' | Where-Object { $Root.IndexOf($_) -ge 0 })
+    if ($found.Count -eq 0) { return '' }
+    return ("The folder path contains {0}, which npm's Windows command scripts cannot handle. " +
+        'Move DataForge to a folder without & or ^.') -f (($found | ForEach-Object { "'$_'" }) -join ' and ')
+}
+
+function Test-DevVenvWorks {
+    # A moved folder keeps python.exe, but the venv still points at the old one and fails.
+    $paths = Get-DevPaths
+    try {
+        & $paths.VenvPy -c 'pass' 2>$null | Out-Null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
 
 function Test-DevPrerequisites {
     <#
@@ -171,19 +216,22 @@ function Test-DevPrerequisites {
     $paths = Get-DevPaths
     $ok = $true
 
+    $pathProblem = Get-DevRootPathProblem
+    if ($pathProblem) {
+        Write-ConsoleFailure $pathProblem
+        return $false
+    }
+
     if (-not $SkipBackend -and -not (Test-Path $paths.VenvPy)) {
-        Write-Host '[ERROR] Python venv not found at backend\.venv.' -ForegroundColor Red
-        Write-Host '        Run setup.bat from the project root, or:'
-        Write-Host '          python -m venv backend\.venv'
-        Write-Host '          backend\.venv\Scripts\pip install -r backend\requirements.txt -r backend\requirements-dev.txt'
+        Write-ConsoleStep -Label 'Backend venv' -Status fail -Detail 'not found at backend\.venv'
+        $ok = $false
+    } elseif (-not $SkipBackend -and -not (Test-DevVenvWorks)) {
+        Write-ConsoleStep -Label 'Backend venv' -Status fail -Detail 'does not start; was the folder moved?'
         $ok = $false
     }
 
     if (-not $SkipFrontend -and -not (Test-Path (Join-Path $paths.Frontend 'node_modules'))) {
-        Write-Host '[ERROR] Frontend dependencies not installed.' -ForegroundColor Red
-        Write-Host '        Run setup.bat from the project root, or:'
-        Write-Host '          cd frontend'
-        Write-Host '          npm ci'
+        Write-ConsoleStep -Label 'Frontend packages' -Status fail -Detail 'not installed (cd frontend; npm ci)'
         $ok = $false
     }
 
@@ -192,13 +240,15 @@ function Test-DevPrerequisites {
                 -not (Test-Path (Join-Path $paths.Frontend ('src\shared\{0}' -f $_)))
             })
         if ($missing.Count -gt 0) {
-            Write-Host ('[ERROR] Generated frontend sources missing: {0}.' -f ($missing -join ', ')) -ForegroundColor Red
-            Write-Host '        Run setup.bat from the project root, or:'
-            Write-Host '          backend\.venv\Scripts\python scripts\generate_types.py'
+            Write-ConsoleStep -Label 'API types' -Status fail -Detail ('missing {0}' -f ($missing -join ', '))
             $ok = $false
         }
     }
 
+    if (-not $ok) {
+        Write-ConsoleResult -Status fail -Message 'DataForge needs setup first.' `
+            -Lines @('Run setup.bat from the project root, then try again.')
+    }
     return $ok
 }
 
@@ -211,17 +261,14 @@ function Sync-FrontendDependencies {
         return $true
     }
 
-    Write-Host 'Syncing frontend dependencies from package-lock.json (npm ci)...'
-    $previous = Get-Location
     try {
-        Set-Location -LiteralPath $paths.Frontend
-        & (Get-NpmCommand) ci | Out-Host
-        return $LASTEXITCODE -eq 0
+        [void](Invoke-ConsoleStep -Label 'Frontend packages' -FilePath (Get-NpmCommand) `
+                -ArgumentList @('ci') -WorkingDirectory $paths.Frontend `
+                -Detail { param($text) '{0}, package-lock.json changed' -f (Get-DevNpmDetail $text) })
+        return $true
     } catch {
-        Write-Host ('[ERROR] Could not run npm ci: {0}' -f $_.Exception.Message) -ForegroundColor Red
+        Write-ConsoleFailure 'The frontend packages could not be installed.'
         return $false
-    } finally {
-        Set-Location -LiteralPath $previous
     }
 }
 
@@ -244,13 +291,14 @@ function Test-BackendDependencyDrift {
         foreach ($name in @('requirements.txt', 'requirements-dev.txt', 'requirements-tagging.txt')) {
             $req = Join-Path $paths.Backend $name
             if ((Test-Path $req) -and ((Get-Item $req).LastWriteTimeUtc -gt $stampTime)) {
-                Write-Host ('[WARN] backend/{0} is newer than the last dependency install.' -f $name) -ForegroundColor Yellow
-                Write-Host '       Run setup.bat if the API fails to import something.'
+                Write-ConsoleStep -Label 'Backend packages' -Status warn `
+                    -Detail ('backend\{0} changed since the last install' -f $name)
                 $stale = $true
             }
         }
     }
 
+    if ($stale) { Write-ConsoleNote 'Run setup.bat if the API fails to import something.' }
     return $stale
 }
 
@@ -318,39 +366,22 @@ function Invoke-FrontendBuild {
       the build failed.
 
     .DESCRIPTION
-      In this window, so the caller reads the compiler errors.
+      Captured; a failure prints the compiler errors.
     #>
+    param([string]$Reason = 'sources changed')
     $paths = Get-DevPaths
-    $previous = Get-Location
-
-    Write-Host 'Building the frontend (npm run build)...'
-    Write-Host ''
     try {
-        Set-Location -LiteralPath $paths.Frontend
-        # Lifecycle scripts spawn `node` from PATH, so the portable copy goes first.
-        $nodeDir = Join-Path $paths.Root '.node'
-        if (Test-Path -LiteralPath (Join-Path $nodeDir 'node.exe') -PathType Leaf) {
-            $env:PATH = "$nodeDir;$env:PATH"
-        }
-        # Out-Host, or npm's stdout would join the return value and make a failure truthy.
-        & (Get-NpmCommand) run build | Out-Host
-        $exitCode = $LASTEXITCODE
+        # Get-NpmCommand also puts the portable node on PATH for the lifecycle scripts.
+        [void](Invoke-ConsoleStep -Label 'Frontend build' -FilePath (Get-NpmCommand) `
+                -ArgumentList @('run', 'build') -WorkingDirectory $paths.Frontend `
+                -Detail { $Reason })
     } catch {
-        Write-Host ('[ERROR] Could not run npm: {0}' -f $_.Exception.Message) -ForegroundColor Red
-        return $false
-    } finally {
-        Set-Location -LiteralPath $previous
-    }
-
-    Write-Host ''
-    if ($exitCode -ne 0) {
-        Write-Host '[ERROR] Frontend build failed. Fix the errors above and try again.' -ForegroundColor Red
+        Write-ConsoleFailure 'The frontend build failed. Fix the errors above and try again.'
         return $false
     }
 
     $stamp = Join-Path $paths.Dist $DevBuildStampName
     Set-Content -LiteralPath $stamp -Value ((Get-Date).ToString('o')) -Encoding ASCII
-    Write-Host 'Frontend build complete.' -ForegroundColor Green
     return $true
 }
 
@@ -379,6 +410,32 @@ function Get-DevPortListener {
         }
     }
     return $processes
+}
+
+function Test-DevOwnedProcess {
+    <#
+    .SYNOPSIS
+      Whether a process is a DataForge server from this folder: its program or its command
+      line lies inside the project root.
+
+    .DESCRIPTION
+      Matches the portable and venv interpreters, and a global node running this
+      frontend's Vite. Another project's server, or another DataForge checkout, does not
+      match. A process whose details cannot be read counts as foreign, so it is left alone.
+    #>
+    param([Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process)
+
+    $root = (Get-DevPaths).Root.TrimEnd('\') + '\'
+    try {
+        $info = Get-CimInstance Win32_Process -Filter ('ProcessId={0}' -f $Process.Id) -ErrorAction Stop
+    } catch {
+        return $false
+    }
+    if (-not $info) { return $false }
+    $exe = [string]$info.ExecutablePath
+    $command = [string]$info.CommandLine
+    return $exe.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) -or
+        ($command.IndexOf($root, [StringComparison]::OrdinalIgnoreCase) -ge 0)
 }
 
 function Stop-DevTree {
@@ -488,8 +545,8 @@ public static class DevConsoleGuard
 }
 '@
         } catch {
-            Write-Host '[WARN] Could not install the window-close guard.' -ForegroundColor Yellow
-            Write-Host '       Closing this window with X will leave the servers running; use stop.bat if that happens.'
+            Write-ConsoleWarning 'Could not install the window-close guard.' `
+                @('Closing this window with X leaves the servers running; stop.bat stops them.')
             return
         }
     }
@@ -511,46 +568,56 @@ function Unregister-DevExitGuard {
 function Clear-DevPort {
     <#
     .SYNOPSIS
-      Frees a dev port held by a leftover python/node process.
+      Frees a dev port held by a leftover DataForge server from this folder.
 
     .DESCRIPTION
-      Anything else is named and left alone, never killed.
-      Returns $true when the port is free afterwards.
+      Anything else, another project's python or node included, is named and left alone,
+      never killed. Returns $true when the port is free afterwards.
     #>
     param(
         [Parameter(Mandatory = $true)][int]$Port,
-        [string]$Label
+        # Reports only problems: for the backstop after stopping supervised servers.
+        [switch]$Quiet,
+        # Reports a free port too: for stop.ps1, where that is the whole answer.
+        [switch]$ReportFree
     )
 
-    $killable = @('python', 'pythonw', 'node')
+    $label = 'Port {0}' -f $Port
     $listeners = @(Get-DevPortListener -Port $Port)
-    if ($listeners.Count -eq 0) { return $true }
+    if ($listeners.Count -eq 0) {
+        if ($ReportFree) { Write-ConsoleStep -Label $label -Detail 'free' }
+        return $true
+    }
 
-    $foreign = @($listeners | Where-Object { $killable -notcontains $_.ProcessName })
+    $foreign = @($listeners | Where-Object { -not (Test-DevOwnedProcess $_) })
     if ($foreign.Count -gt 0) {
-        foreach ($proc in $foreign) {
-            Write-Host ('[ERROR] Port {0} is held by {1} (PID {2}).' -f $Port, $proc.ProcessName, $proc.Id) -ForegroundColor Red
-        }
-        Write-Host '        That is not a leftover dev server, so it was left running.'
-        Write-Host '        Free the port yourself and try again.'
+        $holders = ($foreign | ForEach-Object { '{0} (PID {1})' -f $_.ProcessName, $_.Id }) -join ', '
+        Write-ConsoleStep -Label $label -Status fail -Detail "held by $holders"
+        Write-ConsoleNote 'Not a DataForge server from this folder, so it was left running.'
+        Write-ConsoleNote 'Stop it, or set DATAFORGE_API_PORT / DATAFORGE_UI_PORT in .env, and try again.'
         return $false
     }
 
-    foreach ($proc in $listeners) {
-        $what = $Label
-        if (-not $what) { $what = 'dev server' }
-        Write-Host ('  Port {0}: stopping leftover {1} (PID {2}) from a previous {3} run...' -f $Port, $proc.ProcessName, $proc.Id, $what) -ForegroundColor DarkYellow
-        Stop-DevTree -ProcessId $proc.Id
-    }
+    if (-not $Quiet) { Start-ConsoleStep $label }
+    $stopped = ($listeners | ForEach-Object { '{0} (PID {1})' -f $_.ProcessName, $_.Id }) -join ', '
+    foreach ($proc in $listeners) { Stop-DevTree -ProcessId $proc.Id }
 
     # Lazily released sockets are as fatal as occupied ones under Vite's strictPort.
     $deadline = (Get-Date).AddSeconds(5)
     while ((Get-Date) -lt $deadline) {
-        if ((Get-DevPortListener -Port $Port).Count -eq 0) { return $true }
+        if ((Get-DevPortListener -Port $Port).Count -eq 0) {
+            if (-not $Quiet) { Complete-ConsoleStep -Detail "stopped leftover $stopped" }
+            return $true
+        }
         Start-Sleep -Milliseconds 200
     }
 
-    Write-Host ('[ERROR] Port {0} is still in use after stopping the old process.' -f $Port) -ForegroundColor Red
+    if ($Quiet) {
+        # The caller's own step stays open; it reports the overall outcome.
+        Write-ConsoleStep -Label $label -Status fail -Detail "still in use after stopping $stopped"
+    } else {
+        Complete-ConsoleStep -Status fail -Detail "still in use after stopping $stopped"
+    }
     return $false
 }
 
@@ -558,7 +625,7 @@ function Wait-HttpReady {
     <#
     .SYNOPSIS
       Polls a URL until it answers 200. Returns $false on timeout, or as soon as
-      the watched process exits.
+      the watched process exits. Keeps the running step's line alive meanwhile.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$Url,
@@ -568,6 +635,7 @@ function Wait-HttpReady {
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
+        Update-ConsoleStep ('waiting for {0}' -f ([uri]$Url).AbsolutePath)
         if ($Process -and $Process.HasExited) { return $false }
         try {
             $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
@@ -595,6 +663,7 @@ function Wait-TcpReady {
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
+        Update-ConsoleStep ('waiting for port {0}' -f $Port)
         if ($Process -and $Process.HasExited) { return $false }
 
         # Test-NetConnection is far too slow to poll with.

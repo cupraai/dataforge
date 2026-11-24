@@ -16,9 +16,13 @@ version heading when a minor or major version is cut.
 - **Reasoning effort** in Auto-caption, Verify captions and Edit captions can also be **High** or **Max**. With llama.cpp or Unsloth Studio, the dialogs name the model the server has loaded and offer only the levels its chat template accepts, such as Low, Medium and Extra high for Qwen3.8. A remembered level the model lacks moves to the nearest one it has, and a model without levels, such as Gemma 4, is sent none. If the server cannot be read, the dialog says why. Until the server answers, the model name and levels show as loading instead of options that change, and the answer is kept until Settings are saved.
 - **LoRA showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
 - AAC audio files (`.aac`), which AI-Toolkit trains on, are listed, played, captioned and editable like other audio. Their length is counted exactly, so trims and fades land where you set them.
+- `./update.sh` updates a Git clone on Linux and macOS the way `update.bat` does on Windows: it pulls the latest version and reruns setup only when a runtime or backend dependency changed.
 
 ### Changed
 
+- Setup, update, the launchers and the stop and install scripts show their progress the same way on Windows, Linux and macOS: one line per step, each with a check mark, its duration and what it found, such as how many packages were installed or which FFmpeg is used. pip, npm and git no longer fill the window; a step that is still running shows how long it has taken and what it is doing, and a step that fails shows its command and the end of its output. Each script ends with one line saying whether it worked and what to do next.
+- The launchers and the stop script only stop a DataForge server started from the same folder. Another program's Python or Node, or another copy of DataForge, is named and left running.
+- Windows setup checks the downloaded Python and Node.js against the checksums their publishers list, as it already did for FFmpeg, and retries a dropped download. It refuses a folder whose path contains `&` or `^`, where npm cannot run, and the launchers say when the backend environment no longer starts because the folder was moved.
 - Auto-caption, Verify captions, Edit captions, LoRA training, Run ComfyUI workflow and Create showcase show whether the server they need is answering, in an indicator at the left of the action bar: green when it answers, red when it does not. It checks again every few seconds while the dialog is open, so a server that stops or starts shows without reopening. Hover over it for what is wrong and how to fix it. The job cannot start while it is red, though a workflow step can still be saved. **LoRA training** now opens while AI-Toolkit is stopped instead of being disabled in **Tools**. Edit captions and Find & replace are wider and show **Preview** beside their options, so the sample edits have room on a 1024×720 screen, with Edit captions' **Dry run** above it; and the instruction file Auto-caption and Lint captions read is named above their options, in a box like the file scope, together with what Auto-caption will do.
 - **Edit with ComfyUI** and **Generate with ComfyUI** are now one job, **Run ComfyUI workflow**, which lists every preset. A preset that loads a source file edits the files in scope into candidates for review, as before; one without makes new files in the folder. Its options and start button follow the selected preset. A workflow step can use only a preset that edits files.
 - The ComfyUI dialogs list workflow presets as you add, remove or export them again, without closing the dialog. A removed preset that was selected leaves nothing selected instead of switching to another.
@@ -33,6 +37,10 @@ version heading when a minor or major version is cut.
 ### Removed
 
 - The chat templates and MiniMax H3 prompt files in `llm_templates/`. Use the chat template that comes with your model; with Gemma 4, turn thinking on in the server to use Reasoning.
+
+### Fixed
+
+- An out-of-range `DATAFORGE_API_PORT`, such as `99999`, no longer stops the development API from starting: it uses the default port 18080, the one the launcher waits on.
 
 ## 0.15.0 - 2026-11-20
 

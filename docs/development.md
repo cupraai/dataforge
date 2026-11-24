@@ -58,7 +58,7 @@ sample_media/          Example dataset
 .agents/skills/        Shared agent skills (.claude/skills/ links to them)
 .github/workflows/     CI: backend, frontend, and end-to-end jobs
 .env.example           Commented app environment settings
-setup / start / dev / stop (.bat, .ps1, .sh)   Launchers
+setup / start / dev / stop / update (.bat, .ps1, .sh)   Launchers
 ```
 
 ## Generated code
@@ -168,6 +168,29 @@ Settings > About reads `version` from `backend/pyproject.toml`. The installed pr
 Agents must follow AGENTS.md's rule against staging changes themselves.
 
 User-facing changes get one entry under **Unreleased** in [CHANGELOG.md](../CHANGELOG.md); see AGENTS.md for when.
+
+## Script output
+
+Every launcher and installer prints the same shape as `scripts/run_checks.py`, through one shared module per shell: `scripts/console.ps1` (dot-source it; keep it ASCII) and its twin `scripts/console.sh` (bash 3.2). Add new output there rather than calling `Write-Host` or `printf` directly.
+
+```text
+DataForge setup                            title, plus dim context lines
+  Portable Python 3.13.12 and Node.js 26.13.1
+
+  ✓ Node.js 26.13.1             already in .node\
+  ✓ Backend packages     33.2s  44 packages installed
+  - Tagging                     left out (-SkipTagging)
+  ! Backend packages            backend\requirements.txt changed since the last install
+      Run setup.bat if the API fails to import something.
+
+Setup complete in 1m 16s.                  bold result line, then next steps
+  Run start.bat to launch the app, or dev.bat to develop it.
+```
+
+- **One line per step:** glyph (`✓` done, `✗` failed, `!` warning, `-` skipped), a padded label, the duration, and a short detail worth knowing: a count, a version, a path, or why it was skipped. Notes listed under a step say what to do next.
+- **Child output stays hidden unless something fails.** pip, npm, git, curl and the generators run captured (`Invoke-ConsoleCommand` / `console_run`). While a step runs, a live line shows the elapsed time and the newest output line. A failure prints the command and its exit code, then the last 60 lines; longer output goes to a log file whose path is printed.
+- **Plain when redirected:** without a terminal there is no live line, and `NO_COLOR` turns colors off. PowerShell falls back to ASCII glyphs unless the output is UTF-8.
+- Server logs stay visible: Windows gives each server its own console, and Unix prefixes the shared terminal's lines with `[api]`, `[ui]` or `[app]`.
 
 ## Testing Unix launcher changes
 

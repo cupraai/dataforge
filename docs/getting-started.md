@@ -67,8 +67,7 @@ The [user guide](user-guide.md) explains these workflows. On macOS, use `⌘` in
 
 **Update** with the app stopped:
 
-- **Git clone on Windows:** run `update.bat`, then start again. It needs [Git](https://git-scm.com/downloads/win) on PATH, pulls the latest version of the current branch, and reruns setup when the update changed a runtime or backend dependency. That setup leaves out the tagger unless it is already installed. Local commits, or local edits the update would overwrite, stop it without changing anything.
-- **Git clone on Linux and macOS:** pull, then start again.
+- **Git clone:** run `update.bat` on Windows or `./update.sh` on Linux and macOS, then start again. It needs [Git](https://git-scm.com/downloads) on PATH, pulls the latest version of the current branch, and reruns setup when the update changed a runtime or backend dependency. That setup leaves out the tagger unless it is already installed. Local commits, or local edits the update would overwrite, stop it without changing anything.
 - **ZIP install:** extract a new copy, move over your `.env`, custom presets, and `backend/data/` (settings, history, and cache), and run setup in the new copy. Datasets stay where they are.
 
 The launcher notices dependency changes and rebuilds the UI when needed. Run setup again after a runtime upgrade or when the launcher asks.
@@ -99,11 +98,15 @@ Rebuild and no-build cannot be combined. To change the port, set `DATAFORGE_UI_P
 - On Windows x64, setup installs a matching build into `.ffmpeg/`. To repair it, delete that folder and run setup again.
 - Check which FFmpeg DataForge selects with `backend/.venv/Scripts/python scripts/check_ffmpeg.py` on Windows or `backend/.venv/bin/python scripts/check_ffmpeg.py` on Linux/macOS.
 
+**Setup refuses the folder on Windows.** npm's Windows scripts cannot run from a path containing `&` or `^`. Move DataForge to a folder without them; spaces are fine.
+
+**The backend venv does not start.** The folder was moved or renamed after setup, or the Python it was built with is gone. Run setup again; it rebuilds the venv.
+
 **Shell scripts will not run.** An extracted ZIP may lose executable permissions; run `bash setup.sh` and `bash start.sh` instead.
 
 **No build with `--no-build`.** Start once without that option, or build with `cd frontend && npm run build` after setup.
 
-**A port is in use.** Close an earlier launcher or stop a leftover DataForge server. The launcher never kills another program's process; choose another `DATAFORGE_UI_PORT` if necessary.
+**A port is in use.** Close an earlier launcher or stop a leftover DataForge server. The launchers and the stop script only stop a DataForge server started from this folder, never another program or another copy of DataForge; choose another `DATAFORGE_API_PORT` or `DATAFORGE_UI_PORT` if necessary.
 
 **The app says "Backend unreachable".** The server stopped or never started. Run `start.bat` or `./start.sh` again; the page reconnects by itself once the server answers. If it keeps stopping, read the launcher output.
 
