@@ -218,7 +218,11 @@ export function StartFilePicker({ kind, value, items, disabled, onChange }: Star
     /* oxlint-disable-next-line
        jsx-a11y/no-static-element-interactions
        -- catches Escape from the trigger and panel */
-    <div ref={rootRef} className="start-file-picker" onKeyDown={handleRootKeyDown}>
+    <div
+      ref={rootRef}
+      className={classNames("start-file-picker", value !== null && "start-file-picker--clearable")}
+      onKeyDown={handleRootKeyDown}
+    >
       <button
         ref={triggerRef}
         type="button"
@@ -251,7 +255,7 @@ export function StartFilePicker({ kind, value, items, disabled, onChange }: Star
           label={`Remove start ${kind}`}
           size="xs"
           variant="ghost"
-          tone="danger"
+          className="start-file-picker__clear"
           disabled={disabled}
           onClick={() => {
             onChange(null);

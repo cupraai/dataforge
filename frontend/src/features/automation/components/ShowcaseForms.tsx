@@ -10,7 +10,7 @@ import {
 } from "@/features/automation/hooks/useShowcaseDraft";
 import { describeLora } from "@/features/automation/lib/showcase";
 import { MAX_SHOWCASE_ITEM_LORAS, MAX_SHOWCASE_LABEL_LENGTH } from "@/shared/constants";
-import { iconPlus, iconX } from "@/shared/icons";
+import { iconPlus, iconTrash2 } from "@/shared/icons";
 import type { ComfyPresetInput, ComfyPresetSummary, GalleryItem } from "@/shared/types";
 import { Button } from "@/shared/ui/Button";
 import { Checkbox } from "@/shared/ui/Checkbox";
@@ -70,7 +70,7 @@ function LoraRows({ rows, options, disabled, onChange }: LoraRowsProps) {
                 onChange={(event) => update(index, { strengthText: event.target.value })}
               />
               <IconButton
-                icon={iconX}
+                icon={iconTrash2}
                 label={`Remove LoRA ${index + 1}`}
                 size="xs"
                 variant="ghost"

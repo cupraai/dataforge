@@ -1,6 +1,7 @@
 import { Button } from "@/shared/ui/Button";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useClampedGridMotion } from "@/features/folder/hooks/useClampedGridMotion";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
 import { useOpenFolderInNewTab } from "@/features/folder/hooks/useOpenFolderInNewTab";
 import { clampFolders, folderCardLabel } from "@/features/folder/lib/folderCards";
@@ -156,11 +157,14 @@ export function FolderGrid({ folders, folderPath, totalCount, onOpen }: FolderGr
   // Seeded per mount, and navigation remounts, so the stored choice matches the folder.
   const [expanded, setExpanded] = useState(() => readFolderExpanded(folderPath));
   const gridId = useId();
+  const gridRef = useRef<HTMLDivElement>(null);
   const clamp = useMemo(() => clampFolders(folders), [folders]);
-  const shown = expanded ? folders : clamp.visible;
+  const motion = useClampedGridMotion(gridRef, ".folder-card", clamp.visible.length);
+  const shown = expanded || motion.closing ? folders : clamp.visible;
 
   const toggleExpanded = () => {
     const next = !expanded;
+    motion.begin(next ? "open" : "close");
     setExpanded(next);
     writeFolderExpanded(folderPath, next);
   };
@@ -175,7 +179,7 @@ export function FolderGrid({ folders, folderPath, totalCount, onOpen }: FolderGr
         total={totalCount}
       />
       {folders.length > 0 && (
-        <div className="folder-grid" id={gridId}>
+        <div ref={gridRef} className="folder-grid" id={gridId}>
           {shown.map((folder) => (
             <FolderCard key={folder.path} folder={folder} onOpen={onOpen} />
           ))}

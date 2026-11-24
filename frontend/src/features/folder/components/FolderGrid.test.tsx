@@ -1,10 +1,11 @@
-import { act, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { FolderReviewCountsResponse, Subfolder } from "@/shared/types";
 import { FOLDER_CLAMP_LIMIT, FOLDER_CLAMP_MIN_HIDDEN } from "@/features/folder/lib/folderCards";
 import { readFolderExpanded, writeFolderExpanded } from "@/features/folder/lib/folderExpansion";
 import { FolderGrid } from "./FolderGrid";
+import { DURATION_MODERATE_MS, EXIT_FALLBACK_MS } from "@/shared/lib/motion";
 import { renderWithQueryClient } from "@/test/queryClient";
 
 function makeFolder(overrides: Partial<Subfolder> = {}): Subfolder {
@@ -444,5 +445,133 @@ describe("FolderGrid expansion memory", () => {
     await user.click(screen.getByRole("button", { name: SHOW_MORE }));
 
     expect(cards()).toHaveLength(CLAMPED_TOTAL);
+  });
+});
+
+describe("FolderGrid expand motion", () => {
+  interface FakeAnimation {
+    element: Element;
+    keyframes: Keyframe[];
+    cancelled: boolean;
+    finish: () => void;
+  }
+  let animations: FakeAnimation[];
+
+  beforeEach(() => {
+    animations = [];
+    // jsdom has no Web Animations; each run finishes only when the test says so.
+    Element.prototype.animate = function animate(this: Element, keyframes, options) {
+      let resolve = () => {};
+      let reject = (_reason: unknown) => {};
+      const finished = new Promise<void>((onResolve, onReject) => {
+        resolve = onResolve;
+        reject = onReject;
+      });
+      const fake: FakeAnimation = {
+        element: this,
+        keyframes: keyframes as Keyframe[],
+        cancelled: false,
+        finish: resolve,
+      };
+      animations.push(fake);
+      return {
+        id: (options as KeyframeAnimationOptions).id,
+        finished,
+        cancel: () => {
+          fake.cancelled = true;
+          reject(new DOMException("Cancelled", "AbortError"));
+        },
+      } as unknown as Animation;
+    };
+    Element.prototype.getAnimations = () =>
+      animations
+        .filter((fake) => !fake.cancelled)
+        .map(
+          (fake) =>
+            ({
+              id: "clamped-grid",
+              cancel: () => {
+                fake.cancelled = true;
+              },
+            }) as unknown as Animation,
+        );
+  });
+
+  afterEach(() => {
+    delete (Element.prototype as Partial<Element>).animate;
+    delete (Element.prototype as Partial<Element>).getAnimations;
+    vi.useRealTimers();
+  });
+
+  const heightRuns = () => animations.filter((fake) => "height" in fake.keyframes[0]);
+  const finishLatestHeight = () =>
+    act(async () => {
+      heightRuns().at(-1)?.finish();
+      await Promise.resolve();
+    });
+
+  function renderExpanded() {
+    renderWithQueryClient(
+      <FolderGrid folders={makeFolders(CLAMPED_TOTAL)} onOpen={vi.fn<(path: string) => void>()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: SHOW_MORE }));
+  }
+
+  it("grows the grid open and fades the revealed folders in", () => {
+    renderExpanded();
+
+    expect(cards()).toHaveLength(CLAMPED_TOTAL);
+    expect(heightRuns()).toHaveLength(1);
+    const faded = animations.filter((fake) => "opacity" in fake.keyframes[0]);
+    expect(faded.map((fake) => fake.element)).toEqual([...cards()].slice(FOLDER_CLAMP_LIMIT));
+    expect(faded[0].keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+  });
+
+  it("keeps the hidden folders on screen while the grid shrinks, then drops them", async () => {
+    renderExpanded();
+    await finishLatestHeight();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show fewer folders" }));
+
+    // The button answers at once; the folders leave with the motion.
+    expect(screen.getByRole("button", { name: SHOW_MORE })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(cards()).toHaveLength(CLAMPED_TOTAL);
+
+    await finishLatestHeight();
+
+    expect(cards()).toHaveLength(FOLDER_CLAMP_LIMIT);
+  });
+
+  it("still collapses in a tab that renders no frames", () => {
+    vi.useFakeTimers();
+    renderExpanded();
+    fireEvent.click(screen.getByRole("button", { name: "Show fewer folders" }));
+    expect(cards()).toHaveLength(CLAMPED_TOTAL);
+
+    act(() => {
+      vi.advanceTimersByTime(DURATION_MODERATE_MS + EXIT_FALLBACK_MS);
+    });
+
+    expect(cards()).toHaveLength(FOLDER_CLAMP_LIMIT);
+  });
+
+  it("turns back from a collapse without dropping the folders or the motion", () => {
+    vi.useFakeTimers();
+    renderExpanded();
+    fireEvent.click(screen.getByRole("button", { name: "Show fewer folders" }));
+    fireEvent.click(screen.getByRole("button", { name: SHOW_MORE }));
+
+    const reopening = heightRuns().at(-1);
+    expect(reopening?.cancelled).toBe(false);
+
+    act(() => {
+      vi.advanceTimersByTime(DURATION_MODERATE_MS + EXIT_FALLBACK_MS);
+    });
+
+    expect(cards()).toHaveLength(CLAMPED_TOTAL);
+    expect(screen.getByRole("button", { name: "Show fewer folders" })).toBeInTheDocument();
   });
 });

@@ -2,10 +2,13 @@
 
 // Positioned so the hidden input scrolls with its label; anchored to an ancestor outside the
 // scroller, its focus would scroll that ancestor instead.
+// Block-level: inline, it sat on its field's text line and dropped to that line's baseline, 2px
+// below the centre of any row it shared. Top-aligned so a wrapped label keeps the box on line one.
 .checkbox {
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  width: fit-content;
+  align-items: flex-start;
   gap: 0.5rem;
   font-size: var(--text-sm);
   // Same height as the 1rem box so cap-height and box share a mid-line.
@@ -24,7 +27,6 @@
 
   &__box {
     @include custom-checkbox-box;
-    align-self: center;
   }
 
   &__input:checked + &__box {

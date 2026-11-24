@@ -2,9 +2,12 @@
 @use "../abstracts/mixins" as *;
 
 .start-file-picker {
+  // The clear button sits inside the trigger's frame, between the name and the chevron.
+  --start-file-picker-pad-end: 0.75rem;
+  --start-file-picker-clear-gap: 0.25rem;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   min-width: 0;
 
   &__trigger {
@@ -14,7 +17,7 @@
     align-items: center;
     gap: 0.75rem;
     min-width: 0;
-    padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+    padding: 0.375rem var(--start-file-picker-pad-end) 0.375rem 0.375rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     @include fade-bg(transparent);
@@ -22,7 +25,8 @@
     font: inherit;
     text-align: left;
 
-    &:hover:not(:disabled),
+    // Keyed on the root, so pointing at the clear button keeps the field lit.
+    .start-file-picker:hover &:not(:disabled),
     &[aria-expanded="true"] {
       @include fade-bg(var(--surface-hover));
     }
@@ -74,6 +78,20 @@
     flex: none;
     color: var(--text-muted);
     @include icon-size-sm;
+  }
+
+  &--clearable &__chevron {
+    margin-left: calc(var(--control-height-xs) + var(--start-file-picker-clear-gap));
+  }
+
+  &__clear {
+    position: absolute;
+    top: 50%;
+    right: calc(
+      1px + var(--start-file-picker-pad-end) + var(--icon-size-sm) +
+        var(--start-file-picker-clear-gap)
+    );
+    translate: 0 -50%;
   }
 
   // A fixed height, so searching never moves the panel under the pointer. The tiles scroll.
