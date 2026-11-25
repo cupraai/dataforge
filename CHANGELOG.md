@@ -8,6 +8,8 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+## 0.16.0 - 2026-11-25
+
 ### Added
 
 - The notification bell shows how many notifications are unread, in the same count badge as the jobs button. It turns yellow or red when an unread one is a warning or an error, and clears once you close the list. Both badges show **99+** for anything above 99.
