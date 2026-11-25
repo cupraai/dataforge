@@ -7,7 +7,6 @@ import {
   readGallerySessionQuery,
 } from "@/features/gallery/lib/sessionPreferences";
 import {
-  DEFAULT_SORT,
   applyFileFilter,
   applyItemFilter,
   applyMediaTypeFilter,
@@ -18,7 +17,6 @@ import {
   countMediaType,
   filterBySearch,
   hasActiveRanges,
-  parseSortOption,
   processGalleryItems,
   searchRegexError,
   type FileFilter,
@@ -32,9 +30,13 @@ import {
 import { regexSearchTexts } from "@/features/gallery/lib/regexSearch";
 import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
 import type { GalleryItem } from "@/shared/types";
-import { useUiSettings, useUpdateUiSettings } from "@/shared/preferences/uiPreferences";
 
-export function useGalleryQuery(items: GalleryItem[]) {
+/** `sort` belongs to the open folder; the caller owns it with that folder's other view choices. */
+export function useGalleryQuery(
+  items: GalleryItem[],
+  sort: SortOption,
+  setSort: (value: SortOption) => void,
+) {
   const [filter, setFilterState] = useState<ItemFilter>(() => readGallerySessionQuery().filter);
   const [mediaTypeFilter, setMediaTypeFilterState] = useState<MediaTypeFilter>(
     () => readGallerySessionQuery().mediaTypeFilter,
@@ -46,8 +48,6 @@ export function useGalleryQuery(items: GalleryItem[]) {
   const [searchQuery, setSearchQueryState] = useState(() => readGallerySessionQuery().searchQuery);
   const [searchRegex, setSearchRegexState] = useState(() => readGallerySessionQuery().searchRegex);
   const [searchNames, setSearchNamesState] = useState(() => readGallerySessionQuery().searchNames);
-  const sort = parseSortOption(useUiSettings().sort || DEFAULT_SORT);
-  const updateUiSettings = useUpdateUiSettings();
 
   // Typing stays responsive in a large folder: the grid catches up with the query.
   const filterQuery = useDeferredValue(searchQuery);
@@ -111,11 +111,6 @@ export function useGalleryQuery(items: GalleryItem[]) {
     setSearchNamesState(value);
     cacheGallerySessionQuery({ searchNames: value });
   }, []);
-
-  const setSort = useCallback(
-    (value: SortOption) => updateUiSettings({ sort: value }),
-    [updateUiSettings],
-  );
 
   // Regex matching runs in a worker under a time budget; every filter below reads its answer.
   const searchTexts = useMemo(() => regexSearchTexts(items), [items]);

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clearRecentFolders, readRecentFolderPaths } from "@/features/folder/lib/folderPreferences";
-import { ALL_DISPLAY_MODES_KEY } from "@/features/gallery/hooks/useGalleryDisplayMode";
-import { forgetCachedDisplayModes } from "@/features/gallery/preferences/galleryDisplayPreferences";
+import { ALL_GALLERY_VIEWS_KEY } from "@/features/gallery/hooks/useGalleryView";
+import { forgetCachedGalleryViews } from "@/features/gallery/preferences/galleryDisplayPreferences";
 import {
   clearRecentActions,
   readRecentActionIds,
@@ -85,13 +85,13 @@ export function RememberedDataGroup({ visible, disabled }: RememberedDataGroupPr
     },
     {
       id: "display-modes",
-      label: "Display modes per folder",
+      label: "Display and sort per folder",
       unit: ["folder", "folders"],
       count: server?.display_mode_folders ?? null,
       clear: async () => {
-        forgetCachedDisplayModes();
+        forgetCachedGalleryViews();
         setServer(await forgetRememberedData("display-modes"));
-        void queryClient.invalidateQueries({ queryKey: ALL_DISPLAY_MODES_KEY });
+        void queryClient.invalidateQueries({ queryKey: ALL_GALLERY_VIEWS_KEY });
       },
     },
   ];

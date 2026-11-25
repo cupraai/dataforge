@@ -31,7 +31,6 @@ import type {
 } from "@/shared/types";
 
 export interface UiSettings {
-  sort: string;
   showAutomationSpecs: boolean;
   theme: ThemePreference;
   keepCandidateMetadata: boolean;
@@ -48,7 +47,6 @@ export interface UiSettings {
   desktopNotificationLevel: DesktopNotificationLevel;
 }
 
-const SORT_CACHE_KEY = "gallery-sort";
 const AUTOMATION_SPECS_CACHE_KEY = "automation-specs-visible";
 const KEEP_CANDIDATE_METADATA_CACHE_KEY = "keep-candidate-metadata";
 const HIDE_HIDDEN_FOLDERS_CACHE_KEY = "hide-hidden-folders";
@@ -84,7 +82,6 @@ export function parseThemePreference(raw: string | null): ThemePreference {
 
 function readCachedUiSettings(): UiSettings {
   return {
-    sort: readStored(SORT_CACHE_KEY) ?? "",
     showAutomationSpecs: readStored(AUTOMATION_SPECS_CACHE_KEY) === "true",
     theme: parseThemePreference(readStored(THEME_CACHE_KEY)),
     // On unless turned off: accepting without it loses the original's metadata.
@@ -102,7 +99,6 @@ function readCachedUiSettings(): UiSettings {
 }
 
 function cacheUiSettings({
-  sort,
   showAutomationSpecs,
   keepCandidateMetadata,
   jobsDrawerFilters,
@@ -113,7 +109,6 @@ function cacheUiSettings({
   desktopNotifications,
   desktopNotificationLevel,
 }: Partial<UiSettings>): void {
-  if (sort !== undefined) writeStored(SORT_CACHE_KEY, sort);
   if (showAutomationSpecs !== undefined) {
     writeStored(AUTOMATION_SPECS_CACHE_KEY, String(showAutomationSpecs));
   }
@@ -139,7 +134,6 @@ function cacheUiSettings({
 
 function parseUiSettingsResponse(data: UiSettingsResponse): UiSettings {
   return {
-    sort: data.sort,
     showAutomationSpecs: Boolean(data.show_automation_specs),
     theme: data.theme,
     keepCandidateMetadata: data.keep_candidate_metadata,
@@ -171,7 +165,6 @@ export function updateUiSettings(partial: Partial<UiSettings>): Promise<UiSettin
   cacheUiSettings(partial);
 
   const body: UiSettingsUpdate = {};
-  if (partial.sort !== undefined) body.sort = partial.sort;
   if (partial.showAutomationSpecs !== undefined) {
     body.show_automation_specs = partial.showAutomationSpecs;
   }

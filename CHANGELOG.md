@@ -22,6 +22,7 @@ version heading when a minor or major version is cut.
 
 ### Changed
 
+- Each folder remembers its own sort, like its view, so output and dataset folders can be sorted differently. Folders you have not sorted yet start with the newest files first; the sort chosen before this update is not carried over. **Settings > Data > Remembered data** clears both together.
 - Setup, update, the launchers and the stop and install scripts show their progress the same way on Windows, Linux and macOS: one line per step, each with a check mark, its duration and what it found, such as how many packages were installed or which FFmpeg is used. pip, npm and git no longer fill the window; a step that is still running shows how long it has taken and what it is doing, and a step that fails shows its command and the end of its output. Each script ends with one line saying whether it worked and what to do next.
 - The launchers and the stop script only stop a DataForge server started from the same folder. Another program's Python or Node, or another copy of DataForge, is named and left running.
 - Windows setup checks the downloaded Python and Node.js against the checksums their publishers list, as it already did for FFmpeg, and retries a dropped download. It refuses a folder whose path contains `&` or `^`, where npm cannot run, and the launchers say when the backend environment no longer starts because the folder was moved.

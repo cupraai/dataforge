@@ -33,7 +33,6 @@ def read_ui_settings() -> UiSettingsResponse:
 @router.put("/preferences/ui", response_model=UiSettingsResponse)
 def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
     saved = update_ui_settings(
-        sort=body.sort,
         show_automation_specs=body.show_automation_specs,
         theme=body.theme,
         keep_candidate_metadata=body.keep_candidate_metadata,
@@ -52,7 +51,7 @@ def write_ui_settings(body: UiSettingsUpdate) -> UiSettingsResponse:
 
 @router.get("/preferences/gallery-display", response_model=GalleryDisplaySettingsResponse)
 def read_gallery_display_settings(
-    path: str = Query(..., description="Folder path; the display mode is returned for this folder"),
+    path: str = Query(..., description="Folder path; its display mode and sort are returned"),
 ) -> GalleryDisplaySettingsResponse:
     return get_gallery_display_settings(folder_path=path)
 
@@ -61,7 +60,9 @@ def read_gallery_display_settings(
 def write_gallery_display_settings(
     body: GalleryDisplaySettingsUpdate,
 ) -> GalleryDisplaySettingsResponse:
-    return update_gallery_display_settings(mode=body.mode, folder_path=body.folder_path)
+    return update_gallery_display_settings(
+        mode=body.mode, sort=body.sort, folder_path=body.folder_path
+    )
 
 
 @router.get("/preferences/automation", response_model=AutomationSettingsResponse)
@@ -92,7 +93,7 @@ def forget_job_options() -> RememberedDataResponse:
 
 @router.delete("/preferences/remembered/display-modes", response_model=RememberedDataResponse)
 def forget_display_modes() -> RememberedDataResponse:
-    gallery_display_settings.forget_folder_modes()
+    gallery_display_settings.forget_folder_views()
     return _remembered()
 
 

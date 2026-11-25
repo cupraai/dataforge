@@ -119,6 +119,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
   let folderFavorites: string[] | null = options.folderFavorites ?? null;
   let savedSettings = appSettings();
   let remembered = { job_option_folders: 3, display_mode_folders: 2 };
+  const galleryViews = new Map<string, { mode: string; sort: string }>();
   const savedSnippets = new Map<string, { name: string; text: string }[]>();
   let showcaseSets: { name: string }[] = [];
   let workflows: Workflow[] = options.workflows ?? [];
@@ -759,10 +760,24 @@ export function installMockBackend(options: MockBackendOptions = {}) {
     if (url.pathname === "/api/preferences/ui") {
       if (method === "PUT") {
         const body = init?.body ? JSON.parse(init.body as string) : {};
-        return jsonResponse({ sort: body.sort ?? FIXTURE_SORT, theme: body.theme ?? "system" });
+        return jsonResponse({ theme: body.theme ?? "system" });
       }
 
-      return jsonResponse({ sort: FIXTURE_SORT, theme: "system" });
+      return jsonResponse({ theme: "system" });
+    }
+
+    if (url.pathname === "/api/preferences/gallery-display") {
+      const body = method === "PUT" && init?.body ? JSON.parse(init.body as string) : {};
+      const folder = String(body.folder_path ?? url.searchParams.get("path") ?? "");
+      const view = {
+        mode: "large",
+        sort: FIXTURE_SORT,
+        ...galleryViews.get(folder),
+        ...(body.mode ? { mode: body.mode } : {}),
+        ...(body.sort ? { sort: body.sort } : {}),
+      };
+      galleryViews.set(folder, view);
+      return jsonResponse({ ...view, folder_path: folder });
     }
 
     if (url.pathname === "/api/preferences/automation") {

@@ -101,7 +101,7 @@ describe("SettingsDialog sections", () => {
     expect(await screen.findByText("Job options per folder cleared.")).toBeInTheDocument();
     expect(within(row("Recent folders")).getByText("0 folders")).toBeInTheDocument();
     expect(within(row("Job options per folder")).getByText("0 folders")).toBeInTheDocument();
-    expect(within(row("Display modes per folder")).getByText("2 folders")).toBeInTheDocument();
+    expect(within(row("Display and sort per folder")).getByText("2 folders")).toBeInTheDocument();
     expect(localStorage.getItem("gallery-recent-folders")).toBe("[]");
   });
 

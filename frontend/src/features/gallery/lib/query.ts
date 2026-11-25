@@ -86,7 +86,7 @@ export function sortOptionLabel(value: SortOption): string {
 
 const SORT_OPTION_VALUES = new Set<SortOption>(SORT_OPTIONS.map((option) => option.value));
 
-function isSortOption(value: string): value is SortOption {
+export function isSortOption(value: string): value is SortOption {
   return SORT_OPTION_VALUES.has(value as SortOption);
 }
 

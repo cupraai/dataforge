@@ -20,7 +20,6 @@ function deferred<T>() {
 }
 
 const serverCopy = {
-  sort: "name-asc",
   show_automation_specs: true,
   theme: "dark",
   keep_candidate_metadata: false,
@@ -69,7 +68,6 @@ describe("useUiSettings", () => {
     expect(result.current.theme).toBe("light");
     await waitFor(() =>
       expect(result.current).toEqual({
-        sort: "name-asc",
         showAutomationSpecs: true,
         theme: "dark",
         keepCandidateMetadata: false,
@@ -98,7 +96,6 @@ describe("useUiSettings", () => {
     expect(JSON.parse(localStorage.getItem("editor-options") ?? "null")).toEqual(
       result.current.editor,
     );
-    expect(localStorage.getItem("gallery-sort")).toBe("name-asc");
     expect(JSON.parse(localStorage.getItem("gallery-card-options") ?? "null")).toEqual(
       result.current.galleryCards,
     );
@@ -185,7 +182,7 @@ describe("useUiSettings", () => {
     const first = renderHook(() => useUiSettings(), { wrapper });
     const second = renderHook(() => useUiSettings(), { wrapper });
 
-    await waitFor(() => expect(second.result.current.sort).toBe("name-asc"));
+    await waitFor(() => expect(second.result.current.desktopNotificationLevel).toBe("errors"));
     expect(first.result.current).toBe(second.result.current);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -196,7 +193,11 @@ describe("useUpdateUiSettings", () => {
     const fetchMock = vi
       .fn<(url: string, init?: RequestInit) => Promise<Response>>()
       .mockImplementation(async (_url: string, init?: RequestInit) =>
-        respond(init?.method === "PUT" ? { ...serverCopy, sort: "date-desc" } : serverCopy),
+        respond(
+          init?.method === "PUT"
+            ? { ...serverCopy, desktop_notification_level: "warnings" }
+            : serverCopy,
+        ),
       );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -204,15 +205,18 @@ describe("useUpdateUiSettings", () => {
       () => ({ settings: useUiSettings(), update: useUpdateUiSettings() }),
       { wrapper: queryWrapper().wrapper },
     );
-    await waitFor(() => expect(result.current.settings.sort).toBe("name-asc"));
+    await waitFor(() => expect(result.current.settings.desktopNotificationLevel).toBe("errors"));
 
-    act(() => result.current.update({ sort: "date-desc" }));
+    act(() => result.current.update({ desktopNotificationLevel: "warnings" }));
 
-    await waitFor(() => expect(result.current.settings.sort).toBe("date-desc"));
-    expect(localStorage.getItem("gallery-sort")).toBe("date-desc");
+    await waitFor(() => expect(result.current.settings.desktopNotificationLevel).toBe("warnings"));
+    expect(localStorage.getItem("desktop-notification-level")).toBe("warnings");
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/preferences/ui",
-      expect.objectContaining({ method: "PUT", body: JSON.stringify({ sort: "date-desc" }) }),
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ desktop_notification_level: "warnings" }),
+      }),
     );
   });
 });
@@ -234,30 +238,32 @@ it("keeps later choices visible while preference writes finish in order", async 
   const reader = renderHook(() => useUiSettings(), { wrapper });
   const one = renderHook(() => useUpdateUiSettings(), { wrapper });
   const two = renderHook(() => useUpdateUiSettings(), { wrapper });
-  await waitFor(() => expect(reader.result.current.sort).toBe("name-asc"));
-  act(() => one.result.current({ sort: "date-desc" }));
+  await waitFor(() => expect(reader.result.current.desktopNotificationLevel).toBe("errors"));
+  act(() => one.result.current({ desktopNotificationLevel: "warnings" }));
   await waitFor(() => expect(writes).toHaveBeenCalledTimes(1));
-  act(() => two.result.current({ sort: "name-desc", showAutomationSpecs: false }));
-  await waitFor(() => expect(reader.result.current.sort).toBe("name-desc"));
+  act(() => two.result.current({ desktopNotificationLevel: "all", showAutomationSpecs: false }));
+  await waitFor(() => expect(reader.result.current.desktopNotificationLevel).toBe("all"));
   const writesBeforeFirstReply = writes.mock.calls.length;
-  await act(async () => first.resolve(respond({ ...serverCopy, sort: "date-desc" })));
+  await act(async () =>
+    first.resolve(respond({ ...serverCopy, desktop_notification_level: "warnings" })),
+  );
   await waitFor(() => expect(writes).toHaveBeenCalledTimes(2));
   const stateAfterFirstReply = reader.result.current;
-  const mirroredAfterFirstReply = localStorage.getItem("gallery-sort");
+  const mirroredAfterFirstReply = localStorage.getItem("desktop-notification-level");
   await act(async () =>
     second.resolve(
       respond({
         ...serverCopy,
-        sort: "name-desc",
+        desktop_notification_level: "all",
         show_automation_specs: false,
       }),
     ),
   );
   expect(writesBeforeFirstReply).toBe(1);
-  expect(stateAfterFirstReply.sort).toBe("name-desc");
+  expect(stateAfterFirstReply.desktopNotificationLevel).toBe("all");
   expect(stateAfterFirstReply.showAutomationSpecs).toBe(false);
-  expect(mirroredAfterFirstReply).toBe("name-desc");
-  expect(reader.result.current.sort).toBe("name-desc");
+  expect(mirroredAfterFirstReply).toBe("all");
+  expect(reader.result.current.desktopNotificationLevel).toBe("all");
 });
 
 it("shares fresh preferences across remounts and refreshes an expired copy", async () => {
@@ -267,7 +273,7 @@ it("shares fresh preferences across remounts and refreshes an expired copy", asy
   vi.stubGlobal("fetch", fetchMock);
   const { wrapper } = queryWrapper();
   const first = renderHook(() => useUiSettings(), { wrapper });
-  await waitFor(() => expect(first.result.current.sort).toBe("name-asc"));
+  await waitFor(() => expect(first.result.current.desktopNotificationLevel).toBe("errors"));
   first.unmount();
   const second = renderHook(() => useUiSettings(), { wrapper });
   await act(async () => {
@@ -278,10 +284,10 @@ it("shares fresh preferences across remounts and refreshes an expired copy", asy
   second.unmount();
   vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_001);
   fetchMock.mockImplementation(() =>
-    Promise.resolve(respond({ ...serverCopy, sort: "date-desc" })),
+    Promise.resolve(respond({ ...serverCopy, desktop_notification_level: "warnings" })),
   );
   const third = renderHook(() => useUiSettings(), { wrapper });
-  await waitFor(() => expect(third.result.current.sort).toBe("date-desc"));
+  await waitFor(() => expect(third.result.current.desktopNotificationLevel).toBe("warnings"));
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
@@ -293,19 +299,21 @@ it("continues queued writes after a failure, including theme saves outside React
     .mockReturnValueOnce(first.promise)
     .mockReturnValueOnce(second.promise);
   vi.stubGlobal("fetch", fetchMock);
-  const failed = updateUiSettings({ sort: "date-desc" }).catch((error: unknown) => error);
-  const later = updateUiSettings({ theme: "light", sort: "name-desc" });
+  const failed = updateUiSettings({ desktopNotificationLevel: "warnings" }).catch(
+    (error: unknown) => error,
+  );
+  const later = updateUiSettings({ theme: "light", desktopNotificationLevel: "all" });
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-  expect(localStorage.getItem("gallery-sort")).toBe("name-desc");
+  expect(localStorage.getItem("desktop-notification-level")).toBe("all");
   first.reject(new TypeError("Failed to fetch"));
   await failed;
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  second.resolve(respond({ ...serverCopy, sort: "name-desc", theme: "light" }));
-  await expect(later).resolves.toMatchObject({ theme: "light", sort: "name-desc" });
+  second.resolve(respond({ ...serverCopy, desktop_notification_level: "all", theme: "light" }));
+  await expect(later).resolves.toMatchObject({ theme: "light", desktopNotificationLevel: "all" });
   expect(fetchMock).toHaveBeenLastCalledWith(
     "/api/preferences/ui",
     expect.objectContaining({
-      body: JSON.stringify({ sort: "name-desc", theme: "light" }),
+      body: JSON.stringify({ theme: "light", desktop_notification_level: "all" }),
     }),
   );
 });

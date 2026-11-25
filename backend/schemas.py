@@ -588,7 +588,6 @@ class EditorSettings(BaseModel):
 
 
 class UiSettingsResponse(BaseModel):
-    sort: GallerySort = DEFAULT_GALLERY_SORT
     show_automation_specs: bool = False
     theme: ThemePreference = "system"
     #: On by default: accepting a ComfyUI candidate would otherwise lose the original's metadata.
@@ -606,8 +605,6 @@ class UiSettingsResponse(BaseModel):
 
 
 class UiSettingsUpdate(BaseModel):
-    # Deliberately not ``GallerySort``: an unknown sort resets to the default instead of failing.
-    sort: str | None = None
     show_automation_specs: bool | None = None
     theme: ThemePreference | None = None
     keep_candidate_metadata: bool | None = None
@@ -884,12 +881,17 @@ type GalleryDisplayMode = Literal["large", "small", "list"]
 
 
 class GalleryDisplaySettingsResponse(BaseModel):
+    """How one folder's gallery is shown; a folder never chosen for gets the defaults."""
+
     mode: GalleryDisplayMode = "large"
+    sort: GallerySort = DEFAULT_GALLERY_SORT
     folder_path: str
 
 
 class GalleryDisplaySettingsUpdate(BaseModel):
     mode: GalleryDisplayMode | None = None
+    # Deliberately not ``GallerySort``: an unknown sort is ignored instead of failing.
+    sort: str | None = None
     folder_path: str
 
 

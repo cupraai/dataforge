@@ -8,11 +8,11 @@ from pydantic import ValidationError
 from external.ostris_training import TRAINING_TEMPLATES
 from schemas import (
     AutoCaptionStartRequest,
+    GalleryDisplaySettingsUpdate,
     GalleryItem,
     JobResponse,
     TrainingModel,
     TrainLoraStartRequest,
-    UiSettingsUpdate,
 )
 
 
@@ -128,10 +128,11 @@ class TrainingModelSchemaTests(unittest.TestCase):
             TrainLoraStartRequest(model="no_such_model")
 
 
-class UiSettingsUpdateSchemaTests(unittest.TestCase):
+class GalleryDisplaySettingsUpdateSchemaTests(unittest.TestCase):
     def test_unknown_sort_is_accepted_on_purpose(self) -> None:
-        """An unknown sort resets to the default instead of failing the request."""
-        self.assertEqual(UiSettingsUpdate(sort="bogus").sort, "bogus")
+        """An unknown sort is ignored instead of failing the request."""
+        update = GalleryDisplaySettingsUpdate(sort="bogus", folder_path="C:/Photos")
+        self.assertEqual(update.sort, "bogus")
 
 
 if __name__ == "__main__":

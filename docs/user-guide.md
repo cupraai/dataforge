@@ -52,7 +52,7 @@ A dataset is a folder: `scene.jpg` is captioned by `scene.txt` beside it. DataFo
 - **Regex search.** Turn on regex for regular expressions. A pattern that takes more than a second is stopped and reported as **Pattern too slow**.
 - **Filter chips.** Each active filter shows a removable chip. **Reset all filters** keeps the search text.
 - **Ranges.** Each range charts the files the other filters keep. Click a bar to pick it, click another to widen the span, or type **From** and **Below** values. A range includes its minimum but not its maximum, and leaves out files without that value, such as stills for duration. Clicking a bar in the statistics drawer sets the same range.
-- **Remembered choices.** The sort is remembered, and each folder remembers its view.
+- **Remembered choices.** Each folder remembers its own view and sort, so an output folder can stay newest first while a dataset stays sorted by name. A folder you have not sorted yet starts with the newest files first.
 
 **Cards** mark missing, empty, and unreadable captions, and show badges for findings, ComfyUI candidates, and edits. Hovering a card shows its **card actions**: Open, Copy caption, and Delete by default. **Settings > Appearance > Gallery** adds others from the inspector, such as Edit, Move file, or Rename file, and controls what cards show.
 

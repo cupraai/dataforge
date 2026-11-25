@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
 import { useFolderCaptionPatch } from "@/features/gallery/hooks/useFolderCaptionPatch";
-import { useGalleryDisplayMode } from "@/features/gallery/hooks/useGalleryDisplayMode";
+import { useGalleryView } from "@/features/gallery/hooks/useGalleryView";
 import { useGalleryOverlays } from "@/features/gallery/hooks/useGalleryOverlays";
 import { useGalleryQuery } from "@/features/gallery/hooks/useGalleryQuery";
 import type { useGallerySelection } from "@/features/gallery/hooks/useGallerySelection";
@@ -68,7 +68,8 @@ export function useGallerySession({
     }
   }, [items, removeSelectedPaths, selectedPathsList]);
 
-  const query = useGalleryQuery(items);
+  const { displayMode, setDisplayMode, sort: folderSort, setSort } = useGalleryView(folderPath);
+  const query = useGalleryQuery(items, folderSort, setSort);
   const { searchQuery, searchRegex, searchNames, sort } = query;
   const modelNames = useMemo(() => models.map((model) => model.name), [models]);
   const trimmedSearch = searchQuery.trim();
@@ -115,7 +116,6 @@ export function useGallerySession({
     return jobEligiblePaths(visibleSelectedPaths);
   }, [query.filteredItems, selectionMode, visibleSelectedCount, visibleSelectedPaths]);
 
-  const { displayMode, setDisplayMode } = useGalleryDisplayMode(folderPath);
   const issueCount = countResolvableIssues(items);
   const handleCaptionSaved = useFolderCaptionPatch(setFolder);
 

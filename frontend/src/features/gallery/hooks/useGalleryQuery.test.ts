@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { REGEX_SEARCH_BUDGET_MS } from "./useRegexSearch";
 import { FILTER_OPTIONS } from "@/features/gallery/lib/filters";
 import { readGallerySessionQuery } from "@/features/gallery/lib/sessionPreferences";
+import { DEFAULT_SORT, type SortOption } from "@/features/gallery/lib/query";
 import { useGalleryQuery } from "./useGalleryQuery";
 import type { GalleryItem } from "@/shared/types";
 import { renderHookWithQueryClient } from "@/test/queryClient";
@@ -60,48 +61,33 @@ const candidateItems = [
   item("other.png", "image", true, false, false, false),
 ];
 
+/** The sort is the folder's, saved by `useGalleryView`; these tests only read it. */
+const ignoreSort = (_sort: SortOption) => {};
+
 describe("useGalleryQuery", () => {
-  it("saves a sort change to the UI settings", async () => {
-    const fetchMock = vi.fn<typeof fetch>(async (_url, init) => {
-      const saved = init?.body ? JSON.parse(init.body as string) : {};
-      return new Response(
-        JSON.stringify({
-          sort: saved.sort ?? "name-asc",
-          theme: "system",
-          show_automation_specs: false,
-          jobs_drawer_filters: { job_types: [], status: "all", folder: "all" },
-          gallery_cards: {
-            small_caption_lines: 2,
-            large_caption_lines: 4,
-            megapixels: true,
-            large_aspect_ratio: true,
-            list_caption_preview: false,
-          },
-          editor: {
-            line_wrap: true,
-            line_numbers: true,
-            caption_spellcheck: true,
-            caption_spellcheck_language: "en-US",
-            caption_suggestions: true,
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(items));
-
-    act(() => result.current.setSort("date-asc"));
-
-    await waitFor(() => expect(result.current.sort).toBe("date-asc"));
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/preferences/ui",
-      expect.objectContaining({ method: "PUT", body: JSON.stringify({ sort: "date-asc" }) }),
+  it("orders by the folder's sort and follows a change to it", () => {
+    const { result, rerender } = renderHookWithQueryClient(
+      ({ sort }: { sort: SortOption }) => useGalleryQuery(items, sort, ignoreSort),
+      { initialProps: { sort: "name-asc" as SortOption } },
     );
+
+    expect(result.current.filteredItems.map((entry) => entry.name)).toEqual([
+      "a.png",
+      "b.jpg",
+      "c.mp4",
+      "d.mp4",
+    ]);
+
+    rerender({ sort: "name-desc" });
+
+    expect(result.current.sort).toBe("name-desc");
+    expect(result.current.filteredItems[0]?.name).toBe("d.mp4");
   });
 
   it("scopes caption filter counts by the active media type filter", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(items));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(items, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.filterCounts).toEqual({
       all: 4,
@@ -123,7 +109,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes media type filter counts by the active caption filter", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(items));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(items, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.mediaTypeFilterCounts).toEqual({
       all: 4,
@@ -149,7 +137,9 @@ describe("useGalleryQuery", () => {
       item("b.jpg", "image", false, false),
       item("d.mp4", "video", false, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(uncaptionedItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(uncaptionedItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFilter("captioned");
@@ -164,7 +154,9 @@ describe("useGalleryQuery", () => {
       item("a.png", "image", true, false),
       item("b.jpg", "image", false, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(imageOnlyItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(imageOnlyItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setMediaTypeFilter("video");
@@ -181,7 +173,9 @@ describe("useGalleryQuery", () => {
       item("plain-pre.png", "image", true, true),
       item("clean.png", "image", true, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(issueItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(issueItems, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.filterCounts.issue).toBe(3);
 
@@ -199,7 +193,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("reports active filters when search or filter state narrows the gallery", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(items));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(items, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.hasActiveFilters).toBe(false);
     expect(result.current.hasActiveSearch).toBe(false);
@@ -218,14 +214,18 @@ describe("useGalleryQuery", () => {
   });
 
   it("counts duplicates as its own axis", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.fileFilterCounts.duplicates).toBe(3);
     expect(result.current.fileFilter).toBe("all");
   });
 
   it("narrows the gallery to duplicates and back", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -245,7 +245,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("combines duplicates with the caption filter", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -260,7 +262,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("clears all three filter axes at once but leaves the search alone", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setMediaTypeFilter("image");
@@ -286,7 +290,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("persists the reset so a reload does not restore the cleared filters", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -308,7 +314,9 @@ describe("useGalleryQuery", () => {
       { ...item("long.mp4", "video", true, false), duration: 9 },
       item("still.png", "image", true, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(clips));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(clips, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setRange("duration", { min: 2, max: 10 });
@@ -333,7 +341,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("clears ranges with the other filters, leaving the search", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setRange("megapixels", { min: 1 });
@@ -349,7 +359,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("treats duplicates as an active filter on its own", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -359,7 +371,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes caption counts by the duplicates toggle", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.filterCounts).toEqual({
       all: 6,
@@ -381,7 +395,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes media type counts by the duplicates toggle", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -391,7 +407,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes the duplicate count by the caption filter and media type", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFilter("uncaptioned");
@@ -409,7 +427,9 @@ describe("useGalleryQuery", () => {
 
   // Measured with the toggle off: the number beside it is what turning it on would find.
   it("holds the duplicate count steady while duplicates is on", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -419,7 +439,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("blames the combination when duplicates and a caption filter agree on nothing", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -437,7 +459,9 @@ describe("useGalleryQuery", () => {
       item("a.png", "image", true, false),
       item("b.jpg", "image", false, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(noDuplicates));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(noDuplicates, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -448,7 +472,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("keeps every caption count equal to what selecting it yields", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -470,7 +496,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("keeps the duplicate count equal to what turning it on yields", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(crossItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(crossItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFilter("captioned");
@@ -489,14 +517,18 @@ describe("useGalleryQuery", () => {
   });
 
   it("counts candidates as their own axis", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.fileFilterCounts.candidates).toBe(3);
     expect(result.current.fileFilter).toBe("all");
   });
 
   it("narrows the gallery to candidates and back", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -516,7 +548,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("combines candidates with the caption filter", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -538,7 +572,9 @@ describe("useGalleryQuery", () => {
       item("dup-only.png", "image", true, false, true, false),
       item("cand-only.png", "image", true, false, false, true),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(mixed));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(mixed, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("duplicates");
@@ -561,7 +597,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("treats candidates as an active filter on its own", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -571,7 +609,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes caption counts by the candidates filter", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     expect(result.current.filterCounts).toEqual({
       all: 6,
@@ -593,7 +633,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("scopes the candidate count by the caption filter and media type", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFilter("uncaptioned");
@@ -610,7 +652,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("holds the candidate count steady while candidates is on", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -620,7 +664,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("blames the combination when candidates and a caption filter agree on nothing", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -638,7 +684,9 @@ describe("useGalleryQuery", () => {
       item("a.png", "image", true, false),
       item("b.jpg", "image", false, false),
     ];
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(noCandidates));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(noCandidates, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFileFilter("candidates");
@@ -649,7 +697,9 @@ describe("useGalleryQuery", () => {
   });
 
   it("keeps the candidate count equal to what turning it on yields", () => {
-    const { result } = renderHookWithQueryClient(() => useGalleryQuery(candidateItems));
+    const { result } = renderHookWithQueryClient(() =>
+      useGalleryQuery(candidateItems, DEFAULT_SORT, ignoreSort),
+    );
 
     act(() => {
       result.current.setFilter("captioned");
@@ -680,7 +730,9 @@ describe("useGalleryQuery regex search", () => {
     vi.stubGlobal("Worker", SilentWorker);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      const { result } = renderHookWithQueryClient(() => useGalleryQuery(items));
+      const { result } = renderHookWithQueryClient(() =>
+        useGalleryQuery(items, DEFAULT_SORT, ignoreSort),
+      );
       act(() => {
         result.current.setSearchRegex(true);
         result.current.setSearchQuery("^(a|aa)+$");

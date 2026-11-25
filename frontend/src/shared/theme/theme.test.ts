@@ -21,7 +21,6 @@ function stubSystemScheme(light: boolean) {
 
 function respond(theme: string) {
   const body = {
-    sort: "name-asc",
     show_automation_specs: false,
     theme,
     jobs_drawer_filters: { job_types: [], status: "all", folder: "all" },

@@ -333,7 +333,6 @@ describe("JobsDialog", () => {
         vi.fn(() =>
           Promise.resolve(
             Response.json({
-              sort: "date-desc",
               show_automation_specs: false,
               theme: "system",
               keep_candidate_metadata: true,

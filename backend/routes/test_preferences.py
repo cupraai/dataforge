@@ -24,36 +24,6 @@ class UiPreferencesEndpointTests(unittest.TestCase):
             conn.commit()
         load_tagging_switch()
 
-    def test_read_default_sort(self) -> None:
-        response = client.get("/api/preferences/ui")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sort"], "date-desc")
-
-    def test_update_sort(self) -> None:
-        response = client.put("/api/preferences/ui", json={"sort": "date-desc"})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sort"], "date-desc")
-
-    def test_update_megapixels_sort(self) -> None:
-        response = client.put("/api/preferences/ui", json={"sort": "megapixels-desc"})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sort"], "megapixels-desc")
-
-    def test_update_duration_sort(self) -> None:
-        response = client.put("/api/preferences/ui", json={"sort": "duration-desc"})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sort"], "duration-desc")
-
-    def test_invalid_sort_falls_back_to_default(self) -> None:
-        response = client.put("/api/preferences/ui", json={"sort": "not-a-real-sort"})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sort"], "date-desc")
-
     def test_read_default_automation_specs_visibility(self) -> None:
         response = client.get("/api/preferences/ui")
 
@@ -145,7 +115,6 @@ class UiPreferencesEndpointTests(unittest.TestCase):
 
         read_back = client.get("/api/preferences/ui").json()
         self.assertEqual(read_back["jobs_drawer_filters"], filters)
-        self.assertEqual(read_back["sort"], "date-desc")
 
     def test_gallery_cards_default_to_captions_and_file_facts_without_list_preview(self) -> None:
         self.assertEqual(
@@ -331,6 +300,78 @@ class GalleryDisplayPreferencesEndpointTests(unittest.TestCase):
         stored = json.loads(row[0])
         self.assertEqual(stored["mode_by_folder"], {})
 
+    def test_sort_defaults_to_newest_first(self) -> None:
+        response = client.get(f"/api/preferences/gallery-display?path={quote(r'C:\Photos')}")
+
+        self.assertEqual(response.json()["sort"], "date-desc")
+
+    def test_sort_is_stored_per_folder(self) -> None:
+        output = r"C:\ComfyUI\output"
+        dataset = r"C:\datasets\sample"
+
+        client.put(
+            "/api/preferences/gallery-display",
+            json={"sort": "created-desc", "folder_path": output},
+        )
+        client.put(
+            "/api/preferences/gallery-display",
+            json={"sort": "name-asc", "folder_path": dataset},
+        )
+
+        def sort_of(folder: str) -> str:
+            return client.get(f"/api/preferences/gallery-display?path={quote(folder)}").json()[
+                "sort"
+            ]
+
+        self.assertEqual(sort_of(output), "created-desc")
+        self.assertEqual(sort_of(dataset), "name-asc")
+        self.assertEqual(sort_of(r"C:\datasets\other"), "date-desc")
+
+    def test_sort_and_mode_are_saved_independently(self) -> None:
+        folder = r"C:\Photos\A"
+        client.put("/api/preferences/gallery-display", json={"mode": "list", "folder_path": folder})
+
+        response = client.put(
+            "/api/preferences/gallery-display", json={"sort": "size-desc", "folder_path": folder}
+        )
+
+        self.assertEqual(response.json()["mode"], "list")
+        self.assertEqual(response.json()["sort"], "size-desc")
+
+    def test_an_unknown_sort_leaves_the_folders_sort_alone(self) -> None:
+        folder = r"C:\Photos\A"
+        client.put(
+            "/api/preferences/gallery-display", json={"sort": "name-desc", "folder_path": folder}
+        )
+
+        response = client.put(
+            "/api/preferences/gallery-display",
+            json={"sort": "not-a-real-sort", "folder_path": folder},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sort"], "name-desc")
+
+    def test_the_default_sort_is_not_stored(self) -> None:
+        folder = r"C:\Photos\A"
+        client.put(
+            "/api/preferences/gallery-display", json={"sort": "name-asc", "folder_path": folder}
+        )
+        client.put(
+            "/api/preferences/gallery-display", json={"sort": "date-desc", "folder_path": folder}
+        )
+
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT value FROM preferences WHERE key = ?",
+                (GALLERY_DISPLAY_SETTINGS_KEY,),
+            ).fetchone()
+
+        self.assertEqual(json.loads(row[0])["sort_by_folder"], {})
+
+    def test_ui_settings_no_longer_carry_a_sort(self) -> None:
+        self.assertNotIn("sort", client.get("/api/preferences/ui").json())
+
 
 class AutomationPreferencesEndpointTests(unittest.TestCase):
     def tearDown(self) -> None:
@@ -407,6 +448,28 @@ class RememberedDataEndpointTests(unittest.TestCase):
         body = client.get("/api/preferences/remembered").json()
 
         self.assertEqual(body, {"job_option_folders": 2, "display_mode_folders": 2})
+
+    def test_a_folder_with_only_a_remembered_sort_counts_once(self) -> None:
+        self._remember_two_folders()
+        client.put(
+            "/api/preferences/gallery-display",
+            json={"sort": "name-asc", "folder_path": r"C:\datasets\sample"},
+        )
+        client.put(
+            "/api/preferences/gallery-display",
+            json={"sort": "name-asc", "folder_path": r"C:\datasets\third"},
+        )
+
+        body = client.get("/api/preferences/remembered").json()
+
+        self.assertEqual(body["display_mode_folders"], 3)
+
+        cleared = client.delete("/api/preferences/remembered/display-modes").json()
+        self.assertEqual(cleared["display_mode_folders"], 0)
+        read_back = client.get(
+            f"/api/preferences/gallery-display?path={quote(r'C:\datasets\third')}"
+        ).json()
+        self.assertEqual(read_back["sort"], "date-desc")
 
     def test_forgetting_job_options_keeps_the_latest_choices(self) -> None:
         self._remember_two_folders()

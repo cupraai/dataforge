@@ -16,7 +16,6 @@ function stubSettings(showAutomationSpecs: boolean) {
     .mockImplementation(async (_url: string, init?: RequestInit) => {
       const saved = init?.body ? JSON.parse(init.body as string) : {};
       return respond({
-        sort: "name-asc",
         theme: "system",
         show_automation_specs: saved.show_automation_specs ?? showAutomationSpecs,
         jobs_drawer_filters: { job_types: [], status: "all", folder: "all" },
