@@ -73,6 +73,7 @@ import type {
 import type { ResolvedTheme } from "@/shared/theme/theme";
 import type { QuickActionItem, QuickActionSection } from "../types";
 import { reviewScopeSuffix, type ReviewScope } from "@/features/gallery/lib/reviewScope";
+import { fileManagerName } from "@/shared/lib/platform";
 
 export function quickActionFolderId(path: string): string {
   return `folder:${normalizeFolderPath(path)}`;
@@ -680,7 +681,7 @@ export function buildFolderPathCommandItems({
     {
       id: "cmd:open-in-explorer",
       section: "commands",
-      label: "Open in File Explorer",
+      label: `Open in ${fileManagerName()}`,
       detail: folderPath,
       icon: iconArrowUpRight,
       keywords: "reveal show windows finder file manager browse disk",
@@ -733,7 +734,7 @@ export function buildAppCommandItems({
       id: "cmd:toggle-hidden-folders",
       section: "commands",
       label: hideHiddenFolders ? "Show hidden folders" : "Hide hidden folders",
-      detail: "Folders named with a leading dot, or marked hidden in Windows",
+      detail: "Folders named with a leading dot, or marked hidden by the system",
       icon: hideHiddenFolders ? iconEye : iconEyeOff,
       keywords: "dot dotfiles hidden attribute system visible invisible toggle directories",
       shortcut: "toggleHiddenFolders",

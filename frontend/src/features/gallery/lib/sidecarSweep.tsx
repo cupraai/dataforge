@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { NotifyOptions } from "@/shared/notifications/notifications";
 import type { SidecarDeleteResponse, SidecarKind } from "@/shared/types";
+import { trashName } from "@/shared/lib/platform";
 
 export const SIDECAR_SWEEP_KINDS = ["issue", "duplicate", "empty_caption"] as const;
 
@@ -19,8 +20,8 @@ export const SIDECAR_SWEEP_COPY: Record<SidecarKind, SidecarSweepCopy> = {
     description: (count, folderLabel) => (
       <>
         This will delete <strong>{sidecarCountPhrase("issue", count)}</strong> in{" "}
-        <strong>{folderLabel}</strong>. Captions and media are left untouched. On Windows, files are
-        moved to the Recycle Bin.
+        <strong>{folderLabel}</strong>. Captions and media are left untouched. Files are moved to
+        the {trashName()}.
       </>
     ),
   },
@@ -31,8 +32,8 @@ export const SIDECAR_SWEEP_COPY: Record<SidecarKind, SidecarSweepCopy> = {
     description: (count, folderLabel) => (
       <>
         This will delete <strong>{sidecarCountPhrase("duplicate", count)}</strong> in{" "}
-        <strong>{folderLabel}</strong>. The duplicate media themselves are left untouched. On
-        Windows, files are moved to the Recycle Bin.
+        <strong>{folderLabel}</strong>. The duplicate media themselves are left untouched. Files are
+        moved to the {trashName()}.
       </>
     ),
   },
@@ -43,8 +44,8 @@ export const SIDECAR_SWEEP_COPY: Record<SidecarKind, SidecarSweepCopy> = {
     description: (count, folderLabel) => (
       <>
         This will delete <strong>{sidecarCountPhrase("empty_caption", count)}</strong> in{" "}
-        <strong>{folderLabel}</strong>. Media and captions with text are left untouched. On Windows,
-        files are moved to the Recycle Bin.
+        <strong>{folderLabel}</strong>. Media and captions with text are left untouched. Files are
+        moved to the {trashName()}.
       </>
     ),
   },
@@ -79,6 +80,8 @@ export function sidecarSweepOutcome(result: SidecarDeleteResponse): NotifyOption
   const phrase = sidecarCountPhrase(result.kind, deleted);
   return {
     variant: "success",
-    message: result.deletes_to_trash ? `Moved ${phrase} to the Recycle Bin.` : `Deleted ${phrase}.`,
+    message: result.deletes_to_trash
+      ? `Moved ${phrase} to the ${trashName()}.`
+      : `Deleted ${phrase}.`,
   };
 }

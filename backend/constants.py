@@ -249,6 +249,9 @@ SKIP_DIR_NAMES = {
     "__pycache__",
     "$RECYCLE.BIN",
     "$Recycle.Bin",
+    # The Linux and macOS trashes at a volume's top.
+    ".Trash",
+    ".Trashes",
     "$WINDOWS.~BT",
     "$Windows.~WS",
     "System Volume Information",
@@ -257,6 +260,11 @@ SKIP_DIR_NAMES = {
     "_latent_cache",
     "_t_e_cache",
 }
+#: A Linux volume's own trash is `.Trash-<uid>`.
+SKIP_DIR_PREFIXES = (".Trash-",)
+
+#: Where macOS and Linux attach volumes; the path bar's drive menu lists what is mounted inside.
+POSIX_VOLUME_PARENTS: Final = {"darwin": ("/Volumes",), "linux": ("/media", "/run/media", "/mnt")}
 
 LAST_FOLDER_KEY = "last_folder"
 
@@ -479,6 +487,9 @@ SHARED_CONSTANTS: dict[str, object] = {
     "GIF_MP4_FRAME_RATE": GIF_MP4_FRAME_RATE,
     "COMFY_WORKFLOW_EXTENSIONS": sorted(COMFY_WORKFLOW_EXTENSIONS),
     "STAGING_DIR_NAME": STAGING_DIR_NAME,
+    "POSIX_VOLUME_PARENTS": sorted(
+        {path for paths in POSIX_VOLUME_PARENTS.values() for path in paths}
+    ),
     "JOB_TYPE_LABELS": JOB_TYPE_LABELS,
     "ADJUST_MAX_HUE": ADJUST_MAX_HUE,
     "COLOR_ADJUST": COLOR_ADJUST,

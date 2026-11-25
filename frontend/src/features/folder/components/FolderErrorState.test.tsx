@@ -67,6 +67,22 @@ describe("FolderErrorState", () => {
     expect(screen.queryByText(/is not connected/)).not.toBeInTheDocument();
   });
 
+  it("says the volume is not connected when a mounted volume's folder is gone", async () => {
+    vi.spyOn(foldersApi, "fetchFolderRoots").mockResolvedValue({
+      home: "/home/me",
+      roots: [
+        { name: "Home", path: "/home/me", kind: "home" },
+        { name: "/", path: "/", kind: "root" },
+      ],
+    });
+
+    renderWithQueryClient(
+      <FolderErrorState error={{ kind: "folder-not-found" }} folderPath="/media/me/Card/DCIM" />,
+    );
+
+    expect(await screen.findByText("This folder's volume is not connected")).toBeInTheDocument();
+  });
+
   it("does not look up drives for a path without a drive letter", () => {
     const roots = vi.spyOn(foldersApi, "fetchFolderRoots");
 

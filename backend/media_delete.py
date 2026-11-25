@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from constants import COMFY_STALE_SUFFIX, EDIT_STALE_SUFFIX
-from file_trash import delete_path, deletes_to_trash, restore_from_trash
+from file_trash import delete_path, restore_from_trash
 from media_claims import claim
 from media_group import media_group_paths, shared_stem_paths
 
@@ -24,16 +24,21 @@ def _publish_leftovers(media: Path) -> list[Path]:
     return [path for path in stale if path.is_file()]
 
 
-def _delete_each(paths: list[Path]) -> tuple[list[Path], list[dict[str, str]]]:
+def _delete_each(
+    paths: list[Path],
+) -> tuple[list[Path], list[dict[str, str]], list[Path]]:
+    """``(deleted, retained, recycled)``; recycled is the part of deleted the trash took."""
     deleted: list[Path] = []
     retained: list[dict[str, str]] = []
+    recycled: list[Path] = []
     for path in paths:
         try:
-            delete_path(path)
+            if delete_path(path):
+                recycled.append(path)
             deleted.append(path)
         except OSError as exc:
             retained.append({"path": str(path), "message": str(exc)})
-    return deleted, retained
+    return deleted, retained, recycled
 
 
 def _owned_paths(media: Path) -> set[str]:
@@ -51,16 +56,16 @@ def delete_media_with_sidecars(file_path: Path) -> dict[str, object]:
         shared = shared_stem_paths(file_path)
 
         try:
-            delete_path(media)
+            media_recycled = delete_path(media)
         except OSError as exc:
             raise OSError(f"Failed to delete {file_path.name}: {exc}") from exc
 
-        deleted, retained = _delete_each(
+        deleted, retained, recycled_related = _delete_each(
             [path for path in related if path not in shared] + _publish_leftovers(file_path)
         )
 
-    # Media first, as `restore_media_with_sidecars` takes them.
-    recycled = [str(path) for path in (file_path, *deleted)] if deletes_to_trash() else []
+    # Media first, as `restore_media_with_sidecars` takes them; nothing to undo without it.
+    recycled = [str(path) for path in (file_path, *recycled_related)] if media_recycled else []
     return {
         "path": str(file_path),
         "deleted": [file_path.name, *(path.name for path in deleted)],
@@ -81,13 +86,13 @@ def delete_leftovers(media: Path, paths: list[Path]) -> dict[str, object]:
         if foreign is not None:
             raise ValueError(f"{foreign.name} is not a file {media.name} left behind")
 
-        deleted, retained = _delete_each(paths)
+        deleted, retained, recycled = _delete_each(paths)
 
     return {
         "path": str(media),
         "deleted": [path.name for path in deleted],
         "retained": retained,
-        "recycled": [str(path) for path in deleted] if deletes_to_trash() else [],
+        "recycled": [str(path) for path in recycled],
     }
 
 

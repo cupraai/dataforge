@@ -40,7 +40,7 @@ describe("BreadcrumbBar", () => {
     renderBar({ folderNotFound: true });
 
     expect(screen.getByRole("button", { name: "Copy path" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Open in File Explorer" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Open in file manager" })).toBeDisabled();
   });
 
   it("copies the current folder path", async () => {
@@ -72,13 +72,13 @@ describe("BreadcrumbBar", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Failed!");
   });
 
-  it("opens the current folder in the file explorer", async () => {
+  it("opens the current folder in the file manager", async () => {
     const user = userEvent.setup();
     const { fetchMock } = installMockBackend();
 
     renderBar();
 
-    await user.click(screen.getByRole("button", { name: "Open in File Explorer" }));
+    await user.click(screen.getByRole("button", { name: "Open in file manager" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -257,7 +257,27 @@ describe("BreadcrumbBar", () => {
     expect(screen.queryByRole("button", { name: "Switch drive" })).not.toBeInTheDocument();
   });
 
-  it("offers no drive menu for a path without a drive letter", () => {
+  it("offers no drive menu for a network share path", () => {
+    renderBar({
+      breadcrumbs: [
+        { name: "\\\\server\\share", path: "\\\\server\\share" },
+        { name: "photos", path: "\\\\server\\share\\photos" },
+      ],
+      currentFolder: "\\\\server\\share\\photos",
+    });
+
+    expect(screen.queryByRole("button", { name: "Switch drive" })).not.toBeInTheDocument();
+  });
+
+  it("offers no drive menu on Linux or macOS with nothing mounted", async () => {
+    const roots = vi.spyOn(foldersApi, "fetchFolderRoots").mockResolvedValue({
+      home: "/home/me",
+      roots: [
+        { name: "Home", path: "/home/me", kind: "home" },
+        { name: "/", path: "/", kind: "root" },
+      ],
+    });
+
     renderBar({
       breadcrumbs: [
         { name: "home", path: "/home" },
@@ -266,6 +286,41 @@ describe("BreadcrumbBar", () => {
       currentFolder: "/home/photos",
     });
 
+    await waitFor(() => expect(roots).toHaveBeenCalled());
+    await act(async () => {});
     expect(screen.queryByRole("button", { name: "Switch drive" })).not.toBeInTheDocument();
+  });
+
+  it("switches between the system and mounted volumes on Linux and macOS", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn<(path: string) => void>();
+    vi.spyOn(foldersApi, "fetchFolderRoots").mockResolvedValue({
+      home: "/home/me",
+      roots: [
+        { name: "Home", path: "/home/me", kind: "home" },
+        { name: "/", path: "/", kind: "root" },
+        { name: "Camera", path: "/media/me/Camera", kind: "removable" },
+        { name: "share", path: "/mnt/share", kind: "network" },
+      ],
+    });
+
+    renderBar({
+      breadcrumbs: [
+        { name: "Camera", path: "/media/me/Camera" },
+        { name: "DCIM", path: "/media/me/Camera/DCIM" },
+      ],
+      currentFolder: "/media/me/Camera/DCIM",
+      onNavigate,
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Switch drive" }));
+
+    const camera = await screen.findByRole("menuitem", { name: "Camera" });
+    expect(camera).toHaveAttribute("aria-current", "true");
+    expect(camera).toHaveAttribute("title", "/media/me/Camera");
+    expect(screen.getByRole("menuitem", { name: "/" })).not.toHaveAttribute("aria-current");
+
+    await user.click(screen.getByRole("menuitem", { name: "share" }));
+    expect(onNavigate).toHaveBeenCalledWith("/mnt/share");
   });
 });

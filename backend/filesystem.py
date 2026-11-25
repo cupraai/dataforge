@@ -16,6 +16,7 @@ from file_write import retry_while_locked
 from folder_scan import scan_folder
 from media_listing import summarize_folder_contents
 from path_resolve import resolve_path
+from posix_volumes import list_posix_volumes
 from schemas import FolderRoot
 from windows_drives import list_windows_drives
 
@@ -47,6 +48,10 @@ def list_folder_roots() -> list[FolderRoot]:
         )
     else:
         roots.append(FolderRoot(name="/", path="/", kind="root"))
+        roots.extend(
+            FolderRoot(name=volume.label, path=volume.path, kind=volume.kind)
+            for volume in list_posix_volumes()
+        )
 
     return roots
 
@@ -227,16 +232,19 @@ def _empty_folder_parent(folder: Path, action: str) -> Path:
     return parent
 
 
-def delete_empty_folder(folder: Path) -> Path:
-    """Delete ``folder`` only if empty, hidden entries included; returns the parent."""
+def delete_empty_folder(folder: Path) -> tuple[Path, bool]:
+    """Delete ``folder`` only if empty, hidden entries included.
+
+    Returns the parent and whether the folder went to the trash.
+    """
     parent = _empty_folder_parent(folder, "delete")
 
     try:
-        delete_empty_dir(folder)
+        recycled = delete_empty_dir(folder)
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Failed to delete folder: {exc}") from exc
 
-    return parent
+    return parent, recycled
 
 
 def rename_empty_folder(folder: Path, name: str) -> Path:

@@ -6,6 +6,7 @@ import { TransferMediaDialog } from "@/features/gallery/components/TransferMedia
 import { CAPTION_SIDECAR_EXTENSION_LIST } from "@/shared/lib/captionSidecar";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import { trashName } from "@/shared/lib/platform";
 
 export interface SelectionActionOverlaysProps {
   currentFolder: string | undefined;
@@ -61,13 +62,13 @@ export function SelectionActionOverlays({
     deleteCount === 1 ? (
       <span>
         This will delete <strong>{pathBaseName(Array.from(deletePaths)[0])}</strong> and any
-        matching caption sidecars ({CAPTION_SIDECAR_EXTENSION_LIST}). On Windows, files are moved to
-        the Recycle Bin.
+        matching caption sidecars ({CAPTION_SIDECAR_EXTENSION_LIST}). Files are moved to the{" "}
+        {trashName()}.
       </span>
     ) : (
       <span>
-        This also deletes any matching caption sidecars ({CAPTION_SIDECAR_EXTENSION_LIST}). On
-        Windows, files are moved to the Recycle Bin.
+        This also deletes any matching caption sidecars ({CAPTION_SIDECAR_EXTENSION_LIST}). Files
+        are moved to the {trashName()}.
       </span>
     );
 

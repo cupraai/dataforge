@@ -4,6 +4,7 @@ import { openFolderInExplorer } from "@/features/folder/api/folders";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
 import { driveRootOf } from "@/features/folder/lib/drives";
 import { formatApiError } from "@/shared/api/http";
+import { fileManagerName } from "@/shared/lib/platform";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { iconArrowUpRight, iconCheck, iconCopy, iconX } from "@/shared/icons";
 import type { Breadcrumb } from "@/shared/types";
@@ -58,11 +59,13 @@ export function BreadcrumbBar({
 
   if (breadcrumbs.length === 0) return null;
 
-  const currentDrive = driveRootOf(currentFolder);
+  // A Windows drive letter, or any Linux and macOS path; a network share path has no drive.
+  const onDrive = driveRootOf(currentFolder) !== null || currentFolder.startsWith("/");
+  const openLabel = `Open in ${fileManagerName()}`;
 
   return (
     <nav className="breadcrumbs" aria-label="Folder path">
-      {currentDrive && <BreadcrumbDriveMenu currentDrive={currentDrive} onNavigate={onNavigate} />}
+      {onDrive && <BreadcrumbDriveMenu currentFolder={currentFolder} onNavigate={onNavigate} />}
       <ol className="breadcrumbs__list">
         {breadcrumbs.map((crumb, index) => {
           const isLast = index === breadcrumbs.length - 1;
@@ -126,8 +129,8 @@ export function BreadcrumbBar({
 
         <IconButton
           icon={iconArrowUpRight}
-          label="Open in File Explorer"
-          tooltip={folderNotFound ? "Folder not found" : (explorerError ?? "Open in File Explorer")}
+          label={openLabel}
+          tooltip={folderNotFound ? "Folder not found" : (explorerError ?? openLabel)}
           size="sm"
           variant="ghost"
           busy={openingInExplorer}

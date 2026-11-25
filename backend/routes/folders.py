@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from file_trash import deletes_to_trash
 from filesystem import (
     FolderExplorerError,
     create_subfolder,
@@ -103,13 +102,13 @@ def delete_folder(
     path: str = Query(..., description="Absolute path to an empty folder"),
 ) -> FolderDeleteResponse:
     folder = resolve_folder(path)
-    parent = delete_empty_folder(folder)
+    parent, recycled = delete_empty_folder(folder)
     # Otherwise a recreated folder would come back as a favorite.
     remove_folder_favorite(str(folder))
     return FolderDeleteResponse(
         path=str(folder),
         parent=str(parent),
-        deletes_to_trash=deletes_to_trash(),
+        deletes_to_trash=recycled,
     )
 
 

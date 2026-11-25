@@ -31,7 +31,7 @@ describe("sidecarSweepOutcome", () => {
   it("names empty captions in the outcome of their sweep", () => {
     expect(
       sidecarSweepOutcome(result({ kind: "empty_caption", deleted: ["a.txt", "b.txt"] })),
-    ).toEqual({ variant: "success", message: "Moved 2 empty caption files to the Recycle Bin." });
+    ).toEqual({ variant: "success", message: "Moved 2 empty caption files to the Trash." });
   });
 
   it("reports a partial sweep as danger and names the first failure", () => {
@@ -69,10 +69,10 @@ describe("sidecarSweepOutcome", () => {
     });
   });
 
-  it("names the Recycle Bin when the sweep can be undone", () => {
+  it("names the trash when the sweep can be undone", () => {
     expect(sidecarSweepOutcome(result())).toEqual({
       variant: "success",
-      message: "Moved 3 caption issue files to the Recycle Bin.",
+      message: "Moved 3 caption issue files to the Trash.",
     });
   });
 

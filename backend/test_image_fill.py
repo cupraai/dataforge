@@ -43,7 +43,7 @@ from media_group import media_group_paths
 from media_rename import rename_media_file
 from media_transfer import transfer_media_with_sidecars
 from schemas import FillBox, ImageEditSpec, ImageFill
-from testing_fixtures import TempMediaFolder, write_image, write_jpeg
+from testing_fixtures import TempMediaFolder, permanent_deletes, write_image, write_jpeg
 
 GREY = (128, 128, 128)
 MAGENTA = (255, 0, 255, 255)
@@ -118,8 +118,8 @@ class ResultsFolder(unittest.TestCase):
         env = patch.dict(os.environ, {image_fill.FILL_RESULTS_ENV: temp.name})
         env.start()
         self.addCleanup(env.stop)
-        # Deletes go to the Recycle Bin on Windows; a test must not fill the real one.
-        trash = patch("file_trash.sys.platform", "linux")
+        # Deletes go to the trash; a test must not fill the real one.
+        trash = permanent_deletes()
         trash.start()
         self.addCleanup(trash.stop)
 

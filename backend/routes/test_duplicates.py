@@ -5,9 +5,9 @@ from unittest.mock import patch
 from urllib.parse import quote
 
 from duplicates import DuplicateFinding, duplicate_file_path, save_duplicate_finding
-from file_trash import deletes_to_trash
+from file_trash import trash_available
 from routes._test_client import client
-from testing_fixtures import TempMediaFolder, write_media, write_txt_caption
+from testing_fixtures import TempMediaFolder, permanent_deletes, write_media, write_txt_caption
 
 FINDING = DuplicateFinding(group="abc123", max_distance=0, threshold="exact")
 
@@ -95,16 +95,17 @@ class ListDuplicatesTests(unittest.TestCase):
             write_media(root, "one.png")
 
             for recoverable in (True, False):
-                with patch("routes.duplicates.deletes_to_trash", return_value=recoverable):
+                with patch("routes.duplicates.trash_available", return_value=recoverable):
                     self.assertIs(list_duplicates(root)["deletes_to_trash"], recoverable)
 
     def test_the_capability_follows_the_delete_implementation(self) -> None:
         """Named for the behaviour, so a trash backend flips it."""
-        with patch("file_trash.sys.platform", "win32"):
-            self.assertTrue(deletes_to_trash())
+        with TempMediaFolder() as root:
+            with patch("file_trash.sys.platform", "win32"):
+                self.assertTrue(trash_available(root))
 
-        with patch("file_trash.sys.platform", "linux"):
-            self.assertFalse(deletes_to_trash())
+            with permanent_deletes():
+                self.assertFalse(trash_available(root))
 
     def test_a_still_sharing_the_video_stem_does_not_hide_the_group(self) -> None:
         """clip.mp4 and clip.png under one stem."""

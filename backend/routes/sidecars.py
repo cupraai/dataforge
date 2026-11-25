@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from api_errors import folder_not_found
 from captions import is_blank_caption_file, resolve_caption_file_name
 from constants import DUPLICATE_SIDECAR_SUFFIX, ISSUE_SIDECAR_SUFFIX
-from file_trash import delete_path, deletes_to_trash
+from file_trash import delete_path, trash_available
 from folder_scan import FolderScan, scan_folder
 from routes._helpers import resolve_folder
 from schemas import SidecarDeleteRequest, SidecarDeleteResponse, SidecarKind
@@ -47,9 +47,11 @@ def delete_sidecars(request: SidecarDeleteRequest) -> SidecarDeleteResponse:
 
     deleted: list[str] = []
     failed: list[str] = []
+    recycled = trash_available(folder_path)
     for name in _sweep_names(scan, request.kind):
         try:
-            delete_path(scan.files[name].path)
+            if not delete_path(scan.files[name].path):
+                recycled = False
         except OSError:
             failed.append(name)
             continue
@@ -60,5 +62,5 @@ def delete_sidecars(request: SidecarDeleteRequest) -> SidecarDeleteResponse:
         kind=request.kind,
         deleted=deleted,
         failed=failed,
-        deletes_to_trash=deletes_to_trash(),
+        deletes_to_trash=recycled,
     )

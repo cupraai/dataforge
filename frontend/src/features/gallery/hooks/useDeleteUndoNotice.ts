@@ -5,8 +5,9 @@ import { formatApiError } from "@/shared/api/http";
 import { formatCount } from "@/shared/lib/format";
 import { UNDO_TOAST_DURATION_MS, useNotify } from "@/shared/notifications/notifications";
 import type { MediaDeleteResponse } from "@/shared/types";
+import { trashName } from "@/shared/lib/platform";
 
-/** Confirms a delete with Undo from the Recycle Bin; silent where deletes are permanent. */
+/** Confirms a delete with Undo from the trash; silent where deletes are permanent. */
 export function useDeleteUndoNotice() {
   const notify = useNotify();
 
@@ -34,7 +35,7 @@ export function useDeleteUndoNotice() {
         }
         if (missing.length > 0) {
           const names = missing.map(pathBaseName).join(", ");
-          notify({ variant: "warning", message: `No longer in the Recycle Bin: ${names}.` });
+          notify({ variant: "warning", message: `No longer in the ${trashName()}: ${names}.` });
         }
         if (failed.length > 0) {
           notify({ variant: "danger", message: failureMessage("restore", failed) });

@@ -37,7 +37,7 @@ describe("SidecarSweepDialog", () => {
     expect(dialog).toHaveTextContent("3 caption issue files");
     expect(dialog).toHaveTextContent("Photos");
     expect(dialog).toHaveTextContent("Captions and media are left untouched");
-    expect(dialog).toHaveTextContent("On Windows, files are moved to the Recycle Bin.");
+    expect(dialog).toHaveTextContent("Files are moved to the Trash.");
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 

@@ -21,6 +21,7 @@ import { ShortcutsDialog } from "@/features/shortcuts/components/ShortcutsDialog
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { RenameDialog } from "@/shared/ui/RenameDialog";
 import type { AppOverlaysProps } from "./overlays";
+import { trashName } from "@/shared/lib/platform";
 
 export function AppOverlays({
   currentJobActions,
@@ -222,8 +223,7 @@ export function AppOverlays({
           title="Delete this folder?"
           description={
             <>
-              <strong>{deleteFolder.folderLabel}</strong> is empty. On Windows, it is moved to the
-              Recycle Bin.
+              <strong>{deleteFolder.folderLabel}</strong> is empty. It goes to the {trashName()}.
             </>
           }
           confirmLabel={deleteFolder.busy ? "Deleting..." : "Delete"}

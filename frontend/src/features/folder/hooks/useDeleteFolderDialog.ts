@@ -5,6 +5,7 @@ import { FAVORITES_QUERY_KEY } from "@/features/folder/hooks/useFolderFavorites"
 import { forgetRecentFolder } from "@/features/folder/lib/folderPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { useNotify } from "@/shared/notifications/notifications";
+import { trashName } from "@/shared/lib/platform";
 
 type UseDeleteFolderDialogOptions = {
   folderPath: string | undefined;
@@ -49,7 +50,7 @@ export function useDeleteFolderDialog({
       notify({
         variant: "success",
         message: result.deletes_to_trash
-          ? `Moved folder ${folderLabel} to the Recycle Bin.`
+          ? `Moved folder ${folderLabel} to the ${trashName()}.`
           : `Deleted folder ${folderLabel}.`,
       });
     } catch (error: unknown) {

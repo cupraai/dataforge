@@ -68,7 +68,7 @@ describe("useDeleteFolderDialog", () => {
     expect(onDeleted).toHaveBeenCalledWith("C:\\Photos");
     expect(readRecentFolderPaths()).toEqual(["C:\\Photos"]);
     expect(result.current.overlay).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("Moved folder Empty to the Recycle Bin.");
+    expect(screen.getByRole("status")).toHaveTextContent("Moved folder Empty to the Trash.");
   });
 
   it("closes and explains a refusal without leaving the folder", async () => {

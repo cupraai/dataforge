@@ -222,7 +222,7 @@ describe("GallerySelectionControls", () => {
       "2 selected files in Photos",
     );
     expect(within(confirmDialog).getByText(/matching caption sidecars/i)).toBeInTheDocument();
-    expect(within(confirmDialog).getByText(/Recycle Bin/i)).toBeInTheDocument();
+    expect(within(confirmDialog).getByText(/moved to the Trash/i)).toBeInTheDocument();
 
     await user.click(within(confirmDialog).getByRole("button", { name: "Delete" }));
 

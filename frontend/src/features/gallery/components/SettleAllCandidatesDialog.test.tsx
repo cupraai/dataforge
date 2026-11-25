@@ -100,7 +100,7 @@ describe("SettleAllCandidatesDialog", () => {
       expect(dialog).toHaveTextContent("All 12 files in Photos");
       expect(dialog).toHaveTextContent("3 of them have a staged candidate.");
       expect(dialog).toHaveTextContent("keeps the files they were made from");
-      expect(dialog).toHaveTextContent("On Windows, candidates are moved to the Recycle Bin.");
+      expect(dialog).toHaveTextContent("Candidates are moved to the Trash.");
     });
 
     it("names the selection when files are selected", () => {

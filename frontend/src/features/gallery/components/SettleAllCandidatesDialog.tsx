@@ -4,6 +4,7 @@ import type { SettleAllCandidatesAction } from "@/features/gallery/lib/settleAll
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
+import { trashName } from "@/shared/lib/platform";
 
 export interface SettleAllCandidatesDialogProps {
   action: SettleAllCandidatesAction | null;
@@ -40,7 +41,7 @@ export function SettleAllCandidatesDialog({
             : "Delete all staged candidates?"
         }
         scope={scope}
-        description="Deletes each staged candidate and keeps the files they were made from. On Windows, candidates are moved to the Recycle Bin."
+        description={`Deletes each staged candidate and keeps the files they were made from. Candidates are moved to the ${trashName()}.`}
         confirmLabel={busy ? "Deleting..." : "Delete"}
         confirmVariant="danger"
         busy={busy}

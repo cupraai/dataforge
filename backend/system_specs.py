@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import glob
 import importlib
 import json
 import os
 import platform
+import plistlib
 import re
 import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
+from xml.parsers.expat import ExpatError
 
 
 @dataclass(frozen=True)
@@ -180,13 +184,46 @@ def _linux_cpu_times() -> tuple[int, int]:
     return fields[3] + fields[4], sum(fields[:8])
 
 
+#: ``host_statistics`` flavor and its size in ints: user, system, idle and nice ticks.
+_HOST_CPU_LOAD_INFO = 3
+_HOST_CPU_LOAD_INFO_COUNT = 4
+
+
+@cache
+def _mach_host() -> tuple[ctypes.CDLL, int]:
+    """libSystem and the host port, looked up once: each ``mach_host_self`` takes a port."""
+    if sys.platform != "darwin":
+        raise OSError("Mach CPU counters need macOS")
+
+    system = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+    system.mach_host_self.restype = ctypes.c_uint
+    return system, system.mach_host_self()
+
+
+def _macos_cpu_ticks() -> tuple[int, ...]:
+    system, host = _mach_host()
+    ticks = (ctypes.c_uint * _HOST_CPU_LOAD_INFO_COUNT)()
+    count = ctypes.c_uint(_HOST_CPU_LOAD_INFO_COUNT)
+    status = system.host_statistics(host, _HOST_CPU_LOAD_INFO, ticks, ctypes.byref(count))
+    if status != 0:
+        raise OSError(f"host_statistics failed ({status})")
+    return tuple(ticks)
+
+
+def _macos_cpu_times() -> tuple[int, int]:
+    user, system, idle, nice = _macos_cpu_ticks()
+    return idle, user + system + idle + nice
+
+
 def _cpu_times() -> tuple[int, int] | None:
-    """``(idle, total)`` since boot, or ``None`` where no counter is read (macOS)."""
+    """``(idle, total)`` since boot, or ``None`` where no counter is read."""
     try:
         if sys.platform == "win32":
             return _windows_cpu_times()
         if sys.platform.startswith("linux"):
             return _linux_cpu_times()
+        if sys.platform == "darwin":
+            return _macos_cpu_times()
     except (OSError, ValueError, IndexError):
         pass
     return None
@@ -411,6 +448,54 @@ def _gpu_from_torch() -> _GpuInfo | None:
     )
 
 
+def parse_ioreg_accelerators(data: bytes, memory_total_bytes: int) -> _GpuInfo | None:
+    """The first named GPU in ``ioreg -a`` output. Apple GPUs share the system's memory."""
+    try:
+        entries = plistlib.loads(data)
+    except (ValueError, ExpatError):
+        return None
+    if not isinstance(entries, list):
+        return None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("model")
+        if isinstance(name, bytes):
+            name = name.rstrip(b"\0").decode("utf-8", errors="replace")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        stats = entry.get("PerformanceStatistics")
+        stats = stats if isinstance(stats, dict) else {}
+        load = _json_number(stats.get("Device Utilization %"))
+        used = _json_number(stats.get("In use system memory"))
+        return _GpuInfo(
+            name=name.strip(),
+            memory_total_bytes=memory_total_bytes,
+            memory_used_bytes=int(used) if used is not None else None,
+            load_percent=load,
+            temperature_celsius=None,
+        )
+    return None
+
+
+def _gpu_from_ioreg(memory_total_bytes: int) -> _GpuInfo | None:
+    """The Mac's own GPU, which nvidia-smi and CUDA never see."""
+    if sys.platform != "darwin":
+        return None
+    try:
+        result = subprocess.run(
+            ["ioreg", "-r", "-d", "1", "-w", "0", "-c", "IOAccelerator", "-a"],
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+    if result.returncode != 0:
+        return None
+    return parse_ioreg_accelerators(result.stdout, memory_total_bytes)
+
+
 def _gpu_info() -> _GpuInfo | None:
     # Prefer nvidia-smi so VRAM used by external processes is included.
     for resolver in (_gpu_from_nvidia_smi, _gpu_from_torch):
@@ -422,7 +507,7 @@ def _gpu_info() -> _GpuInfo | None:
 
 def get_system_specs() -> SystemSpecs:
     total_bytes, available_bytes = _memory_bytes()
-    gpu = _gpu_info()
+    gpu = _gpu_info() or _gpu_from_ioreg(total_bytes)
     board = _board_sensors()
     return SystemSpecs(
         cpu_name=_sanitize_cpu_name(_cpu_name()),

@@ -401,6 +401,7 @@ The system specifications panel (the CPU button in the toolbar) shows these read
 - **GPU.** Temperature, power draw against its limit, and fan speed, when `nvidia-smi` reports them.
 - **CPU on Linux.** DataForge also tries CPU temperature and CPU package power from the kernel's sensors; package power is usually readable only by root.
 - **CPU on Windows.** Windows gives normal programs neither CPU reading, so an optional sensor task reads CPU temperature and package power on Intel CPUs and AMD Ryzen through the third-party [PawnIO](https://pawnio.eu) driver.
+- **macOS.** The panel shows CPU load and the Mac's own GPU, with its load and the shared memory it uses. macOS gives normal programs no CPU temperature or power reading, so those stay empty.
 
 **Before installing, note that:**
 

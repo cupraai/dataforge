@@ -1,6 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { driveRootOf, listDrives } from "@/features/folder/lib/drives";
+import {
+  driveRootOf,
+  isOnMissingVolume,
+  isUnderVolumeParent,
+  listDrives,
+  type Drive,
+} from "@/features/folder/lib/drives";
 import { folderKeys, folderRootsQueryOptions } from "@/features/folder/lib/folderQuery";
 import { FOLDER_NOT_FOUND, type FolderError } from "@/shared/api/http";
 import { iconCircleAlert, iconUnplug } from "@/shared/icons";
@@ -13,14 +19,26 @@ type FolderErrorStateProps = {
   folderPath?: string;
 };
 
+function isDriveMissing(folderPath: string, drives: readonly Drive[]): boolean {
+  const drive = driveRootOf(folderPath);
+  if (drive) return !drives.some((entry) => entry.path === drive);
+  return isOnMissingVolume(folderPath, drives);
+}
+
 export function FolderErrorState({ error, folderPath }: FolderErrorStateProps) {
   const drive = folderPath ? driveRootOf(folderPath) : null;
+  const onVolume = folderPath ? isUnderVolumeParent(folderPath) : false;
   const notFound = error.kind === "folder-not-found";
   // The path bar's drive menu polls the same list, so this follows a drive coming back.
-  const rootsQuery = useQuery({ ...folderRootsQueryOptions(), enabled: notFound && !!drive });
+  const rootsQuery = useQuery({
+    ...folderRootsQueryOptions(),
+    enabled: notFound && (!!drive || onVolume),
+  });
   const drives = rootsQuery.data ? listDrives(rootsQuery.data.roots) : null;
   const drivesKnown = drives !== null;
-  const driveMissing = Boolean(drive && drives && !drives.some((entry) => entry.path === drive));
+  const driveMissing = Boolean(
+    folderPath && (drive || onVolume) && drives && isDriveMissing(folderPath, drives),
+  );
 
   // The folder poll is slow; once the drive is back, re-read the folder instead of waiting.
   const queryClient = useQueryClient();
@@ -34,11 +52,15 @@ export function FolderErrorState({ error, folderPath }: FolderErrorStateProps) {
     }
   }, [driveMissing, drivesKnown, folderPath, queryClient]);
 
-  if (notFound && drive && driveMissing) {
+  if (notFound && driveMissing) {
     return (
       <EmptyState
         icon={iconUnplug}
-        title={`Drive ${drive.slice(0, 2)} is not connected`}
+        title={
+          drive
+            ? `Drive ${drive.slice(0, 2)} is not connected`
+            : "This folder's volume is not connected"
+        }
         description="Reconnect it and this folder opens again."
         variant="error"
         role="alert"

@@ -629,6 +629,23 @@ class TempMediaFolder:
         self._tmp.cleanup()
 
 
+def permanent_deletes() -> Any:
+    """Deletes skip the trash, so a test never fills the real one."""
+    from file_trash import TRASH_DISABLED_ENV
+
+    return patch.dict(os.environ, {TRASH_DISABLED_ENV: "1"})
+
+
+@contextmanager
+def private_trash() -> Generator[Path]:
+    """Linux deletes land in a home trash of the test's own; Windows only has the real bin."""
+    with (
+        tempfile.TemporaryDirectory(prefix="dataforge-trash-") as data_home,
+        patch.dict(os.environ, {"XDG_DATA_HOME": data_home}),
+    ):
+        yield Path(data_home) / "Trash"
+
+
 def reset_job_manager() -> None:
     """Clear in-memory and SQLite job state. Wiping memory alone left persisted running rows."""
     from automation.jobs import job_manager

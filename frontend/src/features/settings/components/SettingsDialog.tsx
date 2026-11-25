@@ -684,7 +684,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           <SettingsGroup title="Folders" icon={iconFolder} hint="Which folders DataForge lists.">
             <Checkbox
               label="Hide hidden folders"
-              hint="Folders named with a leading dot, or marked hidden in Windows."
+              hint="Folders named with a leading dot, or marked hidden by the system."
               checked={hideHidden}
               disabled={saving}
               onChange={setHideHidden}

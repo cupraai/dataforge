@@ -7,7 +7,6 @@ isolate_test_database()
 import subprocess
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from pydantic import ValidationError
 
@@ -26,7 +25,7 @@ from automation.split_video import (
 from constants import CLIPS_DIR_NAME, VIDEO_FRAME_RATES
 from ffmpeg_bin import ffmpeg_path
 from schemas import SplitVideoJobSettings, VideoFrameRate
-from testing_fixtures import TempMediaFolder, claimed_elsewhere, write_image
+from testing_fixtures import TempMediaFolder, claimed_elsewhere, permanent_deletes, write_image
 
 
 def _frames(seconds: float, rate: int = 24) -> VideoFrames:
@@ -247,8 +246,8 @@ class SplitJobTests(unittest.TestCase):
         if executable is None:
             self.skipTest("ffmpeg is not available")
         self.ffmpeg = executable
-        # Keep replaced clips out of the Recycle Bin.
-        trash = patch("file_trash.sys.platform", "linux")
+        # Keep replaced clips out of the trash.
+        trash = permanent_deletes()
         trash.start()
         self.addCleanup(trash.stop)
 

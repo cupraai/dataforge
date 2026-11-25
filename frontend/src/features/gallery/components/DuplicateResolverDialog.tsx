@@ -27,6 +27,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import type { DuplicateGroup, GalleryItem } from "@/shared/types";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { trashName } from "@/shared/lib/platform";
 
 type PendingAction = "resolve" | "dismiss" | null;
 
@@ -266,7 +267,7 @@ export function DuplicateResolverDialog({
             .map((member) => member.name)
             .join(
               ", ",
-            )} will be deleted permanently. This platform has no Recycle Bin, so it cannot be undone. ${
+            )} will be deleted permanently. This drive has no ${trashName()}, so it cannot be undone. ${
             group.members.find((member) => member.path === selectedPath)?.name ?? "The kept file"
           } is kept.`}
           confirmLabel="Delete permanently"

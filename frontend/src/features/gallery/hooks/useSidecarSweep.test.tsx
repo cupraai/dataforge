@@ -173,7 +173,7 @@ describe("useSidecarSweep", () => {
     expect(order).toEqual(["api", "swept"]);
     expect(result.current.overlay.pending).toBeNull();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Moved 1 caption issue file to the Recycle Bin.",
+      "Moved 1 caption issue file to the Trash.",
     );
   });
 

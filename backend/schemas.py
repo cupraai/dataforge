@@ -163,7 +163,7 @@ class Subfolder(BaseModel):
 
     name: str
     path: str
-    #: A dot name, or Windows' hidden attribute; the client decides whether to list it.
+    #: A dot name, a name in `.hidden`, or the system's hidden flag; the client decides.
     hidden: bool = False
     file_count: int | None = None
     captioned_count: int | None = None
@@ -595,7 +595,7 @@ class UiSettingsResponse(BaseModel):
     jobs_drawer_filters: JobsDialogFilters = Field(default_factory=JobsDialogFilters)
     gallery_cards: GalleryCardSettings = Field(default_factory=GalleryCardSettings)
     editor: EditorSettings = Field(default_factory=EditorSettings)
-    #: Leaves dot folders and folders Windows marks hidden out of every folder list.
+    #: Leaves dot folders and folders the system marks hidden out of every folder list.
     hide_hidden_folders: bool = False
     #: Off by default: the model is large, and turned off every tag disappears from the UI.
     tagging_enabled: bool = False
@@ -1889,7 +1889,7 @@ class FolderRootsResponse(BaseModel):
 class FolderChild(BaseModel):
     name: str
     path: str
-    #: A dot name, or Windows' hidden attribute; the client decides whether to list it.
+    #: A dot name, a name in `.hidden`, or the system's hidden flag; the client decides.
     hidden: bool = False
 
 

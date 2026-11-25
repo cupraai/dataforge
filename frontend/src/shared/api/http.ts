@@ -1,3 +1,4 @@
+import { browserPlatform } from "@/shared/lib/platform";
 import type { ApiErrorCode } from "@/shared/types";
 
 export const FOLDER_NOT_FOUND = {
@@ -9,12 +10,6 @@ export const FOLDER_NOT_FOUND = {
 export function backendRestartHelp(platform: string): string {
   const launcher = /^win/i.test(platform) ? "start.bat" : "./start.sh";
   return `Start DataForge again: run ${launcher} in the DataForge folder.`;
-}
-
-function browserPlatform(): string {
-  if (typeof navigator === "undefined") return "";
-  const hints = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
-  return hints?.platform || navigator.platform;
 }
 
 export const BACKEND_UNREACHABLE = {

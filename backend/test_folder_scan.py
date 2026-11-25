@@ -10,7 +10,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from caption_cache import clear_caption_cache_for_tests
 from captions import (
@@ -28,7 +28,7 @@ from duplicates import (
 )
 from ffmpeg_bin import ffmpeg_path
 from folder_fingerprint import compute_folder_fingerprint
-from folder_scan import _entry_from_dir_entry, get_media_type, scan_folder
+from folder_scan import _entry_from_dir_entry, _is_hidden_dir, get_media_type, scan_folder
 from media_listing import (
     clear_folder_summary_cache_for_tests,
     list_media_from_scan,
@@ -170,6 +170,50 @@ class FolderScanTests(unittest.TestCase):
                 {entry.name: entry.hidden for entry in scan.dirs}, {".cache": True, "album": False}
             )
             self.assertFalse(scan.media[0].hidden)
+
+    def test_flags_folders_the_hidden_file_lists(self) -> None:
+        with TempMediaFolder() as root:
+            for name in ("album", "drafts", "old copies"):
+                (root / name).mkdir()
+            (root / ".hidden").write_bytes(b"drafts\r\nold copies\nmissing\n")
+
+            scan = scan_folder(root)
+
+            assert scan is not None
+            self.assertEqual(
+                {entry.name: entry.hidden for entry in scan.dirs},
+                {"album": False, "drafts": True, "old copies": True},
+            )
+
+    def test_listing_a_folder_in_the_hidden_file_changes_the_fingerprint(self) -> None:
+        with TempMediaFolder() as root:
+            (root / "album").mkdir()
+            before = compute_folder_fingerprint(root)
+
+            (root / ".hidden").write_text("album\n", encoding="utf-8")
+
+            self.assertNotEqual(compute_folder_fingerprint(root), before)
+
+    def test_flags_folders_finder_marks_hidden(self) -> None:
+        import stat
+
+        for flags, hidden in ((stat.UF_HIDDEN, True), (0, False)):
+            with (
+                self.subTest(flags=flags),
+                patch("folder_scan.sys.platform", "darwin"),
+                patch("folder_scan.os.lstat", return_value=SimpleNamespace(st_flags=flags)),
+            ):
+                self.assertIs(_is_hidden_dir("/Volumes/Data/album", "album"), hidden)
+
+    def test_never_lists_a_volume_trash(self) -> None:
+        with TempMediaFolder() as root:
+            for name in (".Trash", ".Trashes", ".Trash-1000", "album"):
+                (root / name).mkdir()
+
+            scan = scan_folder(root)
+
+            assert scan is not None
+            self.assertEqual([entry.name for entry in scan.dirs], ["album"])
 
     @unittest.skipUnless(os.name == "nt", "Windows hidden attribute")
     def test_flags_folders_windows_marks_hidden(self) -> None:

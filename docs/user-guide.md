@@ -35,7 +35,7 @@ A dataset is a folder: `scene.jpg` is captioned by `scene.txt` beside it. DataFo
 - **Sidebar.** Hover a folder for its path and to favorite or remove it. Collapse the sidebar for more space. Below 1600px wide it starts collapsed; below 1200px it opens over the gallery and closes with `Escape` or a click outside.
 - **CPU button.** Shows CPU, RAM, and GPU details.
 - **Subfolder cards.** Hover for caption coverage and review counts.
-- **Breadcrumbs** navigate up. You can also copy the folder path or, on Windows, open it in File Explorer.
+- **Breadcrumbs** navigate up. You can also copy the folder path or open it in File Explorer, Finder, or your Linux file manager. The drive button switches to another drive, or on Linux and macOS to a mounted volume such as a USB stick or a network share.
 - **Quick actions** (`Ctrl+P`) searches jobs, commands, filters, and folders; press `Enter` to run one. Press `?` for the [shortcut list](#keyboard-shortcuts).
 
 ### Find files
@@ -76,7 +76,7 @@ A dataset is a folder: `scene.jpg` is captioned by `scene.txt` beside it. DataFo
 
 **Related files move too.** Copy, move, rename, and delete take a file's [related files](#files-dataforge-creates) along: caption, findings, edit original, caption backup, and staged ComfyUI result. Folder instructions stay with the folder.
 
-**Deleting.** On Windows, deleting uses the Recycle Bin; elsewhere it is permanent after confirmation. If a related file cannot be removed, the notice names it and offers **Retry**.
+**Deleting.** Deleting moves files to the Recycle Bin on Windows or the Trash on macOS and Linux, and the notice offers **Undo**. On a Linux drive that has no Trash, such as some network shares, deleting is permanent. If a related file cannot be removed, the notice names it and offers **Retry**.
 
 **Busy files.** A file that another operation is changing, such as an edit render or a ComfyUI acceptance, is refused until that operation finishes. Bulk jobs report such files as busy and continue.
 
@@ -162,7 +162,7 @@ Inherited content is read-only until you customize it. Tabs do not autosave, and
 - Both checks write `.issue.json` findings and leave captions unchanged.
 - Model and rule findings are kept apart, and rerunning one check replaces only its own.
 - Findings stay when a caption is edited outside the resolver. The resolver notes that the caption changed since the check, and rerunning the check brings them up to date.
-- Still images can be zoomed and, on Windows, opened in the system viewer.
+- Still images can be zoomed and opened in the system viewer.
 - **Delete all .issue.json files** in Quick actions clears findings.
 
 ### Caption rules
@@ -266,7 +266,7 @@ Open a file's editor, make changes, then **Apply**.
 - **The original is kept.** The first edit keeps the original beside the file as `<name>.bak`, with the edit settings in `<name>.edit.json`.
 - **Every later edit** renders from that original again.
 - **Revert original** restores it and removes both files.
-- **Replaced outside DataForge?** The next edit or revert treats the replacement as the new original and discards the old original and settings (to the Recycle Bin on Windows).
+- **Replaced outside DataForge?** The next edit or revert treats the replacement as the new original and discards the old original and settings (to the Recycle Bin or Trash).
 
 | Media | Formats | Tools |
 | --- | --- | --- |
@@ -400,7 +400,7 @@ Two options start off every run:
 
 Camera moves, flashes, and dissolves are not cuts at any sensitivity.
 
-**Splitting again** replaces a video's earlier clips, together with their captions and other related files (to the Recycle Bin on Windows). A video with no piece as long as **Shortest clip** keeps its earlier clips and is reported as a warning.
+**Splitting again** replaces a video's earlier clips, together with their captions and other related files (to the Recycle Bin or Trash). A video with no piece as long as **Shortest clip** keeps its earlier clips and is reported as a warning.
 
 To set a frame rate without splitting, use the **Speed** tool in the video editor (applied when you save; the preview keeps the source's rate) or **Resize** for a batch.
 
@@ -659,7 +659,7 @@ For example, `scene.jpg` can have `scene.txt`, `scene.jpg.issue.json`, `scene.jp
 
 `DATAFORGE_MODELS_DIR` moves the tagging model to another folder.
 
-**Hidden folders.** The gallery hides `.backup/` and common repository, environment, system, and cache folders, such as `.git`, `node_modules`, `.venv`, `__pycache__`, `_latent_cache`, and `_t_e_cache`.
+**Hidden folders.** The gallery hides `.backup/` and common repository, environment, system, trash, and cache folders, such as `.git`, `node_modules`, `.venv`, `__pycache__`, `_latent_cache`, and `_t_e_cache`. **Hide hidden folders** also hides dot folders, folders Windows or Finder marks hidden, and folders a Linux `.hidden` file lists.
 
 ## Keyboard shortcuts
 

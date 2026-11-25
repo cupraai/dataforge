@@ -139,6 +139,7 @@ import { applyRememberedSound, rememberSound } from "@/features/gallery/lib/vide
 import { useVideoEditorLauncher } from "@/features/videoEditor/context/VideoEditorContext";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { useUiSettings } from "@/shared/preferences/uiPreferences";
+import { trashName } from "@/shared/lib/platform";
 
 const noop = () => {};
 
@@ -1612,7 +1613,7 @@ export function GalleryItemDialog({
               {CAPTION_SIDECAR_EXTENSION_LIST}) in this folder, and the stored original if the file
               has been edited.
               <br />
-              On Windows, files are moved to the Recycle Bin.
+              Files are moved to the {trashName()}.
             </span>
           }
           confirmLabel="Delete"

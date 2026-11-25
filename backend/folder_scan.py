@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 import stat as stat_flags
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from constants import (
@@ -15,6 +16,7 @@ from constants import (
     MODEL_EXTENSIONS,
     NOTE_FILENAME,
     SKIP_DIR_NAMES,
+    SKIP_DIR_PREFIXES,
     STAGING_DIR_NAME,
     SYSPROMPT_FILENAME,
     VIDEO_EXTENSIONS,
@@ -30,7 +32,7 @@ class ScannedEntry:
     mtime_ns: int
     size: int
     birthtime: float | None = None
-    #: Directories only: a dot name, or Windows' hidden attribute.
+    #: Directories only: a dot name, a name in `.hidden`, or the system's hidden flag.
     hidden: bool = False
 
 
@@ -71,8 +73,12 @@ def is_model_path(path: Path) -> bool:
     return path.suffix.lower() in MODEL_EXTENSIONS
 
 
+#: Linux file managers hide the names a folder lists in this file, one per line.
+HIDDEN_LIST_FILENAME = ".hidden"
+
+
 def is_listable_dir_name(name: str) -> bool:
-    if name in SKIP_DIR_NAMES:
+    if name in SKIP_DIR_NAMES or name.startswith(SKIP_DIR_PREFIXES):
         return False
     return name not in {".", ".."}
 
@@ -80,14 +86,29 @@ def is_listable_dir_name(name: str) -> bool:
 def _is_hidden_dir(path: str, name: str) -> bool:
     if name.startswith("."):
         return True
-    if os.name != "nt":
-        return False
-    # As Explorer reads them, so legacy junctions stay hidden.
+    if sys.platform == "win32":
+        # As Explorer reads them, so legacy junctions stay hidden.
+        try:
+            attributes = os.lstat(path).st_file_attributes
+        except OSError:
+            return False
+        return bool(attributes & stat_flags.FILE_ATTRIBUTE_HIDDEN)
+    if sys.platform == "darwin":
+        # Finder's hidden flag, set with `chflags hidden`.
+        try:
+            flags = os.lstat(path).st_flags
+        except OSError:
+            return False
+        return bool(flags & stat_flags.UF_HIDDEN)
+    return False
+
+
+def listed_hidden_names(folder: Path) -> set[str]:
     try:
-        attributes = os.lstat(path).st_file_attributes
+        text = (folder / HIDDEN_LIST_FILENAME).read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return False
-    return bool(attributes & stat_flags.FILE_ATTRIBUTE_HIDDEN)
+        return set()
+    return {line for line in text.splitlines() if line}
 
 
 def _sort_key(entry: ScannedEntry) -> tuple[str, str]:
@@ -186,6 +207,10 @@ def scan_folder(folder: Path) -> FolderScan | None:
                     media.append(scanned)
     except OSError:
         return None
+
+    if HIDDEN_LIST_FILENAME in files:
+        listed = listed_hidden_names(folder)
+        dirs = [replace(entry, hidden=True) if entry.name in listed else entry for entry in dirs]
 
     dirs.sort(key=_sort_key)
     media.sort(key=_sort_key)

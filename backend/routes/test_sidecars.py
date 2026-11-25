@@ -134,7 +134,7 @@ class DeleteSidecarsTests(unittest.TestCase):
             write_media(root, "one.png")
 
             for recoverable in (True, False):
-                with patch("routes.sidecars.deletes_to_trash", return_value=recoverable):
+                with patch("routes.sidecars.trash_available", return_value=recoverable):
                     self.assertIs(delete_sidecars(root, "issue")["deletes_to_trash"], recoverable)
 
     def test_a_locked_file_is_reported_rather_than_aborting(self) -> None:

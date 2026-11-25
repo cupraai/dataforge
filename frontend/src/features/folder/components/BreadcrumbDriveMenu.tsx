@@ -1,19 +1,23 @@
 import { IconButton } from "@/shared/ui/IconButton";
 import { useQuery } from "@tanstack/react-query";
 import { useFolderPrefetch } from "@/features/folder/hooks/useFolderPrefetch";
-import { DRIVES_REFRESH_MS, driveIcon, listDrives } from "@/features/folder/lib/drives";
+import {
+  DRIVES_REFRESH_MS,
+  driveIcon,
+  driveRootOf,
+  listDrives,
+} from "@/features/folder/lib/drives";
 import { folderRootsQueryOptions } from "@/features/folder/lib/folderQuery";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconHardDrive } from "@/shared/icons";
 import { Menu, MenuItem } from "@/shared/ui/Menu";
 
 interface BreadcrumbDriveMenuProps {
-  /** Drive root the open folder is on, as `C:\`. */
-  currentDrive: string;
+  currentFolder: string;
   onNavigate: (path: string) => void;
 }
 
-export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriveMenuProps) {
+export function BreadcrumbDriveMenu({ currentFolder, onNavigate }: BreadcrumbDriveMenuProps) {
   const menu = usePopupMenu();
   const { close, rootRef, triggerProps } = menu;
   const prefetch = useFolderPrefetch();
@@ -21,6 +25,7 @@ export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriv
   // Polled, not read on open: whether the button shows at all depends on the list.
   const rootsQuery = useQuery({ ...folderRootsQueryOptions(), refetchInterval: DRIVES_REFRESH_MS });
   const drives = listDrives(rootsQuery.data?.roots ?? []);
+  const currentDrive = driveRootOf(currentFolder, drives);
 
   const handleSelect = (path: string) => {
     close();
@@ -44,6 +49,8 @@ export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriv
         {drives.map((drive) => {
           const isActive = drive.path === currentDrive;
           const name = drive.label ? `${drive.name} ${drive.label}` : drive.name;
+          // A volume's name says little about where it is mounted.
+          const title = drive.path.startsWith("/") ? drive.path : name;
           return (
             <MenuItem
               key={drive.path}
@@ -56,7 +63,7 @@ export function BreadcrumbDriveMenu({ currentDrive, onNavigate }: BreadcrumbDriv
               }
               current={isActive}
               aria-label={name}
-              title={name}
+              title={title}
               onSelect={() => handleSelect(drive.path)}
               {...prefetch(drive.path)}
             />

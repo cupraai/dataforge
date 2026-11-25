@@ -201,7 +201,7 @@ Use these commands in Quick actions (`Ctrl+P`):
 With a selection, the commands include only those sources' candidates. Filters alone do not limit these commands.
 
 - **Bulk acceptance** asks for confirmation, offers **Keep original metadata**, and skips the individual comparisons. It discards any source edit and original, and keeps no backup.
-- **Bulk deletion** keeps the sources and sends the candidates to the Recycle Bin on Windows.
+- **Bulk deletion** keeps the sources and sends the candidates to the Recycle Bin or Trash.
 - **Failures.** Each command reports failures; candidates that failed stay available for review.
 
 ### How results pair with sources

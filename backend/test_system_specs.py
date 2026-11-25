@@ -189,6 +189,76 @@ class CpuTemperatureTests(unittest.TestCase):
         glob_mock.assert_not_called()
 
 
+IOREG_ACCELERATORS = b"""<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<array>
+  <dict>
+    <key>IOClass</key><string>AGXAcceleratorG14X</string>
+    <key>model</key><string>Apple M2 Pro</string>
+    <key>gpu-core-count</key><integer>19</integer>
+    <key>PerformanceStatistics</key>
+    <dict>
+      <key>Device Utilization %</key><integer>37</integer>
+      <key>In use system memory</key><integer>2147483648</integer>
+    </dict>
+  </dict>
+</array>
+</plist>
+"""
+
+
+class AppleGpuTests(unittest.TestCase):
+    def test_reads_name_load_and_memory_in_use(self) -> None:
+        info = system_specs.parse_ioreg_accelerators(IOREG_ACCELERATORS, 32 * 1024**3)
+
+        self.assertEqual(
+            info,
+            system_specs._GpuInfo(
+                name="Apple M2 Pro",
+                memory_total_bytes=32 * 1024**3,
+                memory_used_bytes=2 * 1024**3,
+                load_percent=37.0,
+                temperature_celsius=None,
+            ),
+        )
+
+    def test_skips_an_accelerator_without_a_name(self) -> None:
+        nameless = IOREG_ACCELERATORS.replace(b"<key>model</key><string>Apple M2 Pro</string>", b"")
+
+        self.assertIsNone(system_specs.parse_ioreg_accelerators(nameless, 1))
+
+    def test_is_none_for_output_that_is_not_a_plist(self) -> None:
+        for data in (b"", b"not xml", b"<plist><dict></dict></plist>"):
+            with self.subTest(data=data):
+                self.assertIsNone(system_specs.parse_ioreg_accelerators(data, 1))
+
+    def test_asks_ioreg_only_on_macos(self) -> None:
+        with (
+            patch("system_specs.sys.platform", "linux"),
+            patch("system_specs.subprocess.run") as run_mock,
+        ):
+            self.assertIsNone(system_specs._gpu_from_ioreg(1))
+
+        run_mock.assert_not_called()
+
+
+class MacCpuLoadTests(unittest.TestCase):
+    def test_reads_idle_and_total_ticks_from_mach(self) -> None:
+        # user, system, idle, nice
+        with (
+            patch("system_specs.sys.platform", "darwin"),
+            patch("system_specs._macos_cpu_ticks", return_value=(200, 100, 650, 50)),
+        ):
+            self.assertEqual(system_specs._cpu_times(), (650, 1000))
+
+    def test_a_failed_read_leaves_the_load_unknown(self) -> None:
+        with (
+            patch("system_specs.sys.platform", "darwin"),
+            patch("system_specs._macos_cpu_ticks", side_effect=OSError("host_statistics failed")),
+        ):
+            self.assertIsNone(system_specs._cpu_times())
+
+
 class LinuxCpuPowerTests(unittest.TestCase):
     def setUp(self) -> None:
         patcher = patch.multiple(

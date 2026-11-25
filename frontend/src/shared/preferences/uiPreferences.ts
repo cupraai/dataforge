@@ -37,7 +37,7 @@ export interface UiSettings {
   jobsDrawerFilters: JobFilters;
   galleryCards: GalleryCardOptions;
   editor: EditorOptions;
-  /** Leaves dot folders and folders Windows marks hidden out of folder lists. */
+  /** Leaves dot folders and folders the system marks hidden out of folder lists. */
   hideHiddenFolders: boolean;
   /** Background tagging; while off, nothing about tags is shown. */
   taggingEnabled: boolean;

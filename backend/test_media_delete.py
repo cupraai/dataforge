@@ -17,6 +17,8 @@ from media_delete import (
 )
 from testing_fixtures import (
     TempMediaFolder,
+    permanent_deletes,
+    private_trash,
     write_media,
     write_mp4_video,
     write_txt_caption,
@@ -30,13 +32,17 @@ def _fail_txt_only(path: Path) -> None:
     path.unlink(missing_ok=True)
 
 
+#: The platforms whose trash runs here; macOS has no CI.
+HAS_TRASH = sys.platform == "win32" or sys.platform.startswith("linux")
+
+
 class DeletePathTests(unittest.TestCase):
-    def test_non_windows_unlinks_permanently(self) -> None:
+    def test_without_a_trash_it_unlinks_permanently(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
 
-            with patch("file_trash.sys.platform", "linux"):
-                delete_path(media)
+            with permanent_deletes():
+                self.assertFalse(delete_path(media))
 
             self.assertFalse(media.exists())
 
@@ -193,7 +199,7 @@ class DeleteNameLinkedFilesTests(unittest.TestCase):
             record.write_text("{}", encoding="utf-8")
             unrelated = write_media(root / STAGING_DIR_NAME, "other.png")
 
-            with patch("file_trash.sys.platform", "linux"):
+            with permanent_deletes():
                 delete_media_with_sidecars(media)
 
             self.assertFalse(backup.exists())
@@ -209,7 +215,7 @@ class SharedStemDeleteTests(unittest.TestCase):
             png = write_media(root, "item.png")
             caption = write_txt_caption(png, "Shared.")
 
-            with patch("file_trash.sys.platform", "linux"):
+            with permanent_deletes():
                 delete_media_with_sidecars(jpg)
 
             self.assertFalse(jpg.exists())
@@ -221,7 +227,7 @@ class SharedStemDeleteTests(unittest.TestCase):
             write_wav(root, "song.wav")
             caption = write_txt_caption(cover, "Shared.")
 
-            with patch("file_trash.sys.platform", "linux"):
+            with permanent_deletes():
                 delete_media_with_sidecars(cover)
 
             self.assertEqual(caption.read_text(encoding="utf-8"), "Shared.")
@@ -231,14 +237,17 @@ class SharedStemDeleteTests(unittest.TestCase):
             png = write_media(root, "item.png")
             caption = write_txt_caption(png, "Mine.")
 
-            with patch("file_trash.sys.platform", "linux"):
+            with permanent_deletes():
                 delete_media_with_sidecars(png)
 
             self.assertFalse(caption.exists())
 
 
-@unittest.skipUnless(sys.platform == "win32", "Recycle Bin is a Windows concern")
+@unittest.skipUnless(HAS_TRASH, "needs a trash this test can use")
 class RestoreMediaWithSidecarsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.enterContext(private_trash())
+
     def test_a_delete_reports_what_it_recycled_and_undoes_it(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
@@ -282,7 +291,7 @@ class RecycledListTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_media(root, "sunset.png")
 
-            with patch("file_trash.sys.platform", "linux"):
+            with permanent_deletes():
                 result = delete_media_with_sidecars(media)
 
             self.assertEqual(result["recycled"], [])

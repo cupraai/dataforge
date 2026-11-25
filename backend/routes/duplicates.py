@@ -8,7 +8,7 @@ from duplicates import (
     group_duplicate_findings,
     stale_duplicate_members,
 )
-from file_trash import deletes_to_trash
+from file_trash import trash_available
 from folder_scan import scan_folder
 from media_claims import MediaBusyError
 from media_delete import delete_media_with_sidecars
@@ -63,7 +63,7 @@ def list_duplicates(
         folder=str(folder_path),
         groups=groups,
         stale=[path.name for path in stale_duplicate_members(scan)],
-        deletes_to_trash=deletes_to_trash(),
+        deletes_to_trash=trash_available(folder_path),
     )
 
 
