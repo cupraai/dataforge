@@ -20,7 +20,7 @@ from constants import (
     EDIT_TEMP_SUFFIX,
     FILL_ASSETS_SUFFIX,
 )
-from file_publish import publish_replacing, sweep_publish_leftovers
+from file_publish import copy_creation_time, publish_replacing, sweep_publish_leftovers
 from file_trash import delete_path
 from file_write import write_text_atomic
 from media_claims import holds_claim, is_claimed
@@ -152,9 +152,18 @@ def refresh_published(media: Path) -> None:
     _write_record(media, record.model_copy(update={"published": fingerprint_of(media)}))
 
 
+def _keep_creation_time(media: Path, temp_path: Path) -> None:
+    """An edit rewrites the file the user already has, so only its modified date may move."""
+    try:
+        copy_creation_time(media, temp_path)
+    except OSError:
+        logger.warning("Could not keep the creation date of %s", media.name, exc_info=True)
+
+
 def publish_with_spec(temp_path: Path, media: Path, spec: BaseModel) -> None:
     """The record goes first, so a failure leaves either the old or the new pair."""
     _require_claim(media)
+    _keep_creation_time(media, temp_path)
     spec_path = edit_spec_path(media)
     try:
         previous = spec_path.read_text(encoding="utf-8")
@@ -219,6 +228,7 @@ def restore_backup(media: Path) -> bool:
 
     try:
         shutil.copy2(backup, temp_path)
+        _keep_creation_time(media, temp_path)
         publish_replacing(temp_path, media, stale_path_for(media))
     finally:
         with suppress(OSError):

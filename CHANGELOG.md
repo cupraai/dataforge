@@ -43,6 +43,7 @@ version heading when a minor or major version is cut.
 ### Fixed
 
 - An out-of-range `DATAFORGE_API_PORT`, such as `99999`, no longer stops the development API from starting: it uses the default port 18080, the one the launcher waits on.
+- Saving or reverting an edit in the image, video or audio edit panel keeps the file's creation date on Windows and macOS; only its modified date changes.
 
 ## 0.15.0 - 2026-11-20
 

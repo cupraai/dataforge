@@ -5,6 +5,8 @@ from testing_fixtures import isolate_test_database
 isolate_test_database()
 
 import os
+import sys
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -277,6 +279,46 @@ class RestoreBackupTests(unittest.TestCase):
                 edit_sidecars.restore_backup(media)
 
             self.assertEqual(backup.read_bytes(), b"pristine-original")
+
+
+@unittest.skipUnless(
+    sys.platform in ("win32", "darwin"), "only Windows and macOS let a creation time be set"
+)
+class CreationTimeTests(unittest.TestCase):
+    """The edited file is the same file to the user: only its modified date moves."""
+
+    def assertCreatedAt(self, path: Path, created: float) -> None:
+        # macOS reports creation as a float, so a nanosecond round trip may drift a little.
+        self.assertAlmostEqual(path.stat().st_birthtime, created, delta=1e-6)
+
+    def test_an_edit_keeps_the_files_creation_time(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_media(root, "photo.png")
+            created = media.stat().st_birthtime
+            modified = media.stat().st_mtime_ns
+            # So the temp file is visibly younger than the original.
+            time.sleep(0.05)
+
+            _publish(media, b"rendered", ImageEditSpec(rotate=90))
+
+            self.assertCreatedAt(media, created)
+            self.assertGreater(media.stat().st_mtime_ns, modified)
+            self.assertEqual(
+                edit_sidecars.read_spec(media, ImageEditSpec), ImageEditSpec(rotate=90)
+            )
+
+    def test_a_revert_keeps_the_files_creation_time(self) -> None:
+        with TempMediaFolder() as root:
+            media = write_media(root, "photo.png")
+            created = media.stat().st_birthtime
+            write_edit_backup(media, b"pristine-original")
+            time.sleep(0.05)
+
+            with claim([media], "render"):
+                self.assertTrue(edit_sidecars.restore_backup(media))
+
+            self.assertEqual(media.read_bytes(), b"pristine-original")
+            self.assertCreatedAt(media, created)
 
 
 class SweepTests(unittest.TestCase):
