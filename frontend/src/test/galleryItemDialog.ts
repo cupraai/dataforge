@@ -15,6 +15,7 @@ export function makeItem(name: string, overrides: Partial<GalleryItem> = {}): Ga
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "text",
     media_type: "image",
     modified_at: "2026-03-15T14:30:00.000Z",

@@ -17,6 +17,7 @@ function item(overrides: Partial<GalleryItem> = {}): GalleryItem {
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "none",
     media_type: "video",
     width: 1920,
@@ -40,6 +41,13 @@ describe("rowMarkers", () => {
 
     expect(markers.map((marker) => marker.key)).toEqual(["edited"]);
     expect(markers[0]?.label).toBe("Edited");
+  });
+
+  it("marks a file the Watermark job copied", () => {
+    const markers = rowMarkers(item({ media_type: "image", has_watermarked_copy: true }));
+
+    expect(markers.map((marker) => marker.key)).toEqual(["watermarked"]);
+    expect(markers[0]?.label).toBe("Watermarked");
   });
 
   it("leaves the media type to the name icon", () => {

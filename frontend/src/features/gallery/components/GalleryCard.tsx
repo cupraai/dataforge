@@ -12,6 +12,7 @@ import {
   iconMessageWarning,
   iconPencil,
   iconScanSquare,
+  iconStamp,
   iconTriangleAlert,
   iconVideo,
 } from "@/shared/icons";
@@ -158,7 +159,11 @@ export const GalleryCard = memo(function GalleryCard({
             </span>
           )}
           {/* The file's own facts on the left; caption and dataset findings on the right. */}
-          {(itemIsVideo || itemIsAudio || itemIsGif || item.has_backup) && (
+          {(itemIsVideo ||
+            itemIsAudio ||
+            itemIsGif ||
+            item.has_backup ||
+            item.has_watermarked_copy) && (
             <span className="card__file-badges">
               {itemIsVideo && (
                 <CardBadge
@@ -187,6 +192,14 @@ export const GalleryCard = memo(function GalleryCard({
                   compact={compactBadges}
                   label="Edited"
                   variant="edited"
+                />
+              )}
+              {item.has_watermarked_copy && (
+                <CardBadge
+                  icon={iconStamp}
+                  compact={compactBadges}
+                  label="Watermarked"
+                  variant="watermarked"
                 />
               )}
             </span>

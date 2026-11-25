@@ -19,7 +19,7 @@ from captions import (
     issue_file_path,
     issue_summary_from_sidecar,
 )
-from constants import STAGING_DIR_NAME
+from constants import STAGING_DIR_NAME, WATERMARK_DIR_NAME
 from duplicates import (
     DuplicateFinding,
     duplicate_file_path,
@@ -354,6 +354,22 @@ class ScanBackedListingTests(unittest.TestCase):
             self.assertTrue(by_name["upscaled.png"]["has_candidate"])
             self.assertFalse(by_name["plain.png"]["has_candidate"])
             self.assertEqual(sorted(by_name), ["plain.png", "upscaled.png"])
+
+    def test_listing_reports_whether_a_file_has_a_watermarked_copy(self) -> None:
+        with TempMediaFolder() as root:
+            write_media(root, "marked.png")
+            write_media(root, "plain.png")
+            watermarked = root / WATERMARK_DIR_NAME
+            watermarked.mkdir()
+            write_media(watermarked, "marked.png")
+            # Copies pair by exact name, never by stem.
+            write_media(watermarked, "plain.jpg")
+
+            by_name = {item["name"]: item for item in _listing(root)}
+
+            self.assertTrue(by_name["marked.png"]["has_watermarked_copy"])
+            self.assertFalse(by_name["plain.png"]["has_watermarked_copy"])
+            self.assertEqual(sorted(by_name), ["marked.png", "plain.png"])
 
     def test_listing_always_carries_size_and_modified_at(self) -> None:
         with TempMediaFolder() as root:

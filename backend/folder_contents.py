@@ -12,6 +12,7 @@ from constants import (
     ISSUE_SIDECAR_SUFFIX,
     LAST_FOLDER_KEY,
     STAGING_DIR_NAME,
+    WATERMARK_DIR_NAME,
 )
 from db import get_preference, set_preference
 from filesystem import build_breadcrumbs, get_home_folder, list_subfolders
@@ -135,9 +136,14 @@ def build_folder_changes(
         fingerprint=signature.fingerprint,
         changed=media_items_named(scan, changed),
         removed=[str(folder / name) for name in removed],
-        stale_subfolders=(
-            [] if baseline.staging == signature.staging else [str(folder / STAGING_DIR_NAME)]
-        ),
+        stale_subfolders=[
+            str(folder / name)
+            for name, before, after in (
+                (STAGING_DIR_NAME, baseline.staging, signature.staging),
+                (WATERMARK_DIR_NAME, baseline.watermarked, signature.watermarked),
+            )
+            if before != after
+        ],
     )
 
 

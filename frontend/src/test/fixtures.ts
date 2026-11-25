@@ -47,6 +47,7 @@ export function mediaItem(
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "none",
     media_type: MEDIA_TYPE_BY_EXTENSION[extension] ?? "image",
     width: 1920,

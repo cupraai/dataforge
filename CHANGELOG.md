@@ -17,6 +17,7 @@ version heading when a minor or major version is cut.
 - **LoRA showcase** renders a trained LoRA across several prompts in one run, each item with its own extra LoRAs, strengths, seed and optional start image. Choose several LoRAs, such as a training run's saves, to compare them on the same seeds. Items can be saved as a set and reused for the next LoRA. It can also lay the results out on one labelled sheet, an image or a video, with items down and training steps or LoRAs across.
 - AAC audio files (`.aac`), which AI-Toolkit trains on, are listed, played, captioned and editable like other audio. Their length is counted exactly, so trims and fades land where you set them.
 - The **Files** filter has an **Unedited** option, which shows only files that have not been edited.
+- Files that have a copy in their folder's `watermarked` folder show a **Watermarked** badge on their card and a stamp in list view, updated as the Watermark job writes each copy.
 - `./update.sh` updates a Git clone on Linux and macOS the way `update.bat` does on Windows: it pulls the latest version and reruns setup only when a runtime or backend dependency changed.
 
 ### Changed

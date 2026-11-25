@@ -238,6 +238,7 @@ def _build_media_item(
         "has_duplicate_file": duplicate_finding is not None,
         "has_candidate": candidate_name is not None,
         "candidate_name": candidate_name,
+        "has_watermarked_copy": media.name in scan.watermarked,
         "caption_status": caption.status,
         "caption_revision": caption.revision,
         "caption_read_error": caption.read_error,

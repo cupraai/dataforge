@@ -40,6 +40,7 @@ function makeIssueItem(name: string, overrides: Partial<GalleryItem> = {}): Gall
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "text",
     media_type: "image",
     ...overrides,

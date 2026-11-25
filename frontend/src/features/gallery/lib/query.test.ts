@@ -48,6 +48,7 @@ function item(
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "none",
     media_type: mediaType,
     ...overrides,

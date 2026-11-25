@@ -2,7 +2,15 @@ import type { AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
 
-type CardBadgeVariant = "video" | "audio" | "gif" | "issue" | "duplicate" | "candidate" | "edited";
+type CardBadgeVariant =
+  | "video"
+  | "audio"
+  | "gif"
+  | "issue"
+  | "duplicate"
+  | "candidate"
+  | "edited"
+  | "watermarked";
 
 interface CardBadgeProps {
   icon: AppIcon;

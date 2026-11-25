@@ -18,6 +18,7 @@ function item(name: string): GalleryItem {
     has_backup: false,
     tags: [],
     has_candidate: false,
+    has_watermarked_copy: false,
     caption_status: "none",
     media_type: "image",
     width: 1920,

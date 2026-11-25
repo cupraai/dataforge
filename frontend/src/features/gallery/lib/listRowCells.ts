@@ -12,6 +12,7 @@ import {
   iconMessageWarning,
   iconPencil,
   iconScanSquare,
+  iconStamp,
   type AppIcon,
 } from "@/shared/icons";
 import {
@@ -55,6 +56,14 @@ export function rowMarkers(item: GalleryItem): RowMarker[] {
   }
   if (item.has_backup) {
     markers.push({ key: "edited", icon: iconPencil, label: "Edited", variant: "edited" });
+  }
+  if (item.has_watermarked_copy) {
+    markers.push({
+      key: "watermarked",
+      icon: iconStamp,
+      label: "Watermarked",
+      variant: "watermarked",
+    });
   }
   if (item.has_issue_file) {
     markers.push({

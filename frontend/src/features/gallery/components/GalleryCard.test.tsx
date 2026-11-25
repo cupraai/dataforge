@@ -24,6 +24,7 @@ const captionedItem: GalleryItem = {
   has_backup: false,
   tags: [],
   has_candidate: false,
+  has_watermarked_copy: false,
   caption_status: "text",
   media_type: "image",
   width: 1920,
@@ -259,6 +260,20 @@ describe("GalleryCard", () => {
     const badge = container.querySelector(".card__badge--candidate");
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveTextContent("Candidate");
+  });
+
+  it("badges a file with a watermarked copy among the file's own facts", () => {
+    const { container } = render(
+      <GalleryCard
+        item={{ ...captionedItem, has_backup: true, has_watermarked_copy: true }}
+        onSelect={vi.fn<(path: string) => void>()}
+      />,
+    );
+
+    const badges = container.querySelector(".card__file-badges");
+    expect(badges?.lastElementChild).toHaveClass("card__badge--watermarked");
+    expect(badges?.lastElementChild).toHaveTextContent("Watermarked");
+    expect(container.querySelector(".card__badge-stack")).not.toBeInTheDocument();
   });
 
   it("stacks the issue and candidate badges in one column, issue first", () => {

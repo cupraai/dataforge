@@ -243,6 +243,8 @@ class GalleryItem(BaseModel):
     has_candidate: bool = False
     #: The staged filename, which differs from this item's whenever the source is not a PNG.
     candidate_name: str | None = None
+    #: The Watermark job wrote a same-named copy into the ``watermarked`` child directory.
+    has_watermarked_copy: bool = False
     caption_status: CaptionStatus
     #: What a caption save must name as its base; ``None`` when there is no file to replace.
     caption_revision: str | None = None

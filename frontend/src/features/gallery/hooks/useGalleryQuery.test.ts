@@ -28,6 +28,7 @@ function item(
     has_backup: false,
     tags: [],
     has_candidate: hasCandidate,
+    has_watermarked_copy: false,
     caption_status: hasDescription ? "text" : "none",
     media_type: mediaType,
   };

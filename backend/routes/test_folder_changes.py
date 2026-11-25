@@ -11,6 +11,7 @@ from constants import (
     CAPTION_RULES_FILENAME,
     STAGING_DIR_NAME,
     SYSPROMPT_FILENAME,
+    WATERMARK_DIR_NAME,
 )
 from folder_fingerprint import clear_remembered_signatures_for_tests
 from media_tags import save_media_tags
@@ -204,6 +205,23 @@ class FolderChangesTests(unittest.TestCase):
             self.assertNotEqual(changes["fingerprint"], listed["fingerprint"])
             self.assertEqual(changes["changed"], [])
             self.assertEqual(changes["stale_subfolders"], [str(root / STAGING_DIR_NAME)])
+
+    def test_a_new_watermarked_copy_returns_only_its_source(self) -> None:
+        """The copy lives in a child directory, so its counts are named stale too."""
+        with TempMediaFolder() as root:
+            write_media(root, "marked.png")
+            write_media(root, "untouched.png")
+            (root / WATERMARK_DIR_NAME).mkdir()
+            listed = self._listing(root)
+
+            write_media(root / WATERMARK_DIR_NAME, "marked.png")
+
+            changes = self._changes(root, listed["fingerprint"])
+
+            self.assertFalse(changes["full"])
+            self.assertEqual([item["name"] for item in changes["changed"]], ["marked.png"])
+            self.assertTrue(changes["changed"][0]["has_watermarked_copy"])
+            self.assertEqual(changes["stale_subfolders"], [str(root / WATERMARK_DIR_NAME)])
 
     def test_a_new_subfolder_asks_for_a_full_reload(self) -> None:
         """Subfolders are not part of a delta."""

@@ -142,7 +142,8 @@
   .card__badge--video,
   .card__badge--candidate,
   .card__badge--duplicate,
-  .card__badge--edited {
+  .card__badge--edited,
+  .card__badge--watermarked {
     @include root.dark-theme;
     // Inherited color was already resolved against the light --text on .card.
     color: var(--text);

@@ -18,6 +18,7 @@ from constants import (
     ISSUE_SIDECAR_SUFFIX,
     STAGING_DIR_NAME,
     SYSPROMPT_FILENAME,
+    WATERMARK_DIR_NAME,
 )
 from folder_instructions import find_instruction_file
 from folder_scan import FolderScan, ScannedEntry, folder_entries_in_order, scan_folder
@@ -73,6 +74,12 @@ def entry_signatures_from_scan(
         candidate = scan.candidates.get(candidate_name) if candidate_name else None
         if candidate is not None:
             signatures.append(("candidate", candidate.name, candidate.mtime_ns, candidate.size))
+
+        watermarked = scan.watermarked.get(entry.name)
+        if watermarked is not None:
+            signatures.append(
+                ("watermarked", watermarked.name, watermarked.mtime_ns, watermarked.size)
+            )
 
         tag_revision = tag_revisions.get(entry.name)
         if tag_revision is not None:
@@ -147,6 +154,17 @@ class FolderSignature:
     shell: tuple[EntrySignature, ...]
     flags: FolderFlags
     staging: tuple[tuple[str, int, int], ...]
+    watermarked: tuple[tuple[str, int, int], ...]
+
+
+#: Child directories whose files are tracked per item and in ``FolderSignature``.
+_TRACKED_CHILD_DIR_NAMES = frozenset({STAGING_DIR_NAME, WATERMARK_DIR_NAME})
+
+
+def _child_files_signature(
+    files: Mapping[str, ScannedEntry],
+) -> tuple[tuple[str, int, int], ...]:
+    return tuple(sorted((entry.name, entry.mtime_ns, entry.size) for entry in files.values()))
 
 
 #: So gaining or losing a sidecar shows as a change.
@@ -174,6 +192,10 @@ def _item_signature(
     candidate_name = candidate_name_for(name, scan.candidates, scan.files)
     candidate = scan.candidates.get(candidate_name) if candidate_name else None
     parts.append(_ABSENT_SIDECAR if candidate is None else (candidate.mtime_ns, candidate.size))
+    watermarked = scan.watermarked.get(name)
+    parts.append(
+        _ABSENT_SIDECAR if watermarked is None else (watermarked.mtime_ns, watermarked.size)
+    )
     parts.append(_ABSENT_SIDECAR if tag_revision is None else (tag_revision, 0))
 
     return tuple(parts)
@@ -196,7 +218,7 @@ def folder_signature_from_scan(scan: FolderScan) -> FolderSignature:
 
     shell: list[EntrySignature] = []
     for entry in scan.dirs:
-        if entry.name == STAGING_DIR_NAME:
+        if entry.name in _TRACKED_CHILD_DIR_NAMES:
             # Tracked per item; the directory mtime would full-reload on every write.
             shell.append((_entry_kind("dir", entry), entry.name, 0, 0))
         else:
@@ -216,9 +238,8 @@ def folder_signature_from_scan(scan: FolderScan) -> FolderSignature:
         items=items,
         shell=tuple(shell),
         flags=flags,
-        staging=tuple(
-            sorted((entry.name, entry.mtime_ns, entry.size) for entry in scan.candidates.values())
-        ),
+        staging=_child_files_signature(scan.candidates),
+        watermarked=_child_files_signature(scan.watermarked),
     )
 
 

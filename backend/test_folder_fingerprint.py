@@ -8,7 +8,7 @@ import os
 import unittest
 
 from captions import save_issue_findings
-from constants import STAGING_DIR_NAME, VIDEO_PROJECT_SUFFIX
+from constants import STAGING_DIR_NAME, VIDEO_PROJECT_SUFFIX, WATERMARK_DIR_NAME
 from duplicates import DuplicateFinding, save_duplicate_finding
 from folder_fingerprint import compute_folder_fingerprint
 from testing_fixtures import (
@@ -79,6 +79,17 @@ class FolderFingerprintTests(unittest.TestCase):
 
             self.assertIsNotNone(first)
             self.assertIsNotNone(second)
+            self.assertNotEqual(first, second)
+
+    def test_fingerprint_changes_when_a_watermarked_copy_is_written(self) -> None:
+        with TempMediaFolder() as root:
+            write_media(root, "alpha.png")
+            (root / WATERMARK_DIR_NAME).mkdir()
+            first = compute_folder_fingerprint(root)
+            write_media(root / WATERMARK_DIR_NAME, "alpha.png")
+            second = compute_folder_fingerprint(root)
+
+            self.assertIsNotNone(first)
             self.assertNotEqual(first, second)
 
     def test_fingerprint_changes_when_a_clip_gets_an_mp4_candidate(self) -> None:

@@ -18,6 +18,7 @@ from constants import (
     STAGING_DIR_NAME,
     SYSPROMPT_FILENAME,
     VIDEO_EXTENSIONS,
+    WATERMARK_DIR_NAME,
 )
 
 
@@ -40,6 +41,8 @@ class FolderScan:
     dirs: list[ScannedEntry]
     media: list[ScannedEntry]
     candidates: dict[str, ScannedEntry]
+    #: The Watermark job's copies, each named exactly as its source.
+    watermarked: dict[str, ScannedEntry]
     sysprompt: ScannedEntry | None
     caption_rules: ScannedEntry | None
     note: ScannedEntry | None
@@ -112,23 +115,22 @@ def _entry_from_dir_entry(
     )
 
 
-def _scan_staging_files(folder: Path) -> dict[str, ScannedEntry]:
-    candidates: dict[str, ScannedEntry] = {}
-    staging = folder / STAGING_DIR_NAME
+def _scan_child_files(folder: Path) -> dict[str, ScannedEntry]:
+    found: dict[str, ScannedEntry] = {}
     try:
-        with os.scandir(staging) as entries:
+        with os.scandir(folder) as entries:
             for entry in entries:
                 try:
                     if not entry.is_file():
                         continue
                 except OSError:
                     continue
-                scanned = _entry_from_dir_entry(entry, staging)
+                scanned = _entry_from_dir_entry(entry, folder)
                 if scanned is not None:
-                    candidates[scanned.name] = scanned
+                    found[scanned.name] = scanned
     except OSError:
         return {}
-    return candidates
+    return found
 
 
 def scan_folder(folder: Path) -> FolderScan | None:
@@ -140,6 +142,7 @@ def scan_folder(folder: Path) -> FolderScan | None:
     caption_rules: ScannedEntry | None = None
     note: ScannedEntry | None = None
     saw_staging = False
+    saw_watermarked = False
 
     try:
         with os.scandir(folder) as entries:
@@ -154,6 +157,8 @@ def scan_folder(folder: Path) -> FolderScan | None:
                         continue
                     if entry.name == STAGING_DIR_NAME:
                         saw_staging = True
+                    elif entry.name == WATERMARK_DIR_NAME:
+                        saw_watermarked = True
                     scanned = _entry_from_dir_entry(entry, folder, is_dir=True)
                     if scanned is not None:
                         dirs.append(scanned)
@@ -190,7 +195,8 @@ def scan_folder(folder: Path) -> FolderScan | None:
         files=files,
         dirs=dirs,
         media=media,
-        candidates=_scan_staging_files(folder) if saw_staging else {},
+        candidates=_scan_child_files(folder / STAGING_DIR_NAME) if saw_staging else {},
+        watermarked=_scan_child_files(folder / WATERMARK_DIR_NAME) if saw_watermarked else {},
         sysprompt=sysprompt,
         caption_rules=caption_rules,
         note=note,
