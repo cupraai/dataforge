@@ -95,6 +95,7 @@ describe("SettingsDialog: appearance", () => {
         large_aspect_ratio: false,
         large_tags: false,
         list_caption_preview: true,
+        badges: "full",
         card_actions: ["open", "copy_caption", "delete"],
       },
     });

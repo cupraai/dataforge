@@ -31,6 +31,7 @@ const serverCopy = {
     large_aspect_ratio: false,
     large_tags: false,
     list_caption_preview: false,
+    badges: "compact",
     card_actions: ["open", "rename_file"],
   },
   editor: {
@@ -79,6 +80,7 @@ describe("useUiSettings", () => {
           largeAspectRatio: false,
           largeTags: false,
           listCaptionPreview: false,
+          badges: "compact",
           cardActions: ["open", "rename_file"],
         },
         editor: {
@@ -123,6 +125,7 @@ describe("useUiSettings", () => {
       largeAspectRatio: false,
       largeTags: false,
       listCaptionPreview: true,
+      badges: "hidden",
       cardActions: ["delete"],
     };
     localStorage.setItem("gallery-card-options", JSON.stringify(cards));

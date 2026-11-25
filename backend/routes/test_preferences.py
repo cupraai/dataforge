@@ -126,6 +126,7 @@ class UiPreferencesEndpointTests(unittest.TestCase):
                 "large_aspect_ratio": True,
                 "large_tags": True,
                 "list_caption_preview": False,
+                "badges": "full",
                 "card_actions": ["open", "copy_caption", "delete"],
             },
         )
@@ -138,6 +139,7 @@ class UiPreferencesEndpointTests(unittest.TestCase):
             "large_aspect_ratio": False,
             "large_tags": False,
             "list_caption_preview": True,
+            "badges": "hidden",
             "card_actions": ["open", "rename_file"],
         }
 

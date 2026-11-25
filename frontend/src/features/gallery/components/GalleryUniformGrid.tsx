@@ -8,7 +8,12 @@ import { useGalleryColumns } from "@/features/gallery/hooks/useGalleryColumns";
 import { useGalleryScrollMargin } from "@/features/gallery/hooks/useGalleryScrollMargin";
 import { useInspectedCardAnchor } from "@/features/gallery/hooks/useInspectedCardAnchor";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
-import type { GalleryCardAction, GalleryDisplayMode, GalleryItem } from "@/shared/types";
+import type {
+  CardBadgeMode,
+  GalleryCardAction,
+  GalleryDisplayMode,
+  GalleryItem,
+} from "@/shared/types";
 import { GalleryBackToTop } from "./GalleryBackToTop";
 import { GalleryCard } from "./GalleryCard";
 import { GalleryListRow } from "./GalleryListRow";
@@ -23,6 +28,8 @@ interface GalleryUniformGridProps {
   showMegapixels: boolean;
   /** List rows only. */
   captionPreview: boolean;
+  /** Small cards only. */
+  badges: CardBadgeMode;
   /** Small cards only. */
   cardActions: readonly GalleryCardAction[];
 }
@@ -44,6 +51,7 @@ export function GalleryUniformGrid({
   captionLines,
   showMegapixels,
   captionPreview,
+  badges,
   cardActions,
 }: GalleryUniformGridProps) {
   const {
@@ -147,6 +155,7 @@ export function GalleryUniformGrid({
                       displayMode={displayMode}
                       captionLines={captionLines}
                       showMegapixels={showMegapixels}
+                      badges={badges}
                       selectionMode={selectionMode}
                       selected={selectedPaths.has(item.path)}
                       onToggleSelect={toggleSelectedPath}

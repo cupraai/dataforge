@@ -4,6 +4,7 @@ import { FolderErrorState } from "@/features/folder/components/FolderErrorState"
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
 import { Gallery } from "@/features/gallery/components/Gallery";
+import { GalleryBadgeMenu } from "@/features/gallery/components/GalleryBadgeMenu";
 import { GalleryDisplayMenu } from "@/features/gallery/components/GalleryDisplayMenu";
 import { GalleryListHeader } from "@/features/gallery/components/GalleryListHeader";
 import { ModelGrid } from "@/features/gallery/components/ModelGrid";
@@ -14,7 +15,7 @@ import { useGalleryListColumns } from "@/features/gallery/hooks/useGalleryListCo
 import type { FilterEmptyState } from "@/features/gallery/lib/filters";
 import type { FolderError } from "@/shared/api/http";
 import { iconCheck, iconFolderOpen, iconImages, iconPencilLine, iconTrash2 } from "@/shared/icons";
-import { useUiSettings } from "@/shared/preferences/uiPreferences";
+import { useUiSettings, useUpdateUiSettings } from "@/shared/preferences/uiPreferences";
 import type { FolderResponse, GalleryDisplayMode, GalleryItem, Subfolder } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -84,6 +85,7 @@ export function AppFolderContent({
 }: AppFolderContentProps) {
   const { selectionMode, visibleSelectedCount } = useGallerySelectionContext();
   const { galleryCards: savedCards, taggingEnabled } = useUiSettings();
+  const updateUiSettings = useUpdateUiSettings();
   // Listings carry no tags while tagging is off; this hides them before the re-read lands.
   const galleryCards = useMemo(
     () => (taggingEnabled ? savedCards : { ...savedCards, largeTags: false }),
@@ -170,6 +172,14 @@ export function AppFolderContent({
                           {activeFilters}
                           {filteredItems.length > 0 && (
                             <GallerySelectionControls totalCount={filteredItems.length} />
+                          )}
+                          {displayMode !== "list" && (
+                            <GalleryBadgeMenu
+                              value={savedCards.badges}
+                              onChange={(badges) =>
+                                updateUiSettings({ galleryCards: { ...savedCards, badges } })
+                              }
+                            />
                           )}
                           <GalleryDisplayMenu value={displayMode} onChange={onDisplayModeChange} />
                         </div>

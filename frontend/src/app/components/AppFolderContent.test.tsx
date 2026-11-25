@@ -1,14 +1,15 @@
-import { describe, expect, it, vi } from "vite-plus/test";
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { ThumbnailProvider } from "@/features/gallery/context/ThumbnailProvider";
 import { iconSearch } from "@/shared/icons";
-import type { GalleryDisplayMode } from "@/shared/types";
+import type { GalleryDisplayMode, GalleryItem } from "@/shared/types";
 import { homeFolder } from "@/test/fixtures";
 import { withGallerySelection } from "@/test/gallerySelection";
 import { renderWithQueryClient } from "@/test/queryClient";
 import { AppFolderContent } from "./AppFolderContent";
 
-function renderContent(displayMode: GalleryDisplayMode) {
-  const items = homeFolder.items;
+function renderContent(displayMode: GalleryDisplayMode, items: GalleryItem[] = homeFolder.items) {
   return renderWithQueryClient(
     withGallerySelection(
       <ThumbnailProvider>
@@ -48,6 +49,10 @@ function renderContent(displayMode: GalleryDisplayMode) {
 }
 
 describe("AppFolderContent", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("docks the list's column headings in the sticky Media header", () => {
     const { container } = renderContent("list");
 
@@ -69,5 +74,29 @@ describe("AppFolderContent", () => {
         .querySelector<HTMLElement>(".gallery-section")
         ?.style.getPropertyValue("--gallery-list-col-status"),
     ).toBe("");
+  });
+
+  it("switches card badges from the menu beside the display mode, and saves the choice", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn<typeof fetch>(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+    const items = homeFolder.items.map((item) => ({ ...item, has_candidate: true }));
+    const { container } = renderContent("small", items);
+
+    expect(container.querySelector(".card__badge--candidate")).toHaveTextContent("Candidate");
+
+    await user.click(screen.getByRole("button", { name: "Card badges" }));
+    await user.click(screen.getByRole("menuitemradio", { name: /Hidden/ }));
+
+    expect(container.querySelector(".card__badge")).toBeNull();
+    const save = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(JSON.parse(String(save?.[1]?.body)).gallery_cards.badges).toBe("hidden");
+  });
+
+  it("offers no badge menu in list view", () => {
+    renderContent("list");
+
+    expect(screen.queryByRole("button", { name: "Card badges" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Display mode" })).toBeInTheDocument();
   });
 });

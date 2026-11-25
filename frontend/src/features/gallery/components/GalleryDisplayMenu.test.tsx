@@ -47,6 +47,19 @@ describe("GalleryDisplayMenu", () => {
     expect(onChange.mock.calls).toEqual([["small"], ["list"], ["large"]]);
   });
 
+  it("leaves Ctrl+Shift+digits to the card badges", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn<(value: GalleryDisplayMode) => void>();
+
+    render(<GalleryDisplayMenu value="large" onChange={onChange} />);
+
+    // userEvent sends the digit as the key; a US layout sends "!" with the Digit2 code.
+    await user.keyboard("{Control>}{Shift>}2{/Shift}{/Control}");
+    await user.keyboard("{Control>}{Shift>}[Digit3]{/Shift}{/Control}");
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("names each mode's shortcut on its menu item", async () => {
     const user = userEvent.setup();
 

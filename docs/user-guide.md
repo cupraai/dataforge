@@ -47,6 +47,7 @@ A dataset is a folder: `scene.jpg` is captioned by `scene.txt` beside it. DataFo
 | **Ranges** (in the filter menu) | Narrow by megapixels, video duration, or caption length in characters |
 | **Sort** | By name, date modified, caption length, megapixels, or duration |
 | **View** | Large cards, small cards, or a list (`Ctrl+1`, `Ctrl+2`, `Ctrl+3`) |
+| **Card badges** (beside **View**, on cards) | Full badges with labels, compact icon-only badges, or none (`Ctrl+Shift+1`, `Ctrl+Shift+2`, `Ctrl+Shift+3`) |
 | **Captioned** / **issue** counts | Filter the gallery to those files; click again to clear |
 
 - **Regex search.** Turn on regex for regular expressions. A pattern that takes more than a second is stopped and reported as **Pattern too slow**.
@@ -683,6 +684,7 @@ Press `?` outside a text field to see the shortcut list in the app. On macOS, us
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl+1` / `Ctrl+2` / `Ctrl+3` | Show large cards / small cards / a list |
+| `Ctrl+Shift+1` / `Ctrl+Shift+2` / `Ctrl+Shift+3` | Show full / compact card badges, or hide them |
 | `Ctrl+click` | Toggle a file and enter selection mode |
 | `Shift+click` | Select the range from the anchor to the clicked file |
 | `Ctrl+A` | Select every file shown |

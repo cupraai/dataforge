@@ -84,6 +84,21 @@ export const SHORTCUTS = {
     chords: [{ key: "2", mod: true }],
   },
   displayList: { group: "selection", label: "Show a list", chords: [{ key: "3", mod: true }] },
+  badgesFull: {
+    group: "selection",
+    label: "Show full card badges",
+    chords: [{ key: "1", mod: true, shift: true }],
+  },
+  badgesCompact: {
+    group: "selection",
+    label: "Show compact card badges",
+    chords: [{ key: "2", mod: true, shift: true }],
+  },
+  badgesHidden: {
+    group: "selection",
+    label: "Hide card badges",
+    chords: [{ key: "3", mod: true, shift: true }],
+  },
 
   previousItem: { group: "viewer", label: "Previous item", chords: [{ key: "ArrowLeft" }] },
   nextItem: { group: "viewer", label: "Next item", chords: [{ key: "ArrowRight" }] },
@@ -375,9 +390,12 @@ function isDigit(key: string): boolean {
   return /^\d$/.test(key);
 }
 
-/** A printable symbol whose Shift state belongs to the keyboard layout, not the chord. */
+/**
+ * A printable symbol whose Shift state belongs to the keyboard layout, not the chord. Digits are
+ * not: they also match by position, where Shift is free to pick a second chord.
+ */
 function isLayoutSymbol(key: string): boolean {
-  return key.length === 1 && !isLetter(key) && key !== " ";
+  return key.length === 1 && !isLetter(key) && !isDigit(key) && key !== " ";
 }
 
 function keyMatches(event: KeyboardEvent, key: string): boolean {

@@ -2,6 +2,7 @@ import { CARD_ACTION_IDS } from "@/features/gallery/lib/cardActions";
 import { DEFAULT_GALLERY_CARD_ACTIONS } from "@/shared/constants";
 import { readStoredJson, writeStoredJson } from "@/shared/lib/storage";
 import type {
+  CardBadgeMode,
   GalleryCardAction,
   GalleryCardSettings,
   LargeCardCaptionLines,
@@ -20,12 +21,14 @@ export interface GalleryCardOptions {
   /** Large cards only; the strongest tags in one row under the caption. */
   largeTags: boolean;
   listCaptionPreview: boolean;
+  badges: CardBadgeMode;
   /** In catalog order, which is how the bar shows them. */
   cardActions: GalleryCardAction[];
 }
 
 export const SMALL_CARD_CAPTION_LINES = [0, 1, 2, 4] as const satisfies SmallCardCaptionLines[];
 export const LARGE_CARD_CAPTION_LINES = [0, 2, 4, 6] as const satisfies LargeCardCaptionLines[];
+export const CARD_BADGE_MODES = ["full", "compact", "hidden"] as const satisfies CardBadgeMode[];
 
 export const DEFAULT_CARD_OPTIONS: GalleryCardOptions = {
   smallCaptionLines: 2,
@@ -34,13 +37,14 @@ export const DEFAULT_CARD_OPTIONS: GalleryCardOptions = {
   largeAspectRatio: true,
   largeTags: true,
   listCaptionPreview: false,
+  badges: "full",
   cardActions: [...DEFAULT_GALLERY_CARD_ACTIONS],
 };
 
 // Local mirror of the saved UI setting, so the first paint packs the masonry at its final size.
 const CARD_OPTIONS_CACHE_KEY = "gallery-card-options";
 
-function oneOf<T extends number>(options: readonly T[], value: unknown, fallback: T): T {
+function oneOf<T extends number | string>(options: readonly T[], value: unknown, fallback: T): T {
   return options.find((option) => option === value) ?? fallback;
 }
 
@@ -71,6 +75,7 @@ function parseCardOptions(value: unknown): GalleryCardOptions | null {
     largeAspectRatio: Boolean(flag("largeAspectRatio")),
     largeTags: Boolean(flag("largeTags")),
     listCaptionPreview: Boolean(flag("listCaptionPreview")),
+    badges: oneOf(CARD_BADGE_MODES, parsed.badges, DEFAULT_CARD_OPTIONS.badges),
     cardActions: parseCardActions(parsed.cardActions),
   };
 }
@@ -93,6 +98,7 @@ export function cardOptionsFromWire(settings: GalleryCardSettings): GalleryCardO
       largeAspectRatio: settings.large_aspect_ratio,
       largeTags: settings.large_tags,
       listCaptionPreview: settings.list_caption_preview,
+      badges: settings.badges,
       cardActions: settings.card_actions,
     }) ?? DEFAULT_CARD_OPTIONS
   );
@@ -106,6 +112,7 @@ export function cardOptionsToWire(options: GalleryCardOptions): GalleryCardSetti
     large_aspect_ratio: options.largeAspectRatio,
     large_tags: options.largeTags,
     list_caption_preview: options.listCaptionPreview,
+    badges: options.badges,
     card_actions: options.cardActions,
   };
 }

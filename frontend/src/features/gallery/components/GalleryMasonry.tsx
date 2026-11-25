@@ -18,7 +18,7 @@ import {
   type PackedMasonryLayout,
 } from "@/features/gallery/lib/packColumnMasonry";
 import { useGalleryItemPrefetch } from "@/features/gallery/lib/visiblePrefetch";
-import type { GalleryCardAction, GalleryItem } from "@/shared/types";
+import type { CardBadgeMode, GalleryCardAction, GalleryItem } from "@/shared/types";
 import { GalleryBackToTop } from "./GalleryBackToTop";
 import { GalleryCard } from "./GalleryCard";
 
@@ -30,6 +30,7 @@ interface GalleryMasonryProps {
   showMegapixels: boolean;
   showAspectRatio: boolean;
   showTags: boolean;
+  badges: CardBadgeMode;
   cardActions: readonly GalleryCardAction[];
 }
 
@@ -42,6 +43,7 @@ export function GalleryMasonry({
   showMegapixels,
   showAspectRatio,
   showTags,
+  badges,
   cardActions,
 }: GalleryMasonryProps) {
   const {
@@ -120,6 +122,7 @@ export function GalleryMasonry({
               showMegapixels={showMegapixels}
               showAspectRatio={showAspectRatio}
               showTags={showTags}
+              badges={badges}
               gap={layout.gap}
               onSelect={onSelect}
               selectionMode={selectionMode}
@@ -146,6 +149,7 @@ interface MasonryCardProps {
   showMegapixels: boolean;
   showAspectRatio: boolean;
   showTags: boolean;
+  badges: CardBadgeMode;
   gap: number;
   onSelect: (path: string) => void;
   selectionMode: boolean;
@@ -165,6 +169,7 @@ function MasonryCard({
   showMegapixels,
   showAspectRatio,
   showTags,
+  badges,
   gap,
   onSelect,
   selectionMode,
@@ -201,6 +206,7 @@ function MasonryCard({
         showMegapixels={showMegapixels}
         showAspectRatio={showAspectRatio}
         showTags={showTags}
+        badges={badges}
         selectionMode={selectionMode}
         selected={selected}
         inspected={inspected}

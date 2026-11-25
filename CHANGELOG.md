@@ -19,6 +19,7 @@ version heading when a minor or major version is cut.
 - The **Files** filter has an **Unedited** option, which shows only files that have not been edited.
 - Files that have a copy in their folder's `watermarked` folder show a **Watermarked** badge on their card and a stamp in list view, updated as the Watermark job writes each copy.
 - `./update.sh` updates a Git clone on Linux and macOS the way `update.bat` does on Windows: it pulls the latest version and reruns setup only when a runtime or backend dependency changed.
+- A **Card badges** button beside the display mode button switches the badges on gallery cards between **Full** (icon and label), **Compact** (icon only, keeping clip lengths and the GIF mark) and **Hidden**, also with **Ctrl+Shift+1**, **2** and **3**. The choice applies to large and small cards in every folder, so small cards now show labels too unless you choose Compact.
 - On macOS and Linux, deleting moves files to the Trash and offers **Undo**, as the Recycle Bin does on Windows. The path bar's drive button switches between mounted volumes, **Hide hidden folders** also hides folders Finder marks hidden or a Linux `.hidden` file lists, and the CPU panel shows CPU load and the Mac's GPU.
 
 ### Changed

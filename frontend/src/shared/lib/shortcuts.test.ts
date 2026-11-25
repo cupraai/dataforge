@@ -54,6 +54,20 @@ describe("matchesChord", () => {
     expect(matchesChord(keydown({ key: "&", code: "Digit2", ctrlKey: true }), chord)).toBe(false);
   });
 
+  it("tells a shifted digit chord from the plain one on any layout", () => {
+    const plain = { key: "1", mod: true };
+    const shifted = { key: "1", mod: true, shift: true };
+    // US and QWERTZ type ! for Shift+1; AZERTY types the digit itself.
+    const usShifted = keydown({ key: "!", code: "Digit1", ctrlKey: true, shiftKey: true });
+    const azertyShifted = keydown({ key: "1", code: "Digit1", ctrlKey: true, shiftKey: true });
+
+    for (const event of [usShifted, azertyShifted]) {
+      expect(matchesChord(event, shifted)).toBe(true);
+      expect(matchesChord(event, plain)).toBe(false);
+    }
+    expect(matchesChord(keydown({ key: "1", code: "Digit1", ctrlKey: true }), shifted)).toBe(false);
+  });
+
   it("leaves Shift to the layout for printable symbols", () => {
     expect(matchesChord(keydown({ key: "?", shiftKey: true }), { key: "?" })).toBe(true);
     expect(matchesChord(keydown({ key: "/", shiftKey: true }), { key: "/" })).toBe(true);

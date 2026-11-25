@@ -61,6 +61,11 @@
   display: inline-flex;
   align-items: center;
   margin-left: auto;
+
+  // The badge menu takes the push, so the two buttons sit together at the end.
+  &--badges + & {
+    margin-left: 0;
+  }
 }
 
 .gallery {
@@ -503,14 +508,16 @@
     color: var(--accent);
   }
 
-  &__badge-stack {
+  // One row for both columns: when they cannot fit side by side, each shrinks with its width and
+  // its labels end in an ellipsis instead of running into the other column.
+  &__badges {
     position: absolute;
     top: 0.625rem;
     right: 0.625rem;
+    left: 0.625rem;
     z-index: 2;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 0.375rem;
 
     .card__selection-indicator ~ & {
@@ -518,15 +525,21 @@
     }
   }
 
-  &__file-badges {
-    position: absolute;
-    top: 0.625rem;
-    left: 0.625rem;
-    z-index: 2;
+  &__file-badges,
+  &__badge-stack {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
     gap: 0.375rem;
+    min-width: 0;
+  }
+
+  &__file-badges {
+    align-items: flex-start;
+  }
+
+  &__badge-stack {
+    align-items: flex-end;
+    margin-left: auto;
   }
 
   &__badge {
@@ -539,6 +552,7 @@
     color: var(--media-text);
     background: var(--media-scrim);
     border: 1px solid color-mix(in srgb, var(--media-text) 18%, transparent);
+    max-width: 100%;
     border-radius: var(--radius-pill);
     font-size: var(--text-2xs);
     font-weight: var(--font-semibold);
@@ -572,6 +586,9 @@
 
     &-label {
       @include trim-to-caps;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &--compact {
@@ -691,6 +708,20 @@
   }
 }
 
+// A labelled badge matches the icon-only circles beside it.
+.card--small,
+.card--compact-badges {
+  .card__badge:not(.card__badge--compact) {
+    height: 1.25rem;
+    padding: 0 0.375rem;
+    gap: 0.25rem;
+
+    .card__badge-icon {
+      @include icon-size-sm;
+    }
+  }
+}
+
 .card--small {
   .card__body {
     gap: 0.375rem;
@@ -710,26 +741,15 @@
     font-size: var(--text-2xs);
   }
 
-  // A labelled badge matches the icon-only circles beside it.
-  .card__badge:not(.card__badge--compact) {
-    height: 1.25rem;
-    padding: 0 0.375rem;
-    gap: 0.25rem;
-
-    .card__badge-icon {
-      @include icon-size-sm;
-    }
-  }
-
-  .card__file-badges {
+  .card__badges {
     top: 0.4375rem;
+    right: 0.4375rem;
     left: 0.4375rem;
     gap: 0.3125rem;
   }
 
+  .card__file-badges,
   .card__badge-stack {
-    top: 0.4375rem;
-    right: 0.4375rem;
     gap: 0.3125rem;
   }
 
@@ -740,7 +760,7 @@
     height: 1.25rem;
   }
 
-  .card__selection-indicator ~ .card__badge-stack {
+  .card__selection-indicator ~ .card__badges {
     right: 0.4375rem + 1.25rem + 0.3125rem;
   }
 }

@@ -433,12 +433,24 @@ describe("GalleryCard", () => {
     expect(container.querySelector(".card__badge-stack")).toBeNull();
   });
 
-  it("shrinks badges to their icon on small cards", () => {
+  it("labels badges on small cards unless they are compact", () => {
     const { container } = render(
       <GalleryCard
         item={{ ...captionedItem, has_candidate: true }}
         onSelect={vi.fn<(path: string) => void>()}
         displayMode="small"
+      />,
+    );
+
+    expect(container.querySelector(".card__badge--candidate")).toHaveTextContent("Candidate");
+  });
+
+  it("shrinks badges to their icon when compact, on large cards too", () => {
+    const { container } = render(
+      <GalleryCard
+        item={{ ...captionedItem, has_candidate: true }}
+        onSelect={vi.fn<(path: string) => void>()}
+        badges="compact"
       />,
     );
 
@@ -448,12 +460,13 @@ describe("GalleryCard", () => {
     expect(badge?.querySelector(".card__badge-icon")).toBeInTheDocument();
   });
 
-  it("keeps a clip's length and the GIF mark on small cards, where the icon says neither", () => {
+  it("keeps a clip's length and the GIF mark when compact, where the icon says neither", () => {
     const { container, rerender } = render(
       <GalleryCard
         item={{ ...uncaptionedItem, duration: 84 }}
         onSelect={vi.fn<(path: string) => void>()}
         displayMode="small"
+        badges="compact"
       />,
     );
 
@@ -466,6 +479,7 @@ describe("GalleryCard", () => {
         item={{ ...uncaptionedItem, duration: null }}
         onSelect={vi.fn<(path: string) => void>()}
         displayMode="small"
+        badges="compact"
       />,
     );
     expect(container.querySelector(".card__badge--video")).toHaveClass("card__badge--compact");
@@ -475,9 +489,30 @@ describe("GalleryCard", () => {
         item={{ ...captionedItem, name: "loop.gif", media_type: "gif" }}
         onSelect={vi.fn<(path: string) => void>()}
         displayMode="small"
+        badges="compact"
       />,
     );
     expect(container.querySelector(".card__badge--gif")).toHaveTextContent("GIF");
+  });
+
+  it("hides every badge when badges are hidden", () => {
+    const { container } = render(
+      <GalleryCard
+        item={{
+          ...uncaptionedItem,
+          duration: 84,
+          has_backup: true,
+          has_issue_file: true,
+          has_candidate: true,
+        }}
+        onSelect={vi.fn<(path: string) => void>()}
+        badges="hidden"
+      />,
+    );
+
+    expect(container.querySelector(".card__badge")).toBeNull();
+    expect(container.querySelector(".card__file-badges")).toBeNull();
+    expect(container.querySelector(".card__badge-stack")).toBeNull();
   });
 
   describe("hover preview", () => {

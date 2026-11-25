@@ -30,6 +30,7 @@ export function Gallery({
         showMegapixels={cardOptions.megapixels}
         showAspectRatio={cardOptions.largeAspectRatio}
         showTags={cardOptions.largeTags}
+        badges={cardOptions.badges}
         cardActions={cardOptions.cardActions}
       />
     );
@@ -43,6 +44,7 @@ export function Gallery({
       captionLines={cardOptions.smallCaptionLines}
       showMegapixels={cardOptions.megapixels}
       captionPreview={cardOptions.listCaptionPreview}
+      badges={cardOptions.badges}
       cardActions={cardOptions.cardActions}
     />
   );

@@ -26,7 +26,12 @@ import {
 import { useHoverVideoPreview } from "@/features/gallery/hooks/useHoverVideoPreview";
 import { useWrappedCount } from "@/features/gallery/hooks/useWrappedCount";
 import { selectionIntentFor } from "@/features/gallery/lib/selectionIntent";
-import type { GalleryCardAction, GalleryDisplayMode, GalleryItem } from "@/shared/types";
+import type {
+  CardBadgeMode,
+  GalleryCardAction,
+  GalleryDisplayMode,
+  GalleryItem,
+} from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { formatDurationSeconds, formatMegapixels } from "@/shared/lib/format";
 import { CardBadge } from "./CardBadge";
@@ -51,6 +56,7 @@ interface GalleryCardProps {
   showAspectRatio?: boolean;
   /** Large cards only: the strongest tags in one row at the bottom. */
   showTags?: boolean;
+  badges?: CardBadgeMode;
   selectionMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (path: string) => void;
@@ -72,6 +78,7 @@ export const GalleryCard = memo(function GalleryCard({
   showMegapixels = true,
   showAspectRatio = false,
   showTags = false,
+  badges = DEFAULT_CARD_OPTIONS.badges,
   selectionMode = false,
   selected = false,
   onToggleSelect,
@@ -105,9 +112,15 @@ export const GalleryCard = memo(function GalleryCard({
     onSelect(item.path);
   };
 
-  // Small cards drop word labels to icons, but keep a length or a GIF mark: the icon alone
+  // Compact badges drop word labels to icons, but keep a length or a GIF mark: the icon alone
   // cannot say either.
-  const compactBadges = displayMode === "small";
+  const showBadges = badges !== "hidden";
+  const compactBadges = badges === "compact";
+  const fileBadgesShown =
+    showBadges &&
+    (itemIsVideo || itemIsAudio || itemIsGif || item.has_backup || item.has_watermarked_copy);
+  const findingBadgesShown =
+    showBadges && (item.has_issue_file || item.has_candidate || item.has_duplicate_file);
   const mediaLength = formatDurationSeconds(item.duration);
   const meta =
     item.width && item.height
@@ -127,6 +140,7 @@ export const GalleryCard = memo(function GalleryCard({
         className={classNames(
           "card",
           `card--${displayMode}`,
+          compactBadges && "card--compact-badges",
           getCardModifierClass(item),
           isMotion(item) && "card--video",
           selected && "card--selected",
@@ -159,76 +173,76 @@ export const GalleryCard = memo(function GalleryCard({
             </span>
           )}
           {/* The file's own facts on the left; caption and dataset findings on the right. */}
-          {(itemIsVideo ||
-            itemIsAudio ||
-            itemIsGif ||
-            item.has_backup ||
-            item.has_watermarked_copy) && (
-            <span className="card__file-badges">
-              {itemIsVideo && (
-                <CardBadge
-                  icon={iconVideo}
-                  compact={compactBadges && !mediaLength}
-                  label={mediaLength || "Video"}
-                  variant="video"
-                  numeric={!!mediaLength}
-                />
+          {(fileBadgesShown || findingBadgesShown) && (
+            <span className="card__badges">
+              {fileBadgesShown && (
+                <span className="card__file-badges">
+                  {itemIsVideo && (
+                    <CardBadge
+                      icon={iconVideo}
+                      compact={compactBadges && !mediaLength}
+                      label={mediaLength || "Video"}
+                      variant="video"
+                      numeric={!!mediaLength}
+                    />
+                  )}
+                  {itemIsAudio && (
+                    <CardBadge
+                      icon={iconAudioLines}
+                      compact={compactBadges && !mediaLength}
+                      label={mediaLength || "Audio"}
+                      variant="audio"
+                      numeric={!!mediaLength}
+                    />
+                  )}
+                  {itemIsGif && (
+                    <CardBadge icon={iconFileImage} compact={false} label="GIF" variant="gif" />
+                  )}
+                  {item.has_backup && (
+                    <CardBadge
+                      icon={iconPencil}
+                      compact={compactBadges}
+                      label="Edited"
+                      variant="edited"
+                    />
+                  )}
+                  {item.has_watermarked_copy && (
+                    <CardBadge
+                      icon={iconStamp}
+                      compact={compactBadges}
+                      label="Watermarked"
+                      variant="watermarked"
+                    />
+                  )}
+                </span>
               )}
-              {itemIsAudio && (
-                <CardBadge
-                  icon={iconAudioLines}
-                  compact={compactBadges && !mediaLength}
-                  label={mediaLength || "Audio"}
-                  variant="audio"
-                  numeric={!!mediaLength}
-                />
-              )}
-              {itemIsGif && (
-                <CardBadge icon={iconFileImage} compact={false} label="GIF" variant="gif" />
-              )}
-              {item.has_backup && (
-                <CardBadge
-                  icon={iconPencil}
-                  compact={compactBadges}
-                  label="Edited"
-                  variant="edited"
-                />
-              )}
-              {item.has_watermarked_copy && (
-                <CardBadge
-                  icon={iconStamp}
-                  compact={compactBadges}
-                  label="Watermarked"
-                  variant="watermarked"
-                />
-              )}
-            </span>
-          )}
-          {(item.has_issue_file || item.has_candidate || item.has_duplicate_file) && (
-            <span className="card__badge-stack">
-              {item.has_issue_file && (
-                <CardBadge
-                  icon={iconMessageWarning}
-                  compact={compactBadges}
-                  label="Issue"
-                  variant="issue"
-                />
-              )}
-              {item.has_candidate && (
-                <CardBadge
-                  icon={iconScanSquare}
-                  compact={compactBadges}
-                  label="Candidate"
-                  variant="candidate"
-                />
-              )}
-              {item.has_duplicate_file && (
-                <CardBadge
-                  icon={iconFiles}
-                  compact={compactBadges}
-                  label="Duplicate"
-                  variant="duplicate"
-                />
+              {findingBadgesShown && (
+                <span className="card__badge-stack">
+                  {item.has_issue_file && (
+                    <CardBadge
+                      icon={iconMessageWarning}
+                      compact={compactBadges}
+                      label="Issue"
+                      variant="issue"
+                    />
+                  )}
+                  {item.has_candidate && (
+                    <CardBadge
+                      icon={iconScanSquare}
+                      compact={compactBadges}
+                      label="Candidate"
+                      variant="candidate"
+                    />
+                  )}
+                  {item.has_duplicate_file && (
+                    <CardBadge
+                      icon={iconFiles}
+                      compact={compactBadges}
+                      label="Duplicate"
+                      variant="duplicate"
+                    />
+                  )}
+                </span>
               )}
             </span>
           )}
