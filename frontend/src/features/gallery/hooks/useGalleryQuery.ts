@@ -255,16 +255,16 @@ export function useGalleryQuery(items: GalleryItem[]) {
     } as const;
   }, [captionFilterCountItems]);
 
-  const fileFilterCounts = useMemo(
-    () =>
-      ({
-        all: fileFilterCountItems.length,
-        edited: countEdited(fileFilterCountItems),
-        duplicates: countDuplicates(fileFilterCountItems),
-        candidates: countCandidates(fileFilterCountItems),
-      }) as const,
-    [fileFilterCountItems],
-  );
+  const fileFilterCounts = useMemo(() => {
+    const edited = countEdited(fileFilterCountItems);
+    return {
+      all: fileFilterCountItems.length,
+      edited,
+      unedited: fileFilterCountItems.length - edited,
+      duplicates: countDuplicates(fileFilterCountItems),
+      candidates: countCandidates(fileFilterCountItems),
+    } as const;
+  }, [fileFilterCountItems]);
 
   const mediaTypeFilterCounts = useMemo(() => {
     const images = countMediaType(mediaTypeFilterCountItems, "image");

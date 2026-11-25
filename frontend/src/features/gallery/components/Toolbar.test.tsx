@@ -55,7 +55,7 @@ const defaultProps = {
     audio: 0,
   },
   fileFilter: "all" as FileFilter,
-  fileFilterCounts: { all: 5, edited: 3, duplicates: 2, candidates: 1 },
+  fileFilterCounts: { all: 5, edited: 3, unedited: 2, duplicates: 2, candidates: 1 },
   statsOpen: false,
   onToggleStats: vi.fn<() => void>(),
   onOpenSettings: vi.fn<() => void>(),
@@ -325,6 +325,9 @@ describe("Toolbar", () => {
     });
     const all = within(filesGroup).getByRole("menuitemradio", { name: "All files (5)" });
     const edited = within(filesGroup).getByRole("menuitemradio", { name: "Edited files (3)" });
+    const unedited = within(filesGroup).getByRole("menuitemradio", {
+      name: "Unedited files (2)",
+    });
     const duplicates = within(filesGroup).getByRole("menuitemradio", { name: "Duplicates (2)" });
     const candidates = within(filesGroup).getByRole("menuitemradio", {
       name: "ComfyUI candidates (1)",
@@ -332,7 +335,7 @@ describe("Toolbar", () => {
 
     expect(all).toBeChecked();
     expect(duplicates).not.toBeChecked();
-    const inOrder = [all, edited, duplicates, candidates];
+    const inOrder = [all, edited, unedited, duplicates, candidates];
     for (const [index, option] of inOrder.slice(0, -1).entries()) {
       const next = inOrder[index + 1];
       expect(option.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -347,6 +350,16 @@ describe("Toolbar", () => {
     await user.click(screen.getByRole("menuitemradio", { name: "Edited files (3)" }));
 
     expect(defaultProps.onFileFilterChange).toHaveBeenCalledWith("edited");
+  });
+
+  it("picks the unedited filter", async () => {
+    const user = userEvent.setup();
+    renderToolbar();
+
+    await user.click(screen.getByRole("button", { name: "Filter media" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Unedited files (2)" }));
+
+    expect(defaultProps.onFileFilterChange).toHaveBeenCalledWith("unedited");
   });
 
   it("picks a file filter and reports the value", async () => {

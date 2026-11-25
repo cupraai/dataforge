@@ -793,7 +793,7 @@ function filterItems(overrides: Partial<FilterCommandOptions> = {}) {
     counts: {
       mediaType: { all: 9, image: 6, video: 3, audio: 0 },
       caption: { all: 9, captioned: 5, issue: 1, uncaptioned: 4 },
-      file: { all: 9, edited: 2, duplicates: 0, candidates: 1 },
+      file: { all: 9, edited: 2, unedited: 7, duplicates: 0, candidates: 1 },
     },
     onSelectMediaType: vi.fn<(value: MediaTypeFilter) => void>(),
     onSelectCaption: vi.fn<(value: ItemFilter) => void>(),
@@ -825,6 +825,7 @@ describe("buildFilterItems", () => {
       "filter:caption:issue",
       "filter:caption:uncaptioned",
       "filter:file:edited",
+      "filter:file:unedited",
       "filter:file:duplicates",
       "filter:file:candidates",
       "filter:reset",

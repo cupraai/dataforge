@@ -6,6 +6,7 @@ import {
   iconMessageDashed,
   iconMessageWarning,
   iconPencil,
+  iconPencilOff,
   iconScanSquare,
   iconSearch,
   iconImage,
@@ -56,6 +57,12 @@ export const FILE_FILTER_OPTIONS = [
     label: "Edited",
     ariaLabel: "Edited files",
     icon: iconPencil,
+  },
+  {
+    value: "unedited" as const,
+    label: "Unedited",
+    ariaLabel: "Unedited files",
+    icon: iconPencilOff,
   },
   {
     value: "duplicates" as const,
@@ -110,6 +117,14 @@ const FILE_FILTER_EMPTY: Record<
     matchedTitle: "No matching edited files",
     matchedDescription:
       "Nothing in this folder has been edited and is also kept by the caption filter.",
+  },
+  unedited: {
+    icon: iconPencil,
+    variant: "muted",
+    title: "No unedited files",
+    description: "Every file in this folder has been edited.",
+    matchedTitle: "No matching unedited files",
+    matchedDescription: "Nothing in this folder is unedited and also kept by the caption filter.",
   },
   duplicates: {
     icon: iconCircleCheck,

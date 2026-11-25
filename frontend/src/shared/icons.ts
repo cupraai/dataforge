@@ -161,6 +161,7 @@ export {
   Pause as iconPause,
   Pencil as iconPencil,
   PencilLine as iconPencilLine,
+  PencilOff as iconPencilOff,
   PencilSparkles as iconPencilSparkles,
   Play as iconPlay,
   Plus as iconPlus,

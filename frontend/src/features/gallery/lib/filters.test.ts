@@ -164,6 +164,16 @@ describe("getFilterEmptyState", () => {
     expect(state.variant).toBe("muted");
   });
 
+  it("states a folder where every file is edited plainly", () => {
+    const state = getFilterEmptyState({
+      ...baseOptions,
+      fileFilter: "unedited",
+    });
+
+    expect(state.title).toBe("No unedited files");
+    expect(state.variant).toBe("muted");
+  });
+
   it("celebrates a folder with no candidates", () => {
     const state = getFilterEmptyState({
       ...baseOptions,

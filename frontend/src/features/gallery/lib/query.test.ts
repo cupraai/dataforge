@@ -166,6 +166,15 @@ describe("applyFileFilter", () => {
     expect(applyFileFilter(items, "edited").map((entry) => entry.name)).toEqual(["e.png"]);
   });
 
+  it("keeps only files without an edit backup", () => {
+    expect(applyFileFilter(items, "unedited").map((entry) => entry.name)).toEqual([
+      "a.png",
+      "b.png",
+      "c.png",
+      "d.png",
+    ]);
+  });
+
   it("keeps only files with a candidate", () => {
     expect(applyFileFilter(items, "candidates").map((entry) => entry.name)).toEqual(["d.png"]);
   });
