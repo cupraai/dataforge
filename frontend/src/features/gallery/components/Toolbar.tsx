@@ -35,6 +35,7 @@ import { StatsButton } from "./StatsButton";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { ToolbarFilterMenu, type RangeControls } from "./ToolbarFilterMenu";
 import { ToolbarSortMenu } from "./ToolbarSortMenu";
+import type { InstructionKind } from "@/shared/api/folderInstructions";
 import type { FolderInstructionsResponse } from "@/shared/types";
 import { instructionFileSummary } from "@/shared/lib/instructionFileState";
 import { RollingNumber } from "@/shared/ui/RollingNumber";
@@ -49,6 +50,9 @@ interface ToolbarProps {
   issueCount?: number;
   instructions?: FolderInstructionsResponse | null;
   hasCaptionBackup?: boolean;
+  /** Opens the folder instructions on the marker's own tab. */
+  onOpenInstructions?: (tab: InstructionKind) => void;
+  onRestoreCaptions?: () => void;
   statsLoading?: boolean;
   searchQuery: string;
   searchRegex: boolean;
@@ -241,17 +245,29 @@ function StatValue({ loading, value }: { loading?: boolean; value: number }) {
 function FolderMarker({
   icon,
   label,
+  hint,
   warning = false,
+  onClick,
 }: {
   icon: AppIcon;
   label: string;
+  /** What a click does, shown after the label once the marker is clickable. */
+  hint: string;
   warning?: boolean;
+  onClick?: () => void;
 }) {
+  const className = classNames("stat", warning && "stat--warning", onClick && "stat--filter");
   return (
-    <Tooltip content={label}>
-      <span className={classNames("stat", warning && "stat--warning")} aria-label={label}>
-        <Icon icon={icon} className="stat__icon" />
-      </span>
+    <Tooltip content={onClick ? `${label} — ${hint}` : label}>
+      {onClick ? (
+        <button type="button" className={className} aria-label={label} onClick={onClick}>
+          <Icon icon={icon} className="stat__icon" />
+        </button>
+      ) : (
+        <span className={className} aria-label={label}>
+          <Icon icon={icon} className="stat__icon" />
+        </span>
+      )}
     </Tooltip>
   );
 }
@@ -264,6 +280,8 @@ export function Toolbar({
   issueCount = 0,
   instructions,
   hasCaptionBackup = false,
+  onOpenInstructions,
+  onRestoreCaptions,
   statsLoading = false,
   searchQuery,
   searchRegex,
@@ -372,6 +390,8 @@ export function Toolbar({
                 icon={iconFileText}
                 warning={promptState.status !== "ready"}
                 label={`System prompt: ${instructionFileSummary(promptState)}`}
+                hint="click to edit"
+                onClick={onOpenInstructions && (() => onOpenInstructions("sysprompt"))}
               />
             )}
             {hasRules && (
@@ -379,10 +399,17 @@ export function Toolbar({
                 icon={iconFileBraces}
                 warning={rulesState.status !== "ready"}
                 label={`Caption rules: ${instructionFileSummary(rulesState)}`}
+                hint="click to edit"
+                onClick={onOpenInstructions && (() => onOpenInstructions("caption_rules"))}
               />
             )}
             {hasCaptionBackup && (
-              <FolderMarker icon={iconArchive} label="This folder has backed up captions" />
+              <FolderMarker
+                icon={iconArchive}
+                label="This folder has backed up captions"
+                hint="click to restore"
+                onClick={onRestoreCaptions}
+              />
             )}
           </span>
         )}

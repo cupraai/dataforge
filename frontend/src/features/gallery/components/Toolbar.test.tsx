@@ -560,6 +560,35 @@ describe("Toolbar", () => {
     ]);
   });
 
+  it("opens each marker's own dialog on click", async () => {
+    const user = userEvent.setup();
+    const onOpenInstructions = vi.fn<(tab: "sysprompt" | "caption_rules") => void>();
+    const onRestoreCaptions = vi.fn<() => void>();
+    render(
+      <Toolbar
+        {...defaultProps}
+        instructions={{
+          sysprompt: instructionFile({ has_file: true, text: "Describe." }),
+          caption_rules: instructionFile(
+            { has_file: true, text: "trigger: example" },
+            ".captionrules",
+          ),
+          caption_rules_template: "",
+        }}
+        hasCaptionBackup
+        onOpenInstructions={onOpenInstructions}
+        onRestoreCaptions={onRestoreCaptions}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "System prompt: Local: .sysprompt" }));
+    await user.click(screen.getByRole("button", { name: "Caption rules: Local: .captionrules" }));
+    await user.click(screen.getByRole("button", { name: "This folder has backed up captions" }));
+
+    expect(onOpenInstructions.mock.calls).toEqual([["sysprompt"], ["caption_rules"]]);
+    expect(onRestoreCaptions).toHaveBeenCalledOnce();
+  });
+
   it("marks inherited sources and highlights invalid instructions", () => {
     const prompt = instructionFile({
       parent_folder: "C:\\datasets",

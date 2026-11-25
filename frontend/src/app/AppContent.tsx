@@ -197,6 +197,8 @@ export function AppContent() {
                 issueCount: gallery.issueCount,
                 instructions,
                 hasCaptionBackup: folder.has_caption_backup,
+                onOpenInstructions: gallery.openInstructions,
+                onRestoreCaptions: () => automation.actions.onRequestStart("restore_captions"),
                 statsLoading: loading && !refreshing,
                 searchQuery: query.searchQuery,
                 searchRegex: query.searchRegex,
@@ -325,6 +327,7 @@ export function AppContent() {
               instructions={{
                 open: gallery.instructionsOpen,
                 folderPath: folder?.path,
+                tab: gallery.instructionsTab,
                 onClose: gallery.closeInstructions,
                 onSaved: gallery.onInstructionsSaved,
               }}

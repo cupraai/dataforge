@@ -4,6 +4,7 @@ import {
   useGalleryItemDialog,
   type GalleryItemOpenOutcome,
 } from "@/features/gallery/hooks/useGalleryItemDialog";
+import type { InstructionKind } from "@/shared/api/folderInstructions";
 import type { GalleryItem } from "@/shared/types";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
 import { readStored, writeStored } from "@/shared/lib/storage";
@@ -28,6 +29,7 @@ export function useGalleryOverlays({
   requestTransition,
 }: UseGalleryOverlaysArgs) {
   const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [instructionsTab, setInstructionsTab] = useState<InstructionKind>("sysprompt");
   const [focusView, setFocusViewState] = useState(
     () => readStored("gallery-focus-view") === "true",
   );
@@ -73,13 +75,19 @@ export function useGalleryOverlays({
     [filteredItems, images, openGalleryItemBase, requestTransition],
   );
 
-  const openSysPrompt = useCallback(() => {
-    const open = () => {
-      setInstructionsOpen(true);
-    };
-    if (requestTransition) void requestTransition(open);
-    else open();
-  }, [requestTransition]);
+  const openInstructions = useCallback(
+    (tab: InstructionKind) => {
+      const open = () => {
+        setInstructionsTab(tab);
+        setInstructionsOpen(true);
+      };
+      if (requestTransition) void requestTransition(open);
+      else open();
+    },
+    [requestTransition],
+  );
+
+  const openSysPrompt = useCallback(() => openInstructions("sysprompt"), [openInstructions]);
 
   const closeInstructions = useCallback(() => setInstructionsOpen(false), []);
 
@@ -96,8 +104,10 @@ export function useGalleryOverlays({
     removeGalleryItem,
     renameGalleryItem,
     openSysPrompt,
+    openInstructions,
     closeInstructions,
     instructionsOpen,
+    instructionsTab,
     focusView,
     setFocusView,
     editExpanded,
