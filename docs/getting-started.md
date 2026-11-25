@@ -2,26 +2,64 @@
 
 [Documentation](README.md)
 
+- [Requirements](#requirements)
+  - [Hardware](#hardware) · [Software](#software) · [FFmpeg selection](#ffmpeg-selection)
+- [Install and run](#install-and-run)
+  - [Windows](#windows) · [Linux and macOS](#linux-and-macos) · [Launcher options](#launcher-options)
+- [Open your first dataset](#open-your-first-dataset)
+- [Stop, restart, and update](#stop-restart-and-update)
+  - [Stop](#stop) · [Update](#update)
+- [Troubleshooting](#troubleshooting)
+  - [Setup problems](#setup-problems) · [Startup problems](#startup-problems)
+- [Run without the launchers](#run-without-the-launchers)
+
 ## Requirements
 
-| Need | Minimum | Notes |
+DataForge runs on Windows 10/11, Linux, or macOS.
+
+### Hardware
+
+| Need | Minimum | Practical starting point |
 | --- | --- | --- |
-| Platform | Windows 10/11, Linux, or macOS; 64-bit dual-core CPU | A quad-core CPU is a practical starting point |
-| Memory and disk | About 8 GB RAM and 2 GB disk for the app | Plus space for datasets and the thumbnail cache. 16 GB RAM and an SSD are practical starting points |
-| Python | 3.13.x, any final release | Windows setup supplies 3.13.12 |
-| Node | 26.x LTS, with npm | Windows setup and CI use the release pinned in [`.node-version`](../.node-version) |
-| FFmpeg | 7.1.x, with `drawtext`, `libmp3lame`, `libvorbis`, and `libopus` | Needed for video and audio work. Windows x64 setup supplies 7.1.1 |
-| GPU | None | Model servers, ComfyUI, and AI-Toolkit have their own hardware requirements |
+| CPU | 64-bit dual-core | Quad-core |
+| Memory | About 8 GB RAM | 16 GB RAM |
+| Disk | About 2 GB for the app | An SSD |
+| GPU | None | — |
 
-Pillow handles images. Browser playback depends on the browser's codec support.
+- **Disk.** Add space for datasets and the thumbnail cache.
+- **GPU.** Model servers, ComfyUI, and AI-Toolkit have their own hardware requirements.
+- **AI jobs.** Check the chosen model's memory needs, including context and media input.
+- **Audio captioning.** Needs an audio-capable model and server.
 
-**FFmpeg selection.** DataForge uses the most-patched 7.1.x it finds, looking in `.ffmpeg/bin` inside the project, on PATH, and in its bundled copy, preferring them in that order on a tie. Other release series are rejected. The bundled copy is 7.1.0, which predates the 7.1 security fixes, so DataForge logs a warning while it is the only one available. CI uses exactly 7.1.5.
+### Software
 
-For AI jobs, check the chosen model's memory needs, including context and media input. Captioning audio also needs an audio-capable model and server.
+| Need | Minimum | Windows setup supplies | CI uses |
+| --- | --- | --- | --- |
+| Python | 3.13.x, any final release | 3.13.12 | 3.13.12 |
+| Node | 26.x LTS, with npm | The release pinned in [`.node-version`](../.node-version) | The release pinned in [`.node-version`](../.node-version) |
+| FFmpeg | 7.1.x | 7.1.1 | Exactly 7.1.5 |
+
+- **FFmpeg** is needed for video and audio work. The build must include `drawtext`, `libmp3lame`, `libvorbis`, and `libopus`.
+- **Windows setup** supplies FFmpeg on x64 only.
+- **Images** are handled by Pillow.
+- **Browser playback** depends on the browser's codec support.
+
+### FFmpeg selection
+
+DataForge uses the most-patched 7.1.x it finds.
+
+- **Where it looks.** In `.ffmpeg/bin` inside the project, on PATH, and in its bundled copy. On a tie, it prefers them in that order.
+- **Other release series** are rejected.
+- **Bundled copy.** It is 7.1.0, which predates the 7.1 security fixes, so DataForge logs a warning while it is the only one available.
 
 ## Install and run
 
-Get the project from the [repository](https://github.com/cupraai/dataforge): choose **Code > Download ZIP** and extract it to a writable folder, or clone it with Git. Run the commands below from that project folder.
+Get the project from the [repository](https://github.com/cupraai/dataforge) in one of two ways:
+
+- choose **Code > Download ZIP** and extract it to a writable folder, or
+- clone it with Git.
+
+Run the commands below from that project folder.
 
 ### Windows
 
@@ -44,33 +82,14 @@ Keep the launcher window open while you use the app.
    ./start.sh
    ```
 
-Setup also installs the optional [tagger](user-guide.md#tags) and its model, a few GB; `./setup.sh --skip-tagging` leaves it out. The first start builds the UI; later starts reuse it unless sources or dependencies changed.
+- **Tagger.** Setup also installs the optional [tagger](user-guide.md#tags) and its model, a few GB; `./setup.sh --skip-tagging` leaves it out.
+- **UI build.** The first start builds the UI; later starts reuse it unless sources or dependencies changed.
 
-**Choosing a Python.** `.python-version` records 3.13.12, the release CI and Windows setup use. To use it with pyenv, run `pyenv install 3.13.12` and `pyenv local 3.13.12`. To use another installed 3.13.x, run `DATAFORGE_PYTHON=/path/to/python3.13 ./setup.sh`. Setup rebuilds an existing virtual environment that uses another release series or a prerelease.
+**Choosing a Python.** `.python-version` records 3.13.12, the release CI and Windows setup use.
 
-## Open your first dataset
-
-Browse to a dataset with the breadcrumbs and subfolder cards, or open [`sample_media/`](../sample_media/). It contains captioned and uncaptioned images and videos, a captioned audio clip, flagged captions, a duplicate pair, folder instructions, caption rules, and a ComfyUI result ready for review.
-
-1. Browse the gallery. Filters and statistics show missing captions and review work.
-2. Open a file and write a caption. It autosaves as a `.txt` file beside the media.
-3. For local quality checks, write **Caption rules** in **Create instructions**, then run **Lint captions**.
-4. To use **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**, [connect a model in Settings](configuration.md#connect-a-vision-model). Auto-caption uses a **System prompt** from the folder or a parent.
-5. Jobs run on the selected files; with no selection, on what the search and filters show; otherwise on the whole folder. Training always uses the whole folder. See [job scope](user-guide.md#scope).
-6. Open **Review** for flagged captions, duplicate groups, or staged ComfyUI results.
-
-The [user guide](user-guide.md) explains these workflows. On macOS, use `⌘` instead of `Ctrl` for shortcuts.
-
-## Stop, restart, and update
-
-**Stop** by pressing a key in the launcher window, closing it, or pressing `Ctrl+C`. For a detached server, or one left running after its console closed, run `stop.bat` or `./stop.sh`; stop any supervising launcher first.
-
-**Update** with the app stopped:
-
-- **Git clone:** run `update.bat` on Windows or `./update.sh` on Linux and macOS, then start again. It needs [Git](https://git-scm.com/downloads) on PATH, pulls the latest version of the current branch, and reruns setup when the update changed a runtime or backend dependency. That setup leaves out the tagger unless it is already installed. Local commits, or local edits the update would overwrite, stop it without changing anything.
-- **ZIP install:** extract a new copy, move over your `.env`, custom presets, and `backend/data/` (settings, history, and cache), and run setup in the new copy. Datasets stay where they are.
-
-The launcher notices dependency changes and rebuilds the UI when needed. Run setup again after a runtime upgrade or when the launcher asks.
+- **With pyenv:** run `pyenv install 3.13.12` and `pyenv local 3.13.12`.
+- **Another installed 3.13.x:** run `DATAFORGE_PYTHON=/path/to/python3.13 ./setup.sh`.
+- **Existing virtual environment.** Setup rebuilds one that uses another release series or a prerelease.
 
 ### Launcher options
 
@@ -79,17 +98,85 @@ The production launcher serves the built UI and API together, without hot reload
 | Windows | Linux and macOS | Effect |
 | --- | --- | --- |
 | `-Rebuild` | `--rebuild` | Force a UI rebuild |
-| `-NoBuild` | `--no-build` | Use the existing build; fails if none exists |
+| `-NoBuild` | `--no-build` | Use the existing build |
 | `-NoBrowser` | `--no-browser` | Do not open a browser |
-| `-Detach` | `--detach` | Exit once ready; stop later with `stop.bat` or `./stop.sh` |
+| `-Detach` | `--detach` | Exit once ready |
 
-Rebuild and no-build cannot be combined. To change the port, set `DATAFORGE_UI_PORT` in `.env` and restart; see [server settings](configuration.md#server-storage-and-logging). For hot reload, see [Development](development.md).
+- **No build** fails if no build exists.
+- **Rebuild and no-build** cannot be combined.
+- **Detach.** Stop the server later with `stop.bat` or `./stop.sh`.
+- **Port.** To change it, set `DATAFORGE_UI_PORT` in `.env` and restart; see [server settings](configuration.md#server-storage-and-logging).
+- **Hot reload.** See [Development](development.md).
+
+## Open your first dataset
+
+Browse to a dataset with the breadcrumbs and subfolder cards, or open [`sample_media/`](../sample_media/). It contains:
+
+- captioned and uncaptioned images and videos;
+- a captioned audio clip;
+- flagged captions and a duplicate pair;
+- folder instructions and caption rules;
+- a ComfyUI result ready for review.
+
+Then:
+
+1. Browse the gallery. Filters and statistics show missing captions and review work.
+2. Open a file and write a caption. It autosaves as a `.txt` file beside the media.
+3. For local quality checks, write **Caption rules** in **Create instructions**, then run **Lint captions**.
+4. To use **Auto-caption**, **Edit captions**, or **Verify captions** from **Tools**, [connect a model in Settings](configuration.md#connect-a-vision-model). Auto-caption uses a **System prompt** from the folder or a parent.
+5. Open **Review** for flagged captions, duplicate groups, or staged ComfyUI results.
+
+**Which files a job uses.** See [job scope](user-guide.md#scope).
+
+- **Selected files**, when there is a selection.
+- **What the search and filters show**, with no selection.
+- **The whole folder** otherwise.
+- **Training** always uses the whole folder.
+
+The [user guide](user-guide.md) explains these workflows. On macOS, use `⌘` instead of `Ctrl` for shortcuts.
+
+## Stop, restart, and update
+
+### Stop
+
+- **From the launcher.** Press a key in the launcher window, close it, or press `Ctrl+C`.
+- **Detached or leftover server.** For a detached server, or one left running after its console closed, run `stop.bat` or `./stop.sh`. Stop any supervising launcher first.
+
+### Update
+
+Update with the app stopped.
+
+**Git clone.** Run `update.bat` on Windows or `./update.sh` on Linux and macOS, then start again.
+
+- **Needs** [Git](https://git-scm.com/downloads) on PATH.
+- **Pulls** the latest version of the current branch.
+- **Reruns setup** when the update changed a runtime or backend dependency. That setup leaves out the tagger unless it is already installed.
+- **Stops without changing anything** on local commits, or on local edits the update would overwrite.
+
+**ZIP install.**
+
+1. Extract a new copy.
+2. Move over your `.env`, custom presets, and `backend/data/` (settings, history, and cache).
+3. Run setup in the new copy.
+
+Datasets stay where they are.
+
+**After updating.** The launcher notices dependency changes and rebuilds the UI when needed. Run setup again after a runtime upgrade or when the launcher asks.
 
 ## Troubleshooting
 
-**Setup cannot find Python or Node.** Windows setup downloads both; read the download error it reports. On Linux/macOS, install supported versions and rerun setup, with `DATAFORGE_PYTHON` if needed.
+### Setup problems
 
-**Python is outside the supported 3.13.x series.** On Windows, run `setup.bat`. On Linux/macOS, install any final 3.13.x release and rerun `./setup.sh`. Other release series and prereleases are rejected, and setup recreates a backend virtual environment built with one.
+**Setup cannot find Python or Node.**
+
+- **Windows:** setup downloads both; read the download error it reports.
+- **Linux/macOS:** install supported versions and rerun setup, with `DATAFORGE_PYTHON` if needed.
+
+**Python is outside the supported 3.13.x series.**
+
+- **Windows:** run `setup.bat`.
+- **Linux/macOS:** install any final 3.13.x release and rerun `./setup.sh`.
+- **Rejected versions.** Other release series and prereleases are rejected, and setup recreates a backend virtual environment built with one.
 
 **Setup cannot find FFmpeg 7.1.x.**
 
@@ -104,11 +191,20 @@ Rebuild and no-build cannot be combined. To change the port, set `DATAFORGE_UI_P
 
 **Shell scripts will not run.** An extracted ZIP may lose executable permissions; run `bash setup.sh` and `bash start.sh` instead.
 
+### Startup problems
+
 **No build with `--no-build`.** Start once without that option, or build with `cd frontend && npm run build` after setup.
 
-**A port is in use.** Close an earlier launcher or stop a leftover DataForge server. The launchers and the stop script only stop a DataForge server started from this folder, never another program or another copy of DataForge; choose another `DATAFORGE_API_PORT` or `DATAFORGE_UI_PORT` if necessary.
+**A port is in use.**
 
-**The app says "Backend unreachable".** The server stopped or never started. Run `start.bat` or `./start.sh` again; the page reconnects by itself once the server answers. If it keeps stopping, read the launcher output.
+- Close an earlier launcher or stop a leftover DataForge server.
+- The launchers and the stop script only stop a DataForge server started from this folder, never another program or another copy of DataForge.
+- If necessary, choose another `DATAFORGE_API_PORT` or `DATAFORGE_UI_PORT`.
+
+**The app says "Backend unreachable".** The server stopped or never started.
+
+- Run `start.bat` or `./start.sh` again; the page reconnects by itself once the server answers.
+- If it keeps stopping, read the launcher output.
 
 **The server never becomes ready.** Read the server output for incomplete setup, a missing build, or a port conflict, and fix the reported problem before restarting. For problems after startup, see [configuration troubleshooting](configuration.md#troubleshooting).
 
@@ -142,4 +238,6 @@ cd frontend; npm run build; cd ..
 backend/.venv/Scripts/python scripts/prod_server.py
 ```
 
-Open `http://localhost:18081`. Rebuild the UI after frontend changes. `Ctrl+C` stops a server started this way.
+- **Open** `http://localhost:18081`.
+- **Rebuild the UI** after frontend changes.
+- **Stop** a server started this way with `Ctrl+C`.

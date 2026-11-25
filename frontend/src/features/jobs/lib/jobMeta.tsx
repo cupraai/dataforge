@@ -166,7 +166,11 @@ export const JOB_TYPE_META = {
     menuDescription: "Remove embedded metadata from media files.",
     confirm: {
       title: "Start strip metadata?",
-      description: () => <>Removes embedded metadata from every PNG and MP4 in scope.</>,
+      description: () => (
+        <>
+          Removes embedded metadata from every JPG, PNG, WebP, BMP, MP4, MOV, and M4V file in scope.
+        </>
+      ),
       confirmLabel: "Start strip metadata",
     },
   },
