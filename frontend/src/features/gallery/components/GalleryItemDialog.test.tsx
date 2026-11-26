@@ -106,6 +106,16 @@ describe("GalleryItemDialog", () => {
     expect(await screen.findByRole("group", { name: "Tags" })).toHaveTextContent(
       "None. Only favorite folders are tagged.",
     );
+
+    // Audio is never tagged, so the row's hint would not apply.
+    rerender(
+      <GalleryItemDialog
+        items={[makeItem("voice.wav", { media_type: "audio", width: null, height: null })]}
+        {...props}
+      />,
+    );
+    await screen.findByRole("dialog", { name: "Viewing voice.wav" });
+    expect(screen.queryByRole("group", { name: "Tags" })).not.toBeInTheDocument();
   });
 
   it("has no tag row while tagging is off", async () => {

@@ -1399,7 +1399,9 @@ export function GalleryItemDialog({
               hasComfyWorkflow={hasComfyWorkflow}
               onInspectComfyWorkflow={() => setComfyWorkflowOpen(true)}
             />
-            {taggingEnabled && !inline && !itemIsModel && <MediaTagList tags={item.tags} />}
+            {taggingEnabled && !inline && !itemIsModel && !itemIsAudio && (
+              <MediaTagList tags={item.tags} />
+            )}
             {itemIsModel ? (
               <footer className="gallery-item-dialog__footer">
                 <ModelMetadataList item={item} />
