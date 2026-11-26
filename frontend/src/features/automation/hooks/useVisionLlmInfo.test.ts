@@ -92,6 +92,8 @@ describe("useVisionLlmInfo", () => {
     const first = renderHook(useVisionLlmInfo, { wrapper });
     await waitFor(() => expect(first.result.current.ready).toBe(true));
     first.unmount();
+    // The open dialog polls, so count only what reopening asks.
+    const asked = fetchVisionLlmInfo.mock.calls.length;
 
     const second = renderHook(useVisionLlmInfo, { wrapper });
 
@@ -102,7 +104,7 @@ describe("useVisionLlmInfo", () => {
       service: "ready",
       issue: null,
     });
-    expect(fetchVisionLlmInfo).toHaveBeenCalledTimes(1);
+    expect(fetchVisionLlmInfo).toHaveBeenCalledTimes(asked);
   });
 
   it("asks again after no answer, waiting rather than showing the old failure", async () => {

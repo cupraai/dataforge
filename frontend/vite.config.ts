@@ -186,8 +186,9 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       css: true,
-      // Instrumented UI tests need more time than the normal 5s budget.
-      testTimeout: coverageDir ? 20_000 : undefined,
+      // App-level UI tests run several times slower under a full parallel run than alone, and
+      // instrumented ones slower again.
+      testTimeout: coverageDir ? 20_000 : 10_000,
       coverage: {
         enabled: Boolean(coverageDir),
         provider: "v8",

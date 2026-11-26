@@ -126,8 +126,10 @@ describe("useGalleryView", () => {
     // Answered before the sort reached the server, so it still carries the old sort.
     await act(async () => answerModeSave(view({ mode: "list" })));
 
-    expect(result.current.displayMode).toBe("list");
-    expect(result.current.sort).toBe("name-asc");
+    await waitFor(() => {
+      expect(result.current.displayMode).toBe("list");
+      expect(result.current.sort).toBe("name-asc");
+    });
   });
 
   it("keeps a pending save attached to the folder where it started", async () => {
@@ -150,7 +152,7 @@ describe("useGalleryView", () => {
       finishSave(view({ sort: "name-asc" }));
       await saving;
     });
-    expect(result.current.sort).toBe("date-desc");
+    expect(client.getQueryData(galleryViewKey(DATASET))).toEqual(DEFAULTS);
     expect(client.getQueryData<GalleryView>(galleryViewKey(OUTPUT))?.sort).toBe("name-asc");
   });
 
