@@ -10,6 +10,7 @@ from comfy_prompts import (
     Parameter,
     PromptText,
     SamplingStage,
+    SharedSettings,
     extract_workflow_prompts,
     read_editor_workflow,
 )
@@ -28,6 +29,7 @@ from schemas import (
     ComfyPresetInput,
     ComfyPromptText,
     ComfySamplingStage,
+    ComfySharedSettings,
     ComfyWorkflowPromptsResponse,
     PngWorkflowResponse,
 )
@@ -99,6 +101,12 @@ def _sampling_stage(stage: SamplingStage) -> ComfySamplingStage:
     )
 
 
+def _shared_settings(shared: SharedSettings) -> ComfySharedSettings:
+    return ComfySharedSettings(
+        passes=shared.passes, parameters=_parameters(shared.parameters), loras=shared.loras
+    )
+
+
 @router.get("/caption", response_model=CaptionSaveResponse)
 def read_caption(
     path: str = Query(..., description="Absolute path to image or video file"),
@@ -145,6 +153,7 @@ def read_comfy_workflow_prompts(
                 parameters=_parameters(branch.parameters),
                 loras=branch.loras,
                 stages=[_sampling_stage(stage) for stage in branch.stages],
+                shared=[_shared_settings(shared) for shared in branch.shared],
                 map=[_map_node(node) for node in branch.map],
                 generation=_generation(branch.generation),
             )

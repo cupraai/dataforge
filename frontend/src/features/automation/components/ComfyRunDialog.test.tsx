@@ -41,6 +41,7 @@ function mapOf(name: string, labels: string[]): ComfyPresetMapResponse {
       parameters: [],
       loras: [],
       stages: [],
+      shared: [],
       map: [
         ...labels.map((label, index) => ({
           id: String(index),
@@ -777,6 +778,7 @@ const EMBEDDED: EmbeddedGenerateWorkflow = {
     parameters: [],
     loras: [],
     stages: [],
+    shared: [],
     map: [],
   },
 };
@@ -842,6 +844,7 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
         parameters: [],
         loras: [],
         stages: [],
+        shared: [],
         map: [
           {
             id: "9",

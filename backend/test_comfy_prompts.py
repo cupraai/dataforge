@@ -1195,10 +1195,44 @@ class SamplingPassTests(unittest.TestCase):
     def test_settings_feeding_several_passes_are_shared(self) -> None:
         branch = self._branch(_two_pass_graph(False))
 
-        self.assertIn(("Checkpoint", "landscape.safetensors"), _pairs(branch.parameters))
-        self.assertFalse({"Steps", "Sampler", "Denoise"} & {p.label for p in branch.parameters})
+        [shared] = branch.shared
+        self.assertEqual(shared.passes, ["4", "7"])
+        self.assertIn(("Checkpoint", "landscape.safetensors"), _pairs(shared.parameters))
+        self.assertFalse({"Steps", "Sampler", "Denoise"} & {p.label for p in shared.parameters})
+        self.assertNotIn("Checkpoint", {parameter.label for parameter in branch.parameters})
         for stage in branch.stages:
             self.assertNotIn("Checkpoint", {parameter.label for parameter in stage.parameters})
+
+    def test_passes_sampling_with_different_models_share_them_apart(self) -> None:
+        graph = _two_pass_graph(True)
+        graph |= {
+            "11": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "motion.sft"}},
+            "14": {"class_type": "CLIPTextEncode", "inputs": {"text": "waves", "clip": ["11", 1]}},
+            "15": {"class_type": "CLIPTextEncode", "inputs": {"text": "still", "clip": ["11", 1]}},
+        }
+        for node_id, latent, steps in (("12", "8", 10), ("13", "12", 4)):
+            graph[node_id] = {
+                "class_type": "KSampler",
+                "inputs": {
+                    "model": ["11", 0],
+                    "positive": ["14", 0],
+                    "negative": ["15", 0],
+                    "latent_image": [latent, 0],
+                    "steps": steps,
+                },
+            }
+        graph["9"] = {"class_type": "VAEDecode", "inputs": {"samples": ["13", 0], "vae": ["11", 2]}}
+
+        branch = self._branch(graph)
+
+        self.assertEqual([stage.node_id for stage in branch.stages], ["4", "7", "12", "13"])
+        self.assertEqual(
+            [(shared.passes, _pairs(shared.parameters)) for shared in branch.shared],
+            [
+                (["4", "7"], {("Checkpoint", "landscape.safetensors")}),
+                (["12", "13"], {("Checkpoint", "motion.sft")}),
+            ],
+        )
 
     def test_a_switched_on_pass_runs_after_the_pass_it_refines(self) -> None:
         branch = self._branch(_two_pass_graph(True))
@@ -1417,7 +1451,7 @@ class SamplingPassTests(unittest.TestCase):
 
         branch = self._branch(graph)
 
-        self.assertEqual(branch.stages, [])
+        self.assertEqual((branch.stages, branch.shared), ([], []))
         self.assertIn(("Checkpoint", "landscape.safetensors"), _pairs(branch.parameters))
         self.assertIn(("Seed", "42"), _pairs(branch.parameters))
         # One pass still gets a map: what fed it matters as much as how many passes ran.
@@ -1560,7 +1594,8 @@ class BypassedPassTests(unittest.TestCase):
         # The prompt links around the bypassed detailer, so the base pass also feeds the output.
         self.assertLessEqual({("4", "6"), ("4", "7"), ("6", "7"), ("1", "6")}, _map_edges(branch))
         self.assertEqual(_map_status(branch)["6"], "bypassed")
-        self.assertIn(("Checkpoint", "landscape.safetensors"), _pairs(branch.parameters))
+        self.assertEqual([shared.passes for shared in branch.shared], [["4", "6"]])
+        self.assertIn(("Checkpoint", "landscape.safetensors"), _pairs(branch.shared[0].parameters))
         self.assertEqual(
             [prompt.text for prompt in branch.prompts], ["a dancer on a stage", "blurry"]
         )

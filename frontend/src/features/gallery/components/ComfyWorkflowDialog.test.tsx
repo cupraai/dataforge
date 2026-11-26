@@ -20,6 +20,7 @@ function makeBranch(overrides: Partial<ComfyOutputBranch> = {}): ComfyOutputBran
     parameters: [],
     loras: [],
     stages: [],
+    shared: [],
     map: [],
     ...overrides,
   };
@@ -332,7 +333,13 @@ describe("ComfyWorkflowDialog", () => {
         branches: [
           makeBranch({
             node_id: "10",
-            parameters: [{ label: "Model", value: "base_model.safetensors" }],
+            shared: [
+              {
+                passes: ["4", "7"],
+                parameters: [{ label: "Model", value: "base_model.safetensors" }],
+                loras: [],
+              },
+            ],
             stages: [
               {
                 node_id: "4",
@@ -355,7 +362,7 @@ describe("ComfyWorkflowDialog", () => {
         ],
       }),
     );
-    const shared = await screen.findByRole("region", { name: "Shared settings" });
+    const shared = await screen.findByRole("region", { name: "Shared by passes 1, 2" });
     expect(within(shared).getByText("base_model.safetensors")).toBeInTheDocument();
     const base = screen.getByRole("region", { name: "Pass 1: KSampler" });
     expect(within(base).getByText("30")).toBeInTheDocument();
@@ -368,6 +375,60 @@ describe("ComfyWorkflowDialog", () => {
     expect(within(base).queryByText("6")).not.toBeInTheDocument();
   });
 
+  it("keeps the models of passes that sample with different ones apart", async () => {
+    const pass = (node_id: string, label: string) => ({
+      node_id,
+      label,
+      group: null,
+      status: "ran" as const,
+      parameters: [],
+      loras: [],
+    });
+    renderDialog(
+      makeResponse({
+        branches: [
+          makeBranch({
+            parameters: [{ label: "Frame rate", value: "16" }],
+            shared: [
+              {
+                passes: ["1", "2"],
+                parameters: [{ label: "Checkpoint", value: "still.safetensors" }],
+                loras: [],
+              },
+              {
+                passes: ["3", "4", "5"],
+                parameters: [{ label: "VAE", value: "motion_vae.safetensors" }],
+                loras: [],
+              },
+            ],
+            stages: [
+              pass("1", "KSampler"),
+              pass("2", "FaceDetailer"),
+              pass("3", "Sample High"),
+              pass("4", "Sample Low"),
+              pass("5", "Refine"),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const still = await screen.findByRole("region", { name: "Shared by passes 1, 2" });
+    const motion = screen.getByRole("region", { name: "Shared by passes 3–5" });
+    expect(within(still).getByText("still.safetensors")).toBeInTheDocument();
+    expect(within(still).queryByText("motion_vae.safetensors")).not.toBeInTheDocument();
+    expect(within(motion).getByText("motion_vae.safetensors")).toBeInTheDocument();
+    const regions = screen
+      .getAllByRole("region")
+      .map((region) => region.getAttribute("aria-label"));
+    expect(regions.indexOf("Shared by passes 3–5")).toBe(
+      regions.indexOf("Pass 3: Sample High") - 1,
+    );
+    const output = screen.getByRole("region", { name: "Output settings" });
+    expect(within(output).getByText("Read after sampling")).toBeInTheDocument();
+    expect(within(output).getByText("16")).toBeInTheDocument();
+    expect(regions.at(-1)).toBe("Output settings");
+  });
   it("numbers a single pass from the map and gives it the output's settings", async () => {
     const user = userEvent.setup();
     renderDialog(

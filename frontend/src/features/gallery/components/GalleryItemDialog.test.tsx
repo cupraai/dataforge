@@ -154,6 +154,7 @@ describe("GalleryItemDialog", () => {
           parameters: [],
           loras: [],
           stages: [],
+          shared: [],
           map: [],
         },
       ],

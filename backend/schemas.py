@@ -1959,6 +1959,15 @@ class ComfySamplingStage(BaseModel):
     loras: list[str] = Field(default_factory=list)
 
 
+class ComfySharedSettings(BaseModel):
+    """Settings several sampling passes read, such as the model two passes sample with."""
+
+    #: Node ids of the passes that read them, earliest first.
+    passes: list[str]
+    parameters: list[ComfyParameter] = Field(default_factory=list)
+    loras: list[str] = Field(default_factory=list)
+
+
 class ComfyMapNode(BaseModel):
     """One box of an output's map: a pass, or a model, LoRAs, VAE, input or prompt feeding one."""
 
@@ -1987,11 +1996,13 @@ class ComfyOutputBranch(BaseModel):
     is_preview: bool = False
     matches_filename: bool = False
     prompts: list[ComfyPromptText] = Field(default_factory=list)
-    #: With ``stages``, only the settings no single pass owns; otherwise every setting.
+    #: With ``stages``, only the settings read after sampling; otherwise every setting.
     parameters: list[ComfyParameter] = Field(default_factory=list)
     loras: list[str] = Field(default_factory=list)
     #: Sampling passes, earliest first; empty when the output has one pass and it ran.
     stages: list[ComfySamplingStage] = Field(default_factory=list)
+    #: Settings several passes read, one entry per set of passes; empty without ``stages``.
+    shared: list[ComfySharedSettings] = Field(default_factory=list)
     #: The passes and what feeds them, earliest first; empty when nothing samples.
     map: list[ComfyMapNode] = Field(default_factory=list)
     #: Set when the output can run as a generation; always null on a preset's map.

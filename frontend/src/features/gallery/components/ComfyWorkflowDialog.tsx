@@ -1,14 +1,19 @@
 import { Button } from "@/shared/ui/Button";
-import { useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { fetchComfyEditorWorkflow } from "@/features/gallery/api/captions";
 import { ComfyWorkflowMap } from "@/features/gallery/components/ComfyWorkflowMap";
-import { branchPassInfo, PASS_NOT_RUN, splitLora } from "@/features/gallery/lib/comfyWorkflow";
+import {
+  branchPassInfo,
+  PASS_NOT_RUN,
+  passList,
+  splitLora,
+} from "@/features/gallery/lib/comfyWorkflow";
 import { useComfyWorkflowPrompts } from "@/features/gallery/hooks/useComfyWorkflowPrompts";
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { iconComfyUi, iconCopy, iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import type { ComfyOutputBranch, ComfyParameter } from "@/shared/types";
+import type { ComfyOutputBranch, ComfyParameter, ComfySharedSettings } from "@/shared/types";
 import { Dialog } from "@/shared/ui/Dialog";
 import { scrollBehavior } from "@/shared/lib/motion";
 import { Icon } from "@/shared/ui/Icon";
@@ -219,7 +224,35 @@ function SettingsGroups({ parameters, loras }: { parameters: ComfyParameter[]; l
   );
 }
 
-/** One section per sampling pass, so settings that run together read together. */
+/** Settings several passes read, shown before the first of them. */
+function SharedSection({
+  shared,
+  passNumbers,
+}: {
+  shared: ComfySharedSettings;
+  passNumbers: number[];
+}) {
+  const passes = passList(passNumbers);
+  return (
+    <section
+      className="comfy-workflow-dialog__pass"
+      aria-label={`Shared by ${passes.toLowerCase()}`}
+    >
+      <div className="comfy-workflow-dialog__pass-head">
+        <span className="comfy-workflow-dialog__pass-number">{passes}</span>
+        <span className="comfy-workflow-dialog__pass-label">Shared</span>
+      </div>
+      <SettingsGroups parameters={shared.parameters} loras={shared.loras} />
+    </section>
+  );
+}
+
+/**
+ * One section per sampling pass, so settings that run together read together. Settings several
+ * passes read sit before the first of them, one section per set of passes, so models of
+ * different passes never mix. What only the way from the passes to the output reads, such as
+ * the frame rate or the decoding VAE, comes last.
+ */
 function SamplingPasses({
   branch,
   sections,
@@ -228,60 +261,69 @@ function SamplingPasses({
   /** Filled with each pass's section, so the workflow map can open one. */
   sections: Map<string, HTMLElement>;
 }) {
-  const hasShared = branch.parameters.length > 0 || branch.loras.length > 0;
+  const hasOutputSettings = branch.parameters.length > 0 || branch.loras.length > 0;
+  const numbers = new Map(branch.stages.map((stage, index) => [stage.node_id, index + 1]));
 
   return (
     <>
-      {hasShared && (
-        <section className="comfy-workflow-dialog__pass" aria-label="Shared settings">
-          <div className="comfy-workflow-dialog__pass-head">
-            <span className="comfy-workflow-dialog__pass-label">Shared</span>
-            <span className="comfy-workflow-dialog__pass-group">
-              Read by several passes or the output
-            </span>
-          </div>
-          <SettingsGroups parameters={branch.parameters} loras={branch.loras} />
-        </section>
-      )}
-
       {branch.stages.map((stage, index) => {
         const notRun = PASS_NOT_RUN[stage.status];
         const hasSettings = stage.parameters.length > 0 || stage.loras.length > 0;
         return (
-          <section
-            key={stage.node_id}
-            ref={(element) => {
-              if (element) sections.set(stage.node_id, element);
-              else sections.delete(stage.node_id);
-            }}
-            className={classNames(
-              "comfy-workflow-dialog__pass",
-              notRun && "comfy-workflow-dialog__pass--skipped",
-            )}
-            aria-label={`Pass ${index + 1}: ${stage.label}${notRun ? `, ${notRun.status}` : ""}`}
-          >
-            <div className="comfy-workflow-dialog__pass-head">
-              <span className="comfy-workflow-dialog__pass-number">Pass {index + 1}</span>
-              <span className="comfy-workflow-dialog__pass-label">{stage.label}</span>
-              {notRun && <span className="comfy-workflow-dialog__pass-flag">{notRun.flag}</span>}
-              {stage.group && (
-                <span className="comfy-workflow-dialog__pass-group">{stage.group}</span>
+          <Fragment key={stage.node_id}>
+            {branch.shared
+              .filter((shared) => shared.passes[0] === stage.node_id)
+              .map((shared) => (
+                <SharedSection
+                  key={shared.passes.join(",")}
+                  shared={shared}
+                  passNumbers={shared.passes.flatMap((nodeId) => numbers.get(nodeId) ?? [])}
+                />
+              ))}
+            <section
+              ref={(element) => {
+                if (element) sections.set(stage.node_id, element);
+                else sections.delete(stage.node_id);
+              }}
+              className={classNames(
+                "comfy-workflow-dialog__pass",
+                notRun && "comfy-workflow-dialog__pass--skipped",
               )}
-            </div>
-            {hasSettings ? (
-              <div className="comfy-workflow-dialog__pass-body">
-                <SettingsGroups parameters={stage.parameters} loras={stage.loras} />
+              aria-label={`Pass ${index + 1}: ${stage.label}${notRun ? `, ${notRun.status}` : ""}`}
+            >
+              <div className="comfy-workflow-dialog__pass-head">
+                <span className="comfy-workflow-dialog__pass-number">Pass {index + 1}</span>
+                <span className="comfy-workflow-dialog__pass-label">{stage.label}</span>
+                {notRun && <span className="comfy-workflow-dialog__pass-flag">{notRun.flag}</span>}
+                {stage.group && (
+                  <span className="comfy-workflow-dialog__pass-group">{stage.group}</span>
+                )}
               </div>
-            ) : (
-              <p className="comfy-workflow-dialog__empty">
-                {stage.status === "bypassed"
-                  ? "The workflow does not record this bypassed node's settings."
-                  : "No settings of its own."}
-              </p>
-            )}
-          </section>
+              {hasSettings ? (
+                <div className="comfy-workflow-dialog__pass-body">
+                  <SettingsGroups parameters={stage.parameters} loras={stage.loras} />
+                </div>
+              ) : (
+                <p className="comfy-workflow-dialog__empty">
+                  {stage.status === "bypassed"
+                    ? "The workflow does not record this bypassed node's settings."
+                    : "No settings of its own."}
+                </p>
+              )}
+            </section>
+          </Fragment>
         );
       })}
+
+      {hasOutputSettings && (
+        <section className="comfy-workflow-dialog__pass" aria-label="Output settings">
+          <div className="comfy-workflow-dialog__pass-head">
+            <span className="comfy-workflow-dialog__pass-label">Output</span>
+            <span className="comfy-workflow-dialog__pass-group">Read after sampling</span>
+          </div>
+          <SettingsGroups parameters={branch.parameters} loras={branch.loras} />
+        </section>
+      )}
     </>
   );
 }

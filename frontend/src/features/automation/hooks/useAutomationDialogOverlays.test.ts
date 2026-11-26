@@ -424,6 +424,7 @@ describe("useAutomationDialogOverlays scope", () => {
         parameters: [],
         loras: [],
         stages: [],
+        shared: [],
         map: [],
       },
     };

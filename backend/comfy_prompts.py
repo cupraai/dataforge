@@ -107,6 +107,14 @@ class SamplingStage:
 
 
 @dataclass(frozen=True)
+class SharedSettings:
+    #: The passes that read these settings, earliest first.
+    passes: list[str]
+    parameters: list[Parameter]
+    loras: list[str]
+
+
+@dataclass(frozen=True)
 class MapNode:
     id: str
     kind: ComfyMapNodeKind
@@ -129,11 +137,13 @@ class OutputBranch:
     is_preview: bool
     matches_filename: bool
     prompts: list[PromptText] = field(default_factory=list)
-    #: With `stages`, only the settings no single pass owns.
+    #: With `stages`, only the settings read after sampling, on the way to the output.
     parameters: list[Parameter] = field(default_factory=list)
     loras: list[str] = field(default_factory=list)
     #: Empty when the output has one pass and it ran.
     stages: list[SamplingStage] = field(default_factory=list)
+    #: Settings several passes read, one entry per set of passes.
+    shared: list[SharedSettings] = field(default_factory=list)
     #: The passes and what feeds them, earliest first; empty when nothing samples.
     map: list[MapNode] = field(default_factory=list)
     #: For telling same-named outputs apart.
@@ -432,12 +442,12 @@ def _split_by_pass(
     live: set[str],
     editor: dict[str, EditorNode],
     subgraph_labels: dict[str, str],
-) -> tuple[list[str], list[SamplingStage]]:
-    """Shared nodes, and each pass's own nodes: those no other pass reads."""
+) -> tuple[list[str], list[SharedSettings], list[SamplingStage]]:
+    """Nodes read after sampling, nodes several passes read grouped by them, and each pass's."""
     members = ancestry + bypassed
     stage_ids = [step for step in members if _is_sampling_node(graph.get(step))]
     if len(stage_ids) < 2 and all(stage in live for stage in stage_ids):
-        return [step for step in ancestry if step in live], []
+        return [step for step in ancestry if step in live], [], []
 
     member_set = set(members)
     stage_set = set(stage_ids)
@@ -470,8 +480,9 @@ def _split_by_pass(
 
     bypassed_set = set(bypassed)
     reads = {stage: nearest_passes(stage) for stage in stage_ids}
+    order = _earliest_first(stage_ids, reads)
     stages: list[SamplingStage] = []
-    for stage in _earliest_first(stage_ids, reads):
+    for stage in order:
         parameters, loras = _collect_parameters(
             graph, [step for step in members if owner(step) == stage]
         )
@@ -486,8 +497,24 @@ def _split_by_pass(
                 loras=loras,
             )
         )
-    shared = [step for step in ancestry if step in live and owner(step) is None]
-    return shared, stages
+    # Grouped by the passes reading them, so two passes' models never share one list.
+    position = {stage: index for index, stage in enumerate(order)}
+    after_sampling: list[str] = []
+    readers: dict[tuple[str, ...], list[str]] = {}
+    for step in ancestry:
+        if step not in live or owner(step) is not None:
+            continue
+        found = holders.get(step, [])
+        if len(found) < 2:
+            after_sampling.append(step)
+        else:
+            readers.setdefault(tuple(sorted(found, key=position.__getitem__)), []).append(step)
+    shared: list[SharedSettings] = []
+    for passes in sorted(readers, key=lambda key: (position[key[0]], -len(key))):
+        parameters, loras = _collect_parameters(graph, readers[passes])
+        if parameters or loras:
+            shared.append(SharedSettings(list(passes), parameters, loras))
+    return after_sampling, shared, stages
 
 
 _MODEL_FILE_KEYS = ("ckpt_name", "unet_name")
@@ -1315,7 +1342,9 @@ def _output_branch(
     prefix = _declared_name(graph, node, "filename_prefix")
     filename = _declared_name(graph, node, "filename")
     bypassed = _bypassed_on_path(graph, editor, node_id, set(ancestry))
-    shared, passes = _split_by_pass(full, ancestry, bypassed, live, editor, subgraph_labels)
+    after_sampling, shared, passes = _split_by_pass(
+        full, ancestry, bypassed, live, editor, subgraph_labels
+    )
     prompts = _collect_prompts(graph, ran)
     branch_map = _branch_map(
         full,
@@ -1327,7 +1356,7 @@ def _output_branch(
         prompts,
         passless=passless,
     )
-    parameters, loras = _collect_parameters(graph, shared)
+    parameters, loras = _collect_parameters(graph, after_sampling)
 
     return OutputBranch(
         node_id=node_id,
@@ -1342,6 +1371,7 @@ def _output_branch(
         parameters=parameters,
         loras=loras,
         stages=passes,
+        shared=shared,
         map=branch_map,
         widths=_declared_sizes(graph, sized, "width"),
         heights=_declared_sizes(graph, sized, "height"),

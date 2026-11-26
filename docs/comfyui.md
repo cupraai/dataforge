@@ -377,7 +377,7 @@ Click the **ComfyUI** badge in a file's detail view to inspect its embedded prom
 **Outputs and passes**
 
 - **Several outputs.** When a workflow has several outputs, select one to inspect it. DataForge shows the generation stage that feeds that output, rather than mixing in settings from earlier stages.
-- **Several passes.** When a stage samples more than once, such as a base pass followed by an upscale, high-res, or face-detail pass, settings are grouped per pass. Settings that several passes read are listed as **Shared**.
+- **Several passes.** When a stage samples more than once, such as a base pass followed by an upscale, high-res, or face-detail pass, settings are grouped per pass. Settings that several passes read are listed as **Shared** before the first of them, naming those passes, such as **Passes 3–6**, so each model stays with the passes that use it. Settings read after sampling, such as the frame rate and the VAE that decodes the result, are listed last, under **Output**.
 - **Skipped and bypassed.** A pass that a switch routes around is marked **Skipped**, and one bypassed in the editor is marked **Bypassed**; their settings are still listed, dimmed. Settings of bypassed nodes need a workflow saved by a recent ComfyUI frontend.
 
 **Workflow map and likely output**

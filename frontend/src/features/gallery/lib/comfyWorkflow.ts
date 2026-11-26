@@ -22,6 +22,20 @@ export function splitLora(lora: string): { folder: string; name: string; strengt
   return { ...splitPath(match ? match[1] : lora), strength: match ? match[2] : null };
 }
 
+/** "Pass 2", "Passes 1, 2" or "Passes 3–6": runs of three or more collapse to a range. */
+export function passList(numbers: number[]): string {
+  if (numbers.length === 1) return `Pass ${numbers[0]}`;
+  const parts: string[] = [];
+  for (let start = 0; start < numbers.length;) {
+    let end = start;
+    while (end + 1 < numbers.length && numbers[end + 1] === numbers[end] + 1) end += 1;
+    if (end - start >= 2) parts.push(`${numbers[start]}–${numbers[end]}`);
+    else parts.push(...numbers.slice(start, end + 1).map(String));
+    start = end + 1;
+  }
+  return `Passes ${parts.join(", ")}`;
+}
+
 /** Pass numbers as the sections use them; a single pass is pass 1 and owns every setting. */
 export function branchPassInfo(branch: ComfyOutputBranch): {
   passNumbers: Map<string, number>;

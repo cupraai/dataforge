@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { supportsComfyWorkflow } from "./comfyWorkflow";
+import { passList, supportsComfyWorkflow } from "./comfyWorkflow";
 
 describe("supportsComfyWorkflow", () => {
   it("accepts PNG and the MP4 family, which is where ComfyUI writes the workflow", () => {
@@ -26,5 +26,16 @@ describe("supportsComfyWorkflow", () => {
     ];
 
     expect(paths.filter((path) => supportsComfyWorkflow(path))).toEqual([]);
+  });
+});
+
+describe("passList", () => {
+  it("names one pass, lists two and collapses longer runs", () => {
+    expect([[2], [1, 2], [3, 4, 5, 6], [1, 2, 4, 6, 7, 8]].map(passList)).toEqual([
+      "Pass 2",
+      "Passes 1, 2",
+      "Passes 3–6",
+      "Passes 1, 2, 4, 6–8",
+    ]);
   });
 });
