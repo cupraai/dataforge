@@ -1,143 +1,52 @@
-import type { TrainLoraSettings } from "@/features/automation/api/jobs";
-import type { ComfyRunSettings } from "@/features/automation/components/ComfyRunDialog";
-import type { ReplaceCaptionsSettings } from "@/features/automation/components/ReplaceCaptionsDialog";
-import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
-import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
-import type {
-  AutoAdjustRunSettings,
-  ComfyEmbeddedGeneration,
-  ComfyShowcaseJobSettings,
-  GalleryItem,
-  ComfyOutputBranch,
-  DuplicateThreshold,
-  EditCaptionsRunSettings,
-  TrimVideoRunSettings,
-  VideoFrameRate,
-} from "@/shared/types";
+import type { ComponentProps } from "react";
+import type { AutoAdjustDialog } from "@/features/automation/components/AutoAdjustDialog";
+import type { AutoCaptionDialog } from "@/features/automation/components/AutoCaptionDialog";
+import type { BackupCaptionsDialog } from "@/features/automation/components/BackupCaptionsDialog";
+import type { BatchRenameDialog } from "@/features/automation/components/BatchRenameDialog";
+import type { CheckCaptionRulesDialog } from "@/features/automation/components/CheckCaptionRulesDialog";
+import type { ComfyRunDialog } from "@/features/automation/components/ComfyRunDialog";
+import type { ComfyShowcaseDialog } from "@/features/automation/components/ComfyShowcaseDialog";
+import type { EditCaptionsDialog } from "@/features/automation/components/EditCaptionsDialog";
+import type { FindDuplicatesDialog } from "@/features/automation/components/FindDuplicatesDialog";
+import type { ReplaceCaptionsDialog } from "@/features/automation/components/ReplaceCaptionsDialog";
+import type { ResizeDialog } from "@/features/automation/components/ResizeDialog";
+import type { RestoreCaptionsDialog } from "@/features/automation/components/RestoreCaptionsDialog";
+import type { SetCaptionsDialog } from "@/features/automation/components/SetCaptionsDialog";
+import type { SplitVideoDialog } from "@/features/automation/components/SplitVideoDialog";
+import type { TrainLoraDialog } from "@/features/automation/components/TrainLoraDialog";
+import type { TrimVideoDialog } from "@/features/automation/components/TrimVideoDialog";
+import type { VerifyCaptionsDialog } from "@/features/automation/components/VerifyCaptionsDialog";
+import type { WatermarkDialog } from "@/features/automation/components/WatermarkDialog";
+import type { ComfyEmbeddedGeneration, ComfyOutputBranch } from "@/shared/types";
 
-type FolderBusyDialogState<TConfirm, TSettings> = {
-  open: boolean;
-  scope: DialogScopeInfo;
-  initialSettings: TSettings | null;
-  busy?: boolean;
-  /** Set when the dialog edits a workflow step rather than starting a job. */
-  confirmLabel?: string;
-  onConfirm: TConfirm;
-  onCancel: () => void;
-};
+/** Opens once its settings load, so an open dialog always has them. */
+type SettingsDialogSlot<P extends { initialSettings: unknown }> =
+  | (P & { open: true })
+  | (Omit<P, "initialSettings"> & { open: false; initialSettings: null });
 
+/** A dialog that opens without loaded settings. */
+type DialogSlot<P> = P & { open: boolean };
+
+/** Each dialog's props, spread onto it while it is open. */
 export type AutomationDialogsState = {
-  setCaptions: FolderBusyDialogState<
-    (caption: string, overwrite: boolean) => void,
-    JobSettingsByType["set_captions"]
-  >;
-  replaceCaptions: FolderBusyDialogState<
-    (settings: ReplaceCaptionsSettings) => void,
-    JobSettingsByType["replace_captions"]
-  > & {
-    folderPath: string;
-    selectedPaths?: string[];
-  };
-  backupCaptions: FolderBusyDialogState<() => void, JobSettingsByType["backup_captions"]>;
-  autoCaption: FolderBusyDialogState<
-    (settings: JobSettingsByType["auto_caption"]) => void,
-    JobSettingsByType["auto_caption"]
-  > & {
-    folderPath: string;
-    selectedPaths?: string[];
-    editingStep: boolean;
-  };
-  verifyCaptions: FolderBusyDialogState<
-    (settings: JobSettingsByType["verify_captions"]) => void,
-    JobSettingsByType["verify_captions"]
-  > & { folderPath: string; editingStep: boolean };
-  editCaptions: FolderBusyDialogState<
-    (settings: EditCaptionsRunSettings) => void,
-    JobSettingsByType["edit_captions"]
-  > & {
-    folderPath: string;
-    selectedPaths?: string[];
-    editingStep: boolean;
-  };
-  findDuplicates: FolderBusyDialogState<
-    (threshold: DuplicateThreshold) => void,
-    JobSettingsByType["find_duplicates"]
-  >;
-  batchRename: FolderBusyDialogState<
-    (stem: string, startNumber: number) => void,
-    JobSettingsByType["batch_rename"]
-  >;
-  trainLora: FolderBusyDialogState<
-    (settings: TrainLoraSettings) => void,
-    JobSettingsByType["train_lora"]
-  >;
-  watermark: FolderBusyDialogState<
-    (settings: JobSettingsByType["watermark"]) => void,
-    JobSettingsByType["watermark"]
-  >;
-  comfyRun: FolderBusyDialogState<
-    (settings: ComfyRunSettings) => void,
-    JobSettingsByType["comfy_run"]
-  > & {
-    /** Where a generating preset's new files go; `scope` is what an editing one runs on. */
-    destinationScope: DialogScopeInfo;
-    /** A workflow step, which only a preset that edits files can be. */
-    editOnly: boolean;
-    /** Set when the dialog runs a file's own workflow instead of a preset. */
-    embedded?: EmbeddedGenerateWorkflow;
-  };
-  comfyShowcase: FolderBusyDialogState<
-    (settings: ComfyShowcaseJobSettings) => void,
-    JobSettingsByType["comfy_showcase"]
-  > & {
-    folderPath: string;
-    folderItems: readonly GalleryItem[];
-  };
-  resize: FolderBusyDialogState<
-    (
-      megapixels: number,
-      multiple: number,
-      resetSize: boolean,
-      frameRate: VideoFrameRate | null,
-    ) => void,
-    JobSettingsByType["resize"]
-  >;
-  splitVideo: FolderBusyDialogState<
-    (settings: JobSettingsByType["split_video"]) => void,
-    JobSettingsByType["split_video"]
-  >;
-  trimVideo: FolderBusyDialogState<
-    (settings: TrimVideoRunSettings) => void,
-    JobSettingsByType["trim_video"]
-  >;
-  autoAdjust: {
-    open: boolean;
-    scope: DialogScopeInfo;
-    busy: boolean;
-    confirmLabel?: string;
-    initialSettings?: AutoAdjustRunSettings;
-    onConfirm: (replaceAdjustments: boolean, resetAdjustments: boolean) => void;
-    onCancel: () => void;
-  };
-  checkCaptionRules: {
-    open: boolean;
-    scope: DialogScopeInfo;
-    busy: boolean;
-    confirmLabel?: string;
-    folderPath: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-  };
-  restoreCaptions: {
-    open: boolean;
-    scope: DialogScopeInfo;
-    busy: boolean;
-    confirmLabel?: string;
-    folderPath: string;
-    selectedPaths?: string[];
-    onConfirm: () => void;
-    onCancel: () => void;
-  };
+  setCaptions: SettingsDialogSlot<ComponentProps<typeof SetCaptionsDialog>>;
+  replaceCaptions: SettingsDialogSlot<ComponentProps<typeof ReplaceCaptionsDialog>>;
+  backupCaptions: SettingsDialogSlot<ComponentProps<typeof BackupCaptionsDialog>>;
+  autoCaption: SettingsDialogSlot<ComponentProps<typeof AutoCaptionDialog>>;
+  verifyCaptions: SettingsDialogSlot<ComponentProps<typeof VerifyCaptionsDialog>>;
+  editCaptions: SettingsDialogSlot<ComponentProps<typeof EditCaptionsDialog>>;
+  findDuplicates: SettingsDialogSlot<ComponentProps<typeof FindDuplicatesDialog>>;
+  batchRename: SettingsDialogSlot<ComponentProps<typeof BatchRenameDialog>>;
+  trainLora: SettingsDialogSlot<ComponentProps<typeof TrainLoraDialog>>;
+  watermark: SettingsDialogSlot<ComponentProps<typeof WatermarkDialog>>;
+  comfyRun: SettingsDialogSlot<ComponentProps<typeof ComfyRunDialog>>;
+  comfyShowcase: SettingsDialogSlot<ComponentProps<typeof ComfyShowcaseDialog>>;
+  resize: SettingsDialogSlot<ComponentProps<typeof ResizeDialog>>;
+  splitVideo: SettingsDialogSlot<ComponentProps<typeof SplitVideoDialog>>;
+  trimVideo: SettingsDialogSlot<ComponentProps<typeof TrimVideoDialog>>;
+  autoAdjust: DialogSlot<ComponentProps<typeof AutoAdjustDialog>>;
+  checkCaptionRules: DialogSlot<ComponentProps<typeof CheckCaptionRulesDialog>>;
+  restoreCaptions: DialogSlot<ComponentProps<typeof RestoreCaptionsDialog>>;
 };
 
 /** One output of a file's own workflow, handed from the workflow dialog to the run dialog. */

@@ -160,18 +160,23 @@ export function useAutomationDialogOverlays({
   );
 
   const dialogs = useMemo<AutomationDialogsState>(() => {
-    const shared = <K extends keyof AutomationSettings & JobType>(jobType: K) => ({
-      open: openJobType === jobType,
-      scope: stepScope,
-      // Every dialog starts from its last run's settings; a workflow step brings its own.
-      initialSettings:
-        settings === null
-          ? null
-          : ((stepSettings as AutomationSettings[K] | undefined) ?? settings[jobType]),
-      busy: startingJobType === jobType,
-      confirmLabel: stepMode?.confirmLabel,
-      onCancel: closeDialog,
-    });
+    const shared = <K extends keyof AutomationSettings & JobType>(jobType: K) => {
+      const base = {
+        scope: stepScope,
+        busy: startingJobType === jobType,
+        confirmLabel: stepMode?.confirmLabel,
+        onCancel: closeDialog,
+      };
+      return openJobType === jobType && settings !== null
+        ? {
+            ...base,
+            open: true as const,
+            // Every dialog starts from its last run's settings; a workflow step brings its own.
+            initialSettings:
+              (stepSettings as AutomationSettings[K] | undefined) ?? settings[jobType],
+          }
+        : { ...base, open: false as const, initialSettings: null };
+    };
 
     return {
       setCaptions: {

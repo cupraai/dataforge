@@ -34,11 +34,11 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
     batchRename,
     trainLora,
     watermark,
+    comfyRun,
+    comfyShowcase,
     resize,
     splitVideo,
     trimVideo,
-    comfyRun,
-    comfyShowcase,
     autoAdjust,
     checkCaptionRules,
     restoreCaptions,
@@ -46,217 +46,24 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
 
   return (
     <>
-      {setCaptions.open && setCaptions.initialSettings && (
-        <SetCaptionsDialog
-          scope={setCaptions.scope}
-          initialSettings={setCaptions.initialSettings}
-          busy={setCaptions.busy}
-          confirmLabel={setCaptions.confirmLabel}
-          onConfirm={setCaptions.onConfirm}
-          onCancel={setCaptions.onCancel}
-        />
-      )}
-
-      {replaceCaptions.open && replaceCaptions.folderPath && replaceCaptions.initialSettings && (
-        <ReplaceCaptionsDialog
-          scope={replaceCaptions.scope}
-          initialSettings={replaceCaptions.initialSettings}
-          folderPath={replaceCaptions.folderPath}
-          selectedPaths={replaceCaptions.selectedPaths}
-          busy={replaceCaptions.busy}
-          confirmLabel={replaceCaptions.confirmLabel}
-          onConfirm={replaceCaptions.onConfirm}
-          onCancel={replaceCaptions.onCancel}
-        />
-      )}
-
-      {backupCaptions.open && backupCaptions.initialSettings && (
-        <BackupCaptionsDialog
-          scope={backupCaptions.scope}
-          initialSettings={backupCaptions.initialSettings}
-          busy={backupCaptions.busy}
-          confirmLabel={backupCaptions.confirmLabel}
-          onConfirm={backupCaptions.onConfirm}
-          onCancel={backupCaptions.onCancel}
-        />
-      )}
-
-      {autoCaption.open && autoCaption.folderPath && autoCaption.initialSettings && (
-        <AutoCaptionDialog
-          scope={autoCaption.scope}
-          folderPath={autoCaption.folderPath}
-          selectedPaths={autoCaption.selectedPaths}
-          initialSettings={autoCaption.initialSettings}
-          busy={autoCaption.busy}
-          editingStep={autoCaption.editingStep}
-          confirmLabel={autoCaption.confirmLabel}
-          onConfirm={autoCaption.onConfirm}
-          onCancel={autoCaption.onCancel}
-        />
-      )}
-
-      {verifyCaptions.open && verifyCaptions.initialSettings && (
-        <VerifyCaptionsDialog
-          scope={verifyCaptions.scope}
-          initialSettings={verifyCaptions.initialSettings}
-          folderPath={verifyCaptions.folderPath}
-          busy={verifyCaptions.busy}
-          editingStep={verifyCaptions.editingStep}
-          confirmLabel={verifyCaptions.confirmLabel}
-          onConfirm={verifyCaptions.onConfirm}
-          onCancel={verifyCaptions.onCancel}
-        />
-      )}
-
-      {editCaptions.open && editCaptions.initialSettings && (
-        <EditCaptionsDialog
-          scope={editCaptions.scope}
-          folderPath={editCaptions.folderPath}
-          selectedPaths={editCaptions.selectedPaths}
-          initialSettings={editCaptions.initialSettings}
-          busy={editCaptions.busy}
-          editingStep={editCaptions.editingStep}
-          confirmLabel={editCaptions.confirmLabel}
-          onConfirm={editCaptions.onConfirm}
-          onCancel={editCaptions.onCancel}
-        />
-      )}
-
-      {findDuplicates.open && findDuplicates.initialSettings && (
-        <FindDuplicatesDialog
-          scope={findDuplicates.scope}
-          initialSettings={findDuplicates.initialSettings}
-          busy={findDuplicates.busy}
-          confirmLabel={findDuplicates.confirmLabel}
-          onConfirm={findDuplicates.onConfirm}
-          onCancel={findDuplicates.onCancel}
-        />
-      )}
-
-      {batchRename.open && batchRename.initialSettings && (
-        <BatchRenameDialog
-          scope={batchRename.scope}
-          initialSettings={batchRename.initialSettings}
-          busy={batchRename.busy}
-          confirmLabel={batchRename.confirmLabel}
-          onConfirm={batchRename.onConfirm}
-          onCancel={batchRename.onCancel}
-        />
-      )}
-
-      {trainLora.open && trainLora.initialSettings && (
-        <TrainLoraDialog
-          scope={trainLora.scope}
-          initialSettings={trainLora.initialSettings}
-          busy={trainLora.busy}
-          onConfirm={trainLora.onConfirm}
-          onCancel={trainLora.onCancel}
-        />
-      )}
-
-      {watermark.open && watermark.initialSettings && (
-        <WatermarkDialog
-          scope={watermark.scope}
-          initialSettings={watermark.initialSettings}
-          busy={watermark.busy}
-          confirmLabel={watermark.confirmLabel}
-          onConfirm={watermark.onConfirm}
-          onCancel={watermark.onCancel}
-        />
-      )}
-
-      {comfyRun.open && comfyRun.initialSettings && (
-        <ComfyRunDialog
-          scope={comfyRun.scope}
-          destinationScope={comfyRun.destinationScope}
-          initialSettings={comfyRun.initialSettings}
-          busy={comfyRun.busy}
-          confirmLabel={comfyRun.confirmLabel}
-          editOnly={comfyRun.editOnly}
-          embedded={comfyRun.embedded}
-          onConfirm={comfyRun.onConfirm}
-          onCancel={comfyRun.onCancel}
-        />
-      )}
-
-      {comfyShowcase.open && comfyShowcase.initialSettings && (
-        <ComfyShowcaseDialog
-          scope={comfyShowcase.scope}
-          initialSettings={comfyShowcase.initialSettings}
-          busy={comfyShowcase.busy}
-          folderPath={comfyShowcase.folderPath}
-          folderItems={comfyShowcase.folderItems}
-          onConfirm={comfyShowcase.onConfirm}
-          onCancel={comfyShowcase.onCancel}
-        />
-      )}
-
-      {resize.open && resize.initialSettings && (
-        <ResizeDialog
-          scope={resize.scope}
-          initialSettings={resize.initialSettings}
-          busy={resize.busy}
-          confirmLabel={resize.confirmLabel}
-          onConfirm={resize.onConfirm}
-          onCancel={resize.onCancel}
-        />
-      )}
-
-      {splitVideo.open && splitVideo.initialSettings && (
-        <SplitVideoDialog
-          scope={splitVideo.scope}
-          initialSettings={splitVideo.initialSettings}
-          busy={splitVideo.busy}
-          confirmLabel={splitVideo.confirmLabel}
-          onConfirm={splitVideo.onConfirm}
-          onCancel={splitVideo.onCancel}
-        />
-      )}
-
-      {trimVideo.open && trimVideo.initialSettings && (
-        <TrimVideoDialog
-          scope={trimVideo.scope}
-          initialSettings={trimVideo.initialSettings}
-          busy={trimVideo.busy}
-          confirmLabel={trimVideo.confirmLabel}
-          onConfirm={trimVideo.onConfirm}
-          onCancel={trimVideo.onCancel}
-        />
-      )}
-
-      {autoAdjust.open && (
-        <AutoAdjustDialog
-          scope={autoAdjust.scope}
-          initialSettings={autoAdjust.initialSettings}
-          busy={autoAdjust.busy}
-          confirmLabel={autoAdjust.confirmLabel}
-          onConfirm={autoAdjust.onConfirm}
-          onCancel={autoAdjust.onCancel}
-        />
-      )}
-
-      {checkCaptionRules.open && (
-        <CheckCaptionRulesDialog
-          scope={checkCaptionRules.scope}
-          folderPath={checkCaptionRules.folderPath}
-          busy={checkCaptionRules.busy}
-          confirmLabel={checkCaptionRules.confirmLabel}
-          onConfirm={checkCaptionRules.onConfirm}
-          onCancel={checkCaptionRules.onCancel}
-        />
-      )}
-
-      {restoreCaptions.open && (
-        <RestoreCaptionsDialog
-          scope={restoreCaptions.scope}
-          folderPath={restoreCaptions.folderPath}
-          selectedPaths={restoreCaptions.selectedPaths}
-          busy={restoreCaptions.busy}
-          confirmLabel={restoreCaptions.confirmLabel}
-          onConfirm={restoreCaptions.onConfirm}
-          onCancel={restoreCaptions.onCancel}
-        />
-      )}
+      {setCaptions.open && <SetCaptionsDialog {...setCaptions} />}
+      {replaceCaptions.open && <ReplaceCaptionsDialog {...replaceCaptions} />}
+      {backupCaptions.open && <BackupCaptionsDialog {...backupCaptions} />}
+      {autoCaption.open && <AutoCaptionDialog {...autoCaption} />}
+      {verifyCaptions.open && <VerifyCaptionsDialog {...verifyCaptions} />}
+      {editCaptions.open && <EditCaptionsDialog {...editCaptions} />}
+      {findDuplicates.open && <FindDuplicatesDialog {...findDuplicates} />}
+      {batchRename.open && <BatchRenameDialog {...batchRename} />}
+      {trainLora.open && <TrainLoraDialog {...trainLora} />}
+      {watermark.open && <WatermarkDialog {...watermark} />}
+      {comfyRun.open && <ComfyRunDialog {...comfyRun} />}
+      {comfyShowcase.open && <ComfyShowcaseDialog {...comfyShowcase} />}
+      {resize.open && <ResizeDialog {...resize} />}
+      {splitVideo.open && <SplitVideoDialog {...splitVideo} />}
+      {trimVideo.open && <TrimVideoDialog {...trimVideo} />}
+      {autoAdjust.open && <AutoAdjustDialog {...autoAdjust} />}
+      {checkCaptionRules.open && <CheckCaptionRulesDialog {...checkCaptionRules} />}
+      {restoreCaptions.open && <RestoreCaptionsDialog {...restoreCaptions} />}
     </>
   );
 }
