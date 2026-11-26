@@ -335,11 +335,12 @@ describe("FolderInstructionsDialog", () => {
       expect(await editor(kind)).toHaveValue("From the parent.\n");
       expect(await editor(kind)).toBeDisabled();
       const path = screen.getByText(/^\.\.\\\./);
-      expect(path).toHaveAttribute(
-        "title",
+      fireEvent.mouseEnter(path.parentElement!);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
         `${PARENT}\\${kind === "sysprompt" ? ".sysprompt" : ".captionrules"}`,
       );
-      expect(path.parentElement).toHaveTextContent("Inherited");
+      // The tooltip's wrapper draws no box; the row it sits in names the source.
+      expect(path.parentElement!.parentElement).toHaveTextContent("Inherited");
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     });
 
@@ -379,7 +380,7 @@ describe("FolderInstructionsDialog", () => {
       renderDialog({ initialTab: kind });
 
       expect(await editor(kind)).toHaveValue("Own.\n");
-      expect(screen.getByText(/^\.\.\\\./).parentElement).toHaveTextContent(/Replaces/);
+      expect(screen.getByText(/^\.\.\\\./).closest("p")).toHaveTextContent(/Replaces/);
     });
 
     it("sends blank text so the backend removes the file", async () => {

@@ -27,24 +27,22 @@ function TriggerWord({ word }: { word: string }) {
 
   return (
     <li>
-      <Tooltip content={failed ? "Could not copy" : "Copy"}>
-        <Button
-          size="xs"
-          className="model-overview__trigger"
-          iconEnd={copied ? iconCheck : iconCopy}
-          feedback={copyState}
-          onClick={() => void copyText(word)}
-          aria-label={
-            copied
-              ? `Copied ${word}`
-              : failed
-                ? `Could not copy ${word}`
-                : `Copy the trigger word ${word}`
-          }
-        >
-          <span className="model-overview__trigger-text">{word}</span>
-        </Button>
-      </Tooltip>
+      <Button
+        size="xs"
+        className="model-overview__trigger"
+        iconEnd={copied ? iconCheck : iconCopy}
+        feedback={copyState}
+        onClick={() => void copyText(word)}
+        aria-label={
+          copied
+            ? `Copied ${word}`
+            : failed
+              ? `Could not copy ${word}`
+              : `Copy the trigger word ${word}`
+        }
+      >
+        <span className="model-overview__trigger-text">{word}</span>
+      </Button>
     </li>
   );
 }
@@ -69,9 +67,9 @@ export function ModelInfoStage({ item }: { item: ModelItem }) {
           <Icon icon={kind.icon} className="model-overview__tile-icon" />
         </span>
         <div className="model-overview__heading">
-          <p className="model-overview__title" title={title}>
-            {title}
-          </p>
+          <Tooltip content={title} whenTruncated>
+            <p className="model-overview__title">{title}</p>
+          </Tooltip>
           {info && (
             <ul className="model-overview__badges" aria-label="Model type">
               {modelBadges(info).map((badge, index) => (
@@ -112,7 +110,9 @@ export function ModelInfoStage({ item }: { item: ModelItem }) {
             ? modelFacts(info).map((fact) => (
                 <div key={fact.label} className="model-overview__fact">
                   <dt>{fact.label}</dt>
-                  <dd title={fact.title ?? fact.value}>{fact.value}</dd>
+                  <Tooltip content={fact.title ?? fact.value} whenTruncated={!fact.title}>
+                    <dd>{fact.value}</dd>
+                  </Tooltip>
                 </div>
               ))
             : Array.from({ length: SKELETON_FACTS }, (_, index) => (
@@ -170,7 +170,9 @@ export function ModelMetadataList({ item }: { item: ModelItem }) {
           <dl className="model-metadata__entries">
             {entries.map((entry) => (
               <div key={entry.key} className="model-metadata__entry">
-                <dt title={entry.key}>{entry.key}</dt>
+                <Tooltip content={entry.key} whenTruncated>
+                  <dt>{entry.key}</dt>
+                </Tooltip>
                 <dd>
                   {entry.json === null ? (
                     <span className="model-metadata__value">{entry.value}</span>

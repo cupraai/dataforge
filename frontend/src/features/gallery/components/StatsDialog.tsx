@@ -510,20 +510,23 @@ function BarChart({
       <dl className="stats-dialog__bars">
         {visible.map(({ bucket, index }) => (
           <div key={bucket.label} className="stats-dialog__bar-row">
-            <dt className="stats-dialog__bar-label" title={bucket.label}>
-              {onSelect ? (
-                <button
-                  type="button"
-                  className="stats-dialog__bar-button"
-                  onClick={() => onSelect(index)}
-                  title={`Show files in "${bucket.label}"`}
-                >
-                  {bucket.label}
-                </button>
-              ) : (
-                bucket.label
-              )}
-            </dt>
+            {onSelect ? (
+              <dt className="stats-dialog__bar-label">
+                <Tooltip content={`Show files in "${bucket.label}"`}>
+                  <button
+                    type="button"
+                    className="stats-dialog__bar-button"
+                    onClick={() => onSelect(index)}
+                  >
+                    {bucket.label}
+                  </button>
+                </Tooltip>
+              </dt>
+            ) : (
+              <Tooltip content={bucket.label} whenTruncated>
+                <dt className="stats-dialog__bar-label">{bucket.label}</dt>
+              </Tooltip>
+            )}
             <dd className="stats-dialog__bar-value">
               <span className="stats-dialog__bar-track">
                 <span

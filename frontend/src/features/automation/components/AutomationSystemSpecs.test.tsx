@@ -39,7 +39,8 @@ const fill = (name: string) => screen.getByRole("meter", { name }).firstElementC
 /** The figure printed beside a meter's caption. */
 const meterFigure = (cardName: string, caption: string) =>
   within(card(cardName)).getByText(caption).nextElementSibling;
-const reading = (title: string) => screen.queryByTitle(title);
+/** A reading is an icon and a figure, named by its visually hidden label. */
+const reading = (label: string) => screen.queryByText(`${label}:`)?.parentElement ?? null;
 
 describe("AutomationSystemSpecs", () => {
   beforeEach(() => {
@@ -204,7 +205,7 @@ describe("AutomationSystemSpecs", () => {
 
     renderSpecs();
 
-    expect(screen.getByTitle("VRAM total")).toHaveTextContent("10 GB");
+    expect(screen.getByText("10 GB")).toBeInTheDocument();
     expect(screen.queryByRole("meter", { name: "VRAM usage" })).toBeNull();
   });
 
@@ -224,8 +225,8 @@ describe("AutomationSystemSpecs", () => {
     expect(reading("GPU fan speed")).toHaveTextContent("55%");
     // 300 of 320 W is 94% of the cap, coloured like load.
     expect(reading("GPU power / limit")).toHaveClass("system-specs__reading--danger");
-    expect(within(card("CPU")).getByTitle("CPU power")).toBeInTheDocument();
-    expect(within(card("GPU")).getByTitle("GPU fan speed")).toBeInTheDocument();
+    expect(within(card("CPU")).getByText("CPU power:")).toBeInTheDocument();
+    expect(within(card("GPU")).getByText("GPU fan speed:")).toBeInTheDocument();
   });
 
   it("shows GPU power alone when the card reports no limit", () => {

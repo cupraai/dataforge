@@ -349,7 +349,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
                 size="sm"
                 pressed={folderFilterOn}
                 disabled={!currentFolder}
-                title={currentFolder ? undefined : "Open a folder to filter by it"}
                 onClick={() => updateFilter({ folder: folderFilterOn ? "all" : "current" })}
               >
                 This folder

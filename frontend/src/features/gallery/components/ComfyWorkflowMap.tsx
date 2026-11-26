@@ -97,7 +97,6 @@ function FilePath({ path, truncated = false }: { path: string; truncated?: boole
         "workflow-map-tip__path",
         truncated && "workflow-map-tip__path--truncated",
       )}
-      title={truncated ? path : undefined}
     >
       {folder && <span className="workflow-map-tip__folder">{folder}</span>}
       {name}

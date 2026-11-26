@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vite-plus/test";
 import type { AnchoredSide } from "@/shared/lib/anchoredPosition";
+import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
 import { Tooltip } from "./Tooltip";
 
 describe("Tooltip", () => {
@@ -88,6 +89,65 @@ describe("Tooltip", () => {
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent("Copied!");
+  });
+
+  it("draws a shortcut after the content and announces it on the trigger", () => {
+    render(
+      <Tooltip content="Settings" shortcut={SHORTCUTS.settings} open>
+        <button type="button">Settings</button>
+      </Tooltip>,
+    );
+
+    expect(screen.getByRole("button", { name: "Settings" })).toHaveAttribute(
+      "aria-keyshortcuts",
+      ariaKeyShortcuts(SHORTCUTS.settings),
+    );
+    const bubble = screen.getByRole("tooltip");
+    expect(bubble).toHaveTextContent(/^Settings/);
+    expect(bubble.querySelector("kbd")).toBeInTheDocument();
+  });
+
+  it("keeps a key the trigger already announces", () => {
+    render(
+      <Tooltip content="Settings" shortcut={SHORTCUTS.settings}>
+        <button type="button" aria-keyshortcuts="F10">
+          Settings
+        </button>
+      </Tooltip>,
+    );
+
+    expect(screen.getByRole("button", { name: "Settings" })).toHaveAttribute(
+      "aria-keyshortcuts",
+      "F10",
+    );
+  });
+
+  it("shows a whenTruncated bubble only while the trigger cuts its text off", async () => {
+    vi.useFakeTimers();
+
+    render(
+      <Tooltip content="holiday_beach_sunset_final.png" whenTruncated>
+        <span>holiday_beach_sunset_final.png</span>
+      </Tooltip>,
+    );
+
+    const name = screen.getByText("holiday_beach_sunset_final.png");
+    const hover = async () => {
+      fireEvent.mouseEnter(name.parentElement!);
+      await act(async () => {
+        vi.advanceTimersByTime(400);
+      });
+    };
+
+    await hover();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+
+    fireEvent.mouseLeave(name.parentElement!);
+    Object.defineProperty(name, "scrollWidth", { configurable: true, value: 180 });
+    Object.defineProperty(name, "clientWidth", { configurable: true, value: 120 });
+    await hover();
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent("holiday_beach_sunset_final.png");
   });
 
   it("hides on click so it does not sit over the control it just activated", async () => {

@@ -78,7 +78,6 @@ export function BreadcrumbCrumbMenu({
               icon={iconFolder}
               label={child.name}
               current={isActive}
-              title={child.path}
               onSelect={() => handleSelect(child.path)}
               {...prefetch(child.path)}
             />

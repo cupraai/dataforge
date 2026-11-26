@@ -29,7 +29,7 @@ export function MediaTagList({ tags }: MediaTagListProps) {
           <ul ref={listRef} className="media-tags__list">
             {tags.map((tag) => (
               <li key={tag.label} className="media-tags__tag">
-                <Badge size="md" uppercase={false} title={`${percent(tag.confidence)}% confidence`}>
+                <Badge size="md" uppercase={false}>
                   {tag.label}
                   <span className="media-tags__score">{percent(tag.confidence)}%</span>
                 </Badge>

@@ -116,13 +116,10 @@ describe("StatsDialog", () => {
       .map((heading) => heading.textContent);
     expect(headings.slice(0, 3)).toEqual(["Overview", "Media created", "Caption length"]);
     const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
-    expect(
-      within(chart)
-        .getAllByRole("term")
-        .map((label) => label.getAttribute("title")),
-    ).toHaveLength(30);
-    expect(within(chart).getAllByRole("term")[0]).toHaveAttribute("title", "Jun 1, 2026");
-    expect(within(chart).getAllByRole("term").at(-1)).toHaveAttribute("title", "Jun 30, 2026");
+    const terms = within(chart).getAllByRole("term");
+    expect(terms).toHaveLength(30);
+    expect(terms[0]).toHaveTextContent(/^Jun 1, 2026/);
+    expect(terms.at(-1)).toHaveTextContent(/^Jun 30, 2026/);
     expect(within(chart).getByLabelText("1 file")).toBeInTheDocument();
     expect(within(chart).getByLabelText("2 files")).toBeInTheDocument();
     expect(within(chart).queryByText("Media")).not.toBeInTheDocument();
@@ -161,7 +158,7 @@ describe("StatsDialog", () => {
     const labels = () =>
       within(chart)
         .getAllByRole("term")
-        .map((label) => label.getAttribute("title"));
+        .map((label) => label.firstElementChild?.textContent);
     expect(within(grouping).getByRole("radio", { name: "Year" })).toBeChecked();
     expect(labels()).toEqual(["2025", "2026"]);
 
@@ -290,7 +287,7 @@ describe("StatsDialog", () => {
     const chart = screen.getByRole("figure", { name: "Distribution by media creation date" });
     await user.click(within(chart).getByRole("button", { name: "Previous year" }));
     expect(within(chart).getByText("2025")).toBeInTheDocument();
-    expect(within(chart).getAllByRole("term")[0]).toHaveAttribute("title", "Jan 2025");
+    expect(within(chart).getAllByRole("term")[0]).toHaveTextContent(/^Jan 2025/);
     expect(within(chart).getByRole("img", { name: "1 file" })).toBeInTheDocument();
 
     await user.click(within(chart).getByRole("button", { name: "Next year" }));

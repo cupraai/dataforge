@@ -219,7 +219,6 @@ export function QuickActionDialog({ items, recentItems, onClose }: QuickActionDi
                     "quick-action__option",
                     item.disabled && "quick-action__option--disabled",
                   )}
-                  title={item.detail}
                   onMouseMove={(event) => handleRowPointerMove(event, item)}
                   onClick={() => runItem(item)}
                 >

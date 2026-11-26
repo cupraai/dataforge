@@ -33,6 +33,7 @@ import { MediaInfoBar } from "./MediaInfoBar";
 import { ComfyWorkflowDialog } from "./ComfyWorkflowDialog";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { PlaybackCheckedVideo } from "@/shared/ui/PlaybackCheckedVideo";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface IssueGroup {
   label: string;
@@ -334,9 +335,9 @@ export function IssueResolverDialog({
           onInspectComfyWorkflow={() => setComfyWorkflowOpen(true)}
         />
         <div className="issue-resolver-dialog__details" data-scroll-lock-allow>
-          <p className="issue-resolver-dialog__file-name" title={item.name}>
-            {item.name}
-          </p>
+          <Tooltip content={item.name} whenTruncated>
+            <p className="issue-resolver-dialog__file-name">{item.name}</p>
+          </Tooltip>
           <div
             className={classNames(
               "issue-resolver-dialog__issue-card",
@@ -402,7 +403,6 @@ export function IssueResolverDialog({
               saveState={saveError !== null ? "error" : "idle"}
               aria-label={`Caption for ${item.name}`}
               aria-invalid={saveError !== null}
-              title={saveError ?? undefined}
               editable={!saving && !captionLocked}
               onChange={handleCaptionChange}
             />
@@ -417,15 +417,18 @@ export function IssueResolverDialog({
         <Button disabled={saving || index === queue.length - 1} onClick={handleNext}>
           Skip
         </Button>
-        <Button
-          variant="primary"
-          busy={saving}
-          onClick={() => {
-            void handleResolve();
-          }}
-        >
-          {saving ? "Resolving..." : "Resolve"}
-        </Button>
+        {/* Held open while the failure stands: nothing else says why the save did not happen. */}
+        <Tooltip content={saveError ?? undefined} open={saveError !== null} placement="top">
+          <Button
+            variant="primary"
+            busy={saving}
+            onClick={() => {
+              void handleResolve();
+            }}
+          >
+            {saving ? "Resolving..." : "Resolve"}
+          </Button>
+        </Tooltip>
       </footer>
       {comfyWorkflowOpen && (
         <ComfyWorkflowDialog

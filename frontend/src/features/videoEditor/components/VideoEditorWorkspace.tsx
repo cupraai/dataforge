@@ -1336,6 +1336,7 @@ function EditorSession({
                 <IconButton
                   icon={iconX}
                   label="Dismiss"
+                  tooltip={false}
                   onClick={() => setMessage(null)}
                   size="xs"
                   variant="ghost"

@@ -28,6 +28,7 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
 import type { Job, JobFileResult } from "@/shared/types";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface JobFileResultsProps {
   job: Job;
@@ -75,9 +76,9 @@ function ResultRow({
       ) : (
         <Icon icon={TONE_ICONS[tone]} className="job-file-results__row-icon" />
       )}
-      <span className="job-file-results__name" title={result.path}>
-        {result.name}
-      </span>
+      <Tooltip content={result.name} whenTruncated>
+        <span className="job-file-results__name">{result.name}</span>
+      </Tooltip>
       <span className="job-file-results__status">{resultStatusLabel(result.status)}</span>
       {result.message && <span className="job-file-results__message">{result.message}</span>}
       {result.shared_with.length > 0 && (

@@ -80,17 +80,15 @@ export function EditorTopBar({
   return (
     <header className="video-editor__topbar">
       <div className="video-editor__topbar-start">
-        <Tooltip content="Back to gallery" placement="bottom">
-          <Button
-            icon={iconArrowLeft}
-            onClick={onBack}
-            aria-label="Back to gallery"
-            variant="text"
-            size="sm"
-          >
-            <span>Gallery</span>
-          </Button>
-        </Tooltip>
+        <Button
+          icon={iconArrowLeft}
+          onClick={onBack}
+          aria-label="Back to gallery"
+          variant="text"
+          size="sm"
+        >
+          <span>Gallery</span>
+        </Button>
         <span className="video-editor__topbar-divider" aria-hidden="true" />
         <span className="video-editor__project-mark" aria-hidden="true">
           <Icon icon={iconClapperboard} />
@@ -102,20 +100,18 @@ export function EditorTopBar({
       </div>
 
       <div className="video-editor__topbar-center">
-        <Tooltip content="Canvas size and frame rate" placement="bottom">
-          <Button
-            className="video-editor__format"
-            onClick={onSettings}
-            aria-label={`Project settings: ${project.width} × ${project.height}, ${rate} fps`}
-            size="sm"
-          >
-            <span>
-              {project.width} × {project.height}
-            </span>
-            <span className="video-editor__format-dot" aria-hidden="true" />
-            <span>{rate} fps</span>
-          </Button>
-        </Tooltip>
+        <Button
+          className="video-editor__format"
+          onClick={onSettings}
+          aria-label={`Project settings: ${project.width} × ${project.height}, ${rate} fps`}
+          size="sm"
+        >
+          <span>
+            {project.width} × {project.height}
+          </span>
+          <span className="video-editor__format-dot" aria-hidden="true" />
+          <span>{rate} fps</span>
+        </Button>
       </div>
 
       <div className="video-editor__topbar-end">
@@ -283,7 +279,7 @@ function ExportStatus({
       {state.status === "failed" && (
         <>
           <Icon icon={iconTriangleAlert} />
-          <Tooltip content={state.error ?? undefined}>
+          <Tooltip content={state.error ?? undefined} whenTruncated>
             <span className="video-editor__export-text">Export failed: {state.error}</span>
           </Tooltip>
         </>
@@ -292,7 +288,14 @@ function ExportStatus({
         <span className="video-editor__export-text">Export cancelled; nothing was saved</span>
       )}
       {state.status !== "running" && (
-        <IconButton icon={iconX} label="Dismiss" onClick={onDismiss} size="xs" variant="ghost" />
+        <IconButton
+          icon={iconX}
+          label="Dismiss"
+          tooltip={false}
+          onClick={onDismiss}
+          size="xs"
+          variant="ghost"
+        />
       )}
     </span>
   );

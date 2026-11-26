@@ -11,6 +11,7 @@ import { folderRootsQueryOptions } from "@/features/folder/lib/folderQuery";
 import { usePopupMenu } from "@/shared/hooks/usePopupMenu";
 import { iconHardDrive } from "@/shared/icons";
 import { Menu, MenuItem } from "@/shared/ui/Menu";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface BreadcrumbDriveMenuProps {
   currentFolder: string;
@@ -49,24 +50,26 @@ export function BreadcrumbDriveMenu({ currentFolder, onNavigate }: BreadcrumbDri
         {drives.map((drive) => {
           const isActive = drive.path === currentDrive;
           const name = drive.label ? `${drive.name} ${drive.label}` : drive.name;
-          // A volume's name says little about where it is mounted.
-          const title = drive.path.startsWith("/") ? drive.path : name;
+          // A volume's name says little about where it is mounted; a drive letter says it all.
+          const mount = drive.path.startsWith("/") ? drive.path : undefined;
           return (
-            <MenuItem
-              key={drive.path}
-              icon={driveIcon(drive.kind)}
-              label={
-                <>
-                  {drive.name}
-                  {drive.label && <span className="breadcrumbs__drive-label"> {drive.label}</span>}
-                </>
-              }
-              current={isActive}
-              aria-label={name}
-              title={title}
-              onSelect={() => handleSelect(drive.path)}
-              {...prefetch(drive.path)}
-            />
+            <Tooltip key={drive.path} content={mount} placement="right">
+              <MenuItem
+                icon={driveIcon(drive.kind)}
+                label={
+                  <>
+                    {drive.name}
+                    {drive.label && (
+                      <span className="breadcrumbs__drive-label"> {drive.label}</span>
+                    )}
+                  </>
+                }
+                current={isActive}
+                aria-label={name}
+                onSelect={() => handleSelect(drive.path)}
+                {...prefetch(drive.path)}
+              />
+            </Tooltip>
           );
         })}
       </Menu>

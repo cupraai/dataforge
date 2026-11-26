@@ -4,7 +4,6 @@ import { useGallerySelectionContext } from "@/features/gallery/context/GallerySe
 import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
 import { iconCopyPlus, iconFolderInput, iconTrash2, type AppIcon } from "@/shared/icons";
 import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface TransferButtonProps {
@@ -27,18 +26,16 @@ function TransferButton({
   const active = transferring === mode;
 
   return (
-    <Tooltip content={label}>
-      <Button
-        icon={icon}
-        busy={active}
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={label}
-        size="xs"
-      >
-        {mode === "copy" ? "Copy" : "Move"}
-      </Button>
-    </Tooltip>
+    <Button
+      icon={icon}
+      busy={active}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      size="xs"
+    >
+      {mode === "copy" ? "Copy" : "Move"}
+    </Button>
   );
 }
 
@@ -136,11 +133,7 @@ export function GallerySelectionControls({ totalCount }: GallerySelectionControl
         disabled={visibleSelectedCount === 0 || busy}
         onClick={() => startTransfer("move")}
       />
-      <Tooltip
-        content={
-          <ShortcutHint shortcut={SHORTCUTS.deleteSelection}>Delete selected files</ShortcutHint>
-        }
-      >
+      <Tooltip content="Delete selected files" shortcut={SHORTCUTS.deleteSelection}>
         <Button
           icon={iconTrash2}
           busy={deleting}
@@ -148,7 +141,6 @@ export function GallerySelectionControls({ totalCount }: GallerySelectionControl
           onClick={openDeleteConfirm}
           disabled={visibleSelectedCount === 0 || busy}
           aria-label="Delete selected files"
-          aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.deleteSelection)}
           size="xs"
         >
           Delete

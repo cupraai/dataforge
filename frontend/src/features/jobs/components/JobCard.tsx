@@ -44,6 +44,7 @@ import { TrainingSamples } from "./TrainingSamples";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { JobFileResults } from "./JobFileResults";
 import { ComfyProcessLog } from "@/features/automation/components/ComfyProcessLog";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 /** Something to do about a finished job, such as reviewing the issues it found. */
 export interface JobFollowUp {
@@ -170,19 +171,20 @@ export function JobCard({
             {isNew && <span className="job-card__new">New</span>}
           </div>
           <div className="job-card__subtitle">
-            <button
-              type="button"
-              className="job-card__folder"
-              onClick={() => onOpenFolder?.(job.folder)}
-              title={isCurrentFolder ? `${job.folder} (open now)` : `Open ${job.folder}`}
-            >
-              <Icon icon={iconFolder} className="job-card__folder-icon" />
-              <span className="job-card__folder-name">{folderLabel}</span>
-            </button>
+            <Tooltip content={isCurrentFolder ? `${job.folder} (open now)` : `Open ${job.folder}`}>
+              <button
+                type="button"
+                className="job-card__folder"
+                onClick={() => onOpenFolder?.(job.folder)}
+              >
+                <Icon icon={iconFolder} className="job-card__folder-icon" />
+                <span className="job-card__folder-name">{folderLabel}</span>
+              </button>
+            </Tooltip>
             {when && (
-              <span className="job-card__when" title={when.title ?? undefined}>
-                {when.label}
-              </span>
+              <Tooltip content={when.title ?? undefined}>
+                <span className="job-card__when">{when.label}</span>
+              </Tooltip>
             )}
           </div>
           {runLabel && (
@@ -224,9 +226,9 @@ export function JobCard({
       {workflow && (
         <p className="job-card__workflow">
           <span className="job-card__workflow-kind">{workflow.kind}</span>
-          <span className="job-card__workflow-name" title={workflow.name}>
-            {workflow.name}
-          </span>
+          <Tooltip content={workflow.name} whenTruncated>
+            <span className="job-card__workflow-name">{workflow.name}</span>
+          </Tooltip>
           {workflow.edited && <span className="job-card__workflow-edited">Edited</span>}
         </p>
       )}
@@ -266,11 +268,7 @@ export function JobCard({
               showError ? "error" : showCancelled ? "cancelled" : showWarning ? "warning" : null
             }
           />
-          {job.current_name && (
-            <p className="job-card__current" title={job.current_name}>
-              {job.current_name}
-            </p>
-          )}
+          {job.current_name && <p className="job-card__current">{job.current_name}</p>}
         </div>
       )}
 

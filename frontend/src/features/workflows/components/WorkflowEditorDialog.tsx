@@ -50,6 +50,7 @@ import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 /** What a step's own dialog needs to open over the editor: the folder it previews against. */
 export interface WorkflowStepDialogContext {
@@ -418,7 +419,6 @@ export function WorkflowEditorDialog({
                           className="workflow-timeline__grip"
                           draggable
                           aria-hidden="true"
-                          title="Drag to reorder"
                           onDragStart={(event) => {
                             event.dataTransfer.effectAllowed = "move";
                             event.dataTransfer.setData("text/plain", String(index));
@@ -515,28 +515,31 @@ export function WorkflowEditorDialog({
                       type === "comfy_run" && !stepDialogs.comfyEditPresetsAvailable;
                     const label = jobMenuLabelFor(type);
                     return (
-                      <button
+                      <Tooltip
                         key={type}
-                        type="button"
-                        className="workflow-library__item"
-                        aria-label={`Add ${label}`}
-                        disabled={addBlock !== null || unavailable}
-                        title={
+                        content={
                           unavailable ? "Add a ComfyUI preset that edits files first" : undefined
                         }
-                        onClick={() => addStep(type)}
                       >
-                        <span className="workflow-library__icon">
-                          <Icon icon={jobTypeIconFor(type)} />
-                        </span>
-                        <span className="workflow-library__text">
-                          <span className="workflow-library__label">{label}</span>
-                          <span className="workflow-library__description">
-                            {jobStepDescriptionFor(type)}
+                        <button
+                          type="button"
+                          className="workflow-library__item"
+                          aria-label={`Add ${label}`}
+                          disabled={addBlock !== null || unavailable}
+                          onClick={() => addStep(type)}
+                        >
+                          <span className="workflow-library__icon">
+                            <Icon icon={jobTypeIconFor(type)} />
                           </span>
-                        </span>
-                        <Icon icon={iconPlus} className="workflow-library__add" />
-                      </button>
+                          <span className="workflow-library__text">
+                            <span className="workflow-library__label">{label}</span>
+                            <span className="workflow-library__description">
+                              {jobStepDescriptionFor(type)}
+                            </span>
+                          </span>
+                          <Icon icon={iconPlus} className="workflow-library__add" />
+                        </button>
+                      </Tooltip>
                     );
                   })}
                 </div>

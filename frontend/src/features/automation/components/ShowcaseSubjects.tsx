@@ -5,6 +5,7 @@ import { iconPlus, iconRefresh, iconX } from "@/shared/icons";
 import { Button } from "@/shared/ui/Button";
 import { IconButton } from "@/shared/ui/IconButton";
 import { SearchSelect } from "@/shared/ui/SearchSelect";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface ShowcaseSubjectsProps {
   /** The LoRAs showcased; several compare them. */
@@ -29,11 +30,14 @@ export function ShowcaseSubjects({
     <>
       <div className="comfy-showcase__subjects" role="group" aria-labelledby={labelledById}>
         {subjects.map((name) => (
-          <span key={name} className="comfy-showcase__chip" title={name}>
-            <span className="comfy-showcase__chip-label">{loraLabel(name, subjects)}</span>
+          <span key={name} className="comfy-showcase__chip">
+            <Tooltip content={name} whenTruncated>
+              <span className="comfy-showcase__chip-label">{loraLabel(name, subjects)}</span>
+            </Tooltip>
             <IconButton
               icon={iconX}
               label={`Remove ${describeLora(name).stem}`}
+              tooltip={false}
               size="2xs"
               variant="ghost"
               disabled={disabled}
@@ -64,7 +68,6 @@ export function ShowcaseSubjects({
                   key={run.name}
                   size="xs"
                   variant="text"
-                  title={`Compare every save of ${run.name} ComfyUI lists`}
                   onClick={() => {
                     onChange(run.saves.slice(-MAX_SHOWCASE_SUBJECT_LORAS));
                     close();

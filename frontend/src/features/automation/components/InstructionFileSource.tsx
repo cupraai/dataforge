@@ -10,6 +10,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import { instructionFileSummary } from "@/shared/lib/instructionFileState";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 const FILES: Record<InstructionKind, { filename: string; icon: AppIcon }> = {
   sysprompt: { filename: SYSPROMPT_FILENAME, icon: iconFileText },
@@ -53,7 +54,10 @@ export function InstructionFileSource({ state, kind }: InstructionFileSourceProp
     <p className="dialog-facts__line">
       <Icon icon={icon} className="dialog-facts__icon" />
       <span className="dialog-facts__text">
-        Uses <strong title={file.state.source_path ?? undefined}>{file.state.relative_path}</strong>
+        Uses{" "}
+        <Tooltip content={file.state.source_path ?? undefined}>
+          <strong>{file.state.relative_path}</strong>
+        </Tooltip>
       </span>
     </p>
   );

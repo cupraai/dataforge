@@ -93,7 +93,7 @@ describe("JobFileResults", () => {
       expect(fetchResults).toHaveBeenCalledWith("job-1", expect.any(AbortSignal)),
     );
     const rows = await screen.findAllByRole("listitem");
-    expect(rows.map((row) => within(row).getByTitle(/Photos/).textContent)).toEqual([
+    expect(rows.map((row) => row.querySelector(".job-file-results__name")?.textContent)).toEqual([
       "broken.png",
       "done.png",
       "skipped.png",
@@ -110,7 +110,7 @@ describe("JobFileResults", () => {
     await user.click(screen.getByRole("button", { name: /Per-file results/ }));
 
     const rows = await screen.findAllByRole("listitem");
-    expect(rows.map((row) => within(row).getByTitle(/Photos/).textContent)).toEqual([
+    expect(rows.map((row) => row.querySelector(".job-file-results__name")?.textContent)).toEqual([
       "broken.png",
       "interrupted.png",
       "done.png",
@@ -140,7 +140,7 @@ describe("JobFileResults", () => {
 
     const rows = await screen.findAllByRole("listitem");
     expect(within(rows[0]).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(rows[0]).getByTitle(/Photos/)).toHaveTextContent("broken.png");
+    expect(within(rows[0]).getByText("broken.png")).toBeInTheDocument();
     expect(within(rows[0]).getByText("Write error")).toBeInTheDocument();
   });
 
@@ -194,7 +194,7 @@ describe("JobFileResults", () => {
 
     const group = await screen.findByText("Not run", { selector: "p" });
     expect(within(group).getByText("189")).toBeInTheDocument();
-    expect(screen.getByTitle(/interrupted.png/)).toBeInTheDocument();
+    expect(screen.getByText("interrupted.png")).toBeInTheDocument();
     expect(screen.getByText("188 more never started.")).toBeInTheDocument();
   });
 

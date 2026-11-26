@@ -120,8 +120,9 @@ describe("MediaBrowser", () => {
     expect(onOpenProject).toHaveBeenCalledWith(trip.path);
     const rows = screen.getAllByRole("button", { name: /^Open / });
     expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(["Open Trip", "Open Party"]);
-    expect(within(rows[0]).getByText("Vacation")).toHaveAttribute("title", VACATION_PATH);
-    expect(within(rows[1]).getByText("Photos")).toHaveAttribute("title", HOME_PATH);
+    expect(within(rows[1]).getByText("Photos")).toBeInTheDocument();
+    await user.hover(within(rows[0]).getByText("Vacation"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(VACATION_PATH);
     expect(rows[1]).toBeDisabled();
     expect(within(rows[1]).getByText("Open")).toBeInTheDocument();
   });

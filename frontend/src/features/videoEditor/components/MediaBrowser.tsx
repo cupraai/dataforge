@@ -29,6 +29,7 @@ import { editorMediaKind, type EditorMediaKind } from "@/features/videoEditor/li
 import { formatTimecode } from "@/features/videoEditor/lib/timeline";
 import { SOURCE_DRAG_TYPE } from "./Timeline";
 import { ToolButton } from "./ToolButton";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 export type MediaView = "grid" | "list";
 
@@ -268,15 +269,15 @@ function MediaRow({
             </span>
           )}
           {used && (
-            <span className="video-editor__media-used" title="Used on the timeline">
+            <span className="video-editor__media-used">
               <Icon icon={iconCheck} />
             </span>
           )}
         </span>
         <span className="video-editor__media-text">
-          <span className="video-editor__media-name" title={item.name}>
-            {item.name}
-          </span>
+          <Tooltip content={item.name} whenTruncated>
+            <span className="video-editor__media-name">{item.name}</span>
+          </Tooltip>
           <span className="video-editor__media-meta">
             {kind === "image" ? "Still" : item.duration ? formatTimecode(item.duration) : "--:--"}
             {used && " · on timeline"}
@@ -330,9 +331,9 @@ function ProjectList({
                 </span>
                 <span className="video-editor__media-text">
                   <span className="video-editor__media-name">{summary.name}</span>
-                  <span className="video-editor__media-meta" title={folder}>
-                    {folderLeafName(folder)}
-                  </span>
+                  <Tooltip content={folder}>
+                    <span className="video-editor__media-meta">{folderLeafName(folder)}</span>
+                  </Tooltip>
                   <span className="video-editor__media-meta">
                     {formatTimecode(summary.duration)} · {summary.clip_count} clips
                   </span>

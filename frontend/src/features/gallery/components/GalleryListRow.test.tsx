@@ -38,8 +38,16 @@ const uncaptionedVideo: GalleryItem = {
   media_type: "video",
 };
 
+/** The label an icon shows as its tooltip, which only exists while the icon is hovered. */
+async function tooltipOf(icon: Element | null | undefined): Promise<string | null> {
+  fireEvent.mouseEnter(icon!.parentElement!);
+  const text = (await screen.findByRole("tooltip")).textContent;
+  fireEvent.mouseLeave(icon!.parentElement!);
+  return text;
+}
+
 describe("GalleryListRow", () => {
-  it("shows the caption state as an icon instead of the caption text", () => {
+  it("shows the caption state as an icon instead of the caption text", async () => {
     const { container } = render(
       <GalleryListRow item={captionedItem} onSelect={vi.fn<(path: string) => void>()} />,
     );
@@ -48,9 +56,10 @@ describe("GalleryListRow", () => {
     expect(screen.queryByText("Golden hour over the harbour")).toBeNull();
     expect(screen.queryByText("Captioned")).toBeNull();
 
-    const status = container.querySelector(".gallery-list-row__status");
-    expect(status).toHaveAttribute("title", "Captioned");
-    expect(status?.querySelector(".gallery-list-row__status-icon")).toBeInTheDocument();
+    const status = container.querySelector(".gallery-list-row__status")!;
+    expect(status.querySelector(".gallery-list-row__status-icon")).toBeInTheDocument();
+    fireEvent.mouseEnter(status.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Captioned");
   });
 
   it("previews the caption after the file name when asked", () => {
@@ -85,23 +94,23 @@ describe("GalleryListRow", () => {
     expect(fireEvent.dragStart(screen.getByRole("button", { name: /^View / }))).toBe(false);
   });
 
-  it("gives each caption state its own icon and tooltip", () => {
-    const statusOf = (item: GalleryItem) => {
+  it("gives each caption state its own icon and tooltip", async () => {
+    const statusOf = async (item: GalleryItem) => {
       const { container } = render(
         <GalleryListRow item={item} onSelect={vi.fn<(path: string) => void>()} />,
       );
       const status = container.querySelector(".gallery-list-row__status");
       return {
-        title: status?.getAttribute("title"),
+        title: await tooltipOf(status),
         variant: [...(status?.classList ?? [])].find((name) => name.includes("--")),
         // The drawn shape, which is what actually distinguishes one icon from another.
         icon: status?.querySelector("svg")?.innerHTML,
       };
     };
 
-    const captioned = statusOf(captionedItem);
-    const empty = statusOf({ ...uncaptionedVideo, caption_status: "empty" });
-    const missing = statusOf(uncaptionedVideo);
+    const captioned = await statusOf(captionedItem);
+    const empty = await statusOf({ ...uncaptionedVideo, caption_status: "empty" });
+    const missing = await statusOf(uncaptionedVideo);
 
     expect([captioned.title, empty.title, missing.title]).toEqual([
       "Captioned",
@@ -174,7 +183,7 @@ describe("GalleryListRow", () => {
     expect(markers?.children).toHaveLength(0);
   });
 
-  it("reduces badges to icon markers that keep their label as a tooltip", () => {
+  it("reduces badges to icon markers that keep their label as a tooltip", async () => {
     const { container } = render(
       <GalleryListRow
         item={{ ...uncaptionedVideo, has_issue_file: true, has_duplicate_file: true }}
@@ -183,7 +192,7 @@ describe("GalleryListRow", () => {
     );
 
     const markers = [...container.querySelectorAll(".gallery-list-row__marker")];
-    expect(markers.map((marker) => marker.getAttribute("title"))).toEqual([
+    expect([await tooltipOf(markers[0]), await tooltipOf(markers[1])]).toEqual([
       "Caption issue",
       "Duplicate",
     ]);
@@ -202,7 +211,7 @@ describe("GalleryListRow", () => {
     expect(iconOf(captionedItem)).not.toBe(iconOf(uncaptionedVideo));
   });
 
-  it("marks a candidate", () => {
+  it("marks a candidate", async () => {
     const { container } = render(
       <GalleryListRow
         item={{ ...captionedItem, has_candidate: true }}
@@ -211,11 +220,12 @@ describe("GalleryListRow", () => {
     );
 
     const markers = [...container.querySelectorAll(".gallery-list-row__marker")];
-    expect(markers.map((marker) => marker.getAttribute("title"))).toEqual(["Candidate"]);
+    expect(markers).toHaveLength(1);
+    expect(await tooltipOf(markers[0])).toBe("Candidate");
     expect(markers[0]).toHaveClass("gallery-list-row__marker--candidate");
   });
 
-  it("marks an edited file so a stored original is visible without opening it", () => {
+  it("marks an edited file so a stored original is visible without opening it", async () => {
     const { container } = render(
       <GalleryListRow
         item={{ ...captionedItem, has_backup: true }}
@@ -224,7 +234,8 @@ describe("GalleryListRow", () => {
     );
 
     const markers = [...container.querySelectorAll(".gallery-list-row__marker")];
-    expect(markers.map((marker) => marker.getAttribute("title"))).toEqual(["Edited"]);
+    expect(markers).toHaveLength(1);
+    expect(await tooltipOf(markers[0])).toBe("Edited");
     expect(markers[0]).toHaveClass("gallery-list-row__marker--edited");
   });
 

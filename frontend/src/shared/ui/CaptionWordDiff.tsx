@@ -6,6 +6,7 @@ import {
 } from "@/shared/lib/captionWordDiff";
 import { classNames } from "@/shared/lib/classNames";
 import { formatCount } from "@/shared/lib/format";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 export type CaptionDiffLayout = "inline" | "split";
 
@@ -183,13 +184,12 @@ export function CaptionDiffStat({
   const { removed, added } = useMemo(() => countChangedWords(segments), [segments]);
   if (removed === 0 && added === 0) return null;
   return (
-    <span
-      className={classNames("caption-diff-stat", className)}
-      title={`${words(removed)} removed, ${words(added)} ${addedVerb}`}
-    >
-      {removed > 0 && <span className="caption-diff-stat__removed">−{formatCount(removed)}</span>}
-      {added > 0 && <span className="caption-diff-stat__added">+{formatCount(added)}</span>}
-    </span>
+    <Tooltip content={`${words(removed)} removed, ${words(added)} ${addedVerb}`}>
+      <span className={classNames("caption-diff-stat", className)}>
+        {removed > 0 && <span className="caption-diff-stat__removed">−{formatCount(removed)}</span>}
+        {added > 0 && <span className="caption-diff-stat__added">+{formatCount(added)}</span>}
+      </span>
+    </Tooltip>
   );
 }
 
@@ -225,9 +225,9 @@ interface CaptionDiffHeadingProps {
 export function CaptionDiffHeading({ name, children, stat, action }: CaptionDiffHeadingProps) {
   return (
     <div className="caption-diff-heading">
-      <span className="caption-diff-heading__name" title={name}>
-        {name}
-      </span>
+      <Tooltip content={name} whenTruncated>
+        <span className="caption-diff-heading__name">{name}</span>
+      </Tooltip>
       {children}
       {stat && <span className="caption-diff-heading__stat">{stat}</span>}
       {action && <span className="caption-diff-heading__action">{action}</span>}

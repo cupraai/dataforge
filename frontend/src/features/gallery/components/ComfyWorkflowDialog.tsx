@@ -18,6 +18,7 @@ import { Dialog } from "@/shared/ui/Dialog";
 import { scrollBehavior } from "@/shared/lib/motion";
 import { Icon } from "@/shared/ui/Icon";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface ComfyWorkflowDialogProps {
   mediaPath: string;
@@ -178,7 +179,9 @@ function SettingsGroups({ parameters, loras }: { parameters: ComfyParameter[]; l
             {models.map((parameter) => (
               <div key={`${parameter.label}-${parameter.value}`}>
                 <dt>{parameter.label}</dt>
-                <dd title={parameter.value}>{parameter.value}</dd>
+                <Tooltip content={parameter.value} whenTruncated>
+                  <dd>{parameter.value}</dd>
+                </Tooltip>
               </div>
             ))}
           </dl>
@@ -193,10 +196,14 @@ function SettingsGroups({ parameters, loras }: { parameters: ComfyParameter[]; l
               const { folder, name, strength } = splitLora(lora);
               return (
                 <li key={lora} className="comfy-workflow-dialog__lora">
-                  <span className="comfy-workflow-dialog__lora-path" title={folder + name}>
-                    {folder && <span className="comfy-workflow-dialog__lora-folder">{folder}</span>}
-                    {name}
-                  </span>
+                  <Tooltip content={folder + name} whenTruncated>
+                    <span className="comfy-workflow-dialog__lora-path">
+                      {folder && (
+                        <span className="comfy-workflow-dialog__lora-folder">{folder}</span>
+                      )}
+                      {name}
+                    </span>
+                  </Tooltip>
                   {strength && (
                     <span className="comfy-workflow-dialog__lora-strength">{strength}</span>
                   )}

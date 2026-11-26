@@ -1,7 +1,6 @@
 import { Button } from "@/shared/ui/Button";
 import { iconSettings } from "@/shared/icons";
-import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
+import { SHORTCUTS } from "@/shared/lib/shortcuts";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface SettingsButtonProps {
@@ -12,16 +11,8 @@ interface SettingsButtonProps {
 
 export function SettingsButton({ onOpen, showLabel }: SettingsButtonProps) {
   return (
-    <Tooltip
-      content={<ShortcutHint shortcut={SHORTCUTS.settings}>Settings</ShortcutHint>}
-      placement="right"
-    >
-      <Button
-        icon={iconSettings}
-        onClick={onOpen}
-        aria-label="Open settings"
-        aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.settings)}
-      >
+    <Tooltip content="Settings" shortcut={SHORTCUTS.settings} placement="right">
+      <Button icon={iconSettings} onClick={onOpen} aria-label="Open settings">
         {showLabel && "Settings"}
       </Button>
     </Tooltip>

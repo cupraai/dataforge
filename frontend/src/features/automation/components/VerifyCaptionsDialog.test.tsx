@@ -208,11 +208,10 @@ describe("VerifyCaptionsDialog", () => {
     renderDialog({ sysprompt_placement: "before" });
 
     const trigger = screen.getByRole("button", { name: "System prompt: Before" });
-    await waitFor(() =>
-      expect(trigger).toHaveAttribute(
-        "title",
-        "No system prompt in this folder or above it, so nothing is added.",
-      ),
+    await waitFor(() => expect(trigger.querySelector(".lucide-triangle-alert")).not.toBeNull());
+    await user.hover(trigger);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "No system prompt in this folder or above it, so nothing is added.",
     );
     await user.click(trigger);
     expect(

@@ -317,8 +317,9 @@ describe("BreadcrumbBar", () => {
 
     const camera = await screen.findByRole("menuitem", { name: "Camera" });
     expect(camera).toHaveAttribute("aria-current", "true");
-    expect(camera).toHaveAttribute("title", "/media/me/Camera");
     expect(screen.getByRole("menuitem", { name: "/" })).not.toHaveAttribute("aria-current");
+    await user.hover(camera);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("/media/me/Camera");
 
     await user.click(screen.getByRole("menuitem", { name: "share" }));
     expect(onNavigate).toHaveBeenCalledWith("/mnt/share");

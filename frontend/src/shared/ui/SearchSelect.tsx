@@ -143,7 +143,6 @@ export function SearchSelect({
                 data-index={index}
                 role="option"
                 aria-selected={chosen}
-                title={option.value}
                 className={classNames(
                   "search-select__option",
                   index === active && "search-select__option--active",

@@ -73,7 +73,6 @@ function PositionPicker({
               key={option.value}
               className="watermark-dialog__spot"
               data-position={option.value}
-              title={option.title}
             >
               <input
                 type="radio"

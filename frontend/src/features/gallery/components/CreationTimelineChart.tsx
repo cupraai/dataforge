@@ -83,7 +83,6 @@ export function CreationTimelineChart({
                           index === buckets.length - 1 &&
                           "stats-dialog__timeline-label--last",
                       )}
-                      title={bucket.label}
                     >
                       <span className="stats-dialog__timeline-full-label">{bucket.label}</span>
                       {showLabel && <span aria-hidden="true">{label}</span>}

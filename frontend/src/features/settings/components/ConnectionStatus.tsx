@@ -2,6 +2,7 @@ import { iconCircleAlert, iconCircleCheck, iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import type { ServiceProbeResponse } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 export type ProbeState =
   | { status: "testing" }
@@ -23,13 +24,11 @@ export function ConnectionStatus({ state }: { state: ProbeState }) {
   const icon = tone === "busy" ? iconLoader2 : tone === "ok" ? iconCircleCheck : iconCircleAlert;
 
   return (
-    <p
-      className={classNames("connection-status", `connection-status--${tone}`)}
-      role="status"
-      title={text}
-    >
+    <p className={classNames("connection-status", `connection-status--${tone}`)} role="status">
       <Icon icon={icon} spin={tone === "busy"} className="connection-status__icon" />
-      <span className="connection-status__text">{text}</span>
+      <Tooltip content={text} whenTruncated>
+        <span className="connection-status__text">{text}</span>
+      </Tooltip>
     </p>
   );
 }

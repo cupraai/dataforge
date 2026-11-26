@@ -5,6 +5,7 @@ import type { VideoProjectExportState } from "@/shared/types";
 import { classNames } from "@/shared/lib/classNames";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface VideoExportCardProps {
   item: VideoProjectExportState;
@@ -32,19 +33,22 @@ export function VideoExportCard({
     >
       <div className="job-card__header">
         {onOpenFolder ? (
-          <button
-            type="button"
-            className="job-card__folder"
-            onClick={() => onOpenFolder(item.folder)}
-            title={`${item.output_name} · ${item.folder}`}
-          >
-            <Icon icon={iconClapperboard} className="job-card__folder-icon" />
-            <span className="job-card__folder-name">{item.output_name}</span>
-          </button>
+          <Tooltip content={`Open ${item.folder}`}>
+            <button
+              type="button"
+              className="job-card__folder"
+              onClick={() => onOpenFolder(item.folder)}
+            >
+              <Icon icon={iconClapperboard} className="job-card__folder-icon" />
+              <span className="job-card__folder-name">{item.output_name}</span>
+            </button>
+          </Tooltip>
         ) : (
-          <div className="job-card__folder job-card__folder--static" title={item.output_name}>
+          <div className="job-card__folder job-card__folder--static">
             <Icon icon={iconClapperboard} className="job-card__folder-icon" />
-            <span className="job-card__folder-name">{item.output_name}</span>
+            <Tooltip content={item.output_name} whenTruncated>
+              <span className="job-card__folder-name">{item.output_name}</span>
+            </Tooltip>
           </div>
         )}
 

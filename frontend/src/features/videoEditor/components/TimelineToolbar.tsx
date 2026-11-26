@@ -268,7 +268,14 @@ function RangeChip({
         </span>
         <span className="video-editor__range-length">{(range.end - range.start).toFixed(2)} s</span>
         {locked.length > 0 && <span className="video-editor__range-locked">locked track</span>}
-        <IconButton icon={iconX} label="Clear range" onClick={onClear} size="xs" variant="ghost" />
+        <IconButton
+          icon={iconX}
+          label="Clear range"
+          tooltip={false}
+          onClick={onClear}
+          size="xs"
+          variant="ghost"
+        />
       </span>
     </Tooltip>
   );

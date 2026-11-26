@@ -22,11 +22,10 @@ import {
 } from "@/shared/icons";
 import type { FillPreset } from "@/shared/types";
 import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
-import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
+import { SHORTCUTS } from "@/shared/lib/shortcuts";
 import { TextInput } from "@/shared/ui/Field";
 import { Slider } from "@/shared/ui/Slider";
 import { Icon } from "@/shared/ui/Icon";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { holdToCompareProps } from "@/features/gallery/lib/holdToCompare";
 import { ToolChoices, ToolGroup } from "./EditPanelParts";
@@ -105,18 +104,11 @@ export function FillTools({ fill, keptFills, disabled, onUndoFill }: FillToolsPr
           />
 
           <ToolGroup label="Size" className="edit-panel__tool-actions">
-            <Tooltip
-              content={
-                <ShortcutHint shortcut={SHORTCUTS.fillBrushSize}>
-                  Smaller or bigger, or Alt+wheel
-                </ShortcutHint>
-              }
-            >
+            <Tooltip content="Smaller or bigger, or Alt+wheel" shortcut={SHORTCUTS.fillBrushSize}>
               <Slider
                 size="sm"
                 className="edit-panel__range"
                 aria-label="Brush size"
-                aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.fillBrushSize)}
                 min={BRUSH_MIN_FRACTION}
                 max={BRUSH_MAX_FRACTION}
                 step={BRUSH_FRACTION_STEP}

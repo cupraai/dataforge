@@ -40,9 +40,8 @@ import {
   type AppIcon,
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
-import { ariaKeyShortcuts, SHORTCUTS } from "@/shared/lib/shortcuts";
+import { SHORTCUTS } from "@/shared/lib/shortcuts";
 import { SettingsButton } from "@/features/settings/components/SettingsButton";
 
 interface WorkspaceSidebarProps {
@@ -307,22 +306,18 @@ export function WorkspaceSidebar({
         )}
         {/* The rail keeps these as icons: the sidebar is the only place to create a folder. */}
         <div className="workspace-sidebar__footer">
-          <Tooltip
-            content={<ShortcutHint shortcut={SHORTCUTS.newFolder}>New folder</ShortcutHint>}
-            placement="right"
-          >
+          <Tooltip content="New folder" shortcut={SHORTCUTS.newFolder} placement="right">
             <Button
               icon={iconFolderPlus}
               onClick={onCreateFolder}
               disabled={createDisabled}
               aria-label="New folder"
-              aria-keyshortcuts={ariaKeyShortcuts(SHORTCUTS.newFolder)}
             >
               {!hidden && "New folder"}
             </Button>
           </Tooltip>
           {/* The label names the action; the accent heart shows the state in the rail. */}
-          <Tooltip content={favoriteLabel} placement="right">
+          <Tooltip content={favoriteLabel} placement="right" disabled={!hidden}>
             <Button
               icon={iconHeart}
               className={classNames(currentFavorite && "workspace-sidebar__favorite--active")}

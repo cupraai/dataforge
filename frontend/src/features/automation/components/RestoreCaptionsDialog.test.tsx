@@ -111,7 +111,7 @@ describe("RestoreCaptionsDialog", () => {
     );
     expect(dog.querySelector("del")).toHaveTextContent("blue");
     expect(dog.querySelector("ins")).toHaveTextContent("red");
-    expect(within(dog).getByTitle("1 word removed, 1 word restored")).toHaveTextContent("−1+1");
+    expect(within(dog).getByText("−1").parentElement).toHaveTextContent("−1+1");
     expect(dog.querySelector("img")).toHaveAttribute(
       "src",
       expect.stringContaining(encodeURIComponent(`${FOLDER}/dog.png`)),

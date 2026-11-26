@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/gallery/api/captions";
@@ -301,18 +301,18 @@ describe("ComfyWorkflowDialog", () => {
       }),
     );
     const models = (await screen.findByText("Models")).parentElement!;
-    // Long names truncate; the title carries the full one.
-    expect(within(models).getByText("base_model.safetensors")).toHaveAttribute(
-      "title",
-      "base_model.safetensors",
-    );
+    // Long names truncate; hovering a cut one shows it whole.
+    const model = within(models).getByText("base_model.safetensors");
+    Object.defineProperty(model, "scrollWidth", { configurable: true, value: 300 });
+    Object.defineProperty(model, "clientWidth", { configurable: true, value: 120 });
+    fireEvent.mouseEnter(model.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("base_model.safetensors");
     const settings = screen.getByText("Settings").parentElement!;
     expect(within(settings).getByText("12")).toBeInTheDocument();
     expect(within(settings).queryByText("base_model.safetensors")).not.toBeInTheDocument();
     const loras = within(screen.getByText("LoRAs").parentElement!).getAllByRole("listitem");
     expect(loras[0]).toHaveTextContent(/^styles\\soft_light\.safetensors0\.6$/);
     expect(within(loras[0]).getByText("0.6")).toBeInTheDocument();
-    expect(within(loras[0]).getByTitle("styles\\soft_light.safetensors")).toBeInTheDocument();
     expect(loras[1]).toHaveTextContent(/^detail\.safetensors$/);
   });
 

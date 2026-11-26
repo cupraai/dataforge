@@ -599,7 +599,6 @@ function RestoreRow({
                 size="xs"
                 busy={restoreOne.restoring.has(sample.path)}
                 aria-label={`Restore the backed up caption for ${sample.name}`}
-                title="Replace this caption with the copy in the backup now"
                 onClick={() => restoreOne.restore(sample)}
               >
                 Restore

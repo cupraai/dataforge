@@ -8,6 +8,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { Icon } from "@/shared/ui/Icon";
 import { MiddleTruncate } from "@/shared/ui/MiddleTruncate";
 import { GalleryCardMedia } from "./GalleryCardMedia";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface GalleryListRowProps {
   inspected?: boolean;
@@ -74,35 +75,32 @@ export const GalleryListRow = memo(function GalleryListRow({
       <span className="gallery-list-row__thumb">
         <GalleryCardMedia item={item} />
       </span>
-      <span className="gallery-list-row__name" title={item.name}>
+      <span className="gallery-list-row__name">
         <Icon
           icon={isVideo(item) ? iconVideo : isAudio(item) ? iconAudioLines : iconImage}
           className="gallery-list-row__name-icon"
         />
         <MiddleTruncate text={item.name} className="gallery-list-row__name-text" />
         {captionPreview && item.description && (
-          <span className="gallery-list-row__caption" title={item.description}>
-            {item.description}
-          </span>
+          <span className="gallery-list-row__caption">{item.description}</span>
         )}
       </span>
       <span className="gallery-list-row__markers">
         {markers.map((marker) => (
-          <span
-            key={marker.key}
-            className={`gallery-list-row__marker gallery-list-row__marker--${marker.variant}`}
-            title={marker.label}
-          >
-            <Icon icon={marker.icon} className="gallery-list-row__marker-icon" />
-          </span>
+          <Tooltip key={marker.key} content={marker.label}>
+            <span
+              className={`gallery-list-row__marker gallery-list-row__marker--${marker.variant}`}
+            >
+              <Icon icon={marker.icon} className="gallery-list-row__marker-icon" />
+            </span>
+          </Tooltip>
         ))}
       </span>
-      <span
-        className={`gallery-list-row__status gallery-list-row__status--${status.variant}`}
-        title={status.label}
-      >
-        <Icon icon={status.icon} className="gallery-list-row__status-icon" />
-      </span>
+      <Tooltip content={status.label}>
+        <span className={`gallery-list-row__status gallery-list-row__status--${status.variant}`}>
+          <Icon icon={status.icon} className="gallery-list-row__status-icon" />
+        </span>
+      </Tooltip>
       {metaCells.map((cell) => (
         <span
           key={cell.key}

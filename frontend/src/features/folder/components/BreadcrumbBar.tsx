@@ -72,23 +72,23 @@ export function BreadcrumbBar({
           return (
             <li key={crumb.path} className="breadcrumbs__item">
               {isLast ? (
-                <span
-                  className={classNames(
-                    "breadcrumbs__current",
-                    folderNotFound && "breadcrumbs__current--not-found",
-                  )}
-                  aria-current="page"
-                  title={crumb.path}
-                >
-                  {crumb.name}
-                </span>
+                <Tooltip content={crumb.name} whenTruncated>
+                  <span
+                    className={classNames(
+                      "breadcrumbs__current",
+                      folderNotFound && "breadcrumbs__current--not-found",
+                    )}
+                    aria-current="page"
+                  >
+                    {crumb.name}
+                  </span>
+                </Tooltip>
               ) : (
                 <button
                   type="button"
                   className="breadcrumbs__link"
                   onClick={() => onNavigate(crumb.path)}
                   {...prefetch(crumb.path)}
-                  title={crumb.path}
                 >
                   {crumb.name}
                 </button>

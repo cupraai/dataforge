@@ -22,7 +22,7 @@ describe("CaptionPreviewSample", () => {
       "red",
     ]);
     expect(item).toHaveTextContent("car by a");
-    expect(screen.getByTitle("2 words removed, 2 words added")).toBeInTheDocument();
+    expect(screen.getByText("−2").parentElement).toHaveTextContent("−2+2");
   });
 
   it("trims distant unchanged text when asked to, keeping the change in view", () => {

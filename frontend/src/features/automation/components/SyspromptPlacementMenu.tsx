@@ -11,6 +11,7 @@ import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
 import { Button } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { classNames } from "@/shared/lib/classNames";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 const NAMES: Record<SyspromptPlacement, string> = {
   off: "Off",
@@ -81,17 +82,18 @@ export function SyspromptPlacementMenu({
        jsx-a11y/no-static-element-interactions
        -- catches Escape from the trigger and panel */
     <div ref={rootRef} className="saved-menu sysprompt-menu" onKeyDown={handleKeyDown}>
-      <Button
-        icon={warn ? iconTriangleAlert : iconFileText}
-        iconEnd={iconChevronDown}
-        disabled={disabled}
-        title={warn ? source : undefined}
-        {...triggerProps}
-        aria-haspopup="dialog"
-        size="xs"
-      >
-        System prompt: {NAMES[value]}
-      </Button>
+      <Tooltip content={warn ? source : undefined}>
+        <Button
+          icon={warn ? iconTriangleAlert : iconFileText}
+          iconEnd={iconChevronDown}
+          disabled={disabled}
+          {...triggerProps}
+          aria-haspopup="dialog"
+          size="xs"
+        >
+          System prompt: {NAMES[value]}
+        </Button>
+      </Tooltip>
 
       <AnchoredLayer
         anchorRef={rootRef}

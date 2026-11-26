@@ -485,6 +485,31 @@ describe("IssueResolverDialog", () => {
     });
   });
 
+  it("says why a save failed on Resolve until the next attempt", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "saveCaption").mockRejectedValueOnce(new Error("Disk full"));
+
+    render(
+      <IssueResolverDialog
+        items={[makeIssueItem("car.png")]}
+        index={0}
+        onClose={vi.fn<() => void>()}
+        onIndexChange={vi.fn<(index: number) => void>()}
+        onCaptionSaved={vi.fn<(path: string, update: CaptionSaveResponse) => void>()}
+      />,
+    );
+
+    const captionInput = await screen.findByLabelText("Caption for car.png");
+    await user.type(captionInput, " Fixed.");
+    await user.click(screen.getByRole("button", { name: "Resolve" }));
+
+    // Held open without hovering: the bubble is the only place the failure is explained.
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Save failed");
+    expect(screen.getByRole("button", { name: "Resolve" })).toHaveAccessibleDescription(
+      "Save failed",
+    );
+  });
+
   it("keeps walking the full issue queue when resolved items leave the live list", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn<() => void>();

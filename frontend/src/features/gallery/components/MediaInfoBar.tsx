@@ -10,6 +10,7 @@ import {
 import { Icon } from "@/shared/ui/Icon";
 import { iconComfyUi } from "@/shared/brandIcons";
 import { classNames } from "@/shared/lib/classNames";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface MediaInfoBarProps {
   item: GalleryItem;
@@ -45,9 +46,9 @@ export function MediaInfoBar({
       {modifiedLabel && (
         <>
           <div className="media-info__item">
-            <span className="media-info__value" title={modifiedLabel}>
-              {modifiedLabel}
-            </span>
+            <Tooltip content={modifiedLabel} whenTruncated>
+              <span className="media-info__value">{modifiedLabel}</span>
+            </Tooltip>
             <span className="media-info__label">Modified</span>
           </div>
           <MetaDivider show={hasMetaAfterModified} />
@@ -72,10 +73,7 @@ export function MediaInfoBar({
           </div>
           <span className="media-info__divider" aria-hidden="true" />
           <div className="media-info__item">
-            <span
-              className="media-info__value"
-              title={`${formatCount(resolution.width)} × ${formatCount(resolution.height)} px`}
-            >
+            <span className="media-info__value">
               {formatCount(resolution.width)}
               <span className="media-info__times">×</span>
               {formatCount(resolution.height)}
@@ -96,15 +94,16 @@ export function MediaInfoBar({
         <>
           <MetaDivider show={Boolean(resolution)} />
           <div className="media-info__item">
-            <button
-              type="button"
-              className="media-info__badge media-info__badge--action"
-              onClick={onInspectComfyWorkflow}
-              title="Inspect the embedded ComfyUI workflow"
-            >
-              <Icon icon={iconComfyUi} className="media-info__badge-icon" />
-              <span className="media-info__badge-label">ComfyUI</span>
-            </button>
+            <Tooltip content="Inspect the embedded ComfyUI workflow">
+              <button
+                type="button"
+                className="media-info__badge media-info__badge--action"
+                onClick={onInspectComfyWorkflow}
+              >
+                <Icon icon={iconComfyUi} className="media-info__badge-icon" />
+                <span className="media-info__badge-label">ComfyUI</span>
+              </button>
+            </Tooltip>
             <span className="media-info__label">Workflow</span>
           </div>
         </>

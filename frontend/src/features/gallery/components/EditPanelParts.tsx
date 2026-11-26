@@ -8,8 +8,7 @@ import { MASK_MODES, MASK_STRENGTHS } from "@/features/gallery/lib/mask";
 import type { MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
 import { iconLoader2, iconPlus, iconTrash2, iconUndo2, type AppIcon } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
+import type { ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
 import { Icon } from "@/shared/ui/Icon";
 import { Tooltip } from "@/shared/ui/Tooltip";
@@ -185,7 +184,6 @@ export function PresetButton({
       type="button"
       className="segmented__option edit-panel__preset"
       aria-pressed={active}
-      aria-keyshortcuts={shortcut ? ariaKeyShortcuts(shortcut.definition) : undefined}
       disabled={disabled}
       onClick={onClick}
     >
@@ -194,7 +192,7 @@ export function PresetButton({
   );
   if (!shortcut) return button;
   return (
-    <Tooltip content={<ShortcutHint shortcut={shortcut.definition}>{shortcut.label}</ShortcutHint>}>
+    <Tooltip content={shortcut.label} shortcut={shortcut.definition}>
       {button}
     </Tooltip>
   );

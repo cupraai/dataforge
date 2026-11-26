@@ -28,6 +28,7 @@ import { DialogShell } from "@/shared/ui/DialogShell";
 import type { DuplicateGroup, GalleryItem } from "@/shared/types";
 import { useChanged } from "@/shared/hooks/useChanged";
 import { trashName } from "@/shared/lib/platform";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 type PendingAction = "resolve" | "dismiss" | null;
 
@@ -358,9 +359,9 @@ function MemberCard({
         )}
       </span>
 
-      <span className="duplicate-resolver-dialog__card-name" title={member.name}>
-        {member.name}
-      </span>
+      <Tooltip content={member.name} whenTruncated>
+        <span className="duplicate-resolver-dialog__card-name">{member.name}</span>
+      </Tooltip>
 
       <span className="duplicate-resolver-dialog__meta">
         {member.width && member.height ? (

@@ -322,7 +322,15 @@ export function PerformanceSection({ visible }: { visible: boolean }) {
 function Fact({ label, title, children }: { label: string; title?: string; children: ReactNode }) {
   return (
     <>
-      <dt title={title}>{label}</dt>
+      <dt>
+        {title ? (
+          <Tooltip content={title}>
+            <span>{label}</span>
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </dt>
       <dd>{children}</dd>
     </>
   );
@@ -458,14 +466,15 @@ function Reading({
   children: ReactNode;
 }) {
   return (
-    <span
-      className={classNames("performance__reading", levelClass("performance__reading", level))}
-      title={label}
-    >
-      <Icon icon={icon} className="performance__reading-icon" />
-      <span className="performance__sr-label">{label}: </span>
-      {children}
-    </span>
+    <Tooltip content={label}>
+      <span
+        className={classNames("performance__reading", levelClass("performance__reading", level))}
+      >
+        <Icon icon={icon} className="performance__reading-icon" />
+        <span className="performance__sr-label">{label}: </span>
+        {children}
+      </span>
+    </Tooltip>
   );
 }
 

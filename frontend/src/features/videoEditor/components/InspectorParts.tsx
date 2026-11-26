@@ -19,6 +19,7 @@ import { rangeFill } from "@/shared/lib/rangeFill";
 import { Slider } from "@/shared/ui/Slider";
 import type { SliderUnit } from "@/features/videoEditor/lib/sliderUnits";
 import type { Clip } from "@/features/videoEditor/lib/timeline";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 const SECTIONS_KEY = "video-editor-inspector-sections";
 
@@ -79,14 +80,14 @@ export function InspectorHeader({
         <Icon icon={icon} />
       </span>
       <div className="video-editor__clip-heading">
-        <h3 className="video-editor__clip-title" title={title}>
-          {title}
-        </h3>
+        <Tooltip content={title} whenTruncated>
+          <h3 className="video-editor__clip-title">{title}</h3>
+        </Tooltip>
         <p className="video-editor__clip-meta">{meta}</p>
         {detail && (
-          <p className="video-editor__clip-meta" title={detail}>
-            {detail}
-          </p>
+          <Tooltip content={detail} whenTruncated>
+            <p className="video-editor__clip-meta">{detail}</p>
+          </Tooltip>
         )}
       </div>
       {actions && <div className="video-editor__clip-actions">{actions}</div>}
@@ -148,9 +149,7 @@ export function Panel({
             icon={icon}
             onClick={() => toggle(title, defaultOpen)}
           >
-            {changed && (
-              <span className="video-editor__section-changed" title="Changed from the default" />
-            )}
+            {changed && <span className="video-editor__section-changed" />}
           </DisclosureButton>
         </h3>
         {action}
@@ -193,9 +192,7 @@ export function Subgroup({
             label={title}
             onClick={() => toggle(memoryKey, true)}
           >
-            {changed && (
-              <span className="video-editor__section-changed" title="Changed from the default" />
-            )}
+            {changed && <span className="video-editor__section-changed" />}
           </DisclosureButton>
         </h4>
         {action}
@@ -286,9 +283,11 @@ export function InspectorSlider({
       )}
     >
       <div className="video-editor__slider-head">
-        <label htmlFor={id} title={short ? label : undefined} onDoubleClick={reset}>
-          {short ?? label}
-        </label>
+        <Tooltip content={short ? label : undefined}>
+          <label htmlFor={id} onDoubleClick={reset}>
+            {short ?? label}
+          </label>
+        </Tooltip>
         <ValueField
           label={`${label} value`}
           value={clamped}

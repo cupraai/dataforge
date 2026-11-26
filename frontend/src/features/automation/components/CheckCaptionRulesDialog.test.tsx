@@ -1,5 +1,5 @@
 import { instructionFile } from "@/test/instructionFixtures";
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as FolderInstructionsApi from "@/shared/api/folderInstructions";
@@ -84,8 +84,8 @@ describe("CheckCaptionRulesDialog", () => {
     );
     renderDialog();
 
-    expect(await screen.findByText("..\\.captionrules")).toHaveAttribute(
-      "title",
+    fireEvent.mouseEnter((await screen.findByText("..\\.captionrules")).parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
       "C:\\datasets\\sample\\.captionrules",
     );
     expect(screen.getByRole("button", { name: "Lint captions" })).toBeEnabled();

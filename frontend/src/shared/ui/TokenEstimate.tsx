@@ -6,12 +6,5 @@ interface TokenEstimateProps {
 }
 
 export function TokenEstimate({ text, className }: TokenEstimateProps) {
-  return (
-    <span
-      className={className}
-      title="Estimated from text length; the exact count depends on the model"
-    >
-      ~{formatCount(estimateTokens(text))} tokens
-    </span>
-  );
+  return <span className={className}>~{formatCount(estimateTokens(text))} tokens</span>;
 }

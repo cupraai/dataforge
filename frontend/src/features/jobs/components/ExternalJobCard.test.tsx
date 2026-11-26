@@ -49,7 +49,7 @@ describe("ExternalJobCard", () => {
     const onOpenFolder = vi.fn<(folderPath: string) => void>();
     renderWithQueryClient(<ExternalJobCard job={runningJob} onOpenFolder={onOpenFolder} />);
 
-    await user.click(screen.getByTitle(`sample_train_v1 · ${runningJob.dataset_folder}`));
+    await user.click(screen.getByRole("button", { name: "sample_train_v1" }));
 
     expect(onOpenFolder).toHaveBeenCalledExactlyOnceWith(runningJob.dataset_folder);
   });

@@ -113,7 +113,10 @@ describe("JobCard", () => {
     const onOpenFolder = vi.fn<(folderPath: string) => void>();
     renderWithQueryClient(<JobCard job={runningJob} onOpenFolder={onOpenFolder} />);
 
-    await user.click(screen.getByTitle(`Open ${runningJob.folder}`));
+    const folder = screen.getByRole("button", { name: "Photos" });
+    await user.hover(folder);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(`Open ${runningJob.folder}`);
+    await user.click(folder);
 
     expect(onOpenFolder).toHaveBeenCalledExactlyOnceWith(runningJob.folder);
   });

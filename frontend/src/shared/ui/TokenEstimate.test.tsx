@@ -9,15 +9,6 @@ describe("TokenEstimate", () => {
     expect(screen.getByText("~7 tokens")).toBeInTheDocument();
   });
 
-  it("explains that the count depends on the model", () => {
-    render(<TokenEstimate text="Golden hour over the lake" />);
-
-    expect(screen.getByText("~7 tokens")).toHaveAttribute(
-      "title",
-      "Estimated from text length; the exact count depends on the model",
-    );
-  });
-
   it("counts blank text as zero", () => {
     render(<TokenEstimate text="   " />);
 

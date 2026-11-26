@@ -18,10 +18,8 @@ describe("App: captions", () => {
     const editor = await within(dialog).findByRole("textbox", { name: "System prompt" });
     expect(editor).toHaveValue(`${HOME_SYSPROMPT}\n`);
     expect(editor).toBeDisabled();
-    expect(within(dialog).getByText("..\\.sysprompt")).toHaveAttribute(
-      "title",
-      `${HOME_PATH}\\.sysprompt`,
-    );
+    await user.hover(within(dialog).getByText("..\\.sysprompt"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(`${HOME_PATH}\\.sysprompt`);
 
     await user.click(within(dialog).getByRole("button", { name: "Customize for this folder" }));
     await user.click(within(dialog).getByRole("button", { name: "Save" }));

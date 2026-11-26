@@ -4,7 +4,6 @@ import type { AnchoredSide } from "@/shared/lib/anchoredPosition";
 import { classNames } from "@/shared/lib/classNames";
 import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 export type IconButtonSize = "lg" | "md" | "sm" | "xs" | "2xs";
@@ -16,7 +15,10 @@ interface IconButtonProps extends Omit<
   icon: AppIcon;
   /** The accessible name, and the tooltip unless `tooltip` says otherwise. */
   label: string;
-  /** Tooltip content when it should say more than the label; false where the name shows nearby. */
+  /**
+   * Tooltip content when it should say more than the label. False where the name shows nearby or
+   * the icon says it all, as a close or remove X does.
+   */
   tooltip?: ReactNode | false;
   tooltipPlacement?: AnchoredSide;
   shortcut?: ShortcutDefinition;
@@ -79,12 +81,8 @@ export function IconButton({
   );
 
   if (tooltip === false) return button;
-  const content = tooltip ?? label;
   return (
-    <Tooltip
-      content={shortcut ? <ShortcutHint shortcut={shortcut}>{content}</ShortcutHint> : content}
-      placement={tooltipPlacement}
-    >
+    <Tooltip content={tooltip ?? label} shortcut={shortcut} placement={tooltipPlacement}>
       {button}
     </Tooltip>
   );

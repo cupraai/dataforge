@@ -16,7 +16,9 @@ import {
 import type { AnchoredSide } from "@/shared/lib/anchoredPosition";
 import { classNames } from "@/shared/lib/classNames";
 import { DURATION_FAST_MS } from "@/shared/lib/motion";
+import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { AnchoredLayer } from "@/shared/ui/AnchoredLayer";
+import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 
 /** Gap kept between a bubble and the window edge. Tighter than a menu's, by design. */
 const VIEWPORT_GUTTER = 8;
@@ -45,6 +47,7 @@ interface TooltipChildProps {
   "aria-label"?: string;
   "aria-describedby"?: string;
   "aria-expanded"?: boolean;
+  "aria-keyshortcuts"?: string;
 }
 
 interface TooltipProps {
@@ -54,11 +57,17 @@ interface TooltipProps {
   disabled?: boolean;
   /** Show the bubble immediately, e.g. after a click, without waiting for hover. */
   open?: boolean;
-  trigger?: "hover-focus";
+  /**
+   * The key that runs the trigger: drawn after the content and announced on the trigger, so the
+   * two cannot drift apart. The caller binds the key itself.
+   */
+  shortcut?: ShortcutDefinition;
   /** Preferred side of the trigger; the bubble flips only when that side cannot hold it. */
   placement?: AnchoredSide;
   /** Extra classes on the bubble, for content richer than a line of text. */
   bubbleClassName?: string;
+  /** Shows only while the trigger's own box cuts its text off, for names an ellipsis may hide. */
+  whenTruncated?: boolean;
 }
 
 /** The trigger element inside the wrapper, past any tooltip wrapped directly around it. */
@@ -68,15 +77,21 @@ function triggerOf(wrapper: HTMLElement | null): HTMLElement | null {
   return element instanceof HTMLElement ? element : null;
 }
 
+function isCutOff(element: HTMLElement | null): boolean {
+  if (!element) return false;
+  return element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight;
+}
+
 export function Tooltip({
   content,
   children,
   delay = 400,
   disabled = false,
   open = false,
-  trigger = "hover-focus",
+  shortcut,
   placement = "bottom",
   bubbleClassName,
+  whenTruncated = false,
 }: TooltipProps) {
   const id = useId();
   const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -113,13 +128,17 @@ export function Tooltip({
     stopScrollWatchRef.current = undefined;
   }, []);
 
+  const hasContent = content != null && content !== "";
+
   const show = useCallback((): boolean => {
-    if (disabled || childExpanded || content == null || content === "") return false;
+    if (disabled || childExpanded || !hasContent) return false;
+    // Measured when the pointer or focus arrives, so a resize since the last render counts.
+    if (whenTruncated && !isCutOff(triggerOf(wrapperRef.current))) return false;
     clearShowTimeout();
     const wait = Date.now() < warmUntil ? 0 : delay;
     showTimeoutRef.current = setTimeout(() => setVisible(true), wait);
     return true;
-  }, [childExpanded, clearShowTimeout, content, delay, disabled]);
+  }, [childExpanded, clearShowTimeout, delay, disabled, hasContent, whenTruncated]);
 
   const hide = useCallback(() => {
     clearShowTimeout();
@@ -174,10 +193,7 @@ export function Tooltip({
 
   // Hover must not cover a menu/drawer this trigger just opened; forced `open` still wins.
   const shown =
-    !disabled &&
-    content != null &&
-    content !== "" &&
-    ((open && !openDismissed) || (visible && !childExpanded));
+    !disabled && hasContent && ((open && !openDismissed) || (visible && !childExpanded));
 
   useLayoutEffect(() => {
     if (!shown) return;
@@ -211,24 +227,26 @@ export function Tooltip({
   const ariaDescribedBy =
     [childProps["aria-describedby"], describedBy].filter(Boolean).join(" ") || undefined;
 
-  const focusHandlers =
-    trigger === "hover-focus" && !childDisabled
-      ? {
-          onFocus: (event: FocusEvent) => {
-            childProps.onFocus?.(event);
-            showOnFocus();
-          },
-          onBlur: (event: FocusEvent) => {
-            childProps.onBlur?.(event);
-            hide();
-          },
-        }
-      : {};
+  const focusHandlers = !childDisabled
+    ? {
+        onFocus: (event: FocusEvent) => {
+          childProps.onFocus?.(event);
+          showOnFocus();
+        },
+        onBlur: (event: FocusEvent) => {
+          childProps.onBlur?.(event);
+          hide();
+        },
+      }
+    : {};
 
   // The handlers are only attached here; the refs they read are touched when focus moves.
   // oxlint-disable-next-line react-hooks/refs
   const triggerElement = cloneElement(children, {
     "aria-describedby": ariaDescribedBy,
+    // A key the trigger names itself wins, as on Button and IconButton.
+    "aria-keyshortcuts":
+      childProps["aria-keyshortcuts"] ?? (shortcut ? ariaKeyShortcuts(shortcut) : undefined),
     ...focusHandlers,
   });
 
@@ -262,7 +280,7 @@ export function Tooltip({
         id={id}
         role="tooltip"
       >
-        {content}
+        {shortcut ? <ShortcutHint shortcut={shortcut}>{content}</ShortcutHint> : content}
         <span className="tooltip__arrow" aria-hidden="true" />
       </AnchoredLayer>
     </span>

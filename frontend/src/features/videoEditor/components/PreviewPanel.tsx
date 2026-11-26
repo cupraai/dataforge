@@ -33,9 +33,8 @@ import {
   iconX,
 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import { ariaKeyShortcuts, SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
+import { SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import type { GalleryItem } from "@/shared/types";
 import { AudioWaveform } from "@/features/gallery/components/AudioWaveform";
@@ -907,17 +906,8 @@ function MarkButton({
   onClick: () => void;
 }) {
   return (
-    <Tooltip
-      content={<ShortcutHint shortcut={shortcut}>{label} at this frame</ShortcutHint>}
-      placement="top"
-    >
-      <Button
-        size="xs"
-        className="video-editor__mark"
-        aria-label={label}
-        aria-keyshortcuts={ariaKeyShortcuts(shortcut)}
-        onClick={onClick}
-      >
+    <Tooltip content={`${label} at this frame`} shortcut={shortcut} placement="top">
+      <Button size="xs" className="video-editor__mark" aria-label={label} onClick={onClick}>
         {label === "Mark in" ? "In" : "Out"}
       </Button>
     </Tooltip>

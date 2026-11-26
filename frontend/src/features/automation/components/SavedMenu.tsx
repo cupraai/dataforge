@@ -10,6 +10,7 @@ import { Button } from "@/shared/ui/Button";
 import { TextInput } from "@/shared/ui/Field";
 import { Icon } from "@/shared/ui/Icon";
 import { IconButton } from "@/shared/ui/IconButton";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 /** A named list kept on the server; saving a name that matches ignoring case replaces it. */
 export interface SavedStore<Response, Entry extends { name: string }> {
@@ -32,8 +33,6 @@ interface SavedMenuProps<Response, Entry extends { name: string }> {
   empty: string;
   /** One line under an entry's name. */
   preview: (entry: Entry) => string;
-  /** An entry's hover text. */
-  entryTitle?: (entry: Entry) => string;
   saveLabel: string;
   /** The name field's accessible name. */
   nameLabel: string;
@@ -55,7 +54,6 @@ export function SavedMenu<Response, Entry extends { name: string }>({
   caption,
   empty,
   preview,
-  entryTitle,
   saveLabel,
   nameLabel,
   maxNameLength,
@@ -132,7 +130,6 @@ export function SavedMenu<Response, Entry extends { name: string }>({
             <button
               type="button"
               className="saved-menu__option"
-              title={entryTitle?.(entry)}
               onClick={() => {
                 onPick(entry);
                 close();
@@ -141,7 +138,9 @@ export function SavedMenu<Response, Entry extends { name: string }>({
               <Icon icon={iconBookmark} className="saved-menu__icon" />
               <span className="saved-menu__text">
                 <span className="saved-menu__name">{entry.name}</span>
-                <span className="saved-menu__preview">{preview(entry)}</span>
+                <Tooltip content={preview(entry)} whenTruncated>
+                  <span className="saved-menu__preview">{preview(entry)}</span>
+                </Tooltip>
               </span>
             </button>
             <IconButton
@@ -220,19 +219,20 @@ export function SavedMenu<Response, Entry extends { name: string }>({
             </Button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="saved-menu__option"
-            disabled={toEntry === null}
-            title={toEntry === null ? blockedReason : undefined}
-            onClick={() => {
-              save.reset();
-              setNaming(true);
-            }}
-          >
-            <Icon icon={iconBookmarkPlus} className="saved-menu__icon" />
-            {saveLabel}
-          </button>
+          <Tooltip content={toEntry === null ? blockedReason : undefined}>
+            <button
+              type="button"
+              className="saved-menu__option"
+              disabled={toEntry === null}
+              onClick={() => {
+                save.reset();
+                setNaming(true);
+              }}
+            >
+              <Icon icon={iconBookmarkPlus} className="saved-menu__icon" />
+              {saveLabel}
+            </button>
+          </Tooltip>
         )}
 
         {failure && (

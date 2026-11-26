@@ -19,6 +19,7 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import { formatBytes, formatBytesValue } from "@/shared/lib/format";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 export interface AutomationSystemSpecsProps {
   id: string;
@@ -122,7 +123,9 @@ export function AutomationSystemSpecs({ id, open }: AutomationSystemSpecsProps) 
                 (vramUsed != null ? (
                   <MemoryValue usedBytes={vramUsed} totalBytes={vramTotal} />
                 ) : (
-                  <span title="VRAM total">{formatBytes(vramTotal)}</span>
+                  <Tooltip content="VRAM total">
+                    <span>{formatBytes(vramTotal)}</span>
+                  </Tooltip>
                 ))}
             </SpecMeter>
           </SpecCard>
@@ -152,9 +155,9 @@ function SpecCard({ icon, label, hardware, readings, children }: SpecCardProps) 
           <Icon icon={icon} />
         </span>
         <span className="system-specs__label">{label}</span>
-        <span className="system-specs__hardware" title={hardware}>
-          {hardware}
-        </span>
+        <Tooltip content={hardware} whenTruncated>
+          <span className="system-specs__hardware">{hardware}</span>
+        </Tooltip>
         {readings && <span className="system-specs__readings">{readings}</span>}
       </div>
       <div className="system-specs__meters">{children}</div>
@@ -224,14 +227,15 @@ interface ReadingProps {
 
 function Reading({ icon, title, level = "normal", children }: ReadingProps) {
   return (
-    <span
-      className={classNames("system-specs__reading", levelClass("system-specs__reading", level))}
-      title={title}
-    >
-      <Icon icon={icon} className="system-specs__reading-icon" />
-      <span className="system-specs__sr-label">{title}: </span>
-      {children}
-    </span>
+    <Tooltip content={title}>
+      <span
+        className={classNames("system-specs__reading", levelClass("system-specs__reading", level))}
+      >
+        <Icon icon={icon} className="system-specs__reading-icon" />
+        <span className="system-specs__sr-label">{title}: </span>
+        {children}
+      </span>
+    </Tooltip>
   );
 }
 

@@ -924,9 +924,9 @@ export function GalleryItemDialog({
         )}
         <header className="gallery-item-dialog__header">
           <div className="gallery-item-dialog__header-text">
-            <h2 className="gallery-item-dialog__title" title={item.name}>
-              {item.name}
-            </h2>
+            <Tooltip content={item.name} whenTruncated>
+              <h2 className="gallery-item-dialog__title">{item.name}</h2>
+            </Tooltip>
             {inline && (
               <IconButton
                 icon={iconChevronLeft}
@@ -1450,11 +1450,6 @@ export function GalleryItemDialog({
                               ? `Back to editing the caption for ${item.name}`
                               : `Compare the caption for ${item.name} with its backup`
                           }
-                          title={
-                            showingBackupDiff
-                              ? "Close the comparison and edit the caption"
-                              : "Show what restoring the copy in .backup would change"
-                          }
                           size="xs"
                         >
                           {showingBackupDiff ? "Back to editing" : "Compare"}
@@ -1472,7 +1467,6 @@ export function GalleryItemDialog({
                           }}
                           disabled={busy || !canRestoreBackup}
                           aria-label={`Restore the backed up caption for ${item.name}`}
-                          title="Replace this caption with the copy in .backup"
                           size="xs"
                         >
                           Restore

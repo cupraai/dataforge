@@ -1,8 +1,7 @@
 import type { AppIcon } from "@/shared/icons";
-import { ariaKeyShortcuts, type ShortcutDefinition } from "@/shared/lib/shortcuts";
+import type { ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Button } from "@/shared/ui/Button";
 import { IconButton, type IconButtonSize } from "@/shared/ui/IconButton";
-import { ShortcutHint } from "@/shared/ui/ShortcutKeys";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface ToolButtonProps {
@@ -21,7 +20,7 @@ interface ToolButtonProps {
   size?: IconButtonSize;
 }
 
-/** An editor toolbar button: named, with a tooltip naming it and its key. */
+/** An editor toolbar button: an icon its tooltip names, or a label whose tooltip adds the key. */
 export function ToolButton({
   icon,
   label,
@@ -52,24 +51,24 @@ export function ToolButton({
       />
     );
   }
-  const name = tooltip ?? label;
-  return (
-    <Tooltip
-      content={shortcut ? <ShortcutHint shortcut={shortcut}>{name}</ShortcutHint> : name}
-      placement={tooltipPlacement}
+  const button = (
+    <Button
+      icon={icon}
+      variant="text"
+      size="sm"
+      pressed={pressed}
+      className={className}
+      onClick={onClick}
+      disabled={disabled}
     >
-      <Button
-        icon={icon}
-        variant="text"
-        size="sm"
-        pressed={pressed}
-        className={className}
-        aria-keyshortcuts={shortcut ? ariaKeyShortcuts(shortcut) : undefined}
-        onClick={onClick}
-        disabled={disabled}
-      >
-        {label}
-      </Button>
+      {label}
+    </Button>
+  );
+  // The label already names it; a tooltip only earns its place with a key or more to say.
+  if (!shortcut && !tooltip) return button;
+  return (
+    <Tooltip content={tooltip ?? label} shortcut={shortcut} placement={tooltipPlacement}>
+      {button}
     </Tooltip>
   );
 }

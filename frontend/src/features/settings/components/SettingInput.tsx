@@ -6,6 +6,7 @@ import { useId } from "react";
 import { classNames } from "@/shared/lib/classNames";
 import type { AppSettingKey, AppSettingsResponse } from "@/shared/types";
 import { SETTING_FIELDS } from "../lib/settingsForm";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 type SettingState = AppSettingsResponse[AppSettingKey];
 
@@ -109,14 +110,11 @@ export function SettingInput({
             </>
           )}
         </label>
-        <Badge
-          id={badgeId}
-          tone={source.tone}
-          uppercase={false}
-          title={source.title ?? source.detail}
-        >
-          {source.badge}
-        </Badge>
+        <Tooltip content={source.title ?? source.detail}>
+          <Badge id={badgeId} tone={source.tone} uppercase={false}>
+            {source.badge}
+          </Badge>
+        </Tooltip>
       </div>
       <TextInput
         id={inputId}

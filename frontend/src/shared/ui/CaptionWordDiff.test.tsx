@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
 import { diffCaptionWords } from "@/shared/lib/captionWordDiff";
 import { CaptionDiffStat, CaptionDiffView, CaptionWordDiff } from "./CaptionWordDiff";
@@ -68,7 +68,7 @@ describe("CaptionDiffView", () => {
 });
 
 describe("CaptionDiffStat", () => {
-  it("counts the words each side alone has and names them in its tooltip", () => {
+  it("counts the words each side alone has and names them in its tooltip", async () => {
     render(
       <CaptionDiffStat
         segments={diffCaptionWords("a red dog", "a big blue dog")}
@@ -76,7 +76,12 @@ describe("CaptionDiffStat", () => {
       />,
     );
 
-    expect(screen.getByTitle("1 word removed, 2 words restored")).toHaveTextContent("−1+2");
+    const stat = screen.getByText("−1").parentElement!;
+    expect(stat).toHaveTextContent("−1+2");
+    fireEvent.mouseEnter(stat.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "1 word removed, 2 words restored",
+    );
   });
 
   it("renders nothing for identical captions", () => {
@@ -98,7 +103,7 @@ describe("CaptionWordDiff", () => {
 
     expect(screen.getByText("Only in this caption")).toBeInTheDocument();
     expect(screen.getByText("From the backup")).toBeInTheDocument();
-    expect(screen.getByTitle("1 word removed, 1 word added")).toBeInTheDocument();
+    expect(screen.getByText("−1").parentElement).toHaveTextContent("−1+1");
     expect(screen.getByText("red").tagName).toBe("DEL");
   });
 });

@@ -1,5 +1,5 @@
 import { instructionFile } from "@/test/instructionFixtures";
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type * as FolderInstructionsApi from "@/shared/api/folderInstructions";
@@ -348,10 +348,8 @@ describe("AutoCaptionDialog system prompt source", () => {
     );
     renderDialog();
 
-    expect(await screen.findByText("../.sysprompt")).toHaveAttribute(
-      "title",
-      "C:/datasets\\.sysprompt",
-    );
+    fireEvent.mouseEnter((await screen.findByText("../.sysprompt")).parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("C:/datasets\\.sysprompt");
   });
 
   it("offers no way to edit the system prompt from the dialog", async () => {

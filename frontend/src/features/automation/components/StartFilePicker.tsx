@@ -107,7 +107,6 @@ function TileGrid({
               {(rows[row.index] ?? []).map((item, column) => {
                 const index = row.index * START_FILE_COLUMNS + column;
                 const chosen = item.path === value;
-                const size = dimensions(item);
                 return (
                   /* oxlint-disable-next-line
                      jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus
@@ -120,7 +119,6 @@ function TileGrid({
                     aria-setsize={items.length}
                     aria-posinset={index + 1}
                     aria-label={item.name}
-                    title={size ? `${item.name}\n${size}` : item.name}
                     className={classNames(
                       "start-file-picker__tile",
                       index === active && "start-file-picker__tile--active",
@@ -253,6 +251,7 @@ export function StartFilePicker({ kind, value, items, disabled, onChange }: Star
         <IconButton
           icon={iconX}
           label={`Remove start ${kind}`}
+          tooltip={false}
           size="xs"
           variant="ghost"
           className="start-file-picker__clear"

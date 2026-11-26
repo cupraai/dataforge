@@ -23,7 +23,6 @@ export function Splitter({ label, orientation, onResize, onReset }: SplitterProp
       role="separator"
       aria-orientation={orientation}
       aria-label={label}
-      title="Drag to resize; double-click to reset"
       tabIndex={0}
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId);

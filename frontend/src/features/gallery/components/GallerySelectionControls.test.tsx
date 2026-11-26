@@ -117,12 +117,13 @@ describe("GallerySelectionControls", () => {
       const button = screen.getByRole("button", { name });
       expect(button).toHaveTextContent(name.split(" ")[0]);
       expect(button).toHaveAttribute("aria-label", name);
-
-      // The bubble only exists while hovered, so the label has to be provoked.
-      fireEvent.mouseEnter(button.parentElement!);
-      expect(await screen.findByRole("tooltip")).toHaveTextContent(name);
-      fireEvent.mouseLeave(button.parentElement!);
     }
+
+    // Only Delete has a key to tell; the bubble exists while hovered, so it has to be provoked.
+    fireEvent.mouseEnter(
+      screen.getByRole("button", { name: "Delete selected files" }).parentElement!,
+    );
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Delete selected files");
 
     // The selection verbs keep their text, so the row still reads as a toolbar.
     expect(screen.getByRole("button", { name: "All" })).toHaveTextContent("All");

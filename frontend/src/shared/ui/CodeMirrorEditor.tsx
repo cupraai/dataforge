@@ -62,7 +62,6 @@ export interface CodeMirrorEditorProps {
   spellcheckLanguage?: string;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
-  title?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
 }
@@ -82,7 +81,6 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
       spellcheckLanguage = "en",
       "aria-label": ariaLabel,
       "aria-invalid": ariaInvalid,
-      title,
       onChange,
       onBlur,
     },
@@ -146,9 +144,6 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
       if (ariaInvalid) {
         attrs["aria-invalid"] = "true";
       }
-      if (title) {
-        attrs.title = title;
-      }
 
       // search() must be permanent config; basicSetup only adds the keymap.
       const viewExtensions: Extension[] = [
@@ -180,7 +175,6 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
       lineWrap,
       spellcheck,
       spellcheckLanguage,
-      title,
     ]);
 
     return (
@@ -203,7 +197,6 @@ export const CodeMirrorEditor = forwardRef<ReactCodeMirrorRef, CodeMirrorEditorP
           placeholder={placeholder}
           aria-label={ariaLabel}
           aria-invalid={ariaInvalid || undefined}
-          title={title}
           editable={editable}
           extensions={extensions}
           onCreateEditor={autoFocus ? focusAtEnd : undefined}

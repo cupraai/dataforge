@@ -1,5 +1,4 @@
 import { IconButton } from "@/shared/ui/IconButton";
-import { Tooltip } from "@/shared/ui/Tooltip";
 import { iconX } from "@/shared/icons";
 
 export interface RenderedFrameState {
@@ -28,11 +27,9 @@ export function RenderedFrame({
         <span>
           Export render · {frame.timecode} · {frame.width} × {frame.height}
         </span>
-        <Tooltip content="Opens the frame at its full size in a new tab">
-          <a className="video-editor__link-btn" href={frame.url} target="_blank" rel="noreferrer">
-            Full size
-          </a>
-        </Tooltip>
+        <a className="video-editor__link-btn" href={frame.url} target="_blank" rel="noreferrer">
+          Full size
+        </a>
         <IconButton
           icon={iconX}
           label="Back to the live preview"

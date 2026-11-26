@@ -5,6 +5,7 @@ import { iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
 import type { ComfyPresetSummary } from "@/shared/types";
 import { Icon } from "@/shared/ui/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface PresetListProps {
   presets: readonly ComfyPresetSummary[];
@@ -51,9 +52,9 @@ function PresetList({
               onChange={() => onChange(entry.name)}
             />
             {/* Truncated in the narrow column, so the whole name is a hover away. */}
-            <span className="comfy-preset-list__name" title={entry.name}>
-              {entry.name}
-            </span>
+            <Tooltip content={entry.name} whenTruncated>
+              <span className="comfy-preset-list__name">{entry.name}</span>
+            </Tooltip>
             <span
               id={metaId}
               className={classNames(

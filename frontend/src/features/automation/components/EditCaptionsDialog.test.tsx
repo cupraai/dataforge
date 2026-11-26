@@ -125,7 +125,7 @@ describe("EditCaptionsDialog", () => {
     expect(screen.getByText("dog").tagName).toBe("DEL");
     expect(screen.getByText("cat").tagName).toBe("INS");
     const [changed, unchanged] = within(previewPanel()).getAllByRole("listitem");
-    expect(within(changed).getByTitle("1 word removed, 1 word added")).toHaveTextContent("−1+1");
+    expect(within(changed).getByText("−1").parentElement).toHaveTextContent("−1+1");
     expect(within(unchanged).getByText("Unchanged")).toBeInTheDocument();
     expect(previewPanel()).toHaveTextContent("2 sample edits; nothing was saved.");
     expect(unchanged).toHaveTextContent("a lake");

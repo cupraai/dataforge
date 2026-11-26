@@ -39,6 +39,7 @@ import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 import { IconButton } from "@/shared/ui/IconButton";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface TransferMediaDialogProps {
   mode: MediaTransferMode;
@@ -385,16 +386,17 @@ export function TransferMediaDialog({
     >
       <div className="field">
         <div className="field__label">Destination</div>
-        <div
-          className={classNames(
-            "transfer-media-dialog__destination",
-            !selectedPath && "transfer-media-dialog__destination--placeholder",
-          )}
-          aria-live="polite"
-          title={selectedPath || undefined}
-        >
-          <span>{selectedPath || "Select a folder in the tree"}</span>
-        </div>
+        <Tooltip content={selectedPath || undefined} whenTruncated>
+          <div
+            className={classNames(
+              "transfer-media-dialog__destination",
+              !selectedPath && "transfer-media-dialog__destination--placeholder",
+            )}
+            aria-live="polite"
+          >
+            <span>{selectedPath || "Select a folder in the tree"}</span>
+          </div>
+        </Tooltip>
       </div>
 
       <div className="field transfer-media-dialog__tree-field">
@@ -482,7 +484,6 @@ export function TransferMediaDialog({
                         }}
                         disabled={busy || disabled}
                         tabIndex={-1}
-                        title={disabled ? "Files are already in this folder" : entry.path}
                       >
                         <Icon
                           icon={expanded ? iconFolderOpen : iconFolder}

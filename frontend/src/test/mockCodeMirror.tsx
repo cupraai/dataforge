@@ -26,7 +26,6 @@ interface MockCodeMirrorProps {
   editable?: boolean;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
-  title?: string;
   onBlur?: () => void;
   /** Called once after mount, as the real component does when it creates its view. */
   onCreateEditor?: (view: never) => void;
@@ -43,7 +42,6 @@ export const MockCodeMirror = forwardRef<HTMLTextAreaElement, MockCodeMirrorProp
       editable = true,
       "aria-label": ariaLabel,
       "aria-invalid": ariaInvalid,
-      title,
       onBlur,
       onCreateEditor,
     },
@@ -67,7 +65,6 @@ export const MockCodeMirror = forwardRef<HTMLTextAreaElement, MockCodeMirrorProp
         placeholder={placeholder}
         aria-label={ariaLabel}
         aria-invalid={ariaInvalid || undefined}
-        title={title}
         disabled={editable === false}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}

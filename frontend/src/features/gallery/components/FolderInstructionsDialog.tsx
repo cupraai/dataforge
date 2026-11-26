@@ -27,6 +27,7 @@ import {
   INSTRUCTION_STATUS_LABELS,
 } from "@/shared/lib/instructionFileState";
 import type { InstructionFileState } from "@/shared/types";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface InstructionDocument {
   label: string;
@@ -255,14 +256,13 @@ export function FolderInstructionsDialog({
               <Badge tone={tone}>
                 {localDraft ? "Local draft" : INSTRUCTION_ORIGIN_LABELS[source.origin]}
               </Badge>
-              <span
-                className="folder-instructions-dialog__source-text"
-                title={source.source_path ?? undefined}
-              >
-                {localDraft
-                  ? details.filename
-                  : (source.relative_path ?? `No ${details.filename} found`)}
-              </span>
+              <Tooltip content={source.source_path ?? undefined}>
+                <span className="folder-instructions-dialog__source-text">
+                  {localDraft
+                    ? details.filename
+                    : (source.relative_path ?? `No ${details.filename} found`)}
+                </span>
+              </Tooltip>
               {source.status !== "ready" && source.status !== "missing" && !localDraft && (
                 <Badge tone="danger">{INSTRUCTION_STATUS_LABELS[source.status]}</Badge>
               )}
@@ -286,9 +286,9 @@ export function FolderInstructionsDialog({
               <>
                 {" "}
                 Replaces{" "}
-                <strong title={file.parent_state?.source_path ?? undefined}>
-                  {file.parent_relative_path}
-                </strong>
+                <Tooltip content={file.parent_state?.source_path ?? undefined}>
+                  <strong>{file.parent_relative_path}</strong>
+                </Tooltip>
                 .
               </>
             )}
@@ -357,9 +357,9 @@ export function FolderInstructionsDialog({
         <div className="folder-instructions-dialog__header-text">
           <div className="folder-instructions-dialog__header-copy">
             <h2 className="folder-instructions-dialog__title">Folder instructions</h2>
-            <p className="folder-instructions-dialog__subtitle" title={folderPath}>
-              {folderPath}
-            </p>
+            <Tooltip content={folderPath} whenTruncated>
+              <p className="folder-instructions-dialog__subtitle">{folderPath}</p>
+            </Tooltip>
           </div>
         </div>
         <div className="folder-instructions-dialog__header-actions">

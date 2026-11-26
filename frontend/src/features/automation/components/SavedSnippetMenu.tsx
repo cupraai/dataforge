@@ -51,7 +51,6 @@ export function SavedSnippetMenu({ book, text, disabled, onInsert }: SavedSnippe
       caption={`Adds the ${noun} after the text already typed.`}
       empty={empty}
       preview={(snippet) => snippet.text}
-      entryTitle={(snippet) => snippet.text}
       saveLabel={`Save current ${noun}...`}
       nameLabel={`Name for the ${noun}`}
       maxNameLength={MAX_SAVED_SNIPPET_NAME_LENGTH}

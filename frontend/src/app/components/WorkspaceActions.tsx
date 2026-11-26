@@ -327,9 +327,7 @@ function JobActivity({
         )}
         {!active && timeLabel && <span className="workspace-activity__count">{timeLabel}</span>}
         {active && job.current_name && (
-          <span className="workspace-activity__current" title={job.current_name}>
-            {job.current_name}
-          </span>
+          <span className="workspace-activity__current">{job.current_name}</span>
         )}
         {active && (
           <ProgressBar

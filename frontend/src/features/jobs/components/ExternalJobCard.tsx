@@ -13,6 +13,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { Badge } from "@/shared/ui/Badge";
 import { Icon } from "@/shared/ui/Icon";
 import { TrainingSamples } from "./TrainingSamples";
+import { Tooltip } from "@/shared/ui/Tooltip";
 
 interface ExternalJobCardProps {
   job: ExternalOstrisJob;
@@ -49,19 +50,22 @@ export function ExternalJobCard({
     >
       <div className="job-card__header">
         {canOpenDataset ? (
-          <button
-            type="button"
-            className="job-card__folder"
-            onClick={() => onOpenFolder?.(datasetFolder!)}
-            title={`${job.name} · ${datasetFolder}`}
-          >
-            <Icon icon={iconBrain} className="job-card__folder-icon" />
-            <span className="job-card__folder-name">{job.name}</span>
-          </button>
+          <Tooltip content={`Open ${datasetFolder}`}>
+            <button
+              type="button"
+              className="job-card__folder"
+              onClick={() => onOpenFolder?.(datasetFolder!)}
+            >
+              <Icon icon={iconBrain} className="job-card__folder-icon" />
+              <span className="job-card__folder-name">{job.name}</span>
+            </button>
+          </Tooltip>
         ) : (
-          <div className="job-card__folder job-card__folder--static" title={job.name}>
+          <div className="job-card__folder job-card__folder--static">
             <Icon icon={iconBrain} className="job-card__folder-icon" />
-            <span className="job-card__folder-name">{job.name}</span>
+            <Tooltip content={job.name} whenTruncated>
+              <span className="job-card__folder-name">{job.name}</span>
+            </Tooltip>
           </div>
         )}
 
