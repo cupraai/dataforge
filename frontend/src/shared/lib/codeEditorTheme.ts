@@ -1,6 +1,7 @@
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
-import { tags } from "@lezer/highlight";
+import { tags, type Tag } from "@lezer/highlight";
+import { yamlScalarHighlight } from "./codeEditorYamlScalars";
 
 export type CodeEditorLanguage = "markdown" | "yaml" | "plaintext";
 
@@ -46,9 +47,22 @@ const yamlHighlightStyle = HighlightStyle.define([
   { tag: tags.invalid, color: mkpPink },
 ]);
 
+function yamlClass(tag: Tag): string {
+  return yamlHighlightStyle.style([tag]) ?? "";
+}
+
 const highlightByLanguage: Partial<Record<CodeEditorLanguage, Extension>> = {
   markdown: syntaxHighlighting(markdownHighlightStyle),
-  yaml: syntaxHighlighting(yamlHighlightStyle),
+  yaml: [
+    syntaxHighlighting(yamlHighlightStyle),
+    yamlScalarHighlight({
+      bool: yamlClass(tags.bool),
+      int: yamlClass(tags.number),
+      float: yamlClass(tags.number),
+      null: yamlClass(tags.null),
+      string: yamlClass(tags.string),
+    }),
+  ],
 };
 
 /** Stable syntax-highlight extension for the given language (chrome is SCSS). */

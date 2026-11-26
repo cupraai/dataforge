@@ -18,6 +18,7 @@ version heading when a minor or major version is cut.
 
 ### Fixed
 
+- The YAML editors for caption rules and training templates now colour unquoted values: numbers, booleans such as `true` or `yes`, null and plain text each get their own colour, matching how the file is read.
 - The **ComfyUI workflow** dialog no longer lists the models of different passes together under **Shared**. Settings several passes read are shown before the first of those passes and say which passes read them, such as **Passes 3–6**, so an image model and the video model that animates its result stay apart. Settings read after sampling, such as the frame rate and the VAE that decodes the result, are listed last, under **Output**.
 
 ## 0.16.0 - 2026-11-25
