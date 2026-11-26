@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
-from automation.jobs import JobType, job_manager
+from automation.jobs import Job, job_manager
 from caption_rules import STARTER_CAPTION_RULES, parse_caption_rules, save_caption_rules
 from constants import CAPTION_RULES_FILENAME, JOB_TYPE_LABELS, SYSPROMPT_FILENAME
 from folder_instructions import (
@@ -18,24 +18,23 @@ router = APIRouter()
 FOLDER_QUERY = Query(..., description="Absolute path to the folder the instructions apply to")
 
 
-#: Edits wait for it so the folder matches what the run used.
-READING_JOBS: dict[str, JobType] = {
-    SYSPROMPT_FILENAME: "auto_caption",
-    CAPTION_RULES_FILENAME: "check_caption_rules",
-}
-
-
-def _locking_job_id(folder: Path, filename: str) -> str | None:
-    for job in job_manager.active_jobs(READING_JOBS[filename]):
+def _locking_job(folder: Path, filename: str) -> Job | None:
+    """A running job that reads the file; edits wait for it so the folder matches the run."""
+    for job in job_manager.active_jobs():
         # A queued job reads the file when it starts.
-        if job.status == "running" and instruction_file_reaches(folder, Path(job.folder), filename):
-            return job.id
+        if (
+            job.status == "running"
+            and filename in job.instruction_files
+            and instruction_file_reaches(folder, Path(job.folder), filename)
+        ):
+            return job
     return None
 
 
 def _refuse_while_locked(folder: Path, filename: str) -> None:
-    if _locking_job_id(folder, filename) is not None:
-        label = JOB_TYPE_LABELS[READING_JOBS[filename]]
+    job = _locking_job(folder, filename)
+    if job is not None:
+        label = JOB_TYPE_LABELS[job.job_type]
         raise HTTPException(
             status_code=409,
             detail=f"{label} is using this {filename}. Edit it once the job finishes.",
@@ -46,7 +45,7 @@ def _describe(folder: Path, filename: str) -> InstructionFileResponse:
     return describe_instruction_file(
         folder,
         filename,
-        _locking_job_id(folder, filename),
+        None if (job := _locking_job(folder, filename)) is None else job.id,
         validate=parse_caption_rules if filename == CAPTION_RULES_FILENAME else validate_sysprompt,
     )
 

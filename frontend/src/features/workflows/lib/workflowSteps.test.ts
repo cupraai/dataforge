@@ -140,6 +140,7 @@ describe("stepSummary", () => {
         preserve_thinking: true,
         instruction: "Rewrite every caption in the present tense and drop camera jargon entirely.",
         vision: false,
+        sysprompt_placement: "off",
         backup: true,
       },
     });

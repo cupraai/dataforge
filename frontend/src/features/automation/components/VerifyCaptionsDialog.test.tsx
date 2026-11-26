@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
@@ -8,6 +8,7 @@ import {
 import { VerifyCaptionsDialog } from "./VerifyCaptionsDialog";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithQueryClient } from "@/test/queryClient";
+import { HOME_PATH } from "@/test/fixtures";
 import type { VisionLlmState } from "@/features/automation/hooks/useVisionLlmInfo";
 import type { ComponentProps } from "react";
 
@@ -40,6 +41,7 @@ function renderDialog(
     <VerifyCaptionsDialog
       scope={{ itemCount: 12, folderLabel: "Photos", kind: "folder" as const }}
       initialSettings={{ ...DEFAULTS, ...overrides }}
+      folderPath="C:/datasets/photos"
       onConfirm={onConfirm}
       onCancel={vi.fn<() => void>()}
     />,
@@ -66,6 +68,7 @@ describe("VerifyCaptionsDialog", () => {
       <VerifyCaptionsDialog
         scope={scope}
         initialSettings={DEFAULTS}
+        folderPath="C:/datasets/photos"
         onConfirm={vi.fn<ComponentProps<typeof VerifyCaptionsDialog>["onConfirm"]>()}
         onCancel={vi.fn<() => void>()}
       />,
@@ -78,6 +81,7 @@ describe("VerifyCaptionsDialog", () => {
       <VerifyCaptionsDialog
         scope={scope}
         initialSettings={DEFAULTS}
+        folderPath="C:/datasets/photos"
         editingStep
         confirmLabel="Save step"
         onConfirm={vi.fn<ComponentProps<typeof VerifyCaptionsDialog>["onConfirm"]>()}
@@ -93,10 +97,10 @@ describe("VerifyCaptionsDialog", () => {
       mode: "thinking",
       reasoning_effort: "xhigh",
       preserve_thinking: false,
-      context: "Studio product shots.",
+      instruction: "Studio product shots.",
     });
 
-    expect(screen.getByLabelText("Additional context")).toHaveValue("Studio product shots.");
+    expect(screen.getByLabelText("Instruction")).toHaveValue("Studio product shots.");
     expect(screen.getByLabelText("Preserve thinking")).not.toBeChecked();
     expect(screen.getByRole("radio", { name: /Reasoning/ })).toBeChecked();
   });
@@ -107,49 +111,51 @@ describe("VerifyCaptionsDialog", () => {
       mode: "thinking",
       reasoning_effort: "low",
       preserve_thinking: true,
-      context: "Studio product shots.",
+      instruction: "Studio product shots.",
     });
 
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
       mode: "thinking",
-      context: "Studio product shots.",
+      instruction: "Studio product shots.",
       reasoning_effort: "low",
       preserve_thinking: true,
+      sysprompt_placement: "off",
     });
   });
 
-  it("submits an edited context", async () => {
+  it("submits an edited instruction", async () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog();
 
-    await user.type(screen.getByLabelText("Additional context"), "Outdoor portraits.");
+    await user.type(screen.getByLabelText("Instruction"), "Outdoor portraits.");
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
       mode: "thinking",
-      context: "Outdoor portraits.",
+      instruction: "Outdoor portraits.",
       reasoning_effort: "medium",
       preserve_thinking: true,
+      sysprompt_placement: "off",
     });
   });
 
-  it("saves a context under a name and adds it after the typed text", async () => {
+  it("saves an instruction under a name and adds it after the typed text", async () => {
     const { requestsTo } = installMockBackend();
     const user = userEvent.setup();
-    const onConfirm = renderDialog({ context: "Studio product shots." });
-    const field = screen.getByLabelText("Additional context");
+    const onConfirm = renderDialog({ instruction: "Studio product shots." });
+    const field = screen.getByLabelText("Instruction");
     const openSaved = async () => {
       await user.click(screen.getByRole("button", { name: "Saved" }));
-      return screen.findByRole("dialog", { name: "Saved contexts" });
+      return screen.findByRole("dialog", { name: "Saved instructions" });
     };
 
     let panel = await openSaved();
-    await user.click(within(panel).getByRole("button", { name: "Save current context..." }));
-    await user.type(within(panel).getByLabelText("Name for the context"), "Studio{Enter}");
+    await user.click(within(panel).getByRole("button", { name: "Save current instruction..." }));
+    await user.type(within(panel).getByLabelText("Name for the instruction"), "Studio{Enter}");
     expect(await within(panel).findByRole("button", { name: /^Studio/ })).toBeInTheDocument();
-    expect(requestsTo("/api/preferences/snippets/verify_contexts", "PUT")).toHaveLength(1);
+    expect(requestsTo("/api/preferences/snippets/verify_instructions", "PUT")).toHaveLength(1);
     // Enter in the name field saves; it must not also start the job.
     expect(onConfirm).not.toHaveBeenCalled();
 
@@ -162,22 +168,71 @@ describe("VerifyCaptionsDialog", () => {
     expect(field).toHaveFocus();
     await confirm(user);
     expect(onConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({ context: "Two people.\n\nStudio product shots." }),
+      expect.objectContaining({ instruction: "Two people.\n\nStudio product shots." }),
     );
+  });
+
+  it("adds the folder's system prompt where it is placed", async () => {
+    installMockBackend();
+    const user = userEvent.setup();
+    const onConfirm = vi.fn<ComponentProps<typeof VerifyCaptionsDialog>["onConfirm"]>();
+    renderWithQueryClient(
+      <VerifyCaptionsDialog
+        scope={{ itemCount: 12, folderLabel: "Photos", kind: "folder" as const }}
+        initialSettings={DEFAULTS}
+        folderPath={HOME_PATH}
+        onConfirm={onConfirm}
+        onCancel={vi.fn<() => void>()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "System prompt: Off" }));
+    const menu = await screen.findByRole("dialog", { name: "System prompt" });
+    expect(within(menu).getByRole("button", { name: /^Off/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(await within(menu).findByRole("status")).toHaveTextContent("Would use .sysprompt.");
+    await user.click(within(menu).getByRole("button", { name: /^After/ }));
+
+    expect(screen.queryByRole("dialog", { name: "System prompt" })).not.toBeInTheDocument();
+    await confirm(user);
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ sysprompt_placement: "after" }),
+    );
+  });
+
+  it("warns on the button when the folder has no system prompt to add", async () => {
+    installMockBackend();
+    const user = userEvent.setup();
+    renderDialog({ sysprompt_placement: "before" });
+
+    const trigger = screen.getByRole("button", { name: "System prompt: Before" });
+    await waitFor(() =>
+      expect(trigger).toHaveAttribute(
+        "title",
+        "No system prompt in this folder or above it, so nothing is added.",
+      ),
+    );
+    await user.click(trigger);
+    expect(
+      within(await screen.findByRole("dialog", { name: "System prompt" })).getByRole("status"),
+    ).toHaveTextContent("No system prompt in this folder or above it, so nothing is added.");
   });
 
   it("submits a cleared Preserve thinking box", async () => {
     const user = userEvent.setup();
-    const onConfirm = renderDialog({ mode: "thinking", preserve_thinking: true, context: "" });
+    const onConfirm = renderDialog({ mode: "thinking", preserve_thinking: true, instruction: "" });
 
     await user.click(screen.getByLabelText("Preserve thinking"));
     await confirm(user);
 
     expect(onConfirm).toHaveBeenCalledWith({
       mode: "thinking",
-      context: "",
+      instruction: "",
       reasoning_effort: "medium",
       preserve_thinking: false,
+      sysprompt_placement: "off",
     });
   });
 

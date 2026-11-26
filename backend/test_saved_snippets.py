@@ -62,12 +62,15 @@ class SavedSnippetTests(unittest.TestCase):
 
     def test_books_are_kept_apart(self) -> None:
         save_snippet("instructions", SavedSnippet(name="Shared", text="instruction"))
-        save_snippet("verify_contexts", SavedSnippet(name="Shared", text="studio shots"))
+        save_snippet("verify_instructions", SavedSnippet(name="Shared", text="studio shots"))
         save_snippet("comfy_prompts", SavedSnippet(name="Shared", text="a lighthouse"))
         delete_snippet("instructions", "Shared")
 
         self.assertEqual(_names("instructions"), [])
-        for book, text in (("verify_contexts", "studio shots"), ("comfy_prompts", "a lighthouse")):
+        for book, text in (
+            ("verify_instructions", "studio shots"),
+            ("comfy_prompts", "a lighthouse"),
+        ):
             kept = list_snippets(book).snippets
             self.assertEqual([(s.name, s.text) for s in kept], [("Shared", text)])
 

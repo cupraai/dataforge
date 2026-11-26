@@ -41,7 +41,8 @@ from openai_settings import (
     DEFAULT_REASONING_EFFORT,
     get_openai_model,
 )
-from schemas import AutomationMode
+from schemas import AutomationMode, SyspromptPlacement
+from sysprompt import load_placed_sysprompt, place_sysprompt
 
 
 @dataclass(frozen=True)
@@ -220,9 +221,11 @@ MEDIA_KIND_WORDING: dict[MediaKind, MediaKindWording] = {
 
 
 def build_verification_system_prompt(
-    context: str = "",
+    instruction: str = "",
     *,
     media_kind: MediaKind = "image",
+    sysprompt: str | None = None,
+    sysprompt_placement: SyspromptPlacement = "off",
 ) -> str:
     wording = MEDIA_KIND_WORDING[media_kind]
     subject = wording.subject
@@ -239,9 +242,9 @@ def build_verification_system_prompt(
         f"# Objective\n{wording.framing}\n\n{_POSITIONING_ATTENTION}",
     ]
 
-    context_stripped = context.strip()
-    if context_stripped:
-        sections.append(f"# Additional context\n{context_stripped}")
+    instruction = instruction.strip()
+    instruction_section = f"# Instruction\n{instruction}" if instruction else None
+    sections.extend(place_sysprompt(instruction_section, sysprompt, sysprompt_placement))
 
     sections.append(
         textwrap.dedent(
@@ -279,9 +282,19 @@ def build_verification_system_prompt(
     return "\n\n".join(sections)
 
 
-def build_verification_system_prompts(context: str = "") -> dict[MediaKind, str]:
+def build_verification_system_prompts(
+    instruction: str = "",
+    *,
+    sysprompt: str | None = None,
+    sysprompt_placement: SyspromptPlacement = "off",
+) -> dict[MediaKind, str]:
     return {
-        kind: build_verification_system_prompt(context, media_kind=kind)
+        kind: build_verification_system_prompt(
+            instruction,
+            media_kind=kind,
+            sysprompt=sysprompt,
+            sysprompt_placement=sysprompt_placement,
+        )
         for kind in MEDIA_KIND_WORDING
     }
 
@@ -445,14 +458,19 @@ def run_verify_captions_job(
     mode: AutomationMode = "thinking",
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
-    context: str = "",
+    instruction: str = "",
+    sysprompt_placement: SyspromptPlacement = "off",
     on_progress: ProgressCallback | None = None,
     should_cancel: ShouldCancel | None = None,
     selected_paths: list[Path] | None = None,
 ) -> dict[str, object]:
     validate_verify_captions_folder(folder)
 
-    system_prompts = build_verification_system_prompts(context)
+    system_prompts = build_verification_system_prompts(
+        instruction,
+        sysprompt=load_placed_sysprompt(folder, sysprompt_placement),
+        sysprompt_placement=sysprompt_placement,
+    )
     media_files = filter_media_list(list_verify_captions_media(folder), selected_paths)
     resolved_model = model if model is not None else get_openai_model()
 

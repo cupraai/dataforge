@@ -44,7 +44,7 @@ function renderDialog(instruction = "") {
 }
 
 function instructionField() {
-  return screen.getByLabelText<HTMLTextAreaElement>("Edit instruction");
+  return screen.getByLabelText<HTMLTextAreaElement>("Instruction");
 }
 
 async function openPanel(user: ReturnType<typeof userEvent.setup>) {

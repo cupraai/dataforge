@@ -18,6 +18,7 @@ const workflow: Workflow = {
         preserve_thinking: true,
         instruction: "Rewrite every caption in the present tense and drop camera jargon.",
         vision: false,
+        sysprompt_placement: "off",
         backup: true,
       },
     },

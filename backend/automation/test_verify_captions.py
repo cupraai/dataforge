@@ -241,23 +241,46 @@ class VerifyCaptionsPromptTests(unittest.TestCase):
 
         self.assertIn("hand and leg positioning", prompt.lower())
 
-    def test_build_system_prompt_inserts_optional_context_between_objective_and_rules(
+    def test_build_system_prompt_inserts_an_optional_instruction_between_objective_and_rules(
         self,
     ) -> None:
         prompt = build_verification_system_prompt("Subjects are usually seated outdoors.")
 
-        self.assertIn("# Additional context", prompt)
+        self.assertIn("# Instruction", prompt)
         self.assertIn("Subjects are usually seated outdoors.", prompt)
         objective_pos = prompt.index("# Objective")
-        context_pos = prompt.index("# Additional context")
+        instruction_pos = prompt.index("# Instruction")
         rules_pos = prompt.index("# Rules")
-        self.assertLess(objective_pos, context_pos)
-        self.assertLess(context_pos, rules_pos)
+        self.assertLess(objective_pos, instruction_pos)
+        self.assertLess(instruction_pos, rules_pos)
 
-    def test_build_system_prompt_omits_context_section_when_empty(self) -> None:
+    def test_build_system_prompt_places_the_folder_prompt_beside_the_instruction(self) -> None:
+        for placement, first, second in (
+            ("before", "# Caption style", "# Instruction"),
+            ("after", "# Instruction", "# Caption style"),
+        ):
+            with self.subTest(placement=placement):
+                prompt = build_verification_system_prompt(
+                    "Subjects are usually seated outdoors.",
+                    sysprompt="# Caption style\nName the subject first.",
+                    sysprompt_placement=placement,
+                )
+                self.assertLess(prompt.index("# Objective"), prompt.index(first))
+                self.assertLess(prompt.index(first), prompt.index(second))
+                self.assertLess(prompt.index(second), prompt.index("# Rules"))
+
+    def test_build_system_prompt_places_the_folder_prompt_without_an_instruction(self) -> None:
+        prompt = build_verification_system_prompt(
+            "", sysprompt="# Caption style\nName the subject first.", sysprompt_placement="after"
+        )
+
+        self.assertNotIn("# Instruction", prompt)
+        self.assertLess(prompt.index("# Caption style"), prompt.index("# Rules"))
+
+    def test_build_system_prompt_omits_the_instruction_section_when_empty(self) -> None:
         prompt = build_verification_system_prompt("   ")
 
-        self.assertNotIn("# Additional context", prompt)
+        self.assertNotIn("# Instruction", prompt)
 
     def test_build_system_prompt_asks_for_a_verdict_and_issue_prose(self) -> None:
         """An array invites enumeration."""
@@ -466,6 +489,23 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
         self.assertEqual(result["stats"]["success"], 1)
         self.assertEqual(result["stats"]["issues_found"], 1)
 
+    def test_run_job_sends_the_folder_prompt_only_when_placed(self) -> None:
+        for placement, expected in (("before", True), ("off", False)):
+            with self.subTest(placement=placement), TempMediaFolder() as root:
+                media = write_media(root, "photo.png")
+                write_txt_caption(media, "A red car.")
+                (root / ".sysprompt").write_text(
+                    "# Caption style\nName the subject first.", encoding="utf-8"
+                )
+
+                with patch(
+                    "automation.verify_captions.verify_caption", return_value=_fixes_json()
+                ) as verify:
+                    run_verify_captions_job(root, sysprompt_placement=placement)
+
+                system_prompt = verify.call_args.args[2]
+                self.assertEqual("Name the subject first." in system_prompt, expected)
+
     def test_run_job_skips_issue_file_when_caption_is_correct(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "photo.png")
@@ -618,7 +658,9 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
                 return _fixes_json()
 
             with patch("automation.verify_captions.verify_caption", side_effect=fake_verify):
-                result = run_verify_captions_job(root, mode="thinking", context="Test context.")
+                result = run_verify_captions_job(
+                    root, mode="thinking", instruction="Test instruction."
+                )
 
         self.assertEqual(result["total"], 2)
         self.assertEqual(result["processed"], 2)

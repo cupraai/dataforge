@@ -255,13 +255,13 @@ These are choices in each job's dialog, not environment variables. Most are reme
 | **Reasoning effort** | All three | `medium` | Also `low`, `high`, `xhigh`, and `max` |
 | **Preserve thinking** | All three | On | Keeps earlier reasoning in multi-turn prompts |
 | **Caption audio** | Auto-caption | Off | Sends audio alongside video frames |
-| **Additional context** | Verify captions | — | Optional dataset facts for the checker |
-| **Edit instruction** | Edit captions | — | Describes the rewrite |
+| **Instruction** | Verify captions, Edit captions | — | Verify captions: optional dataset facts for the checker. Edit captions: describes the rewrite |
 | **Send media** | Edit captions | Off | Sends each file's image or video keyframes so the edit can check and add visible details |
+| **System prompt** | Verify captions, Edit captions | Off | **Before** or **After** adds the folder's [system prompt](user-guide.md#folder-instructions) before or after the instruction |
 
 - **Reasoning effort** applies in Reasoning mode only. With llama.cpp or Unsloth Studio, only the loaded model's levels are offered; a model without levels shows a disabled **None**.
 - **Preserve thinking** works when the template supports it. Current jobs use single-turn prompts.
-- **Edit instruction** is required.
+- **Instruction** is required in Edit captions.
 
 **Not remembered; reset every run:**
 
@@ -369,12 +369,13 @@ The default endpoints are local. A remote endpoint receives the following; its o
 | Job | Sends |
 | --- | --- |
 | Auto-caption | Downscaled image/video frames, draft caption if any, and system prompt |
-| Verify captions | Downscaled image/video frames, caption, and additional context |
-| Edit captions | Caption and edit instruction |
+| Verify captions | Downscaled image/video frames, caption, and instruction |
+| Edit captions | Caption and instruction |
 
 - **Auto-caption** optionally also sends 15 seconds of audio.
 - **Verify captions** sends no audio.
 - **Edit captions** with **Send media** also sends downscaled image/video frames.
+- **Verify captions** and **Edit captions** also send the folder's system prompt when **System prompt** is **Before** or **After**.
 
 **ComfyUI, at `COMFY_BASE_URL`**
 

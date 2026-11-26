@@ -60,7 +60,7 @@ describe("loadAutomationSettings", () => {
         mode: "thinking",
         reasoning_effort: "low",
         preserve_thinking: false,
-        context: "Studio shots.",
+        instruction: "Studio shots.",
       },
       edit_captions: {
         mode: "thinking",
@@ -91,7 +91,7 @@ describe("loadAutomationSettings", () => {
     });
     expect(settings.set_captions).toEqual({ caption: "A mountain lake." });
     expect(settings.replace_captions.mode).toBe("append");
-    expect(settings.verify_captions.context).toBe("Studio shots.");
+    expect(settings.verify_captions.instruction).toBe("Studio shots.");
     expect(settings.edit_captions).toEqual({
       mode: "thinking",
       reasoning_effort: "xhigh",

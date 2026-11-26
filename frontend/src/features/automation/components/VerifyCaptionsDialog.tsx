@@ -6,6 +6,7 @@ import { AutomationModeSelector } from "@/features/automation/components/Automat
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffort";
 import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetMenu";
+import { SyspromptPlacementMenu } from "@/features/automation/components/SyspromptPlacementMenu";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
 import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
 import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
@@ -19,6 +20,7 @@ type Settings = JobSettingsByType["verify_captions"];
 interface VerifyCaptionsDialogProps {
   scope: DialogScopeInfo;
   initialSettings: Settings;
+  folderPath: string;
   busy?: boolean;
   /** Saves a workflow step, which runs later, so the server need not answer now. */
   editingStep?: boolean;
@@ -31,6 +33,7 @@ interface VerifyCaptionsDialogProps {
 export function VerifyCaptionsDialog({
   scope,
   initialSettings,
+  folderPath,
   busy = false,
   editingStep = false,
   confirmLabel,
@@ -38,19 +41,21 @@ export function VerifyCaptionsDialog({
   onCancel,
 }: VerifyCaptionsDialogProps) {
   const [mode, setMode] = useState(initialSettings.mode);
-  const [context, setContext] = useState(initialSettings.context);
+  const [instruction, setInstruction] = useState(initialSettings.instruction);
   const effort = useReasoningEffort(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
-  const contextRef = useRef<HTMLTextAreaElement>(null);
+  const [syspromptPlacement, setSyspromptPlacement] = useState(initialSettings.sysprompt_placement);
+  const instructionRef = useRef<HTMLTextAreaElement>(null);
   const vision = useVisionLlmInfo();
 
   return (
     <GuardedDialog
       unsavedChanges={
         mode !== initialSettings.mode ||
-        context !== initialSettings.context ||
+        instruction !== initialSettings.instruction ||
         effort.changed ||
-        preserveThinking !== initialSettings.preserve_thinking
+        preserveThinking !== initialSettings.preserve_thinking ||
+        syspromptPlacement !== initialSettings.sysprompt_placement
       }
       scope={scope}
       title="Start verify captions?"
@@ -68,9 +73,10 @@ export function VerifyCaptionsDialog({
       onConfirm={() =>
         onConfirm({
           mode,
-          context,
+          instruction,
           reasoning_effort: effort.value,
           preserve_thinking: preserveThinking,
+          sysprompt_placement: syspromptPlacement,
         })
       }
       onClose={onCancel}
@@ -109,27 +115,36 @@ export function VerifyCaptionsDialog({
       />
 
       <Field
-        label="Additional context"
+        label="Instruction"
         labelEnd={
-          <SavedSnippetMenu
-            book="verify_contexts"
-            text={context}
-            disabled={busy}
-            onInsert={(text) => {
-              setContext((current) => appendSnippet(current, text));
-              contextRef.current?.focus();
-            }}
-          />
+          <>
+            <SyspromptPlacementMenu
+              value={syspromptPlacement}
+              folderPath={folderPath}
+              editingStep={editingStep}
+              disabled={busy}
+              onChange={setSyspromptPlacement}
+            />
+            <SavedSnippetMenu
+              book="verify_instructions"
+              text={instruction}
+              disabled={busy}
+              onInsert={(text) => {
+                setInstruction((current) => appendSnippet(current, text));
+                instructionRef.current?.focus();
+              }}
+            />
+          </>
         }
       >
         {(control) => (
           <TextArea
             {...control}
-            ref={contextRef}
+            ref={instructionRef}
             grow
-            className="verify-captions-dialog__context"
-            value={context}
-            onChange={(event) => setContext(event.target.value)}
+            className="verify-captions-dialog__instruction"
+            value={instruction}
+            onChange={(event) => setInstruction(event.target.value)}
             placeholder="e.g. typical poses or recurring subjects"
             rows={2}
             disabled={busy}

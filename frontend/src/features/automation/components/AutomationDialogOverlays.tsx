@@ -99,6 +99,7 @@ export function AutomationDialogOverlays({ dialogs }: AutomationDialogOverlaysPr
         <VerifyCaptionsDialog
           scope={verifyCaptions.scope}
           initialSettings={verifyCaptions.initialSettings}
+          folderPath={verifyCaptions.folderPath}
           busy={verifyCaptions.busy}
           editingStep={verifyCaptions.editingStep}
           confirmLabel={verifyCaptions.confirmLabel}

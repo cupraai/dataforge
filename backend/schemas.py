@@ -110,6 +110,8 @@ type TrainingModel = Literal[
 
 #: Union of the levels chat templates define; each template accepts only its own subset.
 type ReasoningEffort = Literal["low", "medium", "high", "xhigh", "max"]
+#: Where a caption job puts the folder's .sysprompt, relative to the user's own text.
+type SyspromptPlacement = Literal["off", "before", "after"]
 
 type JobStatus = Literal["queued", "running", "completed", "failed", "cancelled", "interrupted"]
 type JobType = Literal[
@@ -789,9 +791,9 @@ class RememberedDataResponse(BaseModel):
     display_mode_folders: int
 
 
-#: ``instructions`` serves Edit captions, ``verify_contexts`` Verify captions, and
+#: ``instructions`` serves Edit captions, ``verify_instructions`` Verify captions, and
 #: ``comfy_prompts`` the ComfyUI dialogs.
-type SnippetBook = Literal["instructions", "verify_contexts", "comfy_prompts"]
+type SnippetBook = Literal["instructions", "verify_instructions", "comfy_prompts"]
 
 
 class SavedSnippet(BaseModel):
@@ -1488,7 +1490,11 @@ class VerifyCaptionsJobSettings(BaseModel):
         default=True,
         description="Keep earlier assistant reasoning in the rendered prompt.",
     )
-    context: str = ""
+    instruction: str = ""
+    sysprompt_placement: SyspromptPlacement = Field(
+        default="off",
+        description="Add the folder's system prompt before or after the instruction.",
+    )
 
 
 class VerifyCaptionsStartRequest(JobSelectionRequest, VerifyCaptionsJobSettings):
@@ -1507,6 +1513,10 @@ class EditCaptionsJobSettings(BaseModel):
     vision: bool = Field(
         default=False,
         description="Send each caption's image or video keyframes along with it.",
+    )
+    sysprompt_placement: SyspromptPlacement = Field(
+        default="off",
+        description="Add the folder's system prompt before or after the instruction.",
     )
 
 

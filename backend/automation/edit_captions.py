@@ -45,7 +45,13 @@ from openai_settings import (
     DEFAULT_REASONING_EFFORT,
     get_openai_model,
 )
-from schemas import AutomationMode, CaptionEditPreviewSample, EditCaptionsPreviewResponse
+from schemas import (
+    AutomationMode,
+    CaptionEditPreviewSample,
+    EditCaptionsPreviewResponse,
+    SyspromptPlacement,
+)
+from sysprompt import load_placed_sysprompt, place_sysprompt
 
 REJECTED = "rejected"
 UNCHANGED = "unchanged"
@@ -80,7 +86,13 @@ _VISION_MEDIA_WORDING: dict[MediaKind, tuple[str, str]] = {
 }
 
 
-def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None = None) -> str:
+def build_edit_system_prompt(
+    instruction: str,
+    *,
+    media_kind: MediaKind | None = None,
+    sysprompt: str | None = None,
+    sysprompt_placement: SyspromptPlacement = "off",
+) -> str:
     """Built once per job so the prefix cache stays warm."""
     if media_kind is None:
         given = "The caption text is all you are given."
@@ -106,7 +118,7 @@ def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None =
         ).strip(),
         "# Objective\nRewrite the caption you are given so that it satisfies the requested "
         f"edit, and return the rewritten caption. {given}",
-        f"# Edit to apply\n{instruction.strip()}",
+        *place_sysprompt(f"# Edit to apply\n{instruction.strip()}", sysprompt, sysprompt_placement),
         # Judging only; output mechanics here break verify-captions.
         "\n".join(
             (
@@ -130,14 +142,25 @@ def build_edit_system_prompt(instruction: str, *, media_kind: MediaKind | None =
     return "\n\n".join(sections)
 
 
-def build_edit_system_prompts(instruction: str, *, vision: bool) -> dict[MediaKind, str]:
+def build_edit_system_prompts(
+    instruction: str,
+    *,
+    vision: bool,
+    sysprompt: str | None = None,
+    sysprompt_placement: SyspromptPlacement = "off",
+) -> dict[MediaKind, str]:
+    def build(media_kind: MediaKind | None) -> str:
+        return build_edit_system_prompt(
+            instruction,
+            media_kind=media_kind,
+            sysprompt=sysprompt,
+            sysprompt_placement=sysprompt_placement,
+        )
+
     if not vision:
-        prompt = build_edit_system_prompt(instruction)
+        prompt = build(None)
         return {"image": prompt, "video": prompt}
-    return {
-        kind: build_edit_system_prompt(instruction, media_kind=kind)
-        for kind in _VISION_MEDIA_WORDING
-    }
+    return {kind: build(kind) for kind in _VISION_MEDIA_WORDING}
 
 
 def build_edit_user_text(
@@ -331,12 +354,18 @@ def preview_caption_edits(
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     vision: bool = False,
+    sysprompt_placement: SyspromptPlacement = "off",
     selected_paths: list[Path] | None = None,
 ) -> EditCaptionsPreviewResponse:
     """Up to three readable captions, without writing sidecars."""
     validate_edit_captions_folder(folder, instruction=instruction)
     media_files = filter_media_list(list_edit_captions_media(folder), selected_paths)
-    system_prompts = build_edit_system_prompts(instruction, vision=vision)
+    system_prompts = build_edit_system_prompts(
+        instruction,
+        vision=vision,
+        sysprompt=load_placed_sysprompt(folder, sysprompt_placement),
+        sysprompt_placement=sysprompt_placement,
+    )
     resolved_model = get_openai_model()
     samples: list[CaptionEditPreviewSample] = []
 
@@ -401,13 +430,19 @@ def run_edit_captions_job(
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
     preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
     vision: bool = False,
+    sysprompt_placement: SyspromptPlacement = "off",
     on_progress: ProgressCallback | None = None,
     should_cancel: ShouldCancel | None = None,
     selected_paths: list[Path] | None = None,
 ) -> dict[str, object]:
     validate_edit_captions_folder(folder, instruction=instruction)
 
-    system_prompts = build_edit_system_prompts(instruction, vision=vision)
+    system_prompts = build_edit_system_prompts(
+        instruction,
+        vision=vision,
+        sysprompt=load_placed_sysprompt(folder, sysprompt_placement),
+        sysprompt_placement=sysprompt_placement,
+    )
     media_files = filter_media_list(list_edit_captions_media(folder), selected_paths)
     resolved_model = model if model is not None else get_openai_model()
 

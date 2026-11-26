@@ -30,7 +30,7 @@ test("previews caption edits without writes, then starts the normal backed-up jo
   await page.getByRole("button", { name: "Tools", exact: true }).click();
   await page.getByRole("menuitem", { name: /Edit captions/ }).click();
   const dialog = page.getByRole("dialog", { name: "Start edit captions?" });
-  await dialog.getByLabel("Edit instruction").fill("Rewrite in present tense.");
+  await dialog.getByLabel("Instruction", { exact: true }).fill("Rewrite in present tense.");
   // Beside the Preview label, with the results it produces.
   const previewField = dialog.locator(".caption-preview-field");
   const preview = previewField.getByRole("button", { name: "Dry run" });
@@ -59,10 +59,10 @@ test("previews caption edits without writes, then starts the normal backed-up jo
   await expect(dialog.getByRole("button", { name: "Start edit captions" })).toBeInViewport();
   await page.screenshot({ path: testInfo.outputPath("preview-1024.png") });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await dialog.getByLabel("Edit instruction").scrollIntoViewIfNeeded();
+  await dialog.getByLabel("Instruction", { exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: testInfo.outputPath("preview-1440.png") });
 
-  await dialog.getByLabel("Edit instruction").fill("Remove colour words.");
+  await dialog.getByLabel("Instruction", { exact: true }).fill("Remove colour words.");
   await expect(samples.getByRole("listitem")).toHaveCount(0);
   await dialog.getByRole("button", { name: "Start edit captions" }).click();
   await expect(dialog).not.toBeVisible();

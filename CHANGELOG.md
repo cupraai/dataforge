@@ -8,6 +8,14 @@ version heading when a minor or major version is cut.
 
 ## Unreleased
 
+### Added
+
+- **Verify captions** and **Edit captions** have a **System prompt** menu beside **Saved**. **Before** or **After** adds the folder's system prompt, its own or a parent's, before or after the instruction, so the model works from the same caption guidelines as Auto-caption. The menu names the file used; when the folder has none, the button shows a warning and nothing is added. Workflow steps keep the choice too. While such a job runs, the system prompt it reads cannot be edited, as with Auto-caption.
+
+### Changed
+
+- **Verify captions** calls its text field **Instruction**, like **Edit captions**, and its **Saved** menu lists saved instructions. Your remembered text and saved entries carry over.
+
 ### Fixed
 
 - The **ComfyUI workflow** dialog no longer lists the models of different passes together under **Shared**. Settings several passes read are shown before the first of those passes and say which passes read them, such as **Passes 3–6**, so an image model and the video model that animates its result stay apart. Settings read after sampling, such as the frame rate and the VAE that decodes the result, are listed last, under **Output**.

@@ -802,7 +802,8 @@ export function installMockBackend(options: MockBackendOptions = {}) {
           mode: "instruct",
           reasoning_effort: "medium",
           preserve_thinking: true,
-          context: "",
+          instruction: "",
+          sysprompt_placement: "off",
         },
         edit_captions: {
           mode: "instruct",
@@ -810,6 +811,7 @@ export function installMockBackend(options: MockBackendOptions = {}) {
           preserve_thinking: true,
           instruction: "",
           vision: false,
+          sysprompt_placement: "off",
         },
         batch_rename: { stem: "", start_number: 1 },
         find_duplicates: { threshold: "near" },

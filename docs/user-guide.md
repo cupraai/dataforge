@@ -128,10 +128,12 @@ Choose **Create instructions** or **Edit instructions** in the folder sidebar. T
 
 | Tab | File | Used by | Holds |
 | --- | --- | --- | --- |
-| **System prompt** | `.sysprompt` | **Auto-caption** | Instructions for the model: voice, required details, or format |
+| **System prompt** | `.sysprompt` | **Auto-caption**; **Verify captions** and **Edit captions** when asked | Instructions for the model: voice, required details, or format |
 | **Caption rules** | `.captionrules` | **Lint captions** | [Caption rules](#caption-rules) |
 
 - **Auto-caption needs a system prompt** in this folder or a parent.
+- **Verify captions and Edit captions can use it too.** The **System prompt** menu, beside **Saved** above **Instruction**, adds it **Before** or **After** your instruction. The menu names the file it uses. A folder without a valid system prompt adds nothing, and the button shows a warning.
+- **A running job locks the file it reads.** While Auto-caption, or Verify captions or Edit captions with the system prompt on, runs on a folder, that folder's system prompt cannot be edited. Caption rules are locked only by Lint captions.
 - **A system prompt is Markdown** that must start with a `#` heading, such as `# Caption instructions`. Deeper headings such as `## Details` may follow. A prompt without an opening `#` heading is marked invalid, and Auto-caption cannot use it until it is fixed.
 - **Use template** on the Caption rules tab gives a starting point.
 
@@ -554,7 +556,7 @@ Jobs are grouped as in the **Tools** menu.
 - Click one to add it: it fills an empty field, or goes after a blank line, so several can be combined.
 - To save the instruction you typed, choose **Save current instruction...**, name it, and press `Enter` or **Save**. A name already in the list (ignoring case) offers **Replace**.
 - Saved instructions are shared by every folder and kept in `backend/data/`.
-- **Verify captions** has the same menu beside **Additional context**, with its own list.
+- **Verify captions** has the same menu beside its **Instruction**, with its own list.
 
 **Try Edit captions first.** Enter an instruction and click **Dry run**.
 

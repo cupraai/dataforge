@@ -59,8 +59,10 @@ function renderDialog(
   return onConfirm;
 }
 
+const INSTRUCTION_TEXT = "Rewrite in present tense.";
+
 function instructionField() {
-  return screen.getByLabelText("Edit instruction");
+  return screen.getByLabelText("Instruction");
 }
 
 function backupCheckbox() {
@@ -74,6 +76,23 @@ function confirm(user: ReturnType<typeof userEvent.setup>) {
 describe("EditCaptionsDialog", () => {
   beforeEach(() => {
     vi.mocked(previewCaptionEdits).mockReset();
+  });
+
+  it("places the folder's system prompt before the instruction when asked", async () => {
+    const user = userEvent.setup();
+    const onConfirm = renderDialog({ instruction: INSTRUCTION_TEXT });
+
+    await user.click(screen.getByRole("button", { name: "System prompt: Off" }));
+    await user.click(
+      within(await screen.findByRole("dialog", { name: "System prompt" })).getByRole("button", {
+        name: /^Before/,
+      }),
+    );
+    await confirm(user);
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ sysprompt_placement: "before" }),
+    );
   });
 
   it("only previews on request with the current selection and model settings", async () => {
@@ -118,6 +137,7 @@ describe("EditCaptionsDialog", () => {
         reasoning_effort: "low",
         preserve_thinking: false,
         vision: false,
+        sysprompt_placement: "off",
         paths,
       },
       expect.any(AbortSignal),
@@ -241,6 +261,7 @@ describe("EditCaptionsDialog", () => {
       reasoning_effort: "low",
       preserve_thinking: true,
       vision: false,
+      sysprompt_placement: "off",
       backup: false,
     });
   });
@@ -262,6 +283,7 @@ describe("EditCaptionsDialog", () => {
       reasoning_effort: "medium",
       preserve_thinking: false,
       vision: false,
+      sysprompt_placement: "off",
       backup: true,
     });
   });
@@ -286,6 +308,7 @@ describe("EditCaptionsDialog", () => {
       reasoning_effort: "medium",
       preserve_thinking: true,
       vision: true,
+      sysprompt_placement: "off",
       backup: true,
     });
   });
@@ -302,6 +325,7 @@ describe("EditCaptionsDialog", () => {
       reasoning_effort: "medium",
       preserve_thinking: true,
       vision: false,
+      sysprompt_placement: "off",
       backup: true,
     });
   });

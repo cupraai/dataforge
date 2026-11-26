@@ -32,6 +32,7 @@ from testing_fixtures import (
 )
 
 INSTRUCTION = "Rewrite in present tense."
+SYSPROMPT = "# Caption style\nName the subject first."
 ORIGINAL = "A woman in a red coat walked along the wet street."
 EDITED = "A woman in a red coat walks along the wet street."
 
@@ -114,6 +115,24 @@ class EditCaptionsPromptTests(unittest.TestCase):
         self.assertLess(prompt.rindex("# Rules"), prompt.rindex("# Output Format"))
         real_rules = prompt[prompt.rindex("# Rules") : prompt.rindex("# Output Format")]
         self.assertEqual(real_rules.count("\n- "), 4)
+
+    def test_the_folder_prompt_goes_on_the_chosen_side_of_the_instruction(self) -> None:
+        for placement, expected in (("before", -1), ("after", 1)):
+            with self.subTest(placement=placement):
+                prompt = build_edit_system_prompt(
+                    INSTRUCTION, sysprompt=SYSPROMPT, sysprompt_placement=placement
+                )
+                edit_at = prompt.index("# Edit to apply")
+                style_at = prompt.index("# Caption style")
+                self.assertEqual((style_at > edit_at) - (style_at < edit_at), expected)
+                # Still bounded by the job's own sections.
+                self.assertLess(prompt.index("# Objective"), style_at)
+                self.assertLess(style_at, prompt.index("# Rules"))
+
+    def test_the_folder_prompt_is_left_out_while_placement_is_off(self) -> None:
+        prompt = build_edit_system_prompt(INSTRUCTION, sysprompt=SYSPROMPT)
+
+        self.assertNotIn("# Caption style", prompt)
 
     def test_the_user_text_carries_the_caption_and_the_output_demand(self) -> None:
         text = build_edit_user_text(f"  {ORIGINAL}  ")
@@ -314,6 +333,23 @@ class EditCaptionsJobRunTests(unittest.TestCase):
                 _run(root)
 
             self.assertEqual(build.call_count, 1)
+
+    def test_the_job_reads_the_folder_prompt_only_when_placed(self) -> None:
+        for placement, has_file, expected in (
+            ("after", True, True),
+            ("off", True, False),
+            ("before", False, False),
+        ):
+            with self.subTest(placement=placement, has_file=has_file), TempMediaFolder() as root:
+                _captioned(root, "a.png")
+                if has_file:
+                    (root / ".sysprompt").write_text(SYSPROMPT, encoding="utf-8")
+
+                with patch("automation.edit_captions.edit_caption", return_value=EDITED) as edit:
+                    _run(root, sysprompt_placement=placement)
+
+                system_prompt = edit.call_args.args[1]
+                self.assertEqual("Name the subject first." in system_prompt, expected)
 
 
 class EditCaptionsBackupTests(unittest.TestCase):

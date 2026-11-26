@@ -8,6 +8,7 @@ import { previewCaptionEdits } from "@/features/automation/api/jobs";
 import { CaptionPreviewPanel } from "@/features/automation/components/CaptionPreviewPanel";
 import { CaptionBackupOption } from "@/features/automation/components/CaptionBackupOption";
 import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetMenu";
+import { SyspromptPlacementMenu } from "@/features/automation/components/SyspromptPlacementMenu";
 import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import { AutomationModeSelector } from "@/features/automation/components/AutomationModeSelector";
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
@@ -54,6 +55,7 @@ export function EditCaptionsDialog({
   const effort = useReasoningEffort(initialSettings.reasoning_effort);
   const [preserveThinking, setPreserveThinking] = useState(initialSettings.preserve_thinking);
   const [vision, setVision] = useState(initialSettings.vision);
+  const [syspromptPlacement, setSyspromptPlacement] = useState(initialSettings.sysprompt_placement);
   // Reset on every open so opting out only applies to the current run.
   const [backup, setBackup] = useState(initialSettings.backup ?? true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export function EditCaptionsDialog({
     reasoning_effort: effort.value,
     preserve_thinking: preserveThinking,
     vision,
+    sysprompt_placement: syspromptPlacement,
   };
   const request = { ...settings, paths: selectedPaths };
   const preview = useQuery({
@@ -141,6 +144,7 @@ export function EditCaptionsDialog({
         effort.changed ||
         preserveThinking !== initialSettings.preserve_thinking ||
         vision !== initialSettings.vision ||
+        syspromptPlacement !== initialSettings.sysprompt_placement ||
         !backup
       }
       scope={scope}
@@ -209,18 +213,27 @@ export function EditCaptionsDialog({
           <CaptionBackupOption checked={backup} disabled={controlsBusy} onChange={setBackup} />
 
           <Field
-            label="Edit instruction"
+            label="Instruction"
             labelEnd={
-              <SavedSnippetMenu
-                book="instructions"
-                text={instruction}
-                disabled={controlsBusy}
-                onInsert={(text) => {
-                  setInstruction((current) => appendSnippet(current, text));
-                  setError(null);
-                  instructionRef.current?.focus();
-                }}
-              />
+              <>
+                <SyspromptPlacementMenu
+                  value={syspromptPlacement}
+                  folderPath={folderPath}
+                  editingStep={editingStep}
+                  disabled={controlsBusy}
+                  onChange={setSyspromptPlacement}
+                />
+                <SavedSnippetMenu
+                  book="instructions"
+                  text={instruction}
+                  disabled={controlsBusy}
+                  onInsert={(text) => {
+                    setInstruction((current) => appendSnippet(current, text));
+                    setError(null);
+                    instructionRef.current?.focus();
+                  }}
+                />
+              </>
             }
           >
             {(control) => (

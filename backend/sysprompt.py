@@ -6,6 +6,7 @@ from markdown_it import MarkdownIt
 
 from constants import SYSPROMPT_FILENAME
 from folder_instructions import find_instruction_file, read_instruction_file, save_instruction_file
+from schemas import SyspromptPlacement
 
 
 def validate_sysprompt(text: str) -> None:
@@ -38,6 +39,21 @@ def load_sysprompt(folder: Path) -> str | None:
     except (OSError, ValueError):
         return None
     return text
+
+
+def load_placed_sysprompt(folder: Path, placement: SyspromptPlacement) -> str | None:
+    """None when the job leaves the prompt out or the folder has no valid one."""
+    return None if placement == "off" else load_sysprompt(folder)
+
+
+def place_sysprompt(
+    section: str | None, sysprompt: str | None, placement: SyspromptPlacement
+) -> list[str]:
+    """The user's own prompt section, with the folder's system prompt on the chosen side."""
+    sections = [section] if section else []
+    if sysprompt is None or placement == "off":
+        return sections
+    return [sysprompt, *sections] if placement == "before" else [*sections, sysprompt]
 
 
 def save_sysprompt(folder: Path, text: str) -> None:

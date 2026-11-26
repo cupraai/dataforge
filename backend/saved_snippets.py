@@ -8,13 +8,13 @@ from schemas import SavedSnippet, SavedSnippetsResponse, SnippetBook
 
 _STORES: dict[SnippetBook, JsonPreference[SavedSnippetsResponse]] = {
     "instructions": JsonPreference("instruction_snippets", SavedSnippetsResponse),
-    "verify_contexts": JsonPreference("verify_context_snippets", SavedSnippetsResponse),
+    "verify_instructions": JsonPreference("verify_instruction_snippets", SavedSnippetsResponse),
     "comfy_prompts": JsonPreference("comfy_prompt_snippets", SavedSnippetsResponse),
 }
 
 _NOUNS: dict[SnippetBook, str] = {
     "instructions": "instructions",
-    "verify_contexts": "contexts",
+    "verify_instructions": "instructions",
     "comfy_prompts": "prompts",
 }
 

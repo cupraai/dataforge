@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import quote
 
-from automation.jobs import Job, JobType, job_manager
+from automation.jobs import JOB_SPECS, Job, JobType, job_manager
 from caption_rules import STARTER_CAPTION_RULES
 from constants import CAPTION_RULES_FILENAME, SYSPROMPT_FILENAME
 from routes._test_client import client
@@ -249,8 +249,17 @@ if __name__ == "__main__":
 class InstructionsLockedByJobTests(unittest.TestCase):
     """A running job reads the file it started with."""
 
-    def run_job(self, folder: Path, job_type: JobType, status: str = "running") -> None:
-        job = Job(id=f"{job_type}-1", folder=str(folder), status=status, job_type=job_type)
+    def run_job(
+        self, folder: Path, job_type: JobType, status: str = "running", **params: object
+    ) -> None:
+        reads = JOB_SPECS[job_type].instruction_files
+        job = Job(
+            id=f"{job_type}-1",
+            folder=str(folder),
+            status=status,
+            job_type=job_type,
+            instruction_files=reads(params) if reads else frozenset(),
+        )
         patcher = patch.dict(job_manager._jobs, {job.id: job})
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -271,6 +280,49 @@ class InstructionsLockedByJobTests(unittest.TestCase):
             reported = _instructions(root)
             self.assertEqual(reported["sysprompt"]["locked_by_job_id"], "auto_caption-1")
             self.assertIsNone(reported["caption_rules"]["locked_by_job_id"])
+
+    def test_a_caption_job_locks_the_prompt_only_while_it_places_it(self) -> None:
+        for job_type, label in (("edit_captions", "Edit captions"), ("verify_captions", "Verify")):
+            for placement, locked in (("before", True), ("after", True), ("off", False)):
+                with (
+                    self.subTest(job_type=job_type, placement=placement),
+                    TempMediaFolder() as root,
+                ):
+                    write_sysprompt(root, "# Describe the scene.")
+                    self.run_job(root, job_type, sysprompt_placement=placement)
+
+                    saved = _save(root, SYSPROMPT_FILENAME, "# Describe the person.")
+                    self.assertEqual(saved.status_code, 409 if locked else 200, saved.text)
+                    if locked:
+                        self.assertIn(label, saved.json()["detail"])
+                    self.assertEqual(
+                        _instructions(root)["sysprompt"]["locked_by_job_id"],
+                        f"{job_type}-1" if locked else None,
+                    )
+                    self.assertEqual(
+                        _save(root, CAPTION_RULES_FILENAME, "repeated_phrases: 4").status_code,
+                        200,
+                    )
+
+    def test_queueing_records_the_files_the_params_read(self) -> None:
+        with TempMediaFolder() as root, patch.dict(job_manager._jobs):
+            for params, expected in (
+                ({"sysprompt_placement": "after"}, {SYSPROMPT_FILENAME}),
+                ({"sysprompt_placement": "off"}, set()),
+                ({}, set()),
+            ):
+                with self.subTest(params=params):
+                    job, _run = job_manager._new_job_unlocked(root, "edit_captions", params, None)
+                    self.assertEqual(job.instruction_files, expected)
+
+    def test_a_job_that_reads_no_instructions_locks_nothing(self) -> None:
+        with TempMediaFolder() as root:
+            write_sysprompt(root, "# Describe the scene.")
+            self.run_job(root, "set_captions")
+
+            self.assertEqual(
+                _save(root, SYSPROMPT_FILENAME, "# Describe the person.").status_code, 200
+            )
 
     def test_a_queued_job_leaves_the_file_editable_for_the_run_it_will_start(self) -> None:
         with TempMediaFolder() as root:

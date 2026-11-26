@@ -52,7 +52,7 @@ for (const job of ["Find & replace", "Edit captions"] as const) {
         await dialog.getByLabel("Search for").fill("red");
         await dialog.getByLabel("Replace with").fill("blue");
       } else {
-        await dialog.getByLabel("Edit instruction").fill("Rewrite in present tense.");
+        await dialog.getByLabel("Instruction", { exact: true }).fill("Rewrite in present tense.");
       }
       await backupLabel.scrollIntoViewIfNeeded();
       await expect(backupLabel).toBeInViewport();

@@ -68,7 +68,8 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       mode: "thinking",
       reasoning_effort: DEFAULT_REASONING_EFFORT,
       preserve_thinking: DEFAULT_PRESERVE_THINKING,
-      context: "",
+      instruction: "",
+      sysprompt_placement: "off",
     },
     edit_captions: {
       mode: "instruct",
@@ -76,6 +77,7 @@ export function emptyAutomationSettings(folderPath: string): AutomationSettings 
       preserve_thinking: DEFAULT_PRESERVE_THINKING,
       instruction: "",
       vision: false,
+      sysprompt_placement: "off",
     },
     batch_rename: { stem: "", start_number: 1 },
     find_duplicates: { threshold: "near" },

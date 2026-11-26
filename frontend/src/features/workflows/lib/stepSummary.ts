@@ -1,4 +1,10 @@
-import type { AutomationMode, ReasoningEffort, WorkflowStep } from "@/shared/types";
+import { SYSPROMPT_FILENAME } from "@/shared/constants";
+import type {
+  AutomationMode,
+  ReasoningEffort,
+  SyspromptPlacement,
+  WorkflowStep,
+} from "@/shared/types";
 
 const SUMMARY_TEXT_LIMIT = 40;
 
@@ -19,6 +25,10 @@ const EFFORT_LABELS: Record<ReasoningEffort, string> = {
 
 function modelMode(mode: AutomationMode, effort: ReasoningEffort): string {
   return mode === "thinking" ? `Thinking, ${EFFORT_LABELS[effort]} effort` : "Instruct";
+}
+
+function syspromptPlacement(placement: SyspromptPlacement): string | null {
+  return placement === "off" ? null : `${SYSPROMPT_FILENAME} ${placement}`;
 }
 
 function seconds(value: number): string {
@@ -63,7 +73,11 @@ export function stepSummary(step: WorkflowStep): string {
       return `${step.settings.stem || "Unnamed"}, numbered from ${step.settings.start_number}`;
     case "verify_captions": {
       const s = step.settings;
-      return join([modelMode(s.mode, s.reasoning_effort), s.context && quoted(s.context)]);
+      return join([
+        modelMode(s.mode, s.reasoning_effort),
+        s.instruction && quoted(s.instruction),
+        syspromptPlacement(s.sysprompt_placement),
+      ]);
     }
     case "edit_captions": {
       const s = step.settings;
@@ -71,6 +85,7 @@ export function stepSummary(step: WorkflowStep): string {
         modelMode(s.mode, s.reasoning_effort),
         s.instruction ? quoted(s.instruction) : "No instruction",
         s.vision && "sends media",
+        syspromptPlacement(s.sysprompt_placement),
       ]);
     }
     case "watermark": {

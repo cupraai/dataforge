@@ -127,9 +127,10 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
         "verify-captions",
         {
             "mode": "thinking",
-            "context": "Studio product shots.",
+            "instruction": "Studio product shots.",
             "reasoning_effort": "low",
             "preserve_thinking": False,
+            "sysprompt_placement": "after",
         },
     ),
     "edit_captions": (
@@ -140,6 +141,7 @@ _NON_DEFAULT_STARTS: dict[str, tuple[str, dict[str, object]]] = {
             "preserve_thinking": False,
             "instruction": "Rewrite in present tense.",
             "vision": True,
+            "sysprompt_placement": "before",
             "backup": False,
         },
     ),

@@ -209,6 +209,7 @@ export function useAutomationDialogOverlays({
       verifyCaptions: {
         ...shared("verify_captions"),
         editingStep,
+        folderPath: folderPath ?? "",
         onConfirm: (settings: JobSettingsByType["verify_captions"]) =>
           startJobFromDialog("verify_captions", settings),
       },

@@ -113,3 +113,21 @@
     font-size: var(--text-xs);
   }
 }
+
+// The system prompt placement menu shares the Saved menu's look and sits just before it.
+.sysprompt-menu {
+  + .saved-menu {
+    margin-left: 0;
+  }
+
+  // Keeps the option names aligned with the checked one.
+  &__unchecked {
+    visibility: hidden;
+  }
+
+  &__source {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}

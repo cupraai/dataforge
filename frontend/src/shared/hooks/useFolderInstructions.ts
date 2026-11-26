@@ -12,10 +12,12 @@ export type FolderInstructionsState =
 
 export const FOLDER_INSTRUCTIONS_KEY = ["folder-instructions"] as const;
 
-/** Jobs that read an instruction file; while one is queued or running, that file is locked. */
+/** Jobs that can read an instruction file; the backend says which file a running one locks. */
 export const INSTRUCTION_READING_JOB_TYPES: ReadonlySet<JobType> = new Set([
   "auto_caption",
   "check_caption_rules",
+  "edit_captions",
+  "verify_captions",
 ]);
 
 export const folderInstructionsKey = (folderPath: string) => [

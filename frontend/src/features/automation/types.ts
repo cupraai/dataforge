@@ -50,7 +50,7 @@ export type AutomationDialogsState = {
   verifyCaptions: FolderBusyDialogState<
     (settings: JobSettingsByType["verify_captions"]) => void,
     JobSettingsByType["verify_captions"]
-  > & { editingStep: boolean };
+  > & { folderPath: string; editingStep: boolean };
   editCaptions: FolderBusyDialogState<
     (settings: EditCaptionsRunSettings) => void,
     JobSettingsByType["edit_captions"]

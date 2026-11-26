@@ -22,7 +22,8 @@ vi.mock("@/features/automation/preferences/automationPreferences", async (import
         mode: "instruct" as const,
         reasoning_effort: "medium" as const,
         preserve_thinking: true,
-        context: "Outdoor portraits.",
+        instruction: "Outdoor portraits.",
+        sysprompt_placement: "off" as const,
       },
       watermark: {
         text_enabled: true,
@@ -548,15 +549,17 @@ describe("useAutomationDialogOverlays", () => {
       mode: "instruct",
       reasoning_effort: "medium",
       preserve_thinking: true,
-      context: "Outdoor portraits.",
+      instruction: "Outdoor portraits.",
+      sysprompt_placement: "off",
     });
 
     await act(async () => {
       result.current.dialogs.verifyCaptions.onConfirm({
         mode: "thinking",
-        context: "Outdoor portraits.",
+        instruction: "Outdoor portraits.",
         reasoning_effort: "low",
         preserve_thinking: true,
+        sysprompt_placement: "off",
       });
     });
 
@@ -566,9 +569,10 @@ describe("useAutomationDialogOverlays", () => {
       "C:\\Photos",
       {
         mode: "thinking",
-        context: "Outdoor portraits.",
+        instruction: "Outdoor portraits.",
         reasoning_effort: "low",
         preserve_thinking: true,
+        sysprompt_placement: "off",
       },
       undefined,
     );
@@ -840,6 +844,7 @@ describe("useAutomationDialogOverlays edit captions", () => {
         reasoning_effort: "low",
         preserve_thinking: false,
         vision: true,
+        sysprompt_placement: "off",
         backup: false,
       });
     });
@@ -854,6 +859,7 @@ describe("useAutomationDialogOverlays edit captions", () => {
         reasoning_effort: "low",
         preserve_thinking: false,
         vision: true,
+        sysprompt_placement: "off",
         backup: false,
       },
       undefined,

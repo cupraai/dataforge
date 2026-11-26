@@ -91,6 +91,7 @@ from automation.watermark import (
     run_watermark_job,
     validate_watermark_folder,
 )
+from constants import CAPTION_RULES_FILENAME, SYSPROMPT_FILENAME
 from external.ostris_training import DEFAULT_TRAINING_MODEL
 from filesystem import normalize_user_path, path_leaf_name
 from path_resolve import resolve_path
@@ -170,6 +171,8 @@ class Job:
     workflow_run: dict[str, object] | None = None
     #: Makes new files instead of changing the scope's; fixed when the job is queued.
     generates: bool = False
+    #: The folder instruction files the run reads, locked while it runs; never stored.
+    instruction_files: frozenset[str] = frozenset()
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> Job:
@@ -383,6 +386,8 @@ class JobSpec:
     workflow: Callable[[dict[str, object]], tuple[str | None, bool]] | None = None
     #: Whether a run with these params makes new files; never otherwise.
     generates: Callable[[dict[str, object]], bool] | None = None
+    #: The folder instruction files a run with these params reads; none otherwise.
+    instruction_files: Callable[[dict[str, object]], frozenset[str]] | None = None
 
     def failure(self, stats: dict[str, int], generates: bool = False) -> str | None:
         message = (
@@ -400,6 +405,11 @@ class JobSpec:
         return ("failed", message) if message else ("completed", None)
 
 
+def _placed_sysprompt(params: dict[str, object]) -> frozenset[str]:
+    placement = params.get("sysprompt_placement", "off")
+    return frozenset() if placement == "off" else frozenset({SYSPROMPT_FILENAME})
+
+
 JOB_SPECS: dict[JobType, JobSpec] = {
     "auto_caption": JobSpec(
         thread_prefix="auto-caption",
@@ -407,6 +417,7 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         failure_message=auto_caption_failure_message,
         validate=_validate_auto_caption,
         default_caption_mode="thinking",
+        instruction_files=lambda _params: frozenset({SYSPROMPT_FILENAME}),
     ),
     "strip_metadata": JobSpec(
         thread_prefix="strip-metadata",
@@ -455,12 +466,14 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         run=run_verify_captions_job,
         failure_message=verify_captions_failure_message,
         validate=_folder_only(validate_verify_captions_folder),
+        instruction_files=_placed_sysprompt,
     ),
     "check_caption_rules": JobSpec(
         thread_prefix="check-caption-rules",
         run=run_check_caption_rules_job,
         failure_message=check_caption_rules_error_message,
         validate=_folder_only(validate_check_caption_rules_folder),
+        instruction_files=lambda _params: frozenset({CAPTION_RULES_FILENAME}),
     ),
     "edit_captions": JobSpec(
         thread_prefix="edit-captions",
@@ -468,6 +481,7 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         failure_message=edit_captions_failure_message,
         validate=_validate_edit_captions,
         default_caption_mode="instruct",
+        instruction_files=_placed_sysprompt,
     ),
     "watermark": JobSpec(
         thread_prefix="watermark",
@@ -652,13 +666,9 @@ class JobManager:
             return Job.from_dict(stored)
         return None
 
-    def active_jobs(self, job_type: JobType) -> list[Job]:
+    def active_jobs(self) -> list[Job]:
         with self._lock:
-            return [
-                job
-                for job in self._jobs.values()
-                if job.job_type == job_type and job.status in ACTIVE_STATUSES
-            ]
+            return [job for job in self._jobs.values() if job.status in ACTIVE_STATUSES]
 
     def get_active_job_for_folder(
         self,
@@ -923,6 +933,9 @@ class JobManager:
             workflow_edited=workflow_edited,
             workflow_run=workflow_run,
             generates=spec.generates(params) if spec.generates else False,
+            instruction_files=(
+                spec.instruction_files(params) if spec.instruction_files else frozenset()
+            ),
         )
         self._jobs[job_id] = job
         cancel_event = threading.Event()
