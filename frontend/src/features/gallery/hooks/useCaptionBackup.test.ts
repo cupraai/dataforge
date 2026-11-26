@@ -20,7 +20,7 @@ describe("useCaptionBackup", () => {
 
     const { result } = renderHookWithQueryClient(() => useCaptionBackup(MEDIA_PATH, true));
 
-    await waitFor(() => expect(result.current).toBe("Backed up caption."));
+    await waitFor(() => expect(result.current.backup).toBe("Backed up caption."));
   });
 
   it("stays null when the folder has no backup of the file", async () => {
@@ -30,16 +30,18 @@ describe("useCaptionBackup", () => {
 
     const { result } = renderHookWithQueryClient(() => useCaptionBackup(MEDIA_PATH, true));
 
-    await waitFor(() => expect(fetchBackup).toHaveBeenCalled());
-    expect(result.current).toBeNull();
+    await waitFor(() => expect(result.current.pending).toBe(false));
+    expect(fetchBackup).toHaveBeenCalled();
+    expect(result.current.backup).toBeNull();
   });
 
   it("does not ask the server when the folder has no backup at all", () => {
     const fetchBackup = vi.spyOn(api, "fetchCaptionBackup");
 
-    renderHookWithQueryClient(() => useCaptionBackup(MEDIA_PATH, false));
+    const { result } = renderHookWithQueryClient(() => useCaptionBackup(MEDIA_PATH, false));
 
     expect(fetchBackup).not.toHaveBeenCalled();
+    expect(result.current).toEqual({ backup: null, pending: false });
   });
 
   it("drops the previous file's backup while the next one loads", async () => {
@@ -55,11 +57,13 @@ describe("useCaptionBackup", () => {
       },
     );
 
-    await waitFor(() => expect(result.current).toBe("First caption."));
+    await waitFor(() => expect(result.current.backup).toBe("First caption."));
 
     vi.spyOn(api, "fetchCaptionBackup").mockResolvedValue({ exists: false, description: null });
     rerender({ path: `${HOME_PATH}\\harbour.png` });
 
-    expect(result.current).toBeNull();
+    expect(result.current).toEqual({ backup: null, pending: true });
+    await waitFor(() => expect(result.current.pending).toBe(false));
+    expect(result.current.backup).toBeNull();
   });
 });

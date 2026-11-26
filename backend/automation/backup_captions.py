@@ -139,7 +139,7 @@ def preview_restore_captions(
             continue
 
         backup = load_backup_caption(media)
-        current, status, _revision = load_reference_caption(media)
+        current, status, revision = load_reference_caption(media)
         error = None
         if backup is None:
             error = "Could not read the backed up caption"
@@ -158,6 +158,7 @@ def preview_restore_captions(
                 "version": _media_version(media),
                 "backup": backup or "",
                 "current": current,
+                "revision": revision,
                 "error": error,
             }
         )

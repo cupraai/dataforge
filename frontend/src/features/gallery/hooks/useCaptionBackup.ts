@@ -1,11 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchCaptionBackup } from "@/features/gallery/api/captions";
 
-/** The backed-up caption for one file, or `null` when the folder has no backup of it. */
-export function useCaptionBackup(itemPath: string | undefined, enabled: boolean): string | null {
+export interface CaptionBackup {
+  /** The backed-up caption, or `null` when the folder has no backup of the file. */
+  backup: string | null;
+  /** The first answer for this file is still on its way; `backup` is `null` meanwhile. */
+  pending: boolean;
+}
+
+export function useCaptionBackup(itemPath: string | undefined, enabled: boolean): CaptionBackup {
   const ready = Boolean(itemPath) && enabled;
 
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ["caption-backup", itemPath],
     queryFn: async () => {
       const response = await fetchCaptionBackup(itemPath!);
@@ -16,5 +22,5 @@ export function useCaptionBackup(itemPath: string | undefined, enabled: boolean)
     retry: false,
   });
 
-  return ready ? (data ?? null) : null;
+  return ready ? { backup: data ?? null, pending: isPending } : { backup: null, pending: false };
 }

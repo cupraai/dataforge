@@ -18,7 +18,7 @@ from automation.backup_captions import (
     validate_backup_captions_folder,
     validate_restore_captions_folder,
 )
-from captions import IssueSummary, issue_file_path, load_issue_summary
+from captions import IssueSummary, issue_file_path, load_issue_summary, read_caption
 from constants import CAPTION_BACKUP_DIR_NAME
 from testing_fixtures import (
     TempMediaFolder,
@@ -398,6 +398,12 @@ class RestoreCaptionsPreviewTests(unittest.TestCase):
                     },
                 ],
             )
+            # The revision a single restore writes against: the caption as compared, or none.
+            self.assertEqual(
+                [sample["revision"] for sample in preview["samples"]],
+                [read_caption(changed).revision, None],
+            )
+            self.assertIsNotNone(preview["samples"][0]["revision"])
 
     def test_versions_each_sample_by_its_media_file(self) -> None:
         with TempMediaFolder() as root:

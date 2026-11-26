@@ -2,15 +2,17 @@ import { Button } from "@/shared/ui/Button";
 import { SearchInput } from "@/shared/ui/SearchInput";
 import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useDeferredValue, useEffect, useId, useMemo, useState } from "react";
 import { previewCaptionRestore } from "@/features/automation/api/jobs";
 import { folderKey } from "@/features/folder/lib/folderPath";
+import { saveCaption } from "@/features/gallery/api/captions";
 import { thumbnailUrl } from "@/features/gallery/api/media";
 import { CAPTION_BACKUP_DIR_NAME } from "@/shared/constants";
 import {
   iconAlertTriangle,
+  iconArchiveRestore,
   iconCircleCheck,
   iconColumns2,
   iconFilterX,
@@ -23,7 +25,7 @@ import { classNames } from "@/shared/lib/classNames";
 import { diffCaptionWords } from "@/shared/lib/captionWordDiff";
 import { formatCount } from "@/shared/lib/format";
 import { readStored, writeStored } from "@/shared/lib/storage";
-import { formatApiError } from "@/shared/api/http";
+import { formatApiError, isApiErrorCode } from "@/shared/api/http";
 import type { CaptionBackupCompareSample, RestoreCaptionsPreviewResponse } from "@/shared/types";
 import {
   CaptionDiffBadge,
@@ -70,6 +72,12 @@ function kindOf(sample: CaptionBackupCompareSample): SampleKind {
   return sample.current === null || sample.current === undefined ? "new" : "changed";
 }
 
+function withoutKey(set: ReadonlySet<string>, key: string): ReadonlySet<string> {
+  const next = new Set(set);
+  next.delete(key);
+  return next;
+}
+
 function readLayout(): CaptionDiffLayout {
   return readStored(LAYOUT_STORAGE_KEY) === "split" ? "split" : "inline";
 }
@@ -86,6 +94,8 @@ interface RestoreCaptionsDialogProps {
   busy?: boolean;
   /** Replaces the start label, as when the dialog edits a workflow step instead. */
   confirmLabel?: string;
+  /** Offers a Restore button per caption, which writes at once; off when editing a step. */
+  canRestoreOne?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -96,11 +106,14 @@ export function RestoreCaptionsDialog({
   selectedPaths,
   busy = false,
   confirmLabel,
+  canRestoreOne = false,
   onConfirm,
   onCancel,
 }: RestoreCaptionsDialogProps) {
+  const queryClient = useQueryClient();
+  const previewKey = ["restore-preview", folderKey(folderPath), selectedPaths ?? null];
   const preview = useQuery({
-    queryKey: ["restore-preview", folderKey(folderPath), selectedPaths ?? null],
+    queryKey: previewKey,
     queryFn: ({ signal }) => previewCaptionRestore(folderPath, selectedPaths, signal),
     retry: false,
   });
@@ -165,11 +178,43 @@ export function RestoreCaptionsDialog({
             description={skippedNote(preview.data) || "Restoring would change nothing."}
           />
         ) : (
-          <RestoreReview preview={preview.data} />
+          <RestoreReview
+            preview={preview.data}
+            onRestoreOne={
+              canRestoreOne
+                ? async (sample) => {
+                    await restoreOneCaption(sample);
+                    queryClient.setQueryData<RestoreCaptionsPreviewResponse>(previewKey, (data) =>
+                      data ? withoutSample(data, sample) : data,
+                    );
+                  }
+                : undefined
+            }
+            onStale={() => void preview.refetch()}
+          />
         )}
       </div>
     </GuardedDialog>
   );
+}
+
+/** Writes against the compared revision, so a caption edited since then is left alone. */
+async function restoreOneCaption(sample: CaptionBackupCompareSample): Promise<void> {
+  await saveCaption(sample.path, sample.backup, { baseRevision: sample.revision ?? null });
+}
+
+/** The preview once `sample` matches its backup, so the list, counts and label follow. */
+function withoutSample(
+  response: RestoreCaptionsPreviewResponse,
+  sample: CaptionBackupCompareSample,
+): RestoreCaptionsPreviewResponse {
+  const counted = kindOf(sample) === "new" ? "missing" : "changed";
+  return {
+    ...response,
+    [counted]: Math.max(0, response[counted] - 1),
+    unchanged: response.unchanged + 1,
+    samples: response.samples.filter((entry) => entry.path !== sample.path),
+  };
 }
 
 /** What the restore leaves alone, or an empty string when it touches every backup. */
@@ -183,8 +228,26 @@ function skippedNote(preview: RestoreCaptionsPreviewResponse): string {
   return parts.length > 0 ? `${parts.join(" · ")}.` : "";
 }
 
-function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse }) {
+interface RestoreOne {
+  restore: (sample: CaptionBackupCompareSample) => void;
+  restoring: ReadonlySet<string>;
+  errors: ReadonlyMap<string, string>;
+}
+
+function RestoreReview({
+  preview,
+  onRestoreOne,
+  onStale,
+}: {
+  preview: RestoreCaptionsPreviewResponse;
+  /** Restores one caption; rejects when nothing was written. */
+  onRestoreOne?: (sample: CaptionBackupCompareSample) => Promise<void>;
+  /** The comparison no longer matches the files, as after a conflict. */
+  onStale: () => void;
+}) {
   const [layout, setLayout] = useState(readLayout);
+  const [restoring, setRestoring] = useState<ReadonlySet<string>>(() => new Set());
+  const [errors, setErrors] = useState<ReadonlyMap<string, string>>(() => new Map());
   const [filter, setFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
@@ -216,6 +279,8 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
       ),
     [deferredQuery, filter, reviewed],
   );
+  // Restoring the last caption of a kind takes its chip away; the list falls back to all.
+  if (filter !== "all" && counts[filter] === 0) setFilter("all");
   const narrowed = filter !== "all" || query.trim() !== "";
   const skipped = skippedNote(preview);
 
@@ -226,6 +291,34 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
   const clearFilters = () => {
     setFilter("all");
     setQuery("");
+  };
+  const restoreOne: RestoreOne | undefined = onRestoreOne && {
+    restoring,
+    errors,
+    restore: (sample) => {
+      if (restoring.has(sample.path)) return;
+      const settle = (error: string | null) => {
+        setRestoring((current) => withoutKey(current, sample.path));
+        setErrors((current) => {
+          const next = new Map(current);
+          if (error) next.set(sample.path, error);
+          else next.delete(sample.path);
+          return next;
+        });
+      };
+      setRestoring((current) => new Set(current).add(sample.path));
+      onRestoreOne(sample).then(
+        () => settle(null),
+        (error: unknown) => {
+          if (isApiErrorCode(error, "caption_conflict")) {
+            settle("The caption changed since the comparison, so it was not restored.");
+            onStale();
+          } else {
+            settle(formatApiError(error));
+          }
+        },
+      );
+    },
   };
 
   return (
@@ -307,7 +400,13 @@ function RestoreReview({ preview }: { preview: RestoreCaptionsPreviewResponse })
 
         {visible.length > 0 ? (
           // Remounted per layout, so no row keeps a height measured for the other one.
-          <RestoreSampleList key={layout} entries={visible} layout={layout} />
+          <RestoreSampleList
+            key={layout}
+            entries={visible}
+            narrowing={`${filter}\n${deferredQuery}`}
+            layout={layout}
+            restoreOne={restoreOne}
+          />
         ) : (
           <div className="restore-captions-dialog__no-match">
             <p>
@@ -358,6 +457,8 @@ function RestoreSkeleton() {
 const ROW_PADDING_Y_PX = 25;
 const THUMB_PX = 96;
 const HEADER_PX = 26;
+// The heading grows to the height of its Restore button.
+const HEADER_WITH_ACTION_PX = 30;
 const LINE_PX = 22.4;
 const ROW_INSET_X_PX = 138;
 // The split frame's border and each side's padding.
@@ -369,6 +470,7 @@ function estimateRowHeight(
   entry: ReviewedSample | undefined,
   layout: CaptionDiffLayout,
   listWidth: number,
+  withAction: boolean,
 ): number {
   if (!entry) return ROW_PADDING_Y_PX + THUMB_PX;
   const { sample } = entry;
@@ -382,16 +484,22 @@ function estimateRowHeight(
         [Math.ceil(longer * 1.15), textWidth];
   const lines = Math.max(1, Math.ceil((chars * AVERAGE_CHAR_PX) / width));
   const sides = layout === "split" ? SPLIT_FRAME_Y_PX : 0;
-  return ROW_PADDING_Y_PX + Math.max(THUMB_PX, HEADER_PX + lines * LINE_PX + sides);
+  const header = withAction ? HEADER_WITH_ACTION_PX : HEADER_PX;
+  return ROW_PADDING_Y_PX + Math.max(THUMB_PX, header + lines * LINE_PX + sides);
 }
 
 /** Every differing caption, rendered only around the scroll position; rows size to their text. */
 function RestoreSampleList({
   entries,
+  narrowing,
   layout,
+  restoreOne,
 }: {
   entries: ReviewedSample[];
+  /** Changes with the filters, never with a restored caption leaving the list. */
+  narrowing: string;
   layout: CaptionDiffLayout;
+  restoreOne?: RestoreOne;
 }) {
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   // Flags TanStack Virtual for the React Compiler, which this app does not use.
@@ -400,7 +508,12 @@ function RestoreSampleList({
     count: entries.length,
     getScrollElement: () => scrollElement,
     estimateSize: (index) =>
-      estimateRowHeight(entries[index], layout, scrollElement?.clientWidth ?? 0),
+      estimateRowHeight(
+        entries[index],
+        layout,
+        scrollElement?.clientWidth ?? 0,
+        restoreOne !== undefined,
+      ),
     overscan: 8,
     getItemKey: (index) => entries[index]?.sample.path ?? index,
     // A synchronous commit inside the observer callback triggers the ResizeObserver loop error.
@@ -410,7 +523,7 @@ function RestoreSampleList({
   // A narrowed list starts from its first match rather than an offset into the old one.
   useEffect(() => {
     if (scrollElement) scrollElement.scrollTop = 0;
-  }, [entries, scrollElement]);
+  }, [narrowing, scrollElement]);
 
   return (
     <div ref={setScrollElement} className="restore-captions-dialog__scroller">
@@ -431,6 +544,7 @@ function RestoreSampleList({
               start={row.start}
               entry={entry}
               layout={layout}
+              restoreOne={restoreOne}
             />
           );
         })}
@@ -445,14 +559,17 @@ function RestoreRow({
   start,
   entry,
   layout,
+  restoreOne,
 }: {
   ref: (element: HTMLElement | null) => void;
   index: number;
   start: number;
   entry: ReviewedSample;
   layout: CaptionDiffLayout;
+  restoreOne?: RestoreOne;
 }) {
   const { sample, kind } = entry;
+  const restoreError = restoreOne?.errors.get(sample.path);
   const { current, backup } = sample;
   const segments = useMemo(() => diffCaptionWords(current ?? "", backup), [backup, current]);
 
@@ -475,6 +592,20 @@ function RestoreRow({
           stat={
             kind !== "unreadable" && <CaptionDiffStat segments={segments} addedVerb="restored" />
           }
+          action={
+            restoreOne && (
+              <Button
+                icon={iconArchiveRestore}
+                size="xs"
+                busy={restoreOne.restoring.has(sample.path)}
+                aria-label={`Restore the backed up caption for ${sample.name}`}
+                title="Replace this caption with the copy in the backup now"
+                onClick={() => restoreOne.restore(sample)}
+              >
+                Restore
+              </Button>
+            )
+          }
         >
           {kind === "new" && <CaptionDiffBadge tone="added">New caption</CaptionDiffBadge>}
           {kind === "unreadable" && <CaptionDiffBadge tone="error">Unreadable</CaptionDiffBadge>}
@@ -488,6 +619,11 @@ function RestoreRow({
           </p>
         ) : (
           <CaptionDiffView segments={segments} layout={layout} emptySideLabel="No caption" />
+        )}
+        {restoreError && (
+          <p className="restore-captions-dialog__restore-error" role="alert">
+            {restoreError}
+          </p>
         )}
       </div>
     </div>

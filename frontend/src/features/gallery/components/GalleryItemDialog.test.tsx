@@ -1224,6 +1224,43 @@ describe("GalleryItemDialog", () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
+    it("keeps comparing while paging, also while the next backup loads", async () => {
+      const user = userEvent.setup();
+      installMockBackend({
+        captionBackups: {
+          [`${HOME_PATH}\\sunset.png`]: "Golden hour over the calm lake",
+          [`${HOME_PATH}\\beach.jpg`]: "A stormy shore at dusk",
+        },
+      });
+      const items = [makeItem("sunset.png"), makeItem("beach.jpg")];
+      const props = {
+        items,
+        hasCaptionBackup: true,
+        onClose: vi.fn<() => void>(),
+        onPrevious: vi.fn<() => void>(),
+        onNext: vi.fn<() => void>(),
+        onCaptionSaved: vi.fn<(path: string, update: CaptionSaveResponse) => void>(),
+      };
+      const { rerender } = renderWithProviders(<GalleryItemDialog {...props} index={0} />);
+      const dialog = await screen.findByRole("dialog", { name: "Viewing sunset.png" });
+      await user.click(
+        await within(dialog).findByRole("button", {
+          name: "Compare the caption for sunset.png with its backup",
+        }),
+      );
+
+      rerender(<GalleryItemDialog {...props} index={1} />);
+
+      // Before the backup answers: still the comparison, never the editor in between.
+      const region = screen.getByRole("region", {
+        name: "Caption compared with its backup for beach.jpg",
+      });
+      expect(
+        screen.getByRole("button", { name: "Back to editing the caption for beach.jpg" }),
+      ).toBeInTheDocument();
+      await waitFor(() => expect(region).toHaveTextContent("A stormy shore at dusk"));
+    });
+
     it("steps out of the comparison on Escape before it closes the dialog", async () => {
       const user = userEvent.setup();
       const { dialog, compare, onClose } = await renderWithBackup("A different caption");

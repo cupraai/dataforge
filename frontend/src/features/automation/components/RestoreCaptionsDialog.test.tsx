@@ -1,13 +1,19 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { previewCaptionRestore } from "@/features/automation/api/jobs";
+import { saveCaption } from "@/features/gallery/api/captions";
+import { ApiError } from "@/shared/api/http";
 import { renderWithQueryClient } from "@/test/queryClient";
 import type { CaptionBackupCompareSample, RestoreCaptionsPreviewResponse } from "@/shared/types";
 import { RestoreCaptionsDialog } from "./RestoreCaptionsDialog";
 
 vi.mock("@/features/automation/api/jobs", () => ({
   previewCaptionRestore: vi.fn<typeof previewCaptionRestore>(),
+}));
+
+vi.mock("@/features/gallery/api/captions", () => ({
+  saveCaption: vi.fn<typeof saveCaption>(),
 }));
 
 const FOLDER = "C:/datasets/photos";
@@ -18,7 +24,15 @@ function sample(
   backup: string,
   error: string | null = null,
 ): CaptionBackupCompareSample {
-  return { name, path: `${FOLDER}/${name}`, version: "1-1", current, backup, error };
+  return {
+    name,
+    path: `${FOLDER}/${name}`,
+    version: "1-1",
+    current,
+    revision: current === null ? null : `rev-${name}`,
+    backup,
+    error,
+  };
 }
 
 function previewOf(
@@ -46,7 +60,7 @@ const MIXED = previewOf(
   { total: 6, unchanged: 2, orphaned: 1 },
 );
 
-function renderDialog(selectedPaths?: string[]) {
+function renderDialog(selectedPaths?: string[], canRestoreOne = false) {
   const onConfirm = vi.fn<() => void>();
   const onCancel = vi.fn<() => void>();
   renderWithQueryClient(
@@ -54,6 +68,7 @@ function renderDialog(selectedPaths?: string[]) {
       scope={{ itemCount: 4, folderLabel: "Photos", kind: "folder" as const }}
       folderPath={FOLDER}
       selectedPaths={selectedPaths}
+      canRestoreOne={canRestoreOne}
       onConfirm={onConfirm}
       onCancel={onCancel}
     />,
@@ -80,6 +95,7 @@ function rows() {
 describe("RestoreCaptionsDialog", () => {
   beforeEach(() => {
     vi.mocked(previewCaptionRestore).mockReset();
+    vi.mocked(saveCaption).mockReset();
     localStorage.clear();
   });
 
@@ -248,6 +264,66 @@ describe("RestoreCaptionsDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByRole("listitem", { name: "dog.png" })).toBeInTheDocument();
+  });
+
+  it("restores one caption at once and takes it off the list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(previewCaptionRestore).mockResolvedValue(MIXED);
+    vi.mocked(saveCaption).mockResolvedValue({} as Awaited<ReturnType<typeof saveCaption>>);
+    const { onConfirm } = renderDialog(undefined, true);
+    const dog = await screen.findByRole("listitem", { name: "dog.png" });
+
+    await user.click(
+      within(dog).getByRole("button", { name: "Restore the backed up caption for dog.png" }),
+    );
+
+    expect(saveCaption).toHaveBeenCalledWith(`${FOLDER}/dog.png`, "a red dog", {
+      baseRevision: "rev-dog.png",
+    });
+    await waitFor(() => expect(rows()).toEqual(["lake.png", "tree.png"]));
+    expect(screen.getByRole("button", { name: "Restore 2 captions" })).toBeEnabled();
+    expect(screen.getByText(/3 captions already match/)).toBeInTheDocument();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    // The last one of its kind leaves an empty filter behind; the list falls back to all.
+    await user.click(screen.getByRole("radio", { name: /New/ }));
+    await user.click(
+      screen.getByRole("button", { name: "Restore the backed up caption for lake.png" }),
+    );
+    expect(saveCaption).toHaveBeenLastCalledWith(`${FOLDER}/lake.png`, "a calm lake", {
+      baseRevision: null,
+    });
+    await waitFor(() => expect(rows()).toEqual(["tree.png"]));
+    expect(screen.getByRole("radio", { name: /All/ })).toBeChecked();
+  });
+
+  it("keeps a caption edited since the comparison and compares again", async () => {
+    const user = userEvent.setup();
+    vi.mocked(previewCaptionRestore).mockResolvedValue(MIXED);
+    vi.mocked(saveCaption).mockRejectedValue(
+      new ApiError(409, "The caption changed since it was loaded", "caption_conflict"),
+    );
+    renderDialog(undefined, true);
+    const dog = await screen.findByRole("listitem", { name: "dog.png" });
+
+    await user.click(
+      within(dog).getByRole("button", { name: "Restore the backed up caption for dog.png" }),
+    );
+
+    expect(await within(dog).findByRole("alert")).toHaveTextContent(
+      "The caption changed since the comparison, so it was not restored.",
+    );
+    expect(rows()).toEqual(["dog.png", "lake.png", "tree.png"]);
+    await waitFor(() => expect(previewCaptionRestore).toHaveBeenCalledTimes(2));
+  });
+
+  it("offers no single restore unless the caller allows it", async () => {
+    vi.mocked(previewCaptionRestore).mockResolvedValue(MIXED);
+    renderDialog();
+
+    const dog = await screen.findByRole("listitem", { name: "dog.png" });
+
+    expect(within(dog).queryByRole("button", { name: /Restore the backed up/ })).toBeNull();
   });
 
   it("closes on Cancel without asking to discard anything", async () => {

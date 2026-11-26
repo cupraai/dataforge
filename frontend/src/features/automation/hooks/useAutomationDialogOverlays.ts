@@ -346,6 +346,8 @@ export function useAutomationDialogOverlays({
         folderPath: folderPath ?? "",
         // The same selection the job will run on, so the preview compares what it restores.
         selectedPaths: snapshot?.paths ?? getJobPaths?.(),
+        // A workflow step only describes a restore; it writes nothing while it is edited.
+        canRestoreOne: !editingStep,
         onCancel: closeDialog,
         onConfirm: () => startJobFromDialog("restore_captions"),
       },

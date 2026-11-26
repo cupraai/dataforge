@@ -11,10 +11,12 @@ version heading when a minor or major version is cut.
 ### Added
 
 - **Verify captions** and **Edit captions** have a **System prompt** menu beside **Saved**. **Before** or **After** adds the folder's system prompt, its own or a parent's, before or after the instruction, so the model works from the same caption guidelines as Auto-caption. The menu names the file used; when the folder has none, the button shows a warning and nothing is added. Workflow steps keep the choice too. While such a job runs, the system prompt it reads cannot be edited, as with Auto-caption.
+- **Restore captions from backup** has a **Restore** button on each caption in its list, which restores just that caption at once and takes it off the list. A caption edited since the dialog opened is left alone, and the list compares again.
 
 ### Changed
 
 - **Verify captions** calls its text field **Instruction**, like **Edit captions**, and its **Saved** menu lists saved instructions. Your remembered text and saved entries carry over.
+- Comparing a caption with its backup in the file viewer or inspector stays on when you move to the previous or next file, instead of returning to the caption editor.
 
 ### Fixed
 

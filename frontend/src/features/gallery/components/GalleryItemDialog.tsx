@@ -252,7 +252,10 @@ export function GalleryItemDialog({
   const notifyDeleteUndo = useDeleteUndoNotice();
   const itemIsModel = item ? isModel(item) : false;
   const { taggingEnabled } = useUiSettings();
-  const backupCaption = useCaptionBackup(item?.path, hasCaptionBackup && !itemIsModel);
+  const { backup: backupCaption, pending: backupPending } = useCaptionBackup(
+    item?.path,
+    hasCaptionBackup && !itemIsModel,
+  );
   const captionCompletions = useMemo(() => buildCaptionVocabulary(items), [items]);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -261,9 +264,11 @@ export function GalleryItemDialog({
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [openingInViewer, setOpeningInViewer] = useState(false);
+  // Survives paging, so a review can step through the files without reopening it each time.
   const [comparingBackup, setComparingBackup] = useState(false);
   const comparedBackup = comparingBackup ? backupCaption : null;
-  const showingBackupDiff = comparedBackup !== null;
+  // A loading backup keeps the comparison up rather than flashing the editor in between.
+  const showingBackupDiff = comparingBackup && (backupCaption !== null || backupPending);
   const [viewerError, setViewerError] = useState<string | null>(null);
   // Owned here so next/prev keeps capture across videos and GIFs; per-hook flags dropped it.
   const [frameMode, setFrameMode] = useState(openIntent?.mode === "frame");
@@ -455,7 +460,6 @@ export function GalleryItemDialog({
     setOpeningInViewer(false);
     setViewerError(null);
     setComfyWorkflowOpen(false);
-    setComparingBackup(false);
   }
 
   // The initial states cover a dialog this intent mounted; this one was already open.
@@ -1423,7 +1427,7 @@ export function GalleryItemDialog({
                       />
                     </div>
                     <div className="gallery-item-dialog__caption-actions">
-                      {canResolveIssue && comparedBackup === null && (
+                      {canResolveIssue && !showingBackupDiff && (
                         <Button
                           variant="warning"
                           icon={iconMessageWarning}
@@ -1435,7 +1439,7 @@ export function GalleryItemDialog({
                           Resolve
                         </Button>
                       )}
-                      {backupCaption !== null && (
+                      {(backupCaption !== null || showingBackupDiff) && (
                         <Button
                           icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
                           onClick={() => setComparingBackup((current) => !current)}
@@ -1458,10 +1462,11 @@ export function GalleryItemDialog({
                       )}
                       {/* Copy acts on the editor's text, which the comparison hides. Restoring
                           takes its slot. */}
-                      {comparedBackup !== null ? (
+                      {showingBackupDiff ? (
                         <Button
                           icon={iconArchiveRestore}
                           onClick={() => {
+                            if (comparedBackup === null) return;
                             handleCaptionChange(comparedBackup);
                             setComparingBackup(false);
                           }}
@@ -1488,14 +1493,14 @@ export function GalleryItemDialog({
                       )}
                     </div>
                   </div>
-                  {comparedBackup !== null && (
+                  {showingBackupDiff && (
                     <div
                       className="gallery-item-dialog__caption-compare"
                       role="region"
                       aria-label={`Caption compared with its backup for ${item.name}`}
                       tabIndex={0}
                     >
-                      {canRestoreBackup ? (
+                      {comparedBackup === null ? null : canRestoreBackup ? (
                         <CaptionWordDiff
                           before={caption.trim()}
                           after={comparedBackup.trim()}

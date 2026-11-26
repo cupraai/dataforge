@@ -217,10 +217,12 @@ interface CaptionDiffHeadingProps {
   children?: ReactNode;
   /** Pushed to the far edge; usually a `CaptionDiffStat`. */
   stat?: ReactNode;
+  /** A control after the stat, such as a per-file button. */
+  action?: ReactNode;
 }
 
 /** The line above one file's diff: its name, what kind of change it is, and how large. */
-export function CaptionDiffHeading({ name, children, stat }: CaptionDiffHeadingProps) {
+export function CaptionDiffHeading({ name, children, stat, action }: CaptionDiffHeadingProps) {
   return (
     <div className="caption-diff-heading">
       <span className="caption-diff-heading__name" title={name}>
@@ -228,6 +230,7 @@ export function CaptionDiffHeading({ name, children, stat }: CaptionDiffHeadingP
       </span>
       {children}
       {stat && <span className="caption-diff-heading__stat">{stat}</span>}
+      {action && <span className="caption-diff-heading__action">{action}</span>}
     </div>
   );
 }

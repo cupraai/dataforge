@@ -227,6 +227,12 @@ $thumb-size: 6rem;
     color: var(--text-muted);
   }
 
+  &__restore-error {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--text-xs);
+  }
+
   &__no-match {
     display: flex;
     flex: 1;

@@ -1151,6 +1151,8 @@ class CaptionBackupCompareSample(BaseModel):
     backup: str
     #: ``None`` when the file has no caption, so a restore would create it.
     current: str | None = None
+    #: The current caption's revision: restoring this one caption replaces only what was compared.
+    revision: str | None = None
     error: str | None = None
 
 
