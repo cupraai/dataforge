@@ -159,7 +159,15 @@ test("an invalid regular expression says so instead of matching literally", asyn
 });
 
 test("search explains its icons in a tooltip", async ({ page }) => {
+  // Jobs and notifications that earlier specs left on the backend arrive as count badges after
+  // the toolbar renders. They widen the buttons at its right end and slide the right-aligned sort
+  // button under a pointer parked on the search icon too early.
+  const badgesLoaded = Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/jobs"),
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/notifications"),
+  ]);
   await openWorkspace(page);
+  await badgesLoaded;
   await page.locator(".toolbar__search-icon").hover();
   const tooltip = page.getByRole("tooltip");
   await expect(tooltip).toContainText("Include file and folder names");

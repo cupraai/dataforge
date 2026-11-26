@@ -1,7 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { COUNT_UP_MS } from "../src/features/gallery/lib/countUp";
 import type { FolderResponse } from "../src/shared/types";
 import { WORKSPACE } from "./workspace";
+
+/** A timeline bucket's whole period; the axis shows only a short form of it. */
+const fullLabel = (term: Locator) => term.locator(".stats-dialog__timeline-full-label");
 
 async function openTimelineWorkspace(page: Page, photoCreatedAt: string, clipCreatedAt: string) {
   await page.route("**/api/folders/contents?**", async (route) => {
@@ -39,7 +42,7 @@ test("statistics chart media creation dates above caption length", async ({ page
     const buckets = chart.getByRole("term");
     await expect(buckets).toHaveCount(labels.length);
     for (const [index, label] of labels.entries()) {
-      await expect(buckets.nth(index)).toHaveAttribute("title", label);
+      await expect(fullLabel(buckets.nth(index))).toHaveText(label);
     }
   };
   await expect(chart).toBeVisible();
@@ -115,19 +118,19 @@ test("timeline tabs open on the newest media's period and keep historical years"
   await expect(grouping.getByRole("radio", { name: "Month" })).toBeChecked();
   const chart = page.getByRole("figure", { name: "Distribution by media creation date" });
   await expect(chart.getByRole("term")).toHaveCount(12);
-  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "Jan 2026");
+  await expect(fullLabel(chart.getByRole("term").first())).toHaveText("Jan 2026");
   await expect(chart.getByRole("img", { name: "1 file", exact: true })).toHaveCount(1);
   await grouping.getByText("Day", { exact: true }).click();
 
   // Today is June, but the newest file is from January, so the days shown are January's.
   await expect(chart.getByRole("term")).toHaveCount(31);
-  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "Jan 1, 2026");
+  await expect(fullLabel(chart.getByRole("term").first())).toHaveText("Jan 1, 2026");
   await expect(chart.getByText("No media created in this period.")).toHaveCount(0);
   await expect(chart.getByRole("img", { name: "1 file", exact: true })).toHaveCount(1);
   await grouping.getByText("Year", { exact: true }).click();
   await expect(chart.getByRole("term")).toHaveCount(2);
-  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "2025");
-  await expect(chart.getByRole("term").last()).toHaveAttribute("title", "2026");
+  await expect(fullLabel(chart.getByRole("term").first())).toHaveText("2025");
+  await expect(fullLabel(chart.getByRole("term").last())).toHaveText("2026");
   await expect(chart.getByRole("img", { name: "1 file", exact: true })).toHaveCount(2);
   await chart.screenshot({ path: testInfo.outputPath("creation-timeline-years.png") });
   await page.reload();
@@ -225,7 +228,7 @@ test("period arrows browse months and years beside the caption", async ({ page }
   await grouping.getByText("Month", { exact: true }).click();
   await chart.getByRole("button", { name: "Previous year" }).click();
   await expect(caption).toHaveText("2025");
-  await expect(chart.getByRole("term").first()).toHaveAttribute("title", "Jan 2025");
+  await expect(fullLabel(chart.getByRole("term").first())).toHaveText("Jan 2025");
   await expect(chart.getByRole("img", { name: "1 file" })).toHaveCount(1);
   await chart.getByRole("button", { name: "Next year" }).click();
   await expect(caption).toHaveText("2026");
