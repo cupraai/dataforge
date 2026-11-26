@@ -19,6 +19,7 @@ import {
 import { classNames } from "@/shared/lib/classNames";
 import { formatBytes, formatBytesValue } from "@/shared/lib/format";
 import { Icon } from "@/shared/ui/Icon";
+import { RollingNumber } from "@/shared/ui/RollingNumber";
 import { Tooltip } from "@/shared/ui/Tooltip";
 
 export interface AutomationSystemSpecsProps {
@@ -65,7 +66,7 @@ export function AutomationSystemSpecs({ id, open }: AutomationSystemSpecsProps) 
             }
           >
             <SpecMeter caption="Load" label="CPU load" percent={cpuLoad}>
-              {cpuLoad != null && `${Math.round(cpuLoad)}%`}
+              {cpuLoad != null && <Percent value={cpuLoad} />}
             </SpecMeter>
           </SpecCard>
           <SpecCard icon={iconMemoryStick} label="RAM" hardware="System memory">
@@ -107,7 +108,7 @@ export function AutomationSystemSpecs({ id, open }: AutomationSystemSpecsProps) 
             }
           >
             <SpecMeter caption="Load" label="GPU load" percent={gpuName != null ? gpuLoad : null}>
-              {gpuName != null && gpuLoad != null && `${Math.round(gpuLoad)}%`}
+              {gpuName != null && gpuLoad != null && <Percent value={gpuLoad} />}
             </SpecMeter>
             <SpecMeter
               caption="VRAM"
@@ -272,10 +273,18 @@ function PowerReading({ watts, limitWatts, title }: PowerReadingProps) {
   );
 }
 
+function Percent({ value }: { value: number }) {
+  return (
+    <>
+      <RollingNumber value={Math.round(value)} />%
+    </>
+  );
+}
+
 function MemoryValue({ usedBytes, totalBytes }: { usedBytes: number; totalBytes: number }) {
   return (
     <>
-      {formatBytesValue(usedBytes)}
+      <RollingNumber value={formatBytesValue(usedBytes)} />
       <span className="system-specs__total"> / {formatBytes(totalBytes)}</span>
     </>
   );

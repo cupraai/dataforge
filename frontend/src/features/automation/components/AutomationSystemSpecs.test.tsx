@@ -63,6 +63,19 @@ describe("AutomationSystemSpecs", () => {
     expect(reading("GPU temperature")).toHaveTextContent("72°C");
   });
 
+  it("rolls the load percentages and used memory, not the totals", () => {
+    renderSpecs();
+
+    const rolling = (cardName: string, caption: string) =>
+      [...(meterFigure(cardName, caption)?.querySelectorAll(".rolling-number__text") ?? [])].map(
+        (node) => node.textContent,
+      );
+    expect(rolling("CPU", "Load")).toEqual(["38"]);
+    expect(rolling("RAM", "Used")).toEqual(["8"]);
+    expect(rolling("GPU", "Load")).toEqual(["41"]);
+    expect(rolling("GPU", "VRAM")).toEqual(["4"]);
+  });
+
   it("names each reading for screen readers, not only by its icon", () => {
     renderSpecs();
 
