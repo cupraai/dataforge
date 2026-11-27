@@ -681,7 +681,8 @@ $jobs-content-pad-top: 0.75rem;
     margin-top: 0.75rem;
   }
 
-  &--external {
+  // A queued run keeps the plain queued look shared with internal jobs.
+  &--external:not(.job-card--queued) {
     --job-tone: var(--accent);
     border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
     background: linear-gradient(180deg, var(--accent-soft), var(--bg-elevated) 55%);

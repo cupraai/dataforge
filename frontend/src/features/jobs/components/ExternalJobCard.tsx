@@ -39,11 +39,11 @@ export function ExternalJobCard({
   const canOpenDataset = Boolean(datasetFolder && onOpenFolder);
   // A queued run can sit in AI-Toolkit's queue for a long time with nothing happening yet.
   const waiting = job.status === "queued" && !stopping;
-
   return (
     <article
       className={classNames(
-        "job-card job-card--external job-card--active",
+        "job-card job-card--external",
+        waiting ? "job-card--queued" : "job-card--active",
         isCurrentFolder && "job-card--current",
       )}
       aria-label={`external job ${job.name}`}
@@ -70,7 +70,12 @@ export function ExternalJobCard({
         )}
 
         <div className="job-card__header-actions">
-          <Badge tone="accent" icon={waiting ? iconHourglass : iconLoader2} spin={!waiting}>
+          <Badge
+            tone="accent"
+            icon={waiting ? iconHourglass : iconLoader2}
+            spin={!waiting}
+            className={waiting ? "job-card__badge--queued" : undefined}
+          >
             {externalJobStatusLabel(job, stopping)}
           </Badge>
 
@@ -96,22 +101,35 @@ export function ExternalJobCard({
 
       <div className="job-card__source">
         {externalJobModelLabel(job)}
-        <Icon icon={iconDot} className="job-card__source-separator app-icon--dot" />
-        {job.info}
+        {job.info && (
+          <>
+            <Icon icon={iconDot} className="job-card__source-separator app-icon--dot" />
+            {job.info}
+          </>
+        )}
       </div>
 
-      <div className="job-card__meta">
-        <span className="job-card__meta-count">
-          {job.step}/{job.total_steps ?? "..."}
-        </span>
-        {remainingTime && <span className="job-card__remaining">{remainingTime}</span>}
-      </div>
+      {waiting ? (
+        <p className="job-card__waiting">
+          <Icon icon={iconHourglass} className="job-card__waiting-icon" />
+          <span className="job-card__waiting-text">Waiting in the AI-Toolkit queue</span>
+        </p>
+      ) : (
+        <>
+          <div className="job-card__meta">
+            <span className="job-card__meta-count">
+              {job.step}/{job.total_steps ?? "..."}
+            </span>
+            {remainingTime && <span className="job-card__remaining">{remainingTime}</span>}
+          </div>
 
-      <ProgressBar
-        className="job-card__progress"
-        value={progress}
-        label={`Progress for ${job.name}`}
-      />
+          <ProgressBar
+            className="job-card__progress"
+            value={progress}
+            label={`Progress for ${job.name}`}
+          />
+        </>
+      )}
 
       <TrainingSamples samples={samples} compact onLightboxOpenChange={onLightboxOpenChange} />
     </article>

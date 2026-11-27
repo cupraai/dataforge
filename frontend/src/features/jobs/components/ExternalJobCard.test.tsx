@@ -78,6 +78,16 @@ describe("ExternalJobCard", () => {
     expect(screen.getByText("Queued")).toBeInTheDocument();
   });
 
+  it("draws a queued run like a queued internal job, without a progress bar", () => {
+    const { container } = renderWithQueryClient(<ExternalJobCard job={queuedJob} />);
+
+    expect(screen.getByRole("article")).toHaveClass("job-card--queued");
+    expect(screen.getByRole("article")).not.toHaveClass("job-card--active");
+    expect(container.querySelector(".job-card__badge--queued")).toBeInTheDocument();
+    expect(screen.getByText("Waiting in the AI-Toolkit queue")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
   it("spins again once a stop is in flight for a queued run", () => {
     const { container } = renderWithQueryClient(
       <ExternalJobCard job={queuedJob} onStop={vi.fn<(jobId: string) => void>()} stopping />,
