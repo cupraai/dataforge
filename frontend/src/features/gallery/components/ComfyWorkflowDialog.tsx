@@ -88,7 +88,10 @@ function BranchList({
 }) {
   return (
     <div className="field comfy-workflow-dialog__outputs-field">
-      <div className="field__label">Outputs ({branches.length})</div>
+      <div className="field__label">
+        Outputs
+        <span className="comfy-workflow-dialog__outputs-count">{branches.length}</span>
+      </div>
       <ul className="comfy-workflow-dialog__outputs" aria-label="Workflow outputs">
         {branches.map((branch) => (
           <li key={branch.node_id}>

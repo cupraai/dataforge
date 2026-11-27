@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { StartFilePicker } from "@/features/automation/components/StartFilePicker";
 import { embeddedNamePrefix } from "@/features/automation/lib/embeddedGenerate";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
@@ -181,6 +182,7 @@ export function ComfyRunDialog({
         captionFromPrompt !== initialSettings.caption_from_prompt
       }
       scope={generates ? destinationScope : scope}
+      icon={jobTypeIconFor("comfy_run")}
       title="Run a ComfyUI workflow?"
       description={
         generates ? (

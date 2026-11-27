@@ -38,6 +38,7 @@ export function JobsButton() {
           "jobs-button",
           running && "jobs-button--running",
           unseen && "jobs-button--unseen",
+          unseenFailed && "jobs-button--failed",
         )}
         onClick={toggleDrawer}
         aria-label={label}

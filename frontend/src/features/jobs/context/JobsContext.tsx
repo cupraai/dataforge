@@ -11,13 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { startAutomationJob, type JobStartBody } from "@/features/automation/api/jobs";
 import { runWorkflow as runWorkflowRequest } from "@/features/workflows/api/workflows";
-import {
-  cancelJob,
-  deleteAllJobs,
-  deleteJob,
-  fetchJobs,
-  fetchLatestFolderJob,
-} from "@/features/jobs/api/jobs";
+import { cancelJob, deleteJob, fetchJobs, fetchLatestFolderJob } from "@/features/jobs/api/jobs";
 import { stopOstrisJob } from "@/features/jobs/api/externalJobs";
 import { useServerEvent, useStreamConnected } from "@/shared/events/serverEvents";
 import { formatApiError } from "@/shared/api/http";
@@ -51,11 +45,10 @@ import {
   readJobsSeenAt,
   writeJobsSeenAt,
 } from "@/features/jobs/lib/jobSeen";
-import { jobKeys } from "@/features/jobs/lib/jobQueries";
+import { jobKeys, removeOptimistically } from "@/features/jobs/lib/jobQueries";
 import { externalJobsQueryOptions, NO_EXTERNAL_JOBS } from "@/features/jobs/lib/externalJobsQuery";
 import {
   EMPTY_LIVE_JOBS,
-  PENDING_REMOVAL_REVISION,
   externalJobsFromEvent,
   mergeJobsListing,
   newerExternalJobs,
@@ -119,7 +112,6 @@ interface JobsContextValue {
   stopExternalOstrisJob: (jobId: string) => Promise<boolean>;
   cancelVideoExport: (exportId: string) => void;
   deleteJob: (jobId: string) => Promise<boolean>;
-  deleteAllJobs: () => Promise<boolean>;
 }
 
 const JobsContext = createContext<JobsContextValue | null>(null);
@@ -166,16 +158,6 @@ function useJobPushes(queryClient: QueryClient) {
       );
     }
   });
-}
-
-/** Drops jobs from the live list before the server confirms; the snapshot undoes it. */
-async function removeOptimistically(queryClient: QueryClient, ids: readonly string[]) {
-  await queryClient.cancelQueries({ queryKey: jobKeys.live });
-  const previous = queryClient.getQueryData<LiveJobs>(jobKeys.live);
-  queryClient.setQueryData<LiveJobs>(jobKeys.live, (live) =>
-    removeJobs(live, ids, PENDING_REMOVAL_REVISION),
-  );
-  return { previous };
 }
 
 export function JobsProvider({ children }: { children: ReactNode }) {
@@ -331,22 +313,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
     onSettled: refreshLive,
   });
 
-  const removeAll = useMutation({
-    mutationFn: deleteAllJobs,
-    onMutate: () => {
-      const live = queryClient.getQueryData<LiveJobs>(jobKeys.live);
-      return removeOptimistically(
-        queryClient,
-        (live?.jobs ?? []).map((job) => job.id),
-      );
-    },
-    onError: (error, _variables, context) => {
-      queryClient.setQueryData(jobKeys.live, context?.previous);
-      reportError("Could not delete jobs: ", error);
-    },
-    onSettled: refreshLive,
-  });
-
   const startingFolder = start.isPending ? start.variables?.folderPath : undefined;
   const startingType = start.isPending ? start.variables?.jobType : undefined;
   const startingJob = useMemo<StartingJob | null>(
@@ -371,7 +337,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   const { mutateAsync: runAsync } = run;
   const { mutateAsync: stopAsync } = stop;
   const { mutateAsync: removeAsync } = remove;
-  const { mutateAsync: removeAllAsync } = removeAll;
 
   const startJob = useCallback(
     (jobType: JobType, folderPath: string, body?: JobStartBody, paths?: string[]) =>
@@ -420,14 +385,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       ),
     [removeAsync],
   );
-  const deleteAllJobsImpl = useCallback(
-    () =>
-      settle(
-        removeAllAsync().then(() => true),
-        false,
-      ),
-    [removeAllAsync],
-  );
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const toggleDrawer = useCallback(() => setDrawerOpen((current) => !current), []);
@@ -455,7 +412,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       stopExternalOstrisJob,
       cancelVideoExport,
       deleteJob: deleteJobImpl,
-      deleteAllJobs: deleteAllJobsImpl,
     }),
     [
       jobs,
@@ -479,7 +435,6 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       stopExternalOstrisJob,
       cancelVideoExport,
       deleteJobImpl,
-      deleteAllJobsImpl,
     ],
   );
 

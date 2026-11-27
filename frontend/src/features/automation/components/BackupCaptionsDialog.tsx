@@ -1,4 +1,5 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { useCallback } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -31,6 +32,7 @@ export function BackupCaptionsDialog({
     <GuardedDialog
       role="alertdialog"
       scope={scope}
+      icon={jobTypeIconFor("backup_captions")}
       title="Back up captions?"
       description={
         <>

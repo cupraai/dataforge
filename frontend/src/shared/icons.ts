@@ -21,6 +21,7 @@ export {
   iconAdjustDefinition,
   iconAdjustNoiseReduction,
   iconVae,
+  iconMessageSparkle,
 } from "./customIcons";
 
 export {
@@ -144,7 +145,7 @@ export {
   MemoryStick as iconMemoryStick,
   MessageCircleCheck as iconMessageCheck,
   MessageCircleDashed as iconMessageDashed,
-  MessageCirclePlus as iconMessagePlus,
+  MessageCircleText as iconMessageText,
   MessageCircleWarning as iconMessageWarning,
   MessageSquareText as iconMessageSquareText,
   Moon as iconMoon,

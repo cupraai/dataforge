@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/Button";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { Field, TextArea } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -148,6 +149,7 @@ export function EditCaptionsDialog({
         !backup
       }
       scope={scope}
+      icon={jobTypeIconFor("edit_captions")}
       title="Start edit captions?"
       description={
         <>

@@ -1,4 +1,5 @@
 import { Field, TextInput } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useState } from "react";
 import { CAPTION_SIDECAR_EXTENSION_LIST } from "@/shared/lib/captionSidecar";
@@ -81,6 +82,7 @@ export function BatchRenameDialog({
         stem !== initialSettings.stem || startNumber !== String(initialSettings.start_number)
       }
       scope={scope}
+      icon={jobTypeIconFor("batch_rename")}
       title="Rename files?"
       description={
         <>

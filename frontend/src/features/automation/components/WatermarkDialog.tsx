@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/Button";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { FieldGroup, TextInput } from "@/shared/ui/Field";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -293,6 +294,7 @@ export function WatermarkDialog({
     <GuardedDialog
       unsavedChanges={picked !== null || !sameSettings(draft, initialSettings)}
       scope={scope}
+      icon={jobTypeIconFor("watermark")}
       title="Add watermark?"
       description={
         <>

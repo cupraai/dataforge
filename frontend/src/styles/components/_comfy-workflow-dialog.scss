@@ -64,6 +64,15 @@ $map-chip-font-size: 0.59375rem;
     min-height: var(--control-height-xs);
   }
 
+  // The count sits beside the label, not at the row's far end like the details actions.
+  &__outputs-field > .field__label {
+    justify-content: flex-start;
+  }
+
+  &__outputs-count {
+    @include count-pill-muted;
+  }
+
   &__details-actions {
     display: flex;
     justify-content: flex-end;

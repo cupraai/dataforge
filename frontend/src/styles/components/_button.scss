@@ -28,14 +28,6 @@
   }
 }
 
-@mixin tone-hover($tone) {
-  &:hover:not(:disabled) {
-    color: var(--#{$tone});
-    border-color: var(--#{$tone}-border);
-    @include fade-bg(var(--#{$tone}-soft));
-  }
-}
-
 .button {
   @include inline-flex-center;
   @include control-interactive;

@@ -1,4 +1,5 @@
 import { Field, TextInput } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { useId, useState } from "react";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { CLIPS_DIR_NAME, MAX_SPLIT_CLIP_SECONDS, MIN_SPLIT_CLIP_SECONDS } from "@/shared/constants";
@@ -122,6 +123,7 @@ export function SplitVideoDialog({
         frameRate !== frameRateChoice(initialSettings.frame_rate)
       }
       scope={scope}
+      icon={jobTypeIconFor("split_video")}
       title="Split into clips?"
       description={
         <>

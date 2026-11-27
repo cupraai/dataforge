@@ -26,6 +26,20 @@ describe("MenuItem", () => {
     );
   });
 
+  it("wraps a tiled icon in a span and leaves a plain one bare", () => {
+    render(
+      <>
+        <MenuItem icon={iconFolder} iconTile label="Tiled" onSelect={vi.fn<() => void>()} />
+        <MenuItem icon={iconFolder} label="Plain" onSelect={vi.fn<() => void>()} />
+      </>,
+    );
+
+    const tiled = screen.getByRole("menuitem", { name: "Tiled" }).querySelector(".menu__icon")!;
+    const plain = screen.getByRole("menuitem", { name: "Plain" }).querySelector(".menu__icon")!;
+    expect(tiled.parentElement).toHaveClass("menu__icon-tile");
+    expect(plain.parentElement).toHaveRole("menuitem");
+  });
+
   it("marks the current place and runs its action on click", async () => {
     const onSelect = vi.fn<() => void>();
     render(<MenuItem icon={iconFolder} label="Photos" current onSelect={onSelect} />);

@@ -12,6 +12,7 @@ import { JOBS_SEEN_AT_KEY } from "@/features/jobs/lib/jobSeen";
 import { job } from "@/test/fixtures";
 import { queryWrapper } from "@/test/queryClient";
 import { jobKeys } from "@/features/jobs/lib/jobQueries";
+import { useDeleteAllJobs } from "@/features/jobs/hooks/useDeleteAllJobs";
 import {
   CONNECTED_ACTIVE_POLL_MS,
   DISCONNECTED_ACTIVE_POLL_MS,
@@ -64,8 +65,17 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function Probe({ onRender }: { onRender: (value: ReturnType<typeof useJobs>) => void }) {
+/** Delete-all lives outside the context, but its optimistic removal edits the context's jobs. */
+const deleteAllRef = { current: null as (() => Promise<boolean>) | null };
+
+interface ProbeProps {
+  onRender: (value: ReturnType<typeof useJobs>) => void;
+  onDeleteAll: (deleteAll: () => Promise<boolean>) => void;
+}
+
+function Probe({ onRender, onDeleteAll }: ProbeProps) {
   onRender(useJobs());
+  onDeleteAll(useDeleteAllJobs().deleteAll);
   return null;
 }
 
@@ -79,6 +89,9 @@ function renderProvider({ wrapper } = queryWrapper()) {
           <Probe
             onRender={(value) => {
               latest.current = value;
+            }}
+            onDeleteAll={(deleteAll) => {
+              deleteAllRef.current = deleteAll;
             }}
           />
         </JobsProvider>
@@ -408,7 +421,7 @@ describe("JobsProvider", () => {
     await waitFor(() => expect(latest.current?.jobs).toHaveLength(1));
 
     await act(async () => {
-      await latest.current!.deleteAllJobs();
+      await deleteAllRef.current!();
     });
 
     expect(latest.current?.jobs).toHaveLength(1);
@@ -418,16 +431,17 @@ describe("JobsProvider", () => {
   });
 
   it("reports success once every job is cleared", async () => {
-    deleteAllJobsMock.mockResolvedValue(undefined as never);
+    deleteAllJobsMock.mockResolvedValue({ deleted_count: 1 });
     const latest = renderProvider();
     await waitFor(() => expect(latest.current?.jobs).toHaveLength(1));
 
     let cleared: boolean | undefined;
     await act(async () => {
-      cleared = await latest.current!.deleteAllJobs();
+      cleared = await deleteAllRef.current!();
     });
 
     expect(cleared).toBe(true);
+    expect(await screen.findByText("Deleted 1 job record.")).toBeInTheDocument();
   });
 
   it.each([

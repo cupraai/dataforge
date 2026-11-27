@@ -1,4 +1,5 @@
 import { Field, TextArea } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useRef, useState } from "react";
@@ -41,6 +42,7 @@ export function SetCaptionsDialog({
     <GuardedDialog
       unsavedChanges={caption !== initialSettings.caption || overwrite}
       scope={scope}
+      icon={jobTypeIconFor("set_captions")}
       title="Set captions?"
       description={
         <>

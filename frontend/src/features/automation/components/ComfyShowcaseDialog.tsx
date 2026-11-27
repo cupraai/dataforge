@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { ComfyPresetSection } from "@/features/automation/components/ComfyPresetSection";
 import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
 import { ShowcaseItemForm } from "@/features/automation/components/ShowcaseForms";
@@ -99,6 +100,7 @@ export function ComfyShowcaseDialog({
       confirmDisabled={busy || !presetName || !comfyReady}
       unsavedChanges={state.changed}
       scope={scope}
+      icon={jobTypeIconFor("comfy_showcase")}
       title="Create a LoRA showcase?"
       description={
         <>

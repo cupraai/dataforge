@@ -20,6 +20,7 @@ version heading when a minor or major version is cut.
 - The workflow map in **Run ComfyUI workflow** follows the prompt, seed, and start file you enter, not only the custom inputs.
 - **Verify captions** calls its text field **Instruction**, like **Edit captions**, and its **Saved** menu lists saved instructions. Your remembered text and saved entries carry over.
 - Comparing a caption with its backup in the file viewer or inspector stays on when you move to the previous or next file, instead of returning to the caption editor.
+- **Delete all jobs** has moved from the jobs panel to **Settings > Data > History**, so the job history cannot be wiped by a stray click in the panel. Its confirmation still says how many job records go, and warns when running jobs will be cancelled.
 - When several outputs in a file's ComfyUI workflow share its name, the **ComfyUI workflow** dialog now also uses the file's aspect ratio and, for a video, its length to pick the likely output, not only its exact size. It says which of these decided, and an output whose aspect ratio or length differs from the file is no longer shown as a filename match.
 
 ### Fixed

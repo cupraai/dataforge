@@ -387,6 +387,19 @@
   }
 }
 
+// A toned control's tint, so a button flagging a warning or error keeps that colour.
+@mixin tone-tint($tone) {
+  color: var(--#{$tone});
+  border-color: var(--#{$tone}-border);
+  @include fade-bg(var(--#{$tone}-soft));
+}
+
+@mixin tone-hover($tone) {
+  &:hover:not(:disabled) {
+    @include tone-tint($tone);
+  }
+}
+
 @mixin btn-surface-default {
   border: 1px solid var(--border);
   @include fade-bg(var(--bg-elevated));

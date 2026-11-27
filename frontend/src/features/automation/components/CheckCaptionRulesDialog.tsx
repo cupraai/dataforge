@@ -1,4 +1,5 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { InstructionFileSource } from "@/features/automation/components/InstructionFileSource";
 import { instructionApplies } from "@/shared/api/folderInstructions";
 import { CAPTION_RULES_FILENAME } from "@/shared/constants";
@@ -32,6 +33,7 @@ export function CheckCaptionRulesDialog({
     <GuardedDialog
       confirmDisabled={!rulesApply}
       scope={scope}
+      icon={jobTypeIconFor("check_caption_rules")}
       title="Lint captions?"
       description={
         <>

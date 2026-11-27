@@ -7,7 +7,7 @@ import { FileRenameDialog } from "@/features/gallery/components/FileRenameDialog
 import { GalleryItemDialog } from "@/features/gallery/components/GalleryItemDialog";
 import { useGallerySelectionContext } from "@/features/gallery/context/GallerySelectionContext";
 import { IssueResolverDialog } from "@/features/gallery/components/IssueResolverDialog";
-import { JOB_START_CONFIRM } from "@/features/jobs/lib/jobMeta";
+import { JOB_START_CONFIRM, jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { JobsDialog } from "@/features/jobs/components/JobsDialog";
 import { DuplicateResolverDialog } from "@/features/gallery/components/DuplicateResolverDialog";
 import { CandidateReviewDialog } from "@/features/gallery/components/CandidateReviewDialog";
@@ -169,6 +169,7 @@ export function AppOverlays({
       {jobStart.pending && (
         <ConfirmDialog
           title={JOB_START_CONFIRM[jobStart.pending].title}
+          icon={jobTypeIconFor(jobStart.pending)}
           scope={jobStart.scope}
           description={JOB_START_CONFIRM[jobStart.pending].description()}
           confirmLabel={JOB_START_CONFIRM[jobStart.pending].confirmLabel}

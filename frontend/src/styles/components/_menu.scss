@@ -26,6 +26,13 @@
     @include dropdown-menu-option-icon;
   }
 
+  &__icon-tile {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
   // A two-line item sets its icon against the first line.
   &__item:has(&__text) {
     align-items: flex-start;

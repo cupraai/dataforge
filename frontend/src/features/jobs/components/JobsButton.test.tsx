@@ -35,6 +35,7 @@ describe("JobsButton", () => {
     ).toBeInTheDocument();
     expect(container.querySelector(".count-badge")).toHaveTextContent("3");
     expect(container.querySelector(".count-badge--danger")).toBeNull();
+    expect(screen.getByRole("button")).not.toHaveClass("jobs-button--failed");
   });
 
   it("caps the visible count at 99+ while the label keeps the exact number", () => {
@@ -55,7 +56,10 @@ describe("JobsButton", () => {
       screen.getByRole("button", { name: "Open automation jobs (running, 1 new, some failed)" }),
     ).toBeInTheDocument();
     expect(container.querySelector(".count-badge--danger")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /running/ })).toHaveClass("jobs-button--running");
+    expect(screen.getByRole("button", { name: /running/ })).toHaveClass(
+      "jobs-button--running",
+      "jobs-button--failed",
+    );
     expect(container.querySelector(".jobs-button__dot")).toBeNull();
     expect(container.querySelectorAll(".count-badge")).toHaveLength(1);
   });

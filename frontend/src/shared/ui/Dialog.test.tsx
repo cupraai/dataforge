@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { stubDialogClock } from "@/test/dialogClock";
+import { iconFolder } from "@/shared/icons";
 import { Dialog, DialogActions } from "./Dialog";
 import { DialogSuspendedContext } from "./dialogSuspendedContext";
 
@@ -239,6 +240,15 @@ describe("Dialog", () => {
     render(<Dialog title="Bare" onClose={vi.fn<() => void>()} footer={null} />);
 
     expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("puts an icon before the title without changing the dialog's name", () => {
+    render(<Dialog title="Move files?" icon={iconFolder} onClose={vi.fn<() => void>()} />);
+
+    const heading = screen.getByRole("heading", { name: "Move files?" });
+    expect(heading.firstElementChild).toHaveClass("dialog__title-icon");
+    expect(heading.firstElementChild).toHaveAttribute("aria-hidden");
+    expect(screen.getByRole("dialog", { name: "Move files?" })).toBeInTheDocument();
   });
 });
 

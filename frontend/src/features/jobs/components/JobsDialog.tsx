@@ -26,14 +26,12 @@ import {
   iconFolder,
   iconMessageWarning,
   iconScanSquare,
-  iconTrash2,
   iconX,
 } from "@/shared/icons";
 import { foldersMatch } from "@/features/folder/lib/folderPath";
 import { useTicker } from "@/shared/hooks/useTicker";
 import { useUiSettings, useUpdateUiSettings } from "@/shared/preferences/uiPreferences";
 import { classNames } from "@/shared/lib/classNames";
-import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import {
   isActiveJobStatus,
   isTrainLoraCoTrackedByExternal,
@@ -142,12 +140,9 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
     stoppingOstrisJobId,
     stopExternalOstrisJob,
     deleteJob,
-    deleteAllJobs,
     seenAtMs,
     setShownJobFilter,
   } = useJobs();
-  const [clearAllOpen, setClearAllOpen] = useState(false);
-  const [clearingAll, setClearingAll] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Job | null>(null);
   const { jobsDrawerFilters: filters } = useUiSettings();
@@ -184,7 +179,7 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
     setClosing(renderedOpen && !drawerOpen);
   }
 
-  const overlayAbove = !closing && (clearAllOpen || lightboxOpen || cancelTarget !== null);
+  const overlayAbove = !closing && (lightboxOpen || cancelTarget !== null);
 
   if (!drawerOpen && !closing) return null;
 
@@ -200,7 +195,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
   const hasExports = videoExports.length > 0;
   const hasAnyJobs = hasLocalJobs || hasExternalJobs || hasExports;
   const hasHistory = jobs.length > 0 || history.total > 0 || filtering;
-  const recordCount = filtering ? null : Math.max(history.total, jobs.length);
   const queuedCount = jobs.filter((job) => job.status === "queued").length;
   const runningCount = runningJobCount(jobs, externalJobs) + videoExports.length - queuedCount;
   const newCount = jobs.filter((job) => isUnseenJob(job, seenAtMs)).length;
@@ -226,15 +220,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
       }
     />
   );
-
-  const runClearAll = async () => {
-    setClearingAll(true);
-    try {
-      if (await deleteAllJobs()) setClearAllOpen(false);
-    } finally {
-      setClearingAll(false);
-    }
-  };
 
   const openFolder = (folderPath: string) => {
     onOpenFolder(folderPath);
@@ -313,15 +298,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
           </div>
 
           <div className="jobs-dialog__header-actions">
-            {(jobs.length > 0 || history.total > 0) && (
-              <IconButton
-                icon={iconTrash2}
-                label="Delete all jobs"
-                onClick={() => setClearAllOpen(true)}
-                tone="danger"
-              />
-            )}
-
             <IconButton icon={iconX} label="Close" onClick={closeDrawer} tooltip={false} />
           </div>
         </header>
@@ -471,26 +447,6 @@ export function JobsDialog({ currentFolder, onOpenFolder, currentActions }: Jobs
             cancelJob(cancelTarget.id).catch(() => {});
           }}
           onCancel={() => setCancelTarget(null)}
-        />
-      )}
-
-      {clearAllOpen && !closing && (
-        <ConfirmDialog
-          title="Delete all job records?"
-          description={
-            recordCount === null
-              ? "This permanently removes every job record from history, not just the filtered ones. Running jobs will be cancelled first."
-              : `This permanently removes all ${recordCount} job record${recordCount === 1 ? "" : "s"} from history. Running jobs will be cancelled first.`
-          }
-          confirmLabel={clearingAll ? "Deleting..." : "Delete all"}
-          confirmVariant="danger"
-          busy={clearingAll}
-          onConfirm={() => {
-            void runClearAll();
-          }}
-          onCancel={() => {
-            if (!clearingAll) setClearAllOpen(false);
-          }}
         />
       )}
     </>

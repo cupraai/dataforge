@@ -327,21 +327,23 @@
     }
   }
   // The icon sits on a neutral tile that takes the accent while the item is hovered.
-  &__item .menu__icon {
-    box-sizing: border-box;
+  &__item .menu__icon-tile {
     width: 1.75rem;
     height: 1.75rem;
-    padding: 0.375rem;
     border-radius: var(--radius-sm);
     @include fade-bg(var(--surface-hover));
+    transition: --fade-bg var(--transition);
+  }
+  &__item .menu__icon {
+    @include icon-size(var(--icon-size-base));
     color: var(--text-muted);
     opacity: 1;
-    transition:
-      --fade-bg var(--transition),
-      color var(--transition);
+    transition: color var(--transition);
+  }
+  &__item:is(:hover, :focus-visible):not(:disabled) .menu__icon-tile {
+    @include fade-bg(var(--accent-soft));
   }
   &__item:is(:hover, :focus-visible):not(:disabled) .menu__icon {
-    @include fade-bg(var(--accent-soft));
     color: var(--accent);
   }
   // In the item's tooltip bubble, which is portalled out of the menu.

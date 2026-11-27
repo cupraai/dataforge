@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { touchRecentFolder } from "@/features/folder/lib/folderPreferences";
+import { job } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import { SettingsDialog } from "./SettingsDialog";
@@ -103,6 +104,29 @@ describe("SettingsDialog sections", () => {
     expect(within(row("Job options per folder")).getByText("0 folders")).toBeInTheDocument();
     expect(within(row("Display and sort per folder")).getByText("2 folders")).toBeInTheDocument();
     expect(localStorage.getItem("gallery-recent-folders")).toBe("[]");
+  });
+
+  it("deletes every job record after a confirmation that warns about running jobs", async () => {
+    backend = installMockBackend({
+      jobs: [job({ id: "done", status: "completed" }), job({ id: "busy", status: "running" })],
+    });
+    const user = await openSection("Data");
+    const deleteAll = within(groupNamed("History")).getByRole("button", {
+      name: "Delete all jobs",
+    });
+
+    await waitFor(() => expect(deleteAll).toBeEnabled());
+    await user.click(deleteAll);
+    const confirm = screen.getByRole("alertdialog", { name: "Delete all job records?" });
+    expect(confirm).toHaveTextContent("removes all 2 job records from history");
+    expect(confirm).toHaveTextContent("Running jobs will be cancelled first.");
+    await user.click(within(confirm).getByRole("button", { name: "Delete all" }));
+
+    expect(await screen.findByText("Deleted 2 job records.")).toBeInTheDocument();
+    expect(confirm).not.toBeInTheDocument();
+    expect(backend.requestsTo("/api/jobs", "DELETE")).toHaveLength(1);
+    // The count is re-read, so there is nothing left to delete.
+    await waitFor(() => expect(deleteAll).toBeDisabled());
   });
 
   it("shows the machine's live usage and details on About's Performance tab", async () => {

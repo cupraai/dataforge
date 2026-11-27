@@ -1,4 +1,5 @@
 import { Field, TextArea } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useRef, useState } from "react";
@@ -58,6 +59,7 @@ export function VerifyCaptionsDialog({
         syspromptPlacement !== initialSettings.sysprompt_placement
       }
       scope={scope}
+      icon={jobTypeIconFor("verify_captions")}
       title="Start verify captions?"
       description={
         <>

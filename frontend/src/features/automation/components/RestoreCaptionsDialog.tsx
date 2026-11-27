@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/Button";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { SearchInput } from "@/shared/ui/SearchInput";
 import { SegmentedControl } from "@/shared/ui/SegmentedControl";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -126,6 +127,7 @@ export function RestoreCaptionsDialog({
       role="alertdialog"
       confirmDisabled={nothingToRestore}
       scope={scope}
+      icon={jobTypeIconFor("restore_captions")}
       title="Restore captions from backup?"
       description={
         <>

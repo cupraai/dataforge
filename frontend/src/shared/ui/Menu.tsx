@@ -73,6 +73,8 @@ interface MenuItemProps extends Omit<
   /** Anything else at the end, such as the item's shortcut. */
   trailing?: ReactNode;
   tone?: "danger";
+  /** Wraps the icon in a span the menu can style as a tile; the glyph keeps its own size. */
+  iconTile?: boolean;
   onSelect: () => void;
 }
 
@@ -87,6 +89,7 @@ export function MenuItem({
   count,
   trailing,
   tone,
+  iconTile = false,
   onSelect,
   className,
   ...props
@@ -114,7 +117,14 @@ export function MenuItem({
           className={classNames("menu__check", checked && "menu__check--on")}
         />
       )}
-      {icon && <Icon icon={icon} className="menu__icon" />}
+      {icon &&
+        (iconTile ? (
+          <span className="menu__icon-tile">
+            <Icon icon={icon} className="menu__icon" />
+          </span>
+        ) : (
+          <Icon icon={icon} className="menu__icon" />
+        ))}
       {description ? (
         <span className="menu__text">
           <span className="menu__label">{label}</span>

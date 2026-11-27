@@ -30,7 +30,7 @@ import {
 } from "./jobs";
 import type { ExternalOstrisJob } from "@/shared/types";
 import { job } from "@/test/fixtures";
-import { iconSparkles } from "@/shared/icons";
+import { iconMessageSparkle } from "@/shared/icons";
 
 function makeJob(overrides: Partial<Job> = {}): Job {
   return job({
@@ -77,7 +77,7 @@ describe("job type display", () => {
   it("uses registry metadata for known job types", () => {
     const job = makeJob({ job_type: "auto_caption" });
     expect(jobTypeLabel(job)).toBe("Auto-caption");
-    expect(jobIcon(job)).toBe(iconSparkles);
+    expect(jobIcon(job)).toBe(iconMessageSparkle);
   });
 });
 

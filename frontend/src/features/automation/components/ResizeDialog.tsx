@@ -1,4 +1,5 @@
 import { Field, TextInput } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useId, useState } from "react";
@@ -119,6 +120,7 @@ export function ResizeDialog({
         reset
       }
       scope={scope}
+      icon={jobTypeIconFor("resize")}
       title={reset ? "Reset size?" : "Resize media?"}
       description={
         reset ? (

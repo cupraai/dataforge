@@ -1283,7 +1283,9 @@ export function installMockBackend(options: MockBackendOptions = {}) {
 
     if (url.pathname === "/api/jobs") {
       if (method === "DELETE") {
-        return jsonResponse({ deleted_count: 0 });
+        const deleted = options.jobs?.length ?? 0;
+        options.jobs = [];
+        return jsonResponse({ deleted_count: deleted });
       }
 
       const jobs = options.jobs ?? [];

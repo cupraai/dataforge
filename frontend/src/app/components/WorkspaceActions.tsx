@@ -86,6 +86,7 @@ function ToolsGroup({
             <MenuItem
               className="workspace-tools__item"
               icon={jobTypeIconFor(type)}
+              iconTile
               label={jobMenuLabelFor(type)}
               disabled={blocked}
               onSelect={() => {

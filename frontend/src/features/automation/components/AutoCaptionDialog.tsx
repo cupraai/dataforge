@@ -1,4 +1,5 @@
 import { Checkbox } from "@/shared/ui/Checkbox";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -72,6 +73,7 @@ export function AutoCaptionDialog({
         preserveThinking !== initialSettings.preserve_thinking
       }
       scope={scope}
+      icon={jobTypeIconFor("auto_caption")}
       title="Start auto-caption?"
       description={
         <>

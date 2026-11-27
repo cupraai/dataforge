@@ -129,8 +129,25 @@
     animation: bell-ring $attention ease-in-out;
   }
 
+  // The open state keeps the tone too: unread marks clear only when the panel closes.
+  &--urgent {
+    @include tone-hover(danger);
+
+    &[aria-expanded="true"] {
+      @include tone-tint(danger);
+    }
+  }
+
   &--urgent &__icon {
     color: var(--danger);
+  }
+
+  &--warning {
+    @include tone-hover(warning);
+
+    &[aria-expanded="true"] {
+      @include tone-tint(warning);
+    }
   }
 
   &--warning &__icon {

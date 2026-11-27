@@ -1,6 +1,6 @@
 import { IconButton } from "@/shared/ui/IconButton";
 import { DiscardChangesDialog } from "@/shared/ui/DiscardChangesDialog";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VISION_MODEL_QUERY_KEY } from "@/features/automation/api/visionLlm";
 import {
@@ -61,6 +61,7 @@ import { AboutSection } from "./AboutSection";
 import { ConnectionStatus, type ProbeState } from "./ConnectionStatus";
 import { EditorPreferenceSettings } from "./EditorPreferenceSettings";
 import { GalleryCardSettings } from "./GalleryCardSettings";
+import { DeleteAllJobsButton } from "./DeleteAllJobsButton";
 import { NotificationsSection } from "./NotificationsSection";
 import { RememberedDataGroup } from "./RememberedDataGroup";
 import { SettingInput } from "./SettingInput";
@@ -303,7 +304,7 @@ const SECTIONS: Section[] = [
           {
             title: "History",
             icon: iconHistory,
-            hint: "Finished jobs and notifications older than this are deleted; running jobs never are. 0 keeps everything.",
+            hint: "Finished jobs and notifications past this age are deleted. 0 keeps everything.",
             rows: [["job_history_days", "notification_history_days"]],
           },
         ],
@@ -491,6 +492,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       desktopEdited,
       vocabularyEdited,
     ].filter(Boolean).length;
+  const [confirmingJobDelete, setConfirmingJobDelete] = useState(false);
   const discard = useDiscardChanges({
     unsavedChanges: editedCount > 0,
     busy: saving,
@@ -631,7 +633,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       ),
     );
 
-  const renderGroup = (group: Group) => {
+  const renderGroup = (group: Group, action?: ReactNode) => {
     const probe = group.probe;
     const probeState = probe ? probes[probe] : undefined;
     return (
@@ -641,7 +643,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         icon={group.icon}
         hint={group.hint}
         action={
-          probe && (
+          action ??
+          (probe && (
             <Button
               size="xs"
               icon={iconPlug}
@@ -651,7 +654,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             >
               Test connection
             </Button>
-          )
+          ))
         }
       >
         {probeState && <ConnectionStatus state={probeState} />}
@@ -763,11 +766,19 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
         </TaggingSection>
       );
     }
-    const groups = page.groups.map(renderGroup);
+    const groups = page.groups.map((group) => renderGroup(group));
     if (page.id === "data") {
       return (
         <>
-          {groups}
+          {renderGroup(
+            page.groups[0],
+            <DeleteAllJobsButton
+              visible={isShown(page)}
+              disabled={saving}
+              confirming={confirmingJobDelete}
+              onConfirmingChange={setConfirmingJobDelete}
+            />,
+          )}
           <RememberedDataGroup visible={isShown(page)} disabled={saving} />
         </>
       );
@@ -781,7 +792,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       label="Settings"
       onClose={requestClose}
       busy={saving}
-      suspended={discard.confirming}
+      suspended={discard.confirming || confirmingJobDelete}
       scrollLock="settings-dialog-open"
       backdropLabel="Close settings"
     >

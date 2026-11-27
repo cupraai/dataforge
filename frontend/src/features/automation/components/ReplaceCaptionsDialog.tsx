@@ -1,4 +1,5 @@
 import { Field, TextArea } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from "react";
@@ -175,6 +176,7 @@ export function ReplaceCaptionsDialog({
         !backup
       }
       scope={scope}
+      icon={jobTypeIconFor("replace_captions")}
       title="Find and replace in captions?"
       description={
         <>Edits the captions in place. Files whose caption does not match are left untouched.</>

@@ -80,7 +80,6 @@ const jobsContext = {
   stoppingOstrisJobId: null,
   stopExternalOstrisJob: vi.fn<(jobId: string) => Promise<boolean>>(),
   deleteJob: vi.fn<(jobId: string) => Promise<boolean>>(),
-  deleteAllJobs: vi.fn<() => Promise<boolean>>(),
   seenAtMs: 0,
   setShownJobFilter: vi.fn<(isShown: ((job: Job) => boolean) | null) => void>(),
 };
@@ -207,32 +206,6 @@ describe("JobsDialog", () => {
       await waitFor(() =>
         expect(screen.queryByLabelText("Watermark job for landscapes")).not.toBeInTheDocument(),
       );
-    });
-
-    it("closes the clear-all confirmation once every job is deleted", async () => {
-      const user = userEvent.setup();
-      jobsContext.deleteAllJobs.mockResolvedValue(true);
-      renderDrawer([finishedCaption]);
-
-      await user.click(screen.getByRole("button", { name: "Delete all jobs" }));
-      await user.click(screen.getByRole("button", { name: "Delete all" }));
-
-      await waitFor(() =>
-        expect(screen.queryByText("Delete all job records?")).not.toBeInTheDocument(),
-      );
-    });
-
-    it("keeps the clear-all confirmation open when deleting every job fails", async () => {
-      const user = userEvent.setup();
-      jobsContext.deleteAllJobs.mockResolvedValue(false);
-      renderDrawer([finishedCaption]);
-
-      await user.click(screen.getByRole("button", { name: "Delete all jobs" }));
-      await user.click(screen.getByRole("button", { name: "Delete all" }));
-
-      await waitFor(() => expect(jobsContext.deleteAllJobs).toHaveBeenCalledTimes(1));
-      expect(screen.getByText("Delete all job records?")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Delete all" })).toBeEnabled();
     });
 
     it("sends the chosen filters and hides live jobs that do not match", async () => {
@@ -472,7 +445,8 @@ describe("JobsDialog", () => {
 
     expect(screen.getByLabelText("LoRA training job for landscapes")).toBeInTheDocument();
     expect(screen.queryByText("No automation jobs yet.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete all jobs" })).toBeInTheDocument();
+    // Deleting every job is left to Settings, away from the cards it would wipe.
+    expect(screen.queryByRole("button", { name: "Delete all jobs" })).not.toBeInTheDocument();
   });
 
   it("shows a training job when Ostris has not listed the run yet", () => {

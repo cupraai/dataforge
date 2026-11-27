@@ -1,4 +1,5 @@
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { useCallback, useState } from "react";
 import type { DuplicateThreshold } from "@/shared/types";
 import { DialogActions } from "@/shared/ui/Dialog";
@@ -41,6 +42,7 @@ export function FindDuplicatesDialog({
     <GuardedDialog
       unsavedChanges={threshold !== initialSettings.threshold}
       scope={scope}
+      icon={jobTypeIconFor("find_duplicates")}
       title="Find duplicates?"
       description={
         <>Compares them and groups the matches. Duplicates will be marked in the gallery.</>

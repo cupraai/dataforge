@@ -11,6 +11,10 @@ $jobs-content-pad-top: 0.75rem;
     transition: color var(--transition);
   }
 
+  &--failed {
+    @include tone-hover(danger);
+  }
+
   // The robot looks left, then right, and blinks. Parts are matched by Lucide's path data, so a
   // redrawn icon drops that part's motion instead of moving the wrong stroke.
   &--running &__icon {

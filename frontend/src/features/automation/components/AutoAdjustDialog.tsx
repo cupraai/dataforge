@@ -1,4 +1,5 @@
 import { Checkbox } from "@/shared/ui/Checkbox";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { useCallback, useState } from "react";
 import { DialogActions } from "@/shared/ui/Dialog";
@@ -37,6 +38,7 @@ export function AutoAdjustDialog({
     <GuardedDialog
       unsavedChanges={replace || reset}
       scope={scope}
+      icon={jobTypeIconFor("auto_adjust")}
       title={reset ? "Reset color adjustments?" : "Auto-adjust media?"}
       description={
         reset ? (

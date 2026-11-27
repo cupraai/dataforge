@@ -1,5 +1,6 @@
 import { useContext, useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
-import { iconX } from "@/shared/icons";
+import { iconX, type AppIcon } from "@/shared/icons";
+import { Icon } from "./Icon";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { DialogScope, type DialogScopeInfo } from "./DialogScope";
@@ -21,6 +22,8 @@ function entersNewline(target: EventTarget | null): boolean {
 
 export interface DialogProps {
   title: string;
+  /** Drawn before the title, such as the icon of the job the dialog starts. */
+  icon?: AppIcon;
   scope?: DialogScopeInfo;
   description?: ReactNode;
   role?: "alertdialog" | "dialog";
@@ -39,6 +42,7 @@ export interface DialogProps {
 
 export function Dialog({
   title,
+  icon,
   scope,
   description,
   role = "dialog",
@@ -102,6 +106,7 @@ export function Dialog({
       <DialogSubmissionContext.Provider value={{ confirm, busy, disabled: confirmDisabled }}>
         <header className="dialog__header">
           <h2 id={titleId} className="dialog__title">
+            {icon && <Icon icon={icon} className="dialog__title-icon" />}
             {title}
           </h2>
           <IconButton

@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { MAX_TRIM_LENGTH_SECONDS, MIN_TRIM_LENGTH_SECONDS } from "@/shared/constants";
 import type { TrimVideoKeep, TrimVideoRunSettings } from "@/shared/types";
@@ -86,6 +87,7 @@ export function TrimVideoDialog({
         keep !== initialSettings.keep || length !== String(initialSettings.max_seconds) || reset
       }
       scope={scope}
+      icon={jobTypeIconFor("trim_video")}
       title={reset ? "Clear trims?" : "Trim videos?"}
       description={
         reset ? (

@@ -2,9 +2,11 @@ import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import type { ReactNode } from "react";
 import { DialogActions } from "./Dialog";
 import type { DialogScopeInfo } from "./DialogScope";
+import type { AppIcon } from "@/shared/icons";
 
 interface ConfirmDialogProps {
   title: string;
+  icon?: AppIcon;
   /** What the confirmed action will run on; see `Dialog`. */
   scope?: DialogScopeInfo;
   description: ReactNode;
@@ -18,6 +20,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   title,
+  icon,
   scope,
   description,
   confirmLabel,
@@ -31,6 +34,7 @@ export function ConfirmDialog({
     <GuardedDialog
       role="alertdialog"
       title={title}
+      icon={icon}
       scope={scope}
       description={description}
       busy={busy}

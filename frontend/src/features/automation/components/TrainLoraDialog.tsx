@@ -1,4 +1,5 @@
 import { Field, TextInput } from "@/shared/ui/Field";
+import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { IconButton } from "@/shared/ui/IconButton";
 import { Button } from "@/shared/ui/Button";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -114,6 +115,7 @@ export function TrainLoraDialog({
         JSON.stringify(prompts.map((row) => row.text)) !== JSON.stringify(initialPrompts)
       }
       scope={scope}
+      icon={jobTypeIconFor("train_lora")}
       title="Start LoRA training?"
       description={<>Trains a {trainingModelLabel(model)} LoRA on them in Ostris AI-Toolkit.</>}
       panelClassName="train-lora-dialog"
