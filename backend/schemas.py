@@ -91,6 +91,8 @@ type ComfyMapNodeKind = Literal[
     "pass", "model", "loras", "clip", "vae", "prompt", "input", "output"
 ]
 type ComfyMediaKind = Literal["image", "video", "audio"]
+#: A property of the file that tells same-named outputs apart.
+type ComfyMatchProperty = Literal["size", "aspect_ratio", "length"]
 #: How the dialog edits a ``DataForge <name>`` node: a checkbox, whole number, number or text.
 type ComfyInputKind = Literal["boolean", "integer", "number", "text"]
 type ComfyInputValue = bool | int | float | str
@@ -2007,6 +2009,8 @@ class ComfyOutputBranch(BaseModel):
     filename: str | None = None
     is_preview: bool = False
     matches_filename: bool = False
+    #: What about the file rules out an output whose filename matches.
+    mismatches: list[ComfyMatchProperty] = Field(default_factory=list)
     prompts: list[ComfyPromptText] = Field(default_factory=list)
     #: With ``stages``, only the settings read after sampling; otherwise every setting.
     parameters: list[ComfyParameter] = Field(default_factory=list)
@@ -2049,8 +2053,8 @@ class ComfyWorkflowPromptsResponse(BaseModel):
     orphan_prompts: list[ComfyPromptText] = Field(default_factory=list)
     #: Whether ``/comfy-workflow/editor`` has a workflow ComfyUI would load from a paste.
     has_editor_workflow: bool = False
-    #: Several outputs match the filename; ``matched_node_id`` is the one set to the file's size.
-    matched_by_size: bool = False
+    #: Set when several outputs match the filename: what left only ``matched_node_id``.
+    matched_by: list[ComfyMatchProperty] = Field(default_factory=list)
 
 
 class ComfyEditorWorkflowResponse(BaseModel):

@@ -16,6 +16,7 @@ function makeBranch(overrides: Partial<ComfyOutputBranch> = {}): ComfyOutputBran
     filename_prefix: "scenery",
     is_preview: false,
     matches_filename: false,
+    mismatches: [],
     prompts: [],
     parameters: [],
     loras: [],
@@ -35,7 +36,7 @@ function makeResponse(
     matched_node_id: null,
     orphan_prompts: [],
     has_editor_workflow: false,
-    matched_by_size: false,
+    matched_by: [],
     ...overrides,
   };
 }
@@ -226,7 +227,6 @@ describe("ComfyWorkflowDialog", () => {
       "aria-current",
       "true",
     );
-    expect(screen.getByText(/The saved names do not identify/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Forest shot/ }));
 
@@ -245,7 +245,7 @@ describe("ComfyWorkflowDialog", () => {
       }),
     );
 
-    expect(await screen.findByText(/2 outputs share a naming pattern/)).toBeInTheDocument();
+    expect(await screen.findAllByText("Matches filename")).toHaveLength(2);
     const shown = within(screen.getByRole("group", { name: "Details" }));
     expect(shown.getByText("Node #8 · SaveImage")).toBeInTheDocument();
     expect(shown.getByText("Selected for inspection — source unverified")).toBeInTheDocument();
@@ -557,17 +557,26 @@ describe("ComfyWorkflowDialog", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the file and what the dialog shows", async () => {
+    renderDialog(makeResponse({ branches: [makeBranch()] }));
+
+    const description = await screen.findByText(/Prompts and settings from the workflow/);
+    expect(description).toHaveTextContent(
+      "Prompts and settings from the workflow embedded in scenery_00002_.png.",
+    );
+  });
+
   it("reports a file that carries no workflow", async () => {
     renderDialog(makeResponse({ has_workflow: false }));
 
     expect(await screen.findByText(/carries no ComfyUI workflow/)).toBeInTheDocument();
   });
 
-  it("says when the output size decided between same-named outputs", async () => {
+  it("says what about the file decided between same-named outputs", async () => {
     renderDialog(
       makeResponse({
         matched_node_id: "9",
-        matched_by_size: true,
+        matched_by: ["size", "length"],
         branches: [
           makeBranch({ matches_filename: true }),
           makeBranch({ node_id: "9", label: "Upscale", matches_filename: true }),
@@ -575,10 +584,32 @@ describe("ComfyWorkflowDialog", () => {
       }),
     );
 
-    expect(await screen.findByText(/only\s+one is set to render at its size/)).toBeInTheDocument();
     expect(
-      screen.getAllByText("Likely output — matched by filename and size").length,
+      (await screen.findAllByText("Likely output — matched by filename, size and length")).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("does not call an output the file contradicts a match", async () => {
+    renderDialog(
+      makeResponse({
+        branches: [
+          makeBranch({ matches_filename: true, mismatches: ["length"] }),
+          makeBranch({
+            node_id: "9",
+            label: "Upscale",
+            matches_filename: true,
+            mismatches: ["aspect_ratio", "length"],
+          }),
+        ],
+      }),
+    );
+
+    expect(await screen.findByText("Filename matches, length differs")).toBeInTheDocument();
+    expect(screen.queryByText("Matches filename")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Filename matches, aspect ratio and length differ"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Filename matches, length differs from the file")).toBeInTheDocument();
   });
 
   it("copies the workflow of the selected output for pasting into ComfyUI", async () => {

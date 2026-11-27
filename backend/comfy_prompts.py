@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -11,8 +12,14 @@ from comfy_embedded_generation import embedded_generation, generation_workflow
 from comfy_metadata import read_media_metadata_values
 from comfy_switches import BOOLEAN_SWITCHES, INDEXED_INPUT, INDEXED_SWITCHES
 from external.comfy_workflows import ComfyWorkflow, ComfyWorkflowError
-from media_dimensions import media_dimensions
-from schemas import ComfyMapNodeKind, ComfyMediaKind, ComfyPassStatus, ComfyPromptRole
+from media_dimensions import MediaInfo, media_info
+from schemas import (
+    ComfyMapNodeKind,
+    ComfyMatchProperty,
+    ComfyMediaKind,
+    ComfyPassStatus,
+    ComfyPromptRole,
+)
 
 _MAX_VALUE_HOPS = 12
 _MAX_PROMPT_CHARS = 20000
@@ -49,6 +56,32 @@ _RESOLUTION_INPUT_KEYS = ("aspect_ratio", "megapixels", "multiple")
 #: These re-sample the image their own stage made.
 _REFINER_CLASS_MARKERS = ("detailer", "ultimatesdupscale")
 _NAME_INPUT_KEYS = ("filename_prefix", "filename")
+_FRAME_COUNT_INPUTS = ("length", "num_frames", "frame_count", "frames", "video_length")
+_FRAME_RATE_INPUTS = ("frame_rate", "fps")
+#: Class-name parts of nodes after sampling that make the declared length not the file's:
+#: joined segments, interpolation, frame picks.
+_FRAME_COUNT_CHANGE_MARKERS = (
+    "merge",
+    "batch",
+    "select",
+    "range",
+    "trim",
+    "split",
+    "repeat",
+    "loop",
+    "extend",
+    "vfi",
+    "interpolat",
+    "rife",
+    "film",
+    "pingpong",
+)
+#: A size declared upstream of these (side by side, pasted, resized to fit) is not the file's.
+_GEOMETRY_CHANGE_MARKERS = ("concat", "concanate", "stitch", "composite", "comparer")
+#: Decoders drop a few frames; same-named outputs differ by far more.
+_LENGTH_TOLERANCE = 0.04
+#: Relative; a resize rounds each side to a multiple of 8 or so.
+_ASPECT_TOLERANCE = 0.01
 #: Switched off, VHS's combine writes to the temp folder, as a preview does.
 _SAVE_FLAG_INPUTS = ("save_output",)
 #: Sampler nodes such as SamplerLCM, whose class names the sampler.
@@ -149,6 +182,11 @@ class OutputBranch:
     #: For telling same-named outputs apart.
     widths: frozenset[int] = frozenset()
     heights: frozenset[int] = frozenset()
+    frame_counts: frozenset[int] = frozenset()
+    #: None unless the output's chain declares exactly one rate.
+    frame_rate: float | None = None
+    #: Set on a filename match the file contradicts, which then is not the likely output.
+    mismatches: list[ComfyMatchProperty] = field(default_factory=list)
     #: None when it loads a source file or cannot parse.
     generation: ComfyWorkflow | None = None
 
@@ -161,8 +199,8 @@ class WorkflowPrompts:
     matched_node_id: str | None
     orphan_prompts: list[PromptText]
     has_editor_workflow: bool = False
-    #: Only the matched output renders at the file's size.
-    matched_by_size: bool = False
+    #: What ruled the other same-named outputs out, in the order it was checked.
+    matched_by: list[ComfyMatchProperty] = field(default_factory=list)
 
 
 def _link_reference(value: object) -> tuple[str, int] | None:
@@ -275,6 +313,59 @@ def _generation_stages(
         if all(source in sampled or not sources[source] for source in sources[node_id])
     }
     return samplers, generators, results
+
+
+def _after_sampling_classes(
+    graph: dict[str, dict], root: str, stages: tuple[set[str], set[str], set[str]]
+) -> str:
+    """Lowercased classes carrying frames from the samplers and generators to the output.
+
+    Side inputs such as a `KSamplerSelect` are not on that path."""
+    samplers, generators, _results = stages
+    stops = samplers | generators
+    consumers: dict[str, list[str]] = {}
+    for node_id, node in graph.items():
+        for value in _node_inputs(node).values():
+            if (source := _link_target(value)) is not None:
+                consumers.setdefault(source, []).append(node_id)
+    carried = set(stops)
+    forward = list(stops)
+    while forward:
+        for consumer in consumers.get(forward.pop(), []):
+            if consumer not in carried:
+                carried.add(consumer)
+                forward.append(consumer)
+
+    seen = {root}
+    queue = [root]
+    while queue:
+        current = queue.pop()
+        if current in stops:
+            continue
+        for value in _node_inputs(graph.get(current)).values():
+            source = _link_target(value)
+            if source in carried and source not in seen:
+                seen.add(source)
+                queue.append(source)
+    return " ".join(_node_class(graph[node_id]).lower() for node_id in seen - stops)
+
+
+def _sizing_nodes(graph: dict[str, dict], root: str, stage: list[str]) -> list[str]:
+    """The stage ancestors whose declared size can be the file's."""
+    allowed = set(stage)
+    seen = {root}
+    queue = [root]
+    while queue:
+        current = queue.pop()
+        lowered = _node_class(graph.get(current)).lower()
+        if current != root and any(marker in lowered for marker in _GEOMETRY_CHANGE_MARKERS):
+            continue
+        for value in _node_inputs(graph.get(current)).values():
+            source = _link_target(value)
+            if source in allowed and source not in seen:
+                seen.add(source)
+                queue.append(source)
+    return [node_id for node_id in stage if node_id in seen]
 
 
 def _stage_ancestors(
@@ -1262,38 +1353,104 @@ def read_editor_workflow(file_path: Path) -> str | None:
     return _editor_workflow(_metadata_values(file_path))
 
 
-def _declared_sizes(graph: dict[str, dict], ancestry: list[str], key: str) -> frozenset[int]:
-    values = (_scalar_at(graph, _node_inputs(graph.get(node_id)).get(key)) for node_id in ancestry)
+def _declared_numbers(
+    graph: dict[str, dict], ancestry: list[str], keys: tuple[str, ...]
+) -> frozenset[float]:
+    values = (
+        _scalar_at(graph, _node_inputs(graph.get(node_id)).get(key))
+        for node_id in ancestry
+        for key in keys
+    )
     return frozenset(
-        int(value)
+        value
         for value in values
         if isinstance(value, int | float) and not isinstance(value, bool) and value > 0
     )
 
 
-def _media_size(file_path: Path) -> tuple[int, int] | None:
+def _declared_sizes(graph: dict[str, dict], ancestry: list[str], *keys: str) -> frozenset[int]:
+    return frozenset(int(value) for value in _declared_numbers(graph, ancestry, keys))
+
+
+def _declared_rate(graph: dict[str, dict], ancestry: list[str]) -> float | None:
+    rates = _declared_numbers(graph, ancestry, _FRAME_RATE_INPUTS)
+    return next(iter(rates)) if len(rates) == 1 else None
+
+
+def _media_facts(file_path: Path) -> MediaInfo | None:
     try:
         stat = file_path.stat()
     except OSError:
         return None
     media_type = "image" if file_path.suffix.lower() == ".png" else "video"
-    return media_dimensions(file_path, media_type, stat.st_mtime_ns, stat.st_size)
+    return media_info(file_path, media_type, stat.st_mtime_ns, stat.st_size)
 
 
-def _size_tiebreak(candidates: list[OutputBranch], file_path: Path) -> OutputBranch | None:
-    """The same-named output set to render at the file's size, or None."""
-    if len(candidates) < 2 or not any(branch.widths and branch.heights for branch in candidates):
+def _fits_size(branch: OutputBranch, facts: MediaInfo) -> bool | None:
+    if not (branch.widths and branch.heights) or facts.width is None or facts.height is None:
         return None
-    size = _media_size(file_path)
-    if size is None:
+    return facts.width in branch.widths and facts.height in branch.heights
+
+
+def _fits_aspect(branch: OutputBranch, facts: MediaInfo) -> bool | None:
+    """For a file scaled after its stage rendered it."""
+    if not (branch.widths and branch.heights) or facts.width is None or facts.height is None:
         return None
-    fitting = [
-        branch
-        for branch in candidates
-        if not (branch.widths and branch.heights)
-        or (size[0] in branch.widths and size[1] in branch.heights)
-    ]
-    return fitting[0] if len(fitting) == 1 else None
+    ratio = facts.width / facts.height
+    return any(
+        abs(width / height - ratio) <= ratio * _ASPECT_TOLERANCE
+        for width in branch.widths
+        for height in branch.heights
+    )
+
+
+def _fits_length(branch: OutputBranch, facts: MediaInfo) -> bool | None:
+    if not branch.frame_counts or branch.frame_rate is None or facts.duration is None:
+        return None
+    played = facts.duration * branch.frame_rate
+    return any(
+        abs(played - count) <= max(1, count * _LENGTH_TOLERANCE) for count in branch.frame_counts
+    )
+
+
+type _Fit = Callable[[OutputBranch, MediaInfo], bool | None]
+
+#: A size alone that differs is no contradiction: the file may be scaled after rendering.
+_CONTRADICTIONS: tuple[tuple[ComfyMatchProperty, _Fit], ...] = (
+    ("aspect_ratio", _fits_aspect),
+    ("length", _fits_length),
+)
+
+
+def _match_by_media(
+    claimants: list[OutputBranch], file_path: Path
+) -> tuple[OutputBranch | None, list[ComfyMatchProperty]]:
+    """Sets each claimant's ``mismatches``; returns the one output left and what decided.
+
+    A contradicted claimant is out; among the rest an exact size fit wins. A branch a check
+    cannot judge is never ruled out by it."""
+    facts = _media_facts(file_path) if claimants else None
+    if facts is not None:
+        for branch in claimants:
+            branch.mismatches = [
+                name for name, fits in _CONTRADICTIONS if fits(branch, facts) is False
+            ]
+    fitting = [branch for branch in claimants if not branch.mismatches]
+    ruled_out = {name for branch in claimants for name in branch.mismatches}
+    decided_by = [name for name, _fits in _CONTRADICTIONS if name in ruled_out]
+    if len(fitting) > 1 and facts is not None:
+        verdicts = [_fits_size(branch, facts) for branch in fitting]
+        sized = [
+            branch
+            for branch, verdict in zip(fitting, verdicts, strict=True)
+            if verdict is not False
+        ]
+        if sized and len(sized) < len(fitting):
+            fitting = sized
+            decided_by.insert(0, "size")
+    if len(fitting) != 1:
+        return None, []
+    return fitting[0], decided_by if len(claimants) > 1 else []
 
 
 def _sort_branches(branches: list[OutputBranch], matched_id: str | None) -> list[OutputBranch]:
@@ -1303,6 +1460,7 @@ def _sort_branches(branches: list[OutputBranch], matched_id: str | None) -> list
         key=lambda branch: (
             branch.node_id != matched_id,
             not branch.matches_filename,
+            bool(branch.mismatches),
             branch.is_preview,
             not branch.prompts,
             branch.node_id,
@@ -1339,6 +1497,9 @@ def _output_branch(
     ran = [step for step in ancestry if step in live]
     # Only the stage that made the file sets its size.
     sized = [step for step in _stage_ancestors(graph, node_id, stages) if step in live]
+    sizing = _sizing_nodes(graph, node_id, sized)
+    after_sampling_classes = _after_sampling_classes(graph, node_id, stages)
+    retimed = any(marker in after_sampling_classes for marker in _FRAME_COUNT_CHANGE_MARKERS)
     prefix = _declared_name(graph, node, "filename_prefix")
     filename = _declared_name(graph, node, "filename")
     bypassed = _bypassed_on_path(graph, editor, node_id, set(ancestry))
@@ -1373,8 +1534,12 @@ def _output_branch(
         stages=passes,
         shared=shared,
         map=branch_map,
-        widths=_declared_sizes(graph, sized, "width"),
-        heights=_declared_sizes(graph, sized, "height"),
+        widths=_declared_sizes(graph, sizing, "width"),
+        heights=_declared_sizes(graph, sizing, "height"),
+        frame_counts=frozenset()
+        if retimed
+        else _declared_sizes(graph, sized, *_FRAME_COUNT_INPUTS),
+        frame_rate=_declared_rate(graph, ran),
     )
 
 
@@ -1464,8 +1629,7 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
         for branch in branches:
             branch.matches_filename = branch.matches_filename and not branch.is_preview
     claimants = [branch for branch in branches if branch.matches_filename]
-    by_size = _size_tiebreak(claimants, file_path)
-    matched = claimants[0] if len(claimants) == 1 else by_size
+    matched, matched_by = _match_by_media(claimants, file_path)
     matched_id = matched.node_id if matched else None
     orphans = _collect_prompts(graph, [node_id for node_id in graph if node_id not in covered])
 
@@ -1476,7 +1640,7 @@ def extract_workflow_prompts(file_path: Path) -> WorkflowPrompts:
         matched_node_id=matched_id,
         orphan_prompts=orphans,
         has_editor_workflow=_editor_workflow(values) is not None,
-        matched_by_size=by_size is not None,
+        matched_by=matched_by,
     )
 
 

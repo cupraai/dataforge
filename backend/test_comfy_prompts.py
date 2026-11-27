@@ -1055,8 +1055,8 @@ class ComputedValueTests(unittest.TestCase):
         self.assertEqual((shown["Width"], shown["Height"], shown["Frames"]), ("576", "736", "90"))
 
 
-class SizeTiebreakTests(unittest.TestCase):
-    """Same-named outputs are told apart by the size each stage renders at, never by length."""
+class MediaTiebreakTests(unittest.TestCase):
+    """Same-named outputs are told apart by the file's size, aspect ratio and length."""
 
     def _graph(self, first: tuple[int, int], second: tuple[int, int]) -> dict:
         return {
@@ -1072,7 +1072,7 @@ class SizeTiebreakTests(unittest.TestCase):
             )
 
         self.assertEqual(result.matched_node_id, "22")
-        self.assertTrue(result.matched_by_size)
+        self.assertEqual(result.matched_by, ["size"])
         # The likely output opens selected, so it leads the list.
         self.assertEqual(result.branches[0].node_id, "22")
 
@@ -1083,7 +1083,7 @@ class SizeTiebreakTests(unittest.TestCase):
                     _write(root, "scene_00001.png", self._graph(first, second))
                 )
                 self.assertIsNone(result.matched_node_id)
-                self.assertFalse(result.matched_by_size)
+                self.assertEqual(result.matched_by, [])
 
     def test_a_stage_of_unknown_size_is_never_ruled_out(self) -> None:
         graph = self._graph((128, 96), (64, 48))
@@ -1110,6 +1110,132 @@ class SizeTiebreakTests(unittest.TestCase):
             result = extract_workflow_prompts(_write(root, "scene_00001.png", graph))
 
         self.assertEqual(result.matched_node_id, "22")
+
+    def test_a_file_scaled_after_rendering_matches_by_aspect_ratio(self) -> None:
+        with TempMediaFolder() as root:
+            # The 64x48 fixture is twice the first stage's size; the second is square.
+            result = extract_workflow_prompts(
+                _write(root, "scene_00001.png", self._graph((32, 24), (48, 48)))
+            )
+
+        self.assertEqual(result.matched_node_id, "12")
+        self.assertEqual(result.matched_by, ["aspect_ratio"])
+
+    def _video_graph(self, *stages: tuple[tuple[int, int], int]) -> dict:
+        graph: dict = {}
+        for index, (size, length) in enumerate(stages):
+            stage = _video_stage(f"scene {index}", size, length, "renders/scene")
+            stage["12"]["inputs"]["frame_rate"] = 24
+            graph |= _renumbered(stage, index * 10)
+        return graph
+
+    def _video(self, root, graph: dict):
+        # Ten seconds: 240 frames at the declared 24 fps.
+        return _write_muxed(root, "scene_00001.mp4", graph, width=640, height=480)
+
+    def test_same_sized_videos_are_told_apart_by_length(self) -> None:
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(
+                self._video(root, self._video_graph(((640, 480), 81), ((640, 480), 240)))
+            )
+
+        self.assertEqual(result.matched_node_id, "22")
+        self.assertEqual(result.matched_by, ["length"])
+
+    def test_length_breaks_the_tie_size_leaves(self) -> None:
+        graph = self._video_graph(((640, 480), 240), ((320, 240), 240), ((640, 480), 81))
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(self._video(root, graph))
+
+        self.assertEqual(result.matched_node_id, "12")
+        self.assertEqual(result.matched_by, ["size", "length"])
+
+    def test_outputs_the_file_contradicts_are_not_matches(self) -> None:
+        graph = self._video_graph(((640, 480), 81), ((640, 480), 120))
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(self._video(root, graph))
+
+        self.assertIsNone(result.matched_node_id)
+        self.assertEqual(result.matched_by, [])
+        self.assertEqual([branch.mismatches for branch in result.branches], [["length"]] * 2)
+
+    def test_a_lone_filename_match_the_file_contradicts_is_not_the_likely_output(self) -> None:
+        with TempMediaFolder() as root:
+            # The PNG fixture is 64x48, landscape.
+            result = extract_workflow_prompts(
+                _write(root, "scene_00001.png", _video_stage("a harbour", (48, 64), 81, "scene"))
+            )
+
+        self.assertTrue(result.branches[0].matches_filename)
+        self.assertEqual(result.branches[0].mismatches, ["aspect_ratio"])
+        self.assertIsNone(result.matched_node_id)
+
+    def test_a_contradicted_output_leaves_the_one_that_cannot_be_judged(self) -> None:
+        graph = self._graph((48, 64), (64, 48))
+        graph["21"]["inputs"]["width"] = ["99", 0]
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(_write(root, "scene_00001.png", graph))
+
+        self.assertEqual(result.matched_node_id, "22")
+        self.assertEqual(result.matched_by, ["aspect_ratio"])
+
+    def test_a_size_upstream_of_a_composite_is_not_the_files(self) -> None:
+        # A square placeholder resized onto the source, as a reference image for the prompt.
+        graph = {
+            "11": {
+                "class_type": "MiniMaxH3ImageToVideo",
+                "inputs": {"prompt": "a harbour", "image": ["14", 0]},
+            },
+            "12": {
+                "class_type": "SaveImage",
+                "inputs": {"images": ["11", 0], "filename_prefix": "scene"},
+            },
+            "13": {"class_type": "EmptyImage", "inputs": {"width": 32, "height": 32}},
+            "14": {
+                "class_type": "ImageCompositeMasked",
+                "inputs": {"destination": ["13", 0], "source": ["13", 0], "resize_source": True},
+            },
+        }
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(_write(root, "scene_00001.png", graph))
+
+        self.assertEqual(result.branches[0].mismatches, [])
+        self.assertEqual(result.matched_node_id, "12")
+
+    def test_a_side_input_after_sampling_does_not_hide_the_length(self) -> None:
+        # Only what carries frames counts; a sampler picker read by an upscaler does not.
+        graph = self._video_graph(((640, 480), 81), ((640, 480), 240))
+        for offset in (0, 10):
+            graph[str(13 + offset)] = {"class_type": "KSamplerSelect", "inputs": {}}
+            graph[str(14 + offset)] = {
+                "class_type": "UltimateSDUpscaleCustomSample",
+                "inputs": {"image": [str(11 + offset), 0], "sampler": [str(13 + offset), 0]},
+            }
+            graph[str(12 + offset)]["inputs"]["images"] = [str(14 + offset), 0]
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(self._video(root, graph))
+
+        self.assertEqual(result.matched_node_id, "22")
+        self.assertEqual(result.matched_by, ["length"])
+
+    def test_the_length_of_joined_segments_is_not_judged(self) -> None:
+        graph = self._video_graph(((640, 480), 81))
+        graph["13"] = {
+            "class_type": "VHS_MergeImages",
+            "inputs": {"images_A": ["11", 0], "images_B": ["11", 0]},
+        }
+        graph["12"]["inputs"]["images"] = ["13", 0]
+
+        with TempMediaFolder() as root:
+            result = extract_workflow_prompts(self._video(root, graph))
+
+        self.assertEqual(result.branches[0].mismatches, [])
+        self.assertEqual(result.matched_node_id, "12")
 
 
 def _pairs(parameters: list) -> set[tuple[str, str]]:

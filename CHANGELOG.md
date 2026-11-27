@@ -17,6 +17,7 @@ version heading when a minor or major version is cut.
 
 - **Verify captions** calls its text field **Instruction**, like **Edit captions**, and its **Saved** menu lists saved instructions. Your remembered text and saved entries carry over.
 - Comparing a caption with its backup in the file viewer or inspector stays on when you move to the previous or next file, instead of returning to the caption editor.
+- When several outputs in a file's ComfyUI workflow share its name, the **ComfyUI workflow** dialog now also uses the file's aspect ratio and, for a video, its length to pick the likely output, not only its exact size. It says which of these decided, and an output whose aspect ratio or length differs from the file is no longer shown as a filename match.
 
 ### Fixed
 

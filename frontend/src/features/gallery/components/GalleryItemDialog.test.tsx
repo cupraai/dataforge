@@ -143,7 +143,7 @@ describe("GalleryItemDialog", () => {
       matched_node_id: "7",
       orphan_prompts: [],
       has_editor_workflow: false,
-      matched_by_size: false,
+      matched_by: [],
       branches: [
         {
           node_id: "7",
@@ -152,6 +152,7 @@ describe("GalleryItemDialog", () => {
           filename_prefix: "sunset",
           is_preview: false,
           matches_filename: true,
+          mismatches: [],
           prompts: [
             {
               role: "positive",

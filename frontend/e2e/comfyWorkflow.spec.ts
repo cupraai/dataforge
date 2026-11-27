@@ -176,7 +176,7 @@ for (const viewport of [
     await page.getByRole("button", { name: `View ${name}`, exact: true }).click();
     await page.getByRole("button", { name: /ComfyUI/ }).click();
     const dialog = page.getByRole("dialog", { name: "ComfyUI workflow" });
-    await expect(dialog.getByText(/2 outputs share a naming pattern/)).toBeVisible();
+    await expect(dialog.getByText("Matches filename", { exact: true })).toHaveCount(2);
     // No filename match, so the first output is shown rather than an empty pane.
     const prompts = dialog.getByRole("group", { name: "Details", exact: true });
     // The workflow map repeats prompt text in its boxes; these checks are about the prompt cards.

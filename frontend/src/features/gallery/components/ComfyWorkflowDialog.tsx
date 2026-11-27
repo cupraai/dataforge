@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/Button";
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { fetchComfyEditorWorkflow } from "@/features/gallery/api/captions";
 import { ComfyWorkflowMap } from "@/features/gallery/components/ComfyWorkflowMap";
@@ -13,7 +13,12 @@ import { useComfyWorkflowPrompts } from "@/features/gallery/hooks/useComfyWorkfl
 import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { iconComfyUi, iconCopy, iconLoader2 } from "@/shared/icons";
 import { classNames } from "@/shared/lib/classNames";
-import type { ComfyOutputBranch, ComfyParameter, ComfySharedSettings } from "@/shared/types";
+import type {
+  ComfyMatchProperty,
+  ComfyOutputBranch,
+  ComfyParameter,
+  ComfySharedSettings,
+} from "@/shared/types";
 import { Dialog } from "@/shared/ui/Dialog";
 import { scrollBehavior } from "@/shared/lib/motion";
 import { Icon } from "@/shared/ui/Icon";
@@ -28,53 +33,31 @@ interface ComfyWorkflowDialogProps {
   onGenerate?: (workflow: EmbeddedGenerateWorkflow) => void;
 }
 
-const LIKELY_OUTPUT_LABEL = "Likely output — matched by filename";
-const LIKELY_BY_SIZE_LABEL = "Likely output — matched by filename and size";
+const MATCH_PROPERTY_LABELS: Record<ComfyMatchProperty, string> = {
+  size: "size",
+  aspect_ratio: "aspect ratio",
+  length: "length",
+};
 // Model files get full-width rows; their names are too long for a settings tile.
 const MODEL_FILE_PATTERN = /\.(safetensors|gguf|ckpt|pth?|bin|sft)$/i;
 
-function describe(
-  branches: ComfyOutputBranch[],
-  matchedNodeId: string | null | undefined,
-  matchedBySize: boolean,
-  mediaName: string,
-): ReactNode {
-  if (branches.length === 0) return "This workflow has no output node to trace prompts from.";
-  if (matchedNodeId && matchedBySize) {
-    const claiming = branches.filter((branch) => branch.matches_filename).length;
-    return (
-      <>
-        {claiming} outputs share a naming pattern matching <strong>{mediaName}</strong>, and only
-        one is set to render at its size. This identifies a likely output, but the embedded workflow
-        does not confirm which node wrote the file.
-      </>
-    );
-  }
-  if (matchedNodeId) {
-    return (
-      <>
-        One output matches the filename of <strong>{mediaName}</strong>. This identifies a likely
-        output, but the embedded workflow does not confirm which node wrote the file.
-      </>
-    );
-  }
+/** "a", "a and b", "a, b and c". */
+function joinWords(words: string[]): string {
+  return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
+}
 
-  const claiming = branches.filter((branch) => branch.matches_filename).length;
-  if (claiming > 1) {
-    return (
-      <>
-        {claiming} outputs share a naming pattern matching <strong>{mediaName}</strong>. The
-        embedded workflow cannot identify which one wrote this file.
-      </>
-    );
-  }
+function propertyWords(properties: ComfyMatchProperty[]): string[] {
+  return properties.map((property) => MATCH_PROPERTY_LABELS[property]);
+}
 
-  return (
-    <>
-      The saved names do not identify which output wrote <strong>{mediaName}</strong>. The file may
-      have been renamed or the workflow may use a dynamic name.
-    </>
-  );
+function likelyLabel(matchedBy: ComfyMatchProperty[]): string {
+  return `Likely output — matched by ${joinWords(["filename", ...propertyWords(matchedBy)])}`;
+}
+
+/** For a filename match the file rules out. */
+function mismatchLabel(mismatches: ComfyMatchProperty[]): string {
+  const verb = mismatches.length > 1 ? "differ" : "differs";
+  return `Filename matches, ${joinWords(propertyWords(mismatches))} ${verb}`;
 }
 
 function OutputIdentity({ branch }: { branch: ComfyOutputBranch }) {
@@ -122,8 +105,17 @@ function BranchList({
               {(branch.matches_filename || branch.is_preview) && (
                 <span className="comfy-workflow-dialog__output-flags">
                   {branch.matches_filename && (
-                    <span className="comfy-workflow-dialog__output-flag">
-                      {branch.node_id === matchedNodeId ? likelyLabel : "Matches filename"}
+                    <span
+                      className={classNames(
+                        "comfy-workflow-dialog__output-flag",
+                        branch.mismatches.length > 0 && "comfy-workflow-dialog__output-flag--muted",
+                      )}
+                    >
+                      {branch.node_id === matchedNodeId
+                        ? likelyLabel
+                        : branch.mismatches.length > 0
+                          ? mismatchLabel(branch.mismatches)
+                          : "Matches filename"}
                     </span>
                   )}
                   {branch.is_preview && (
@@ -391,9 +383,11 @@ function BranchDetails({
           >
             {branch.node_id === matchedNodeId
               ? likelyLabel
-              : onlyOutput
-                ? "Only output in embedded workflow — filename unverified"
-                : "Selected for inspection — source unverified"}
+              : branch.mismatches.length > 0
+                ? `${mismatchLabel(branch.mismatches)} from the file`
+                : onlyOutput
+                  ? "Only output in embedded workflow — filename unverified"
+                  : "Selected for inspection — source unverified"}
           </p>
         </div>
         {branch.prompts.length === 0 && (
@@ -520,14 +514,16 @@ export function ComfyWorkflowDialog({
     branches.find((branch) => branch.node_id === data?.matched_node_id) ??
     branches[0];
 
-  const description = loading
-    ? "Reading the workflow embedded in this file..."
-    : error
-      ? null
-      : data?.has_workflow === false
-        ? "This file carries no ComfyUI workflow."
-        : describe(branches, data?.matched_node_id, data?.matched_by_size === true, mediaName);
-  const likelyLabel = data?.matched_by_size ? LIKELY_BY_SIZE_LABEL : LIKELY_OUTPUT_LABEL;
+  const name = <strong>{mediaName}</strong>;
+  const description =
+    data?.has_workflow === false ? (
+      <>{name} carries no ComfyUI workflow.</>
+    ) : data && branches.length === 0 ? (
+      <>The workflow in {name} has no output node to trace prompts from.</>
+    ) : (
+      <>Prompts and settings from the workflow embedded in {name}.</>
+    );
+  const matchLabel = likelyLabel(data?.matched_by ?? []);
   const generation = selected?.generation;
 
   return (
@@ -549,7 +545,7 @@ export function ComfyWorkflowDialog({
               branches={branches}
               selectedId={selected.node_id}
               matchedNodeId={data?.matched_node_id}
-              likelyLabel={likelyLabel}
+              likelyLabel={matchLabel}
               onSelect={setSelectedId}
             />
           )}
@@ -557,7 +553,7 @@ export function ComfyWorkflowDialog({
             key={`${mediaPath}|${selected.node_id}`}
             branch={selected}
             matchedNodeId={data?.matched_node_id}
-            likelyLabel={likelyLabel}
+            likelyLabel={matchLabel}
             onlyOutput={branches.length === 1}
             mediaPath={mediaPath}
             canCopyWorkflow={data?.has_editor_workflow === true}

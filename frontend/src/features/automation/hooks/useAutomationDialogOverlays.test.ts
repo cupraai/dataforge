@@ -421,6 +421,7 @@ describe("useAutomationDialogOverlays scope", () => {
         label: "Render",
         is_preview: false,
         matches_filename: true,
+        mismatches: [],
         prompts: [],
         parameters: [],
         loras: [],

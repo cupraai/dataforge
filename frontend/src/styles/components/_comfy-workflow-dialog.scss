@@ -433,9 +433,22 @@ $map-chip-font-size: 0.59375rem;
   &__map {
     position: relative;
     width: 100%;
+    // The frame is CSS, not the canvas's stroke: that scales with the map to under a pixel.
+    overflow: hidden;
+    border-radius: var(--radius-md);
     // A diagram, not prose: selecting its labels only gets in the way of hovering and clicking.
     user-select: none;
     -webkit-user-select: none;
+
+    // Over the boxes and out of the layout, so the viewBox proportions are untouched.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--border);
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 
   &__map-wires {
@@ -446,7 +459,6 @@ $map-chip-font-size: 0.59375rem;
 
   &__map-canvas {
     fill: var(--bg-soft);
-    stroke: var(--border);
   }
 
   &__map-dot {

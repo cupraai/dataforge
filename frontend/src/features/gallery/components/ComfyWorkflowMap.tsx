@@ -277,9 +277,8 @@ export function ComfyWorkflowMap({
             className="comfy-workflow-dialog__map-canvas"
             width={layout.width}
             height={layout.height}
-            rx="10"
           />
-          <rect width={layout.width} height={layout.height} rx="10" fill={`url(#${gridId})`} />
+          <rect width={layout.width} height={layout.height} fill={`url(#${gridId})`} />
 
           {layout.edges.map((edge) => (
             <g

@@ -149,6 +149,7 @@ def read_comfy_workflow_prompts(
                 filename=branch.filename,
                 is_preview=branch.is_preview,
                 matches_filename=branch.matches_filename,
+                mismatches=branch.mismatches,
                 prompts=[_prompt_text(prompt) for prompt in branch.prompts],
                 parameters=_parameters(branch.parameters),
                 loras=branch.loras,
@@ -162,7 +163,7 @@ def read_comfy_workflow_prompts(
         matched_node_id=extracted.matched_node_id,
         orphan_prompts=[_prompt_text(prompt) for prompt in extracted.orphan_prompts],
         has_editor_workflow=extracted.has_editor_workflow,
-        matched_by_size=extracted.matched_by_size,
+        matched_by=extracted.matched_by,
     )
 
 

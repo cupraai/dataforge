@@ -261,7 +261,7 @@ describe("IssueResolverDialog", () => {
       matched_node_id: null,
       orphan_prompts: [],
       has_editor_workflow: false,
-      matched_by_size: false,
+      matched_by: [],
       branches: [],
     });
     const save = vi.spyOn(api, "saveCaption");
