@@ -104,7 +104,7 @@ export function ComfyShowcaseDialog({
         <>
           Renders every item with the LoRA showcased, as new files from{" "}
           <strong>{draft.namePrefix.trim() || presetName || "showcase"}_0001</strong> onwards.
-          Compare several LoRAs to render each item once per LoRA.
+          Compare several LoRAs to render each item once per LoRA, with the same seed.
         </>
       }
       panelClassName="comfy-showcase-dialog"
@@ -217,7 +217,7 @@ export function ComfyShowcaseDialog({
           </div>
         </section>
 
-        <div className="comfy-preset-layout__form">
+        <div className="comfy-preset-layout__form comfy-form">
           <ShowcaseItemForm
             state={state}
             index={state.selection}

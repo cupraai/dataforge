@@ -35,7 +35,7 @@ function listPresets(names: string[], generates: boolean) {
     generates,
     accepts_loras: true,
     source_kind: null,
-    accepts_showcase_seed: true,
+    accepts_generation_seed: true,
   }));
   fetchPresets.mockResolvedValue({ presets, available: true, base_url: "http://127.0.0.1:9000" });
 }
@@ -45,6 +45,7 @@ const runDialog = (
     scope={SCOPE}
     destinationScope={{ ...SCOPE, kind: "destination" }}
     initialSettings={SETTINGS.comfy_run}
+    folderItems={[]}
     onConfirm={noop}
     onCancel={noop}
   />
@@ -54,13 +55,13 @@ const DIALOGS: { title: string; generates: boolean; start: string; dialog: React
   {
     title: "Run ComfyUI workflow, editing",
     generates: false,
-    start: "Start processing",
+    start: "Start workflow",
     dialog: runDialog,
   },
   {
     title: "Run ComfyUI workflow, generating",
     generates: true,
-    start: "Start generating",
+    start: "Start workflow",
     dialog: runDialog,
   },
   {
@@ -163,7 +164,10 @@ describe.each(DIALOGS)("live presets in $title", ({ generates, start, dialog }) 
   it("offers the first preset added to an empty folder", async () => {
     await screen.findByRole("radio", { name: "middle" });
     change([]);
-    await vi.waitFor(() => expect(screen.queryAllByRole("radio")).toHaveLength(0));
+    await vi.waitFor(() => {
+      expect(screen.queryByRole("radio", { name: "middle" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("radio", { name: "zebra" })).not.toBeInTheDocument();
+    });
 
     change(["fresh"]);
     expect(await screen.findByRole("radio", { name: "fresh" })).toBeInTheDocument();

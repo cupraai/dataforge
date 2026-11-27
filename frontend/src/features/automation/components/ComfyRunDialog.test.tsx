@@ -7,12 +7,14 @@ import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import type {
   ComfyPresetInput,
   ComfyPresetMapResponse,
-  ComfyPresetSettings,
   ComfyPresetSummary,
   ComfyPresetsResponse,
+  ComfyRunPresetSettings,
+  GalleryItem,
 } from "@/shared/types";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { ComfyRunDialog, type ComfyRunSettings } from "./ComfyRunDialog";
+import { mediaItem } from "@/test/fixtures";
 import { installMockBackend } from "@/test/mockBackend";
 import { queryWrapper, renderWithQueryClient } from "@/test/queryClient";
 import { stubDialogClock } from "@/test/dialogClock";
@@ -86,7 +88,7 @@ function settings(
   };
 }
 
-function saved(overrides: Partial<ComfyPresetSettings> = {}): ComfyPresetSettings {
+function saved(overrides: Partial<ComfyRunPresetSettings> = {}): ComfyRunPresetSettings {
   return { seed: null, prompt_text: "", inputs: {}, ...overrides };
 }
 
@@ -116,6 +118,7 @@ interface RenderOptions {
   scope?: DialogScopeInfo;
   editOnly?: boolean;
   embedded?: EmbeddedGenerateWorkflow;
+  folderItems?: GalleryItem[];
 }
 
 function renderDialog(initialSettings = settings(), options: RenderOptions = {}) {
@@ -129,6 +132,7 @@ function renderDialog(initialSettings = settings(), options: RenderOptions = {})
       initialSettings={initialSettings}
       editOnly={options.editOnly}
       embedded={options.embedded}
+      folderItems={options.folderItems ?? []}
       onConfirm={onConfirm}
       onCancel={onCancel}
     />,
@@ -144,7 +148,9 @@ function comfyStatus(): HTMLElement {
 }
 
 function presetNames(): (string | null)[] {
-  return screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"));
+  return within(screen.getByRole("radiogroup", { name: "Workflow presets" }))
+    .getAllByRole("radio")
+    .map((radio) => radio.getAttribute("aria-label"));
 }
 
 describe("ComfyRunDialog with a preset that edits files", () => {
@@ -173,6 +179,26 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       expect(fetchMap).toHaveBeenCalledWith(
         expect.objectContaining({ preset: "upscale-2x" }),
         expect.anything(),
+      );
+    });
+
+    it("draws the typed prompt and seed in place of the saved ones", async () => {
+      const user = userEvent.setup();
+      renderDialog();
+
+      await screen.findByRole("group", { name: "Workflow map" });
+      await user.type(screen.getByLabelText("Prompt"), "sharp studio photograph");
+      await user.type(screen.getByLabelText("Seed"), "42");
+
+      await waitFor(() =>
+        expect(fetchMap).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            preset: "fix-faces",
+            prompt_text: "sharp studio photograph",
+            seed: 42,
+          }),
+          expect.anything(),
+        ),
       );
     });
 
@@ -205,7 +231,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     const { passOpenGrace } = stubDialogClock();
     const { onConfirm } = renderDialog(settings({ preset: "example-workflow" }));
 
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
     passOpenGrace();
     await user.keyboard("{Enter}");
 
@@ -268,6 +294,9 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
     expect(presetNames()).toEqual(["upscale-2x"]);
     expect(screen.getByRole("radio", { name: "upscale-2x" })).toBeChecked();
+    // A step runs on files chosen beforehand, so it can only edit them.
+    expect(screen.getByRole("radio", { name: "Generate" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Edit" })).toBeChecked();
   });
 
   it("cannot edit a scope with no files in it", async () => {
@@ -275,7 +304,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
   });
 
   it("starts from the preset the last run used", async () => {
@@ -297,7 +326,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     renderDialog();
 
     expect(await screen.findByText(/Save \(API Format\)/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
   });
 
   it("cannot start while ComfyUI is not answering", async () => {
@@ -307,7 +336,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
     await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
   });
 
   it("still saves a workflow step while ComfyUI is not answering", async () => {
@@ -318,7 +347,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
     await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI offline"));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start processing" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Start workflow" })).toBeEnabled(),
     );
   });
 
@@ -331,6 +360,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
         scope={SCOPE}
         destinationScope={DESTINATION}
         initialSettings={settings()}
+        folderItems={[]}
         onConfirm={vi.fn<(settings: ComfyRunSettings) => void>()}
         onCancel={vi.fn<() => void>()}
       />
@@ -344,11 +374,11 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     render(dialog, { wrapper });
 
     expect(comfyStatus()).toHaveTextContent("Checking ComfyUI...");
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
     answer(presets(["upscale-2x"]));
     await waitFor(() => expect(comfyStatus()).toHaveTextContent("ComfyUI ready"));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start processing" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Start workflow" })).toBeEnabled(),
     );
     expect(client.getQueryData(["comfy-presets"])).toMatchObject({ available: true });
   });
@@ -396,7 +426,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     await user.click(await screen.findByRole("radio", { name: "upscale-2x" }));
     await user.type(screen.getByLabelText("Seed"), "4321");
 
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith({
       preset: "upscale-2x",
@@ -408,6 +438,8 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       count: 1,
       namePrefix: "",
       captionFromPrompt: false,
+      mode: "edit",
+      startPath: null,
     });
   });
 
@@ -417,7 +449,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.click(screen.getByLabelText(/Replace candidates already waiting/));
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ overwriteCandidates: true }));
   });
@@ -427,7 +459,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     const { onConfirm } = renderDialog();
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({ seed: null, preset: "fix-faces" }),
@@ -441,7 +473,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Prompt"), "sharp studio photograph");
 
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({ promptText: "sharp studio photograph" }),
@@ -513,7 +545,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     expect(screen.getByLabelText("Prompt")).toHaveValue("");
     await user.click(screen.getByRole("radio", { name: "fix-faces" }));
 
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({ preset: "fix-faces", promptText: "sharp" }),
@@ -528,21 +560,31 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Prompt"), "   ");
 
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ promptText: "" }));
   });
 
-  it("names the node each of the prompt and seed is written into", async () => {
+  it("says in the empty fields what runs without them", async () => {
     renderDialog();
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
-      "Optional; written into the preset's DataForge Prompt node.",
+    expect(screen.getByLabelText("Prompt")).toHaveAttribute(
+      "placeholder",
+      expect.stringContaining("Empty runs the saved prompt."),
     );
-    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
-      "Optional; written into the preset's DataForge Seed node.",
-    );
+    expect(screen.getByLabelText("Seed")).toHaveAttribute("placeholder", "Preset's own");
+  });
+
+  it("groups the fields into inputs and output", async () => {
+    renderDialog();
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+
+    const inputs = screen.getByRole("group", { name: "Inputs" });
+    const output = screen.getByRole("group", { name: "Output" });
+    expect(within(inputs).getByLabelText("Prompt")).toBeInTheDocument();
+    expect(within(inputs).getByLabelText("Seed")).toBeInTheDocument();
+    expect(within(output).getByLabelText(/Replace candidates already waiting/)).toBeInTheDocument();
   });
 
   // `type="number"` still lets a sign and a decimal point through.
@@ -553,7 +595,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     await user.type(screen.getByLabelText("Seed"), "-5");
 
-    await user.click(screen.getByRole("button", { name: "Start processing" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("whole number");
     expect(onConfirm).not.toHaveBeenCalled();
@@ -601,7 +643,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
       await user.type(screen.getByLabelText("Denoise"), "0.35");
       await user.selectOptions(screen.getByLabelText("Tiled"), "on");
-      await user.click(screen.getByRole("button", { name: "Start processing" }));
+      await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
       expect(onConfirm).toHaveBeenCalledWith(
         expect.objectContaining({ preset: "detailer", inputs: { Denoise: 0.35, Tiled: true } }),
@@ -615,7 +657,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
       await user.type(screen.getByLabelText("Steps"), "2.5");
-      await user.click(screen.getByRole("button", { name: "Start processing" }));
+      await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Steps must be a whole number");
       expect(onConfirm).not.toHaveBeenCalled();
@@ -633,7 +675,7 @@ describe("ComfyRunDialog with a preset that edits files", () => {
 
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
       expect(screen.getByLabelText("Steps")).toHaveValue(30);
-      await user.click(screen.getByRole("button", { name: "Start processing" }));
+      await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
       expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ inputs: { Steps: 30 } }));
     });
@@ -691,14 +733,14 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       );
 
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
-      await user.click(screen.getByRole("button", { name: "Start processing" }));
+      await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
       expect(onConfirm).toHaveBeenCalledWith(
         expect.objectContaining({ preset: "video-upscale", promptText: "" }),
       );
     });
 
-    it("disables the prompt and names the missing node", async () => {
+    it("leaves out the prompt and says why", async () => {
       fetchPresets.mockResolvedValue(withoutPrompt());
       renderDialog(
         settings({
@@ -710,10 +752,9 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       // Prompt renders before the presets land, so only the preset list marks the load as done.
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-      const prompt = screen.getByLabelText("Prompt");
-      expect(prompt).toBeDisabled();
-      expect(prompt).toHaveValue("");
-      expect(screen.getByText(/has no/)).toHaveTextContent("DataForge Prompt");
+      expect(screen.queryByLabelText("Prompt")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Saved" })).not.toBeInTheDocument();
+      expect(screen.getByText("Runs its saved prompt: no DataForge Prompt node.")).toBeVisible();
       expect(screen.getByLabelText("Seed")).toBeEnabled();
     });
 
@@ -733,8 +774,9 @@ describe("ComfyRunDialog with a preset that edits files", () => {
       );
 
       await screen.findByRole("radiogroup", { name: "Workflow presets" });
-      expect(await screen.findByLabelText("Seed")).toBeDisabled();
-      await user.click(screen.getByRole("button", { name: "Start processing" }));
+      expect(screen.queryByLabelText("Seed")).not.toBeInTheDocument();
+      expect(screen.getByText("Runs its saved seeds: no DataForge Seed node.")).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
       expect(onConfirm).toHaveBeenCalledWith(
         expect.objectContaining({ seed: null, promptText: "" }),
@@ -806,7 +848,7 @@ function generationPresets(entries: ComfyPresetSummary[]): ComfyPresetsResponse 
 
 async function startGenerating(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole("radiogroup", { name: "Workflow presets" });
-  await user.click(screen.getByRole("button", { name: "Start generating" }));
+  await user.click(screen.getByRole("button", { name: "Start workflow" }));
 }
 
 describe("ComfyRunDialog with a preset that makes new files", () => {
@@ -920,7 +962,7 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
     renderGeneration();
 
     expect(await screen.findByLabelText("Generations")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start generating" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeEnabled();
 
     await user.click(screen.getByRole("radio", { name: "upscale-2x" }));
 
@@ -928,7 +970,7 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
     expect(screen.getByLabelText(/Replace candidates already waiting/)).toBeInTheDocument();
     expect(screen.getByText(/writes the result as a/)).toBeInTheDocument();
     // The scope is empty, and an edit needs files.
-    expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeDisabled();
   });
 
   it("starts with the remembered count, prefix and prompt", async () => {
@@ -954,6 +996,8 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
       count: 12,
       namePrefix: "lake",
       captionFromPrompt: true,
+      mode: "generate",
+      startPath: null,
     });
   });
 
@@ -967,8 +1011,12 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
     );
 
     const list = await screen.findByRole("radiogroup", { name: "File workflow" });
-    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(within(list).getAllByRole("radio")).toHaveLength(1);
     expect(screen.getByRole("radio", { name: "render_" })).toBeChecked();
+    // A file's own workflow only makes new files.
+    expect(screen.getByRole("radio", { name: "Edit" })).toBeDisabled();
+    // It loads no file, so there is neither a start file to choose nor anything to edit.
+    expect(screen.queryByRole("button", { name: /^Start image/ })).not.toBeInTheDocument();
     expect(list).toBeInTheDocument();
     expect(screen.getByText(/not saved as a preset/)).toBeInTheDocument();
     expect(screen.getByLabelText("Prompt")).toHaveValue("a lighthouse at dusk");
@@ -976,7 +1024,7 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
     expect(screen.getByText("render_0001")).toBeInTheDocument();
     expect(fetchMap).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Start generating" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -988,13 +1036,32 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
     );
   });
 
+  it("redraws a file's own workflow once its prompt is changed", async () => {
+    const user = userEvent.setup();
+    renderDialog(generationSettings(), { scope: EMPTY_SCOPE, embedded: EMBEDDED });
+
+    await screen.findByRole("radiogroup", { name: "File workflow" });
+    // The saved prompt is what the saved map already draws.
+    expect(fetchMap).not.toHaveBeenCalled();
+    await user.type(screen.getByLabelText("Prompt"), " at night");
+
+    await waitFor(() =>
+      expect(fetchMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          source: { path: EMBEDDED.mediaPath, node_id: "9" },
+          prompt_text: "a lighthouse at dusk at night",
+        }),
+        expect.anything(),
+      ),
+    );
+  });
+
   it("leaves an empty seed to be drawn at random", async () => {
     const user = userEvent.setup();
     const { onConfirm } = renderGeneration();
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
     expect(screen.getByLabelText("Seed")).toHaveAttribute("placeholder", "Random");
-    expect(screen.getByText(/random each time/)).toBeInTheDocument();
     await startGenerating(user);
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ seed: null }));
@@ -1050,15 +1117,138 @@ describe("ComfyRunDialog with a preset that makes new files", () => {
 
     await screen.findByRole("radiogroup", { name: "Workflow presets" });
 
-    const caption = screen.getByRole("checkbox", { name: /caption/ });
-    expect(caption).toBeDisabled();
-    expect(caption).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Saved" })).toBeDisabled();
-    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
-      "No DataForge Prompt node, so the saved prompt runs.",
+    expect(screen.queryByRole("checkbox", { name: /caption/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Saved" })).not.toBeInTheDocument();
+    expect(screen.getByText("Runs its saved prompt: no DataForge Prompt node.")).toBeVisible();
+    expect(screen.getByText("No seed to vary, so every generation runs alike.")).toBeVisible();
+  });
+});
+
+describe("ComfyRunDialog with a preset that loads a file", () => {
+  const FOLDER = "C:\\renders";
+  const START = mediaItem("start.png", FOLDER, { modified_at: "2026-03-01T10:00:00Z" });
+  const loader = (overrides: Partial<ComfyPresetSummary> = {}) =>
+    generationPreset("i2v", {
+      generates: false,
+      source_kind: "image",
+      accepts_seed: false,
+      accepts_generation_seed: true,
+      ...overrides,
+    });
+  const whatItDoes = () => screen.getByRole("radiogroup", { name: "What the run does" });
+
+  beforeEach(() => {
+    fetchMap.mockReset().mockResolvedValue(mapOf("i2v", ["video-model"]));
+    fetchPresets
+      .mockReset()
+      .mockResolvedValue(generationPresets([loader(), generationPreset("txt2img")]));
+  });
+
+  it("edits the scope's files unless asked to make new ones", async () => {
+    renderDialog(settings({ preset: "i2v" }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(within(whatItDoes()).getByRole("radio", { name: "Edit" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Start workflow" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /^Start image/ })).not.toBeInTheDocument();
+  });
+
+  it("makes new files from a start image picked from the folder", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderDialog(settings({ preset: "i2v" }), { folderItems: [START] });
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    await user.click(within(whatItDoes()).getByRole("radio", { name: "Generate" }));
+    expect(screen.getByText(/New files go to/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetchMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({ preset: "i2v", mode: "generate" }),
+        expect.anything(),
+      ),
     );
-    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
-      "No seed to vary, so every generation runs alike.",
+
+    await user.click(screen.getByRole("button", { name: "Start image: none" }));
+    await user.click(await screen.findByRole("option", { name: "start.png" }));
+    await waitFor(() =>
+      expect(fetchMap).toHaveBeenLastCalledWith(
+        expect.objectContaining({ start_path: START.path }),
+        expect.anything(),
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preset: "i2v",
+        generates: true,
+        mode: "generate",
+        startPath: START.path,
+      }),
+    );
+  });
+
+  it("sends no start file when editing, even after one was picked", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderDialog(settings({ preset: "i2v" }), { folderItems: [START] });
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    await user.click(within(whatItDoes()).getByRole("radio", { name: "Generate" }));
+    await user.click(screen.getByRole("button", { name: "Start image: none" }));
+    await user.click(await screen.findByRole("option", { name: "start.png" }));
+    await user.click(within(whatItDoes()).getByRole("radio", { name: "Edit" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ generates: false, mode: "edit", startPath: null }),
+    );
+  });
+
+  it("starts from what the preset did last time", async () => {
+    renderDialog(settings({ preset: "i2v", by_preset: { i2v: saved({ mode: "generate" }) } }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(within(whatItDoes()).getByRole("radio", { name: "Generate" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Start image: none" })).toBeInTheDocument();
+  });
+
+  it("seeds a generation even where an edit leaves the samplers alone", async () => {
+    const user = userEvent.setup();
+    renderDialog(settings({ preset: "i2v" }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(screen.queryByLabelText("Seed")).not.toBeInTheDocument();
+    await user.click(within(whatItDoes()).getByRole("radio", { name: "Generate" }));
+
+    expect(screen.getByLabelText("Seed")).toBeEnabled();
+  });
+
+  it("cannot edit with a preset that loads nothing", async () => {
+    renderDialog(settings({ preset: "txt2img" }));
+
+    await screen.findByRole("radiogroup", { name: "Workflow presets" });
+    expect(within(whatItDoes()).getByRole("radio", { name: "Edit" })).toBeDisabled();
+    expect(within(whatItDoes()).getByRole("radio", { name: "Generate" })).toBeChecked();
+  });
+
+  it("runs a file's own workflow that loads one from a start image", async () => {
+    const user = userEvent.setup();
+    const { onConfirm } = renderDialog(settings(), {
+      scope: { ...SCOPE, itemCount: 0 },
+      embedded: {
+        ...EMBEDDED,
+        generation: { ...EMBEDDED.generation, source_kind: "image" },
+      },
+      folderItems: [START],
+    });
+
+    await screen.findByRole("radiogroup", { name: "File workflow" });
+    expect(within(whatItDoes()).getByRole("radio", { name: "Edit" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Start image: none" }));
+    await user.click(await screen.findByRole("option", { name: "start.png" }));
+    await user.click(screen.getByRole("button", { name: "Start workflow" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ generates: true, startPath: START.path }),
     );
   });
 });

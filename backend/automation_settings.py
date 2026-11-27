@@ -13,8 +13,8 @@ from schemas import (
     BackupCaptionsJobSettings,
     BatchRenameJobSettings,
     ComfyGenerateOutputSettings,
-    ComfyPresetSettings,
     ComfyRunJobSettings,
+    ComfyRunPresetSettings,
     ComfyRunSettingsResponse,
     ComfyShowcaseJobSettings,
     EditCaptionsJobSettings,
@@ -101,7 +101,7 @@ def _get_comfy_run_settings(folder_key: str) -> ComfyRunSettingsResponse:
     return ComfyRunSettingsResponse(
         preset=envelope.preset,
         by_preset={
-            name: validated_or_default(ComfyPresetSettings, payload)
+            name: validated_or_default(ComfyRunPresetSettings, payload)
             for name, payload in envelope.by_preset.items()
         },
         **_COMFY_FOLDER_STORE.get(folder_key).model_dump(),
@@ -122,8 +122,8 @@ def _remember_comfy_run_settings(body: BaseModel, folder_key: str) -> None:
         ),
     )
     # A generation's seed never, or the next open repeats the last images.
-    seed = None if comfy_run_generates(run.preset, None) else run.seed
-    payload = run.model_dump(mode="json", include=set(ComfyPresetSettings.model_fields))
+    seed = None if comfy_run_generates(run.preset, None, run.mode) else run.seed
+    payload = run.model_dump(mode="json", include=set(ComfyRunPresetSettings.model_fields))
     envelope = _COMFY_STORE.get()
     _COMFY_STORE.save(
         _ComfyPresetEnvelope(

@@ -29,6 +29,12 @@ class GeneratesTests(unittest.TestCase):
             self.assertTrue(comfy_run_generates("", {"path": "render.png", "node_id": "9"}))
         load.assert_not_called()
 
+    def test_the_mode_overrides_the_preset(self) -> None:
+        with _loads(EDIT):
+            self.assertTrue(comfy_run_generates("i2v", None, "generate"))
+        with _loads(GENERATION):
+            self.assertFalse(comfy_run_generates("txt2img", None, "edit"))
+
     def test_an_unreadable_preset_counts_as_editing(self) -> None:
         # The edit half then names the parse failure when the job is queued.
         with patch(
@@ -64,6 +70,25 @@ class DispatchTests(unittest.TestCase):
         edit.assert_not_called()
         self.assertEqual(generate.call_args.kwargs["count"], 3)
         self.assertNotIn("selected_paths", generate.call_args.kwargs)
+
+    def test_a_source_preset_generates_from_its_start_file_when_asked(self) -> None:
+        with (
+            _loads(EDIT),
+            patch("automation.comfy_run.run_comfy_process_job") as edit,
+            patch("automation.comfy_run.run_comfy_generate_job", return_value={}) as generate,
+        ):
+            run_comfy_run_job(FOLDER, preset="i2v", mode="generate", start_path="start.png")
+
+        edit.assert_not_called()
+        self.assertEqual(generate.call_args.kwargs["start_path"], "start.png")
+
+    def test_a_files_own_workflow_cannot_edit(self) -> None:
+        with self.assertRaises(ValueError) as refused:
+            validate_comfy_run_folder(
+                FOLDER, source={"path": "render.png", "node_id": "9"}, mode="edit"
+            )
+
+        self.assertIn("only make new files", str(refused.exception))
 
     def test_a_workflow_step_refuses_a_generating_preset(self) -> None:
         with (

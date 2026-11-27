@@ -260,7 +260,7 @@ class ResolveRolesTests(unittest.TestCase):
         self.assertFalse(workflow.generates)
         with self.assertRaises(ComfyWorkflowError) as caught:
             require_generation(workflow)
-        self.assertIn("edits files instead of making new ones", str(caught.exception))
+        self.assertIn("Choose Generate and a start file", str(caught.exception))
 
     def test_a_mask_loader_alone_still_generates(self) -> None:
         workflow = parse(
@@ -708,7 +708,7 @@ class PresetDiscoveryTests(unittest.TestCase):
         self.assertEqual(presets["i2v"].source_kind, "image")
         # Edit never seeds the sampler of a preset that loads a file; a showcase does.
         self.assertEqual(presets["i2v"].accepts_seed, False)
-        self.assertEqual(presets["i2v"].accepts_showcase_seed, True)
+        self.assertEqual(presets["i2v"].accepts_generation_seed, True)
         self.assertEqual(presets["upscale"].accepts_loras, False)
 
 

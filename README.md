@@ -25,12 +25,13 @@ The app opens at `http://localhost:18081`. Open [`sample_media/`](sample_media/)
 
 ## What it does
 
-- **Browse and organize:** live folder updates, search (including regex and [tags](docs/user-guide.md#tags)), filters, sorting, card and list views, and file operations.
+- **Browse and organize:** live folder updates, search (including regex and [tags](docs/user-guide.md#tags)), filters, sorting, card and list views, and file operations. Folders also list their `.safetensors` [model files](docs/user-guide.md#model-files) with architecture, rank, and trigger words.
 - **Caption:** edit by hand with autosave and word completion, or use **Auto-caption**, **Edit captions**, **Find & replace**, and **Set captions** in bulk. Generate captions for images and videos, optionally including video audio. Back up captions and undo eligible caption edits.
 - **Review:** model checks, caption-rule linting, near-duplicate detection, and dataset statistics.
-- **Edit media:** crop, resize, color adjustment and Auto-adjust, blur or black out regions, generative fill, video trim/speed/audio, and audio editing. The original is kept so you can revert.
+- **Edit media:** crop, resize, color adjustment and Auto-adjust, effects, blur or black out regions, generative fill, video trim/speed/audio, and audio editing. The original is kept so you can revert. In bulk, split videos into clips or trim them to a length.
 - **Video editor:** cut videos, stills, sound, and titles together on a multi-track timeline with dissolves, fades, and per-clip color, then export an MP4. See the [Video editor guide](docs/video-editor.md).
-- **Process:** run ComfyUI workflows and review each result before accepting it, one by one or in bulk, generate new media into a folder, or showcase a trained LoRA.
+- **Automate:** queue jobs to run one after another in a folder, or save a chain of jobs with their own settings as a [workflow](docs/user-guide.md#workflows) and run it from the toolbar.
+- **ComfyUI:** **Run ComfyUI workflow** edits files into candidates you review before accepting, one by one or in bulk, or makes new files in the folder, optionally from a start image. **LoRA showcase** renders a trained LoRA across several prompts and can compare saves on one sheet.
 - **Train:** start and monitor LoRA training on the current folder through Ostris AI-Toolkit, then inspect the resulting `.safetensors` files in the gallery.
 
 AI is optional. Browsing, manual captioning, editing, and most bulk tools work without a model. Install and run the services you want separately, then connect them in **Settings**:
@@ -63,7 +64,7 @@ A few operations cannot be undone: accepting a ComfyUI result (it replaces the s
 | [AI-Toolkit](docs/ai-toolkit.md) | Choose a template, start training, and monitor LoRA runs |
 | [Development](docs/development.md) | Hot reload, generated code, checks, CI, and versioning |
 
-The [documentation index](docs/README.md) links straight to common tasks.
+The [documentation index](docs/README.md) links straight to common tasks. The [changelog](CHANGELOG.md) lists what changed in each version, including changes not yet released.
 
 ## Contributing
 

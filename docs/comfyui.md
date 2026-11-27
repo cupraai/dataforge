@@ -44,7 +44,7 @@ You can also set the connection in `.env`:
 
 Further notes:
 
-- **Remote ComfyUI.** A remote ComfyUI receives the source media, showcase start files, and workflow inputs.
+- **Remote ComfyUI.** A remote ComfyUI receives the source media, start files, and workflow inputs.
 - **Uploads accumulate.** Uploaded sources accumulate in ComfyUI's `input/dataforge/` folder. ComfyUI has no endpoint to remove them, so clear old uploads there by hand.
 - **Tools menu.** **Tools** offers each ComfyUI job when a preset for it exists, even if ComfyUI is stopped; the dialog reports whether it is available.
 
@@ -58,9 +58,9 @@ Further notes:
 
 1. Open the dataset itself, not its `staging/` folder.
 2. Select files, or search and filter, to limit the run; otherwise it covers the whole folder. See [job scope](user-guide.md#scope).
-3. Choose **Run ComfyUI workflow**, then an [edit preset](#edit-and-generation-presets) from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs.
-4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Workflow inputs**. For edit presets, each field is enabled only when the workflow has the matching titled node.
-5. Under **Output**, choose whether to overwrite previously staged results, then start.
+3. Choose **Run ComfyUI workflow**, then an [edit preset](#edit-and-generation-presets) from **Workflow presets** on the left. Each row says what it takes: prompt, seed, and how many custom inputs. The [workflow map](#the-workflow-map) in the middle shows what it runs. Keep **Edit** selected above the settings; it is the default for an edit preset, and **Generate** [makes new files](#generate-media) with it instead.
+4. Optionally enter **Prompt**, and **Seed** or the preset's [custom inputs](#custom-inputs) under **Inputs**. A field appears only when the workflow has the matching titled node; otherwise a short note says what runs instead.
+5. Under **Output**, choose whether to replace candidates already waiting in `staging/`, then choose **Start workflow**.
 
 DataForge uploads one file at a time and stages the workflow's output with a `.comfy.json` run record.
 
@@ -73,13 +73,14 @@ DataForge uploads one file at a time and stages the workflow's output with a `.c
 
 ## Generate media
 
-**Run ComfyUI workflow** with a generation preset runs it a number of times and adds what it makes to the open folder as new files. It reads no files, so search, filters, and selection do not apply, and it runs in an empty folder too.
+**Run ComfyUI workflow** set to **Generate** runs a preset a number of times and adds what it makes to the open folder as new files. It reads no files from the scope, so search, filters, and selection do not apply, and it runs in an empty folder too.
 
 1. Open the folder the new files should go to. A `staging/` folder is refused.
-2. Choose **Run ComfyUI workflow** and a [generation preset](#edit-and-generation-presets) from **Workflow presets**. The dialog switches to the generation options, and the [workflow map](#the-workflow-map) shows what the selected one runs.
+2. Choose **Run ComfyUI workflow** and a [preset](#edit-and-generation-presets) from **Workflow presets**. A generation preset can only **Generate**; with an edit preset, such as an image-to-video workflow, choose **Generate** above the settings. The [workflow map](#the-workflow-map) shows what the selected one runs.
 3. Optionally enter **Prompt**, **Seed**, and the preset's [custom inputs](#custom-inputs).
-4. Under **Output**, set **Generations**, how many times the workflow runs, and optionally a **File name prefix**.
-5. Optionally turn on **Save as caption** beside **Prompt**, then start.
+4. For an edit preset, optionally pick a **Start image** or **Start video** from the open folder's files by thumbnail; see [start files](#start-files).
+5. Under **Output**, set **Generations**, how many times the workflow runs, and optionally a **File name prefix**.
+6. Optionally turn on **Save as caption** beside **Prompt**, then choose **Start workflow**.
 
 **Saved** beside **Prompt** in every ComfyUI dialog keeps prompts under a name, for any folder; inserting one adds it after the text already typed.
 
@@ -94,14 +95,20 @@ DataForge uploads one file at a time and stages the workflow's output with a `.c
 **Seed, prompt, and results**
 
 - **Seed.** Leave it empty for a new random seed per generation. A number seeds the first generation and counts up for each one after, so running the same settings again repeats the images. Each file's row in the Jobs drawer names its seed.
-- **Where the seed goes.** The seed goes to the **DataForge Seed** node, or, when a generation preset has none, to every sampler that holds its own `seed` or `noise_seed`. A preset with neither repeats the same settings each time.
+- **Where the seed goes.** The seed goes to the **DataForge Seed** node, or, when the preset has none, to every sampler that holds its own `seed` or `noise_seed`, edit presets included. A preset with neither repeats the same settings each time.
 - **Prompt.** An empty field runs the prompt saved in the preset.
 - **Save as caption** saves the prompt the run used, typed or saved, as each file's `.txt` caption. It is unavailable for presets without a **DataForge Prompt** node.
 - **What is kept.** The file is saved exactly as ComfyUI wrote it, including its embedded workflow, so the [ComfyUI badge](#inspect-embedded-workflows) can show how it was made. It must decode before it gets a name in the folder; video validation needs ffmpeg.
 - **Failures.** A generation that fails is reported and the rest continue. Files a failed batch already wrote are kept.
 - **Cancel.** Cancelling stops after the current generation is interrupted or removed from ComfyUI's queue.
 - **One queue.** Generations, showcases, processing, and fills share one queue, so they never run at the same time.
-- **Not a workflow step.** Generation presets and showcases cannot be [workflow](user-guide.md#workflows) steps, because the steps after them run on a scope fixed before their files exist.
+- **Not a workflow step.** Generating and showcases cannot be [workflow](user-guide.md#workflows) steps, because the steps after them run on a scope fixed before their files exist.
+
+**Start files**
+
+- **One for the run.** The chosen file is uploaded to ComfyUI once and loaded by every generation of the run. It is not remembered for the next run.
+- **Without one.** The run leaves out the loader and the nodes that only prepare its file. That works when the workflow takes the file through an optional input, such as `first_frame` on MiniMax H3's image-to-video node. Otherwise the job stops before generating anything and names the node that requires it.
+- **Two loaders.** A workflow with two untitled loaders, such as first and last frame, cannot run; title the one that takes the start file `DataForge Input`.
 
 ## Showcases
 
@@ -155,9 +162,9 @@ Limits:
 
 The **Run ComfyUI workflow** dialog draws the selected preset between the preset list and its settings, in the same style as the [embedded workflow map](#inspect-embedded-workflows): the models, CLIPs, VAEs, LoRAs, prompts and input media that feed each sampling pass, and the output. Hover a box for its details and connections.
 
-- **Source box.** The box DataForge loads each source file into reads **Each source file**, not the placeholder file the preset was saved with.
-- **Prompt box.** It shows the preset's saved text; its details note that a prompt you enter replaces it.
-- **Workflow inputs.** The map follows the **Workflow inputs** you set: switching a boolean that drives an If/Else or Impact switch marks the pass it turns off as not run, or draws the one it turns on. An input whose value does not parse is drawn as saved.
+- **Source box.** When editing, the box DataForge loads each source file into reads **Each source file**, not the placeholder file the preset was saved with. When generating it reads **Start file**, or the chosen file's name.
+- **Prompt and seed.** The map shows the prompt and seed you enter; empty fields show the preset's saved values. A random seed is drawn only when the run starts, so the map shows the saved one.
+- **Inputs.** The map follows the custom inputs you set: switching a boolean that drives an If/Else or Impact switch marks the pass it turns off as not run, or draws the one it turns on. An input whose value does not parse is drawn as saved.
 - **No sampler.** A preset without a sampler shows its loaders feeding the output directly. One that loads nothing shows only the output.
 - **Parse errors.** A preset that cannot be parsed shows the reason instead of a map, so you can fix it before starting.
 
@@ -228,8 +235,8 @@ One folder holds both kinds. A source loader is a node titled `DataForge Input` 
 
 | Kind | Source loader | What it does |
 | --- | --- | --- |
-| Edit preset | Yes | **Run ComfyUI workflow** runs it on each file in the scope and stages the results for review |
-| Generation preset | No | Makes new files instead |
+| Edit preset | Yes | **Run ComfyUI workflow** runs it on each file in the scope and stages the results for review, or, set to **Generate**, makes new files from a [start file](#start-files) |
+| Generation preset | No | Makes new files only |
 
 Where each kind is listed:
 
@@ -238,7 +245,7 @@ Where each kind is listed:
 - **LoRA showcase** lists both kinds when it can [place the LoRAs](#prepare-a-showcase).
 - **Unparseable presets** are listed everywhere, so starting one names the fix.
 
-A generation preset that loads a fixed reference image, for example for a ControlNet, must load it with a node other than `LoadImage` or `VHS_LoadVideo`, or it counts as an edit preset.
+A preset that loads a fixed reference image, for example for a ControlNet, with `LoadImage` or `VHS_LoadVideo` counts as an edit preset. Choose **Generate** and pick that image as its start file, or load it with another node to make it a generation preset.
 
 ### Input and output nodes
 
@@ -275,7 +282,7 @@ Not supported:
 | `DataForge Model` | None | None |
 
 - **Prompt** is available when a node is titled `DataForge Prompt`, and is written only if a prompt is entered. A blank prompt or custom input uses the value saved in the preset. To expose an input, set its value directly on the titled node.
-- **Seed** is available for an edit preset with a `DataForge Seed` node. Edit presets keep the saved seed when the field is empty. Generation presets and showcases also recognize samplers with their own `seed` or `noise_seed` input. See [generation seeds](#generate-media) and [showcase seeds](#showcases) for how each run uses them.
+- **Seed.** When editing, it is offered only for a preset with a `DataForge Seed` node, and an empty field keeps the saved seed. Generating and showcases also recognize samplers with their own `seed` or `noise_seed` input. See [generation seeds](#generate-media) and [showcase seeds](#showcases) for how each run uses them.
 - **Mask.** Only the editor's [generative fill](#generative-fill) uploads a mask; **Run ComfyUI workflow** runs a mask node with its saved file.
 - **Model.** A [showcase](#showcases) adds its LoRAs after this node's model.
 
@@ -287,7 +294,7 @@ Any other node titled `DataForge <name>`, such as `DataForge Denoise`, adds a fi
 2. The dialog shows a number, whole-number, text, or on/off field to match the saved value, with that value as the placeholder.
 3. DataForge writes the node's `value`, or its only literal input when it has no `value`. Leave the field empty to keep the saved value.
 
-- **Remembered values.** Values are remembered per preset with the prompt. An edit preset remembers the seed too; a generation preset never does, so each run starts random. A showcase remembers them per item.
+- **Remembered values.** Values are remembered per preset with the prompt, and so is whether the preset last ran with **Edit** or **Generate**. The seed is remembered only after **Edit**; generating never remembers it, so each run starts random. A showcase remembers them per item.
 - **Duplicate titles.** Two nodes with the same title add no field.
 
 ## Generative fill
@@ -372,7 +379,7 @@ Click the **ComfyUI** badge in a file's detail view to inspect its embedded prom
 - **Formats.** This works for PNG, MP4, MOV, and M4V, including files made outside DataForge.
 - **Stripping metadata** removes the embedded workflow.
 - **Copy workflow** copies the part of the workflow that leads to the selected output. Paste it onto the ComfyUI canvas to load it; this replaces the open tab's graph. It needs the editor workflow ComfyUI embeds alongside the prompt, so it is unavailable for files that carry only the API format.
-- **Generate with this workflow...** For an output that can run without a source file, this opens **Run ComfyUI workflow** with that output and its prompt. Choose the number of generations and start the run directly from the embedded workflow.
+- **Generate with this workflow...** This opens **Run ComfyUI workflow** with the selected output and its prompt. Choose the number of generations and start the run directly from the embedded workflow. If the output's workflow loads an image or video, pick a [start file](#start-files) the same way. An output whose workflow has two untitled loaders cannot run, and a file's own workflow only generates.
 
 **Outputs and passes**
 

@@ -11,17 +11,19 @@ import {
 } from "@/features/automation/lib/embeddedGenerate";
 import { inputText, KIND_NOUNS, parseInput } from "@/features/automation/lib/comfyInputs";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import type { ComfyInputValue, ComfyPresetSettings } from "@/shared/types";
+import type {
+  ComfyInputValue,
+  ComfyRunMode,
+  ComfyRunPresetSettings,
+  ComfySourceKind,
+} from "@/shared/types";
 
 /** A showcase has a form of its own. */
 export type ComfyFormKind = Exclude<ComfyPresetKind, "showcase">;
 
-/** What the selected preset does: one with a source loader edits files, one without makes new. */
-export type ComfyRunMode = "edit" | "generate";
-
 interface PresetMemory {
   preset: string;
-  by_preset: Record<string, ComfyPresetSettings>;
+  by_preset: Record<string, ComfyRunPresetSettings>;
 }
 
 export interface ResolvedPresetValues {
@@ -32,6 +34,9 @@ export interface ResolvedPresetValues {
   promptText: string;
   /** By custom input name; a name left out runs with the preset's saved value. */
   inputs: Record<string, ComfyInputValue>;
+  mode: ComfyRunMode;
+  /** What a generation's source loader loads; null runs the workflow without it. */
+  startPath: string | null;
 }
 
 interface PresetDraft {
@@ -39,17 +44,29 @@ interface PresetDraft {
   promptText: string;
   /** Field text by input name; a boolean holds `"on"`/`"off"`. Empty runs the saved value. */
   inputs: Record<string, string>;
+  /** Null lets the preset decide: a source loader edits. */
+  mode: ComfyRunMode | null;
+  /** Never remembered: a file in one folder rarely starts a run in the next. */
+  startPath: string | null;
 }
 
-const EMPTY_DRAFT: PresetDraft = { seedText: "", promptText: "", inputs: {} };
+const EMPTY_DRAFT: PresetDraft = {
+  seedText: "",
+  promptText: "",
+  inputs: {},
+  mode: null,
+  startPath: null,
+};
 
-function toDraft(settings: ComfyPresetSettings): PresetDraft {
+function toDraft(settings: ComfyRunPresetSettings): PresetDraft {
   return {
     seedText: settings.seed == null ? "" : String(settings.seed),
     promptText: settings.prompt_text,
     inputs: Object.fromEntries(
       Object.entries(settings.inputs).map(([name, value]) => [name, inputText(value)]),
     ),
+    mode: settings.mode ?? null,
+    startPath: null,
   };
 }
 
@@ -58,6 +75,8 @@ function sameDraft(a: PresetDraft, b: PresetDraft): boolean {
   return (
     a.seedText === b.seedText &&
     a.promptText === b.promptText &&
+    a.mode === b.mode &&
+    a.startPath === b.startPath &&
     [...names].every((name) => (a.inputs[name] ?? "") === (b.inputs[name] ?? ""))
   );
 }
@@ -114,17 +133,28 @@ export function useComfyPresetForm(
     }));
 
   const selected = loadedPresets?.find((entry) => entry.name === preset) ?? null;
-  // An unparseable preset reads as editing: queueing it names the fix either way. With none
-  // selected, as when the chosen one is removed, the form keeps the last one's shape.
-  const selectedMode: ComfyRunMode | null = embedded
-    ? "generate"
-    : selected && (selected.generates === true ? "generate" : "edit");
+  // Only a preset with a source loader can edit, and it can generate from a start file too. An
+  // unparseable one may be either, and reads as editing: queueing it names the fix either way.
+  const canChooseMode = kind === "run" && !embedded && selected !== null && !selected.generates;
+  let selectedMode: ComfyRunMode | null = null;
+  if (embedded) selectedMode = "generate";
+  else if (kind === "edit") selectedMode = "edit";
+  else if (selected) selectedMode = selected.generates ? "generate" : (draft.mode ?? "edit");
+  // With none selected, as when the chosen one is removed, the form keeps the last one's shape.
   const [lastMode, setLastMode] = useState<ComfyRunMode>(selectedMode ?? "edit");
   if (selectedMode !== null && selectedMode !== lastMode) setLastMode(selectedMode);
   const mode = selectedMode ?? lastMode;
+  const loads: ComfySourceKind | null = embedded
+    ? (embedded.generation.source_kind ?? null)
+    : (selected?.source_kind ?? null);
+  /** What a generation's start file is, when it takes one. */
+  const startKind = mode === "generate" ? loads : null;
+  const startPath = startKind ? draft.startPath : null;
   // Only false blocks: a preset that could not be parsed reports null and keeps both fields live.
   const promptBlocked = selected?.accepts_prompt === false;
-  const seedBlocked = selected?.accepts_seed === false;
+  // An edit never seeds an untitled sampler; a generation from a start file does.
+  const seedBlocked =
+    (startKind && !embedded ? selected?.accepts_generation_seed : selected?.accepts_seed) === false;
   const customInputs = selected?.inputs ?? [];
   const mapInputs: Record<string, ComfyInputValue> = {};
   for (const input of customInputs) {
@@ -166,6 +196,8 @@ export function useComfyPresetForm(
         seed: seedBlocked || !seedText ? null : Number(seedText),
         promptText: promptBlocked ? "" : draft.promptText.trim(),
         inputs,
+        mode,
+        startPath,
       },
     };
   };
@@ -175,6 +207,17 @@ export function useComfyPresetForm(
     state,
     preset,
     mode,
+    /** Whether the selected preset can both edit files and make new ones. */
+    canChooseMode,
+    /** Only a preset with a source loader edits; a file's own workflow never does. */
+    canEdit: !embedded && selected?.generates !== true,
+    /** A workflow step only edits. */
+    canGenerate: kind === "run",
+    chooseMode: (next: ComfyRunMode) => updateDraft({ mode: next }),
+    /** What a generation loads as its start file; null when it takes none. */
+    startKind,
+    startPath,
+    chooseStartPath: (next: string | null) => updateDraft({ startPath: next }),
     /** The selected preset's name once it has left the list; nothing is selected then. */
     removed,
     selectPreset: setChosenPreset,

@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { StartFilePicker } from "@/features/automation/components/StartFilePicker";
 import { embeddedNamePrefix } from "@/features/automation/lib/embeddedGenerate";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
@@ -7,17 +8,20 @@ import {
   type ResolvedPresetValues,
 } from "@/features/automation/hooks/useComfyPresetForm";
 import { MAX_COMFY_GENERATE_COUNT, MAX_COMFY_GENERATE_PREFIX_LENGTH } from "@/shared/constants";
+import { iconPencil, iconSparkles } from "@/shared/icons";
+import type { ComfyRunMode, GalleryItem } from "@/shared/types";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
+import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
 import { comfyServiceState } from "@/features/automation/hooks/useComfyPresets";
 import { ComfyPresetFields } from "./ComfyPresetFields";
 import { ServiceStatus } from "./ServiceStatus";
 
 export interface ComfyRunSettings extends ResolvedPresetValues {
-  /** The selected preset makes new files, so the job ignores the scope. */
+  /** The run makes new files, so the job ignores the scope. */
   generates: boolean;
   overwriteCandidates: boolean;
   count: number;
@@ -39,6 +43,8 @@ interface ComfyRunDialogProps {
   editOnly?: boolean;
   /** Uses the workflow embedded in the selected file for each generation. */
   embedded?: EmbeddedGenerateWorkflow;
+  /** The open folder's media, offered as a generation's start file. */
+  folderItems: readonly GalleryItem[];
   onConfirm: (settings: ComfyRunSettings) => void;
   onCancel: () => void;
 }
@@ -69,6 +75,29 @@ function prefixError(prefix: string): string | null {
   return null;
 }
 
+function modeOptions(canEdit: boolean, canGenerate: boolean): SegmentOption<ComfyRunMode>[] {
+  return [
+    {
+      value: "edit",
+      label: "Edit",
+      icon: iconPencil,
+      hint: canEdit
+        ? "Runs each file in the scope through the workflow, as candidates to review."
+        : "This workflow loads no file to edit.",
+      disabled: !canEdit,
+    },
+    {
+      value: "generate",
+      label: "Generate",
+      icon: iconSparkles,
+      hint: canGenerate
+        ? "Makes new files in the folder."
+        : "A workflow step edits the files it is given.",
+      disabled: !canGenerate,
+    },
+  ];
+}
+
 function parseCount(text: string): number | null {
   const trimmed = text.trim();
   if (!/^\d+$/.test(trimmed)) return null;
@@ -84,6 +113,7 @@ export function ComfyRunDialog({
   confirmLabel,
   editOnly = false,
   embedded,
+  folderItems,
   onConfirm,
   onCancel,
 }: ComfyRunDialogProps) {
@@ -181,7 +211,7 @@ export function ComfyRunDialog({
             />
           )}
           <DialogActions
-            confirmLabel={confirmLabel ?? (generates ? "Start generating" : "Start processing")}
+            confirmLabel={confirmLabel ?? "Start workflow"}
             busyLabel="Starting..."
             onCancel={onCancel}
           />
@@ -198,6 +228,37 @@ export function ComfyRunDialog({
             <p id={errorId} className="dialog__error comfy-preset-layout__error" role="alert">
               {error}
             </p>
+          )
+        }
+        modeControl={
+          <SegmentedControl
+            label="What the run does"
+            value={form.mode}
+            options={modeOptions(form.canEdit, form.canGenerate)}
+            size="sm"
+            stretch
+            disabled={busy}
+            onChange={(mode) => {
+              form.chooseMode(mode);
+              edited();
+            }}
+          />
+        }
+        startFile={
+          form.startKind && (
+            <>
+              <span className="field__label">Start {form.startKind} (optional)</span>
+              <StartFilePicker
+                kind={form.startKind}
+                value={form.startPath}
+                items={folderItems}
+                disabled={busy}
+                onChange={(path) => {
+                  form.chooseStartPath(path);
+                  edited();
+                }}
+              />
+            </>
           )
         }
         promptLabelEnd={

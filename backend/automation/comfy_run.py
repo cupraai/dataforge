@@ -1,8 +1,9 @@
-"""Run ComfyUI workflow: the preset decides whether the job edits files or makes new ones.
+"""Run ComfyUI workflow: edit the scope's files, or make new ones.
 
-A preset with a source loader runs once per file in the scope and stages each result as a
-candidate (``comfy_process``). One without makes ``count`` new numbered files in the folder and
-ignores the scope (``comfy_generate``), as does a file's own embedded workflow.
+Editing runs a preset with a source loader once per file in the scope and stages each result as
+a candidate (``comfy_process``). Generating makes ``count`` new numbered files in the folder and
+ignores the scope (``comfy_generate``); a source loader then loads one start file, or is left
+out. Without a mode the preset decides: a source loader edits. A file's own workflow generates.
 """
 
 from __future__ import annotations
@@ -14,10 +15,15 @@ from automation.comfy_generate import run_comfy_generate_job, validate_comfy_gen
 from automation.comfy_process import run_comfy_process_job, validate_comfy_process_folder
 from automation.job_runner import ProgressCallback, ShouldCancel
 from external.comfy_workflows import ComfyWorkflowError, load_comfy_workflow
+from schemas import ComfyRunMode
 
 
-def comfy_run_generates(preset: str, source: Mapping[str, object] | None) -> bool:
+def comfy_run_generates(
+    preset: str, source: Mapping[str, object] | None, mode: ComfyRunMode | None = None
+) -> bool:
     """Whether the run makes new files; an unreadable preset counts as editing."""
+    if mode is not None:
+        return mode == "generate"
     if source is not None:
         return True
     try:
@@ -27,9 +33,15 @@ def comfy_run_generates(preset: str, source: Mapping[str, object] | None) -> boo
 
 
 def _generates_or_refuse(
-    preset: str, source: Mapping[str, object] | None, *, edits_only: bool
+    preset: str,
+    source: Mapping[str, object] | None,
+    mode: ComfyRunMode | None,
+    *,
+    edits_only: bool,
 ) -> bool:
-    generates = comfy_run_generates(preset, source)
+    generates = comfy_run_generates(preset, source, mode)
+    if source is not None and not generates:
+        raise ValueError("A file's own workflow can only make new files, not edit them.")
     if generates and edits_only:
         raise ValueError(
             f'The preset "{preset}" makes new files, so it cannot be a workflow step: the step '
@@ -48,9 +60,11 @@ def validate_comfy_run_folder(
     source: Mapping[str, object] | None = None,
     selected_paths: list[Path] | None = None,
     edits_only: bool = False,
+    mode: ComfyRunMode | None = None,
+    start_path: str | None = None,
 ) -> None:
     """Refuse at queue time what would fail on the first run; does not probe ComfyUI."""
-    if _generates_or_refuse(preset, source, edits_only=edits_only):
+    if _generates_or_refuse(preset, source, mode, edits_only=edits_only):
         validate_comfy_generate_folder(
             folder,
             preset=preset,
@@ -58,6 +72,7 @@ def validate_comfy_run_folder(
             inputs=inputs,
             name_prefix=name_prefix,
             source=source,
+            start_path=start_path,
         )
         return
     validate_comfy_process_folder(
@@ -85,9 +100,11 @@ def run_comfy_run_job(
     source: Mapping[str, object] | None = None,
     selected_paths: list[Path] | None = None,
     edits_only: bool = False,
+    mode: ComfyRunMode | None = None,
+    start_path: str | None = None,
 ) -> dict[str, object]:
     # The preset may have changed kind while queued; each half revalidates the rest.
-    if _generates_or_refuse(preset, source, edits_only=edits_only):
+    if _generates_or_refuse(preset, source, mode, edits_only=edits_only):
         return run_comfy_generate_job(
             folder,
             on_progress=on_progress,
@@ -100,6 +117,7 @@ def run_comfy_run_job(
             name_prefix=name_prefix,
             caption_from_prompt=caption_from_prompt,
             source=source,
+            start_path=start_path,
         )
     return run_comfy_process_job(
         folder,

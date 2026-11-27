@@ -44,7 +44,7 @@ from external.comfy_workflows import (
     MODEL_NODE_TITLE,
     ComfyWorkflow,
     ComfyWorkflowError,
-    showcase_seed_nodes,
+    generation_seed_nodes,
 )
 from ffmpeg_run import FfmpegCancelled
 from numbered_files import NameConflict, sweep_temporary_files
@@ -108,7 +108,7 @@ class _ShowcaseRun:
         self.plan = plan
         self.on_progress = on_progress
         self.should_cancel = should_cancel
-        self.workflow = replace(plan.workflow, seed_nodes=showcase_seed_nodes(plan.workflow))
+        self.workflow = replace(plan.workflow, seed_nodes=generation_seed_nodes(plan.workflow))
         self.generator = Generator(
             folder, self.workflow, prefix=plan.prefix, should_cancel=should_cancel
         )

@@ -252,6 +252,7 @@ export function useAutomationDialogOverlays({
         destinationScope: generateScope,
         editOnly: editingStep,
         embedded,
+        folderItems,
         onConfirm: (draft: ComfyRunSettings) => {
           const edit = {
             // A file's own workflow has no preset; its stem only names it in the dialog.
@@ -271,6 +272,8 @@ export function useAutomationDialogOverlays({
                   ...(embedded && {
                     source: { path: embedded.mediaPath, node_id: embedded.nodeId },
                   }),
+                  mode: draft.mode,
+                  start_path: draft.startPath,
                   count: draft.count,
                   name_prefix: draft.namePrefix,
                   caption_from_prompt: draft.captionFromPrompt,

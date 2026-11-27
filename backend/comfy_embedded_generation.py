@@ -1,4 +1,8 @@
-"""Run a file's own workflow as a generation, cut to one output."""
+"""Run a file's own workflow as a generation, cut to one output.
+
+An output whose path loads a file still generates: each run loads a start file instead, or runs
+without the loader.
+"""
 
 from __future__ import annotations
 
@@ -14,7 +18,6 @@ from external.comfy_workflows import (
     ComfyWorkflowError,
     parse_comfy_workflow,
     prompt_input_key,
-    require_generation,
 )
 
 
@@ -94,15 +97,13 @@ def generation_workflow(
             f"The workflow in {source} links to nodes it does not hold, so ComfyUI cannot run "
             "this output."
         )
-    workflow = parse_comfy_workflow(json.dumps(trimmed), source=source)
-    require_generation(workflow)
-    return workflow
+    return parse_comfy_workflow(json.dumps(trimmed), source=source)
 
 
 def embedded_generation(
     graph: dict[str, Any], output_node: str, positive_prompt_nodes: Iterable[str], *, source: str
 ) -> ComfyWorkflow | None:
-    """None for an output that cannot generate."""
+    """None for an output that cannot run, such as one with two loaders neither is titled for."""
     try:
         return generation_workflow(graph, output_node, positive_prompt_nodes, source=source)
     except ComfyWorkflowError:

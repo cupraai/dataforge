@@ -98,6 +98,8 @@ type ComfyInputKind = Literal["boolean", "integer", "number", "text"]
 type ComfyInputValue = bool | int | float | str
 #: What a preset's source loader takes: a still or a clip.
 type ComfySourceKind = Literal["image", "video"]
+#: Whether Run ComfyUI workflow edits the scope's files or makes new ones.
+type ComfyRunMode = Literal["edit", "generate"]
 
 #: Keys of ``TRAINING_TEMPLATES``; ``h3_*`` are video, the rest image.
 type TrainingModel = Literal[
@@ -1315,8 +1317,11 @@ class ComfyGenerateOutputSettings(BaseModel):
 
 
 class ComfyRunJobSettings(ComfyEditJobSettings, ComfyGenerateOutputSettings):
-    """The preset decides which half applies: one with a source loader edits the scope's files
-    into candidates, one without makes new files and ignores the scope."""
+    """Editing runs the scope's files into candidates; generating makes new files and ignores
+    the scope. Only a preset with a source loader can edit, and it can generate too."""
+
+    #: None lets the preset decide: a source loader edits, none generates.
+    mode: ComfyRunMode | None = None
 
 
 class ComfyEmbeddedSource(BaseModel):
@@ -1331,6 +1336,15 @@ class ComfyRunStartRequest(JobSelectionRequest, ComfyRunJobSettings):
 
     #: Uses the file's embedded workflow for each generation. Its settings are not remembered.
     source: ComfyEmbeddedSource | None = None
+    #: What a generation's source loader loads; none runs the workflow without the loader.
+    #: Never remembered.
+    start_path: str | None = None
+
+
+class ComfyRunPresetSettings(ComfyPresetSettings):
+    """What Run ComfyUI workflow remembers for one preset."""
+
+    mode: ComfyRunMode | None = None
 
 
 class ComfyRunSettingsResponse(ComfyGenerateOutputSettings):
@@ -1339,7 +1353,7 @@ class ComfyRunSettingsResponse(ComfyGenerateOutputSettings):
     #: The preset of the most recent run, in any folder.
     preset: str = ""
     overwrite_candidates: bool = False
-    by_preset: dict[str, ComfyPresetSettings] = Field(default_factory=dict)
+    by_preset: dict[str, ComfyRunPresetSettings] = Field(default_factory=dict)
 
 
 class ComfyPresetInput(BaseModel):
@@ -1359,6 +1373,8 @@ class ComfyEmbeddedGeneration(BaseModel):
     inputs: list[ComfyPresetInput] = Field(default_factory=list)
     #: The text its prompt node was saved with, for the dialog to start from.
     prompt_text: str | None = None
+    #: What its source loader takes, from a start file; null when it loads none.
+    source_kind: ComfySourceKind | None = None
 
 
 class ComfyPresetSummary(BaseModel):
@@ -1375,8 +1391,8 @@ class ComfyPresetSummary(BaseModel):
     accepts_loras: bool | None = None
     #: What its source loader takes; null for a generation preset.
     source_kind: ComfySourceKind | None = None
-    #: A showcase seeds its seed node, else every sampler, for source presets too.
-    accepts_showcase_seed: bool | None = None
+    #: A generation seeds its seed node, else every sampler, for source presets too.
+    accepts_generation_seed: bool | None = None
 
 
 class ComfyLogsResponse(BaseModel):
@@ -2033,6 +2049,14 @@ class ComfyWorkflowMapRequest(BaseModel):
     source: ComfyEmbeddedSource | None = None
     #: By custom input name, as a job takes them; a value that does not fit is drawn as saved.
     inputs: dict[str, ComfyInputValue] = Field(default_factory=dict)
+    #: Draws a source loader as a generation's start file; a file's own workflow always is.
+    mode: ComfyRunMode | None = None
+    #: Empty draws the saved prompt.
+    prompt_text: str = ""
+    #: None draws the saved seeds; a generation's random seed is unknown until it runs.
+    seed: int | None = None
+    #: Names the start file on its loader's box.
+    start_path: str | None = None
 
 
 class ComfyPresetMapResponse(BaseModel):

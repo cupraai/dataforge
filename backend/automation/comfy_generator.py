@@ -16,6 +16,7 @@ from captions import CaptionConflictError, save_caption
 from comfy_settings import get_comfy_media_timeout
 from constants import (
     COMFY_CANDIDATE_SUFFIXES,
+    IMAGE_EXTENSIONS,
     MAX_COMFY_GENERATE_PREFIX_LENGTH,
     MOTION_EXTENSIONS,
     STAGING_DIR_NAME,
@@ -47,6 +48,10 @@ SEED_LIMIT = 2**32
 
 #: Anything else may write a clip and gets the video timeout.
 _STILL_OUTPUT_CLASSES = frozenset({"SaveImage", "PreviewImage", "SaveImageWebsocket"})
+
+#: A start file's kind, as the gallery tells them apart; one the loader cannot read fails with
+#: ComfyUI's own error.
+START_FILE_EXTENSIONS = {"image": IMAGE_EXTENSIONS, "video": MOTION_EXTENSIONS}
 
 #: Characters Windows refuses in a name.
 _UNSAFE_NAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')

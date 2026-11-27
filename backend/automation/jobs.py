@@ -96,7 +96,15 @@ from external.ostris_training import DEFAULT_TRAINING_MODEL
 from filesystem import normalize_user_path, path_leaf_name
 from path_resolve import resolve_path
 from revisions import next_revision
-from schemas import AutomationMode, JobEvent, JobHistoryStatus, JobsRemovedEvent, JobStatus, JobType
+from schemas import (
+    AutomationMode,
+    ComfyRunMode,
+    JobEvent,
+    JobHistoryStatus,
+    JobsRemovedEvent,
+    JobStatus,
+    JobType,
+)
 
 ACTIVE_STATUSES = frozenset({"queued", "running"})
 
@@ -322,11 +330,27 @@ def _validate_comfy_run(folder: Path, **params: object) -> None:
         source=_comfy_source(params),
         selected_paths=_selected_paths(params),
         edits_only=params.get("edits_only") is True,
+        mode=_comfy_mode(params),
+        start_path=_comfy_start_path(params),
     )
 
 
 def _comfy_run_generates(params: dict[str, object]) -> bool:
-    return comfy_run_generates(str(params.get("preset", "")), _comfy_source(params))
+    return comfy_run_generates(
+        str(params.get("preset", "")), _comfy_source(params), _comfy_mode(params)
+    )
+
+
+def _comfy_mode(params: dict[str, object]) -> ComfyRunMode | None:
+    mode = params.get("mode")
+    if mode == "edit":
+        return "edit"
+    return "generate" if mode == "generate" else None
+
+
+def _comfy_start_path(params: dict[str, object]) -> str | None:
+    start_path = params.get("start_path")
+    return start_path if isinstance(start_path, str) else None
 
 
 def _validate_comfy_showcase(folder: Path, **params: object) -> None:

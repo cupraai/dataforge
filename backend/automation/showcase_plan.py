@@ -9,18 +9,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from automation.comfy_generator import (
+    START_FILE_EXTENSIONS,
     name_prefix_for,
     refuse_staging_folder,
     validate_name_prefix,
 )
 from automation.showcase_sheet import SheetCell, SheetGrid
 from comfy_loras import describe_lora, label_compared_loras
-from constants import (
-    IMAGE_EXTENSIONS,
-    MAX_SHEET_CELLS,
-    MAX_SHOWCASE_GENERATIONS,
-    MOTION_EXTENSIONS,
-)
+from constants import MAX_SHEET_CELLS, MAX_SHOWCASE_GENERATIONS
 from external.comfy_lora_chain import LoraRef, require_model_nodes
 from external.comfy_workflows import (
     PROMPT_NODE_TITLE,
@@ -31,9 +27,6 @@ from external.comfy_workflows import (
 )
 from filesystem import normalize_user_path
 from schemas import ComfyInputValue, ComfyShowcaseItem, ComfyShowcaseJobSettings
-
-#: As the gallery tells them apart; one the loader cannot read fails with ComfyUI's own error.
-_SOURCE_EXTENSIONS = {"image": IMAGE_EXTENSIONS, "video": MOTION_EXTENSIONS}
 
 #: A label falls back to the prompt's first line, cut to this.
 LABEL_EXCERPT_LENGTH = 40
@@ -103,7 +96,7 @@ def _item_source(workflow: ComfyWorkflow, item: ComfyShowcaseItem, where: str) -
     path = normalize_user_path(raw)
     if not path.is_file():
         raise ValueError(f"{where}: its start file {path.name} is no longer there.")
-    if path.suffix.lower() not in _SOURCE_EXTENSIONS[kind]:
+    if path.suffix.lower() not in START_FILE_EXTENSIONS[kind]:
         noun = "an image" if kind == "image" else "a video"
         raise ValueError(
             f'{where}: {path.name} is not {noun}, and the preset "{workflow.preset}" loads one.'

@@ -15,7 +15,7 @@ from comfy_prompts import (
     read_editor_workflow,
 )
 from constants import COMFY_WORKFLOW_EXTENSIONS
-from external.comfy_workflows import ComfyWorkflow
+from external.comfy_workflows import ComfyWorkflow, generation_seed_nodes
 from routes._helpers import resolve_captioned_file, resolve_media_file
 from schemas import (
     CaptionBackupResponse,
@@ -52,12 +52,13 @@ def _generation(workflow: ComfyWorkflow | None) -> ComfyEmbeddedGeneration | Non
         return None
     return ComfyEmbeddedGeneration(
         accepts_prompt=workflow.prompt_node is not None,
-        accepts_seed=bool(workflow.seed_nodes),
+        accepts_seed=bool(generation_seed_nodes(workflow)),
         inputs=[
             ComfyPresetInput(name=entry.name, kind=entry.kind, default=entry.default)
             for entry in workflow.custom_inputs
         ],
         prompt_text=workflow.saved_prompt_text,
+        source_kind=workflow.source_kind,
     )
 
 

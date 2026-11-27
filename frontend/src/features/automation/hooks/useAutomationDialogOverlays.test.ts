@@ -281,6 +281,8 @@ describe("useAutomationDialogOverlays scope", () => {
         count: 3,
         namePrefix: "lake",
         captionFromPrompt: true,
+        mode: "generate",
+        startPath: null,
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
@@ -292,6 +294,8 @@ describe("useAutomationDialogOverlays scope", () => {
         prompt_text: "a lake",
         inputs: { Steps: 8 },
         overwrite_candidates: false,
+        mode: "generate",
+        start_path: null,
         count: 3,
         name_prefix: "lake",
         caption_from_prompt: true,
@@ -337,6 +341,8 @@ describe("useAutomationDialogOverlays scope", () => {
         count: 1,
         namePrefix: "",
         captionFromPrompt: false,
+        mode: "edit",
+        startPath: null,
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
@@ -383,6 +389,8 @@ describe("useAutomationDialogOverlays scope", () => {
         count: 4,
         namePrefix: "x",
         captionFromPrompt: true,
+        mode: "edit",
+        startPath: null,
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
@@ -455,6 +463,8 @@ describe("useAutomationDialogOverlays scope", () => {
         count: 1,
         namePrefix: "",
         captionFromPrompt: false,
+        mode: "generate",
+        startPath: "C:Photos/start.png",
       }),
     );
     expect(startJob).toHaveBeenCalledWith(
@@ -463,6 +473,7 @@ describe("useAutomationDialogOverlays scope", () => {
       expect.objectContaining({
         preset: "",
         source: { path: "C:Photos/render_.png", node_id: "9" },
+        start_path: "C:Photos/start.png",
       }),
       undefined,
     );

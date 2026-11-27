@@ -8,8 +8,8 @@ interface ComfyPromptFieldProps {
   /** The preset has no prompt node: the field stays, empty and off. */
   blocked: boolean;
   placeholder: string;
-  /** The hint below that explains an empty field. */
-  hintId: string;
+  /** The hint below that explains an empty field, where there is one. */
+  hintId?: string;
   disabled: boolean;
   /** Before the saved prompts menu, for an option about the prompt. */
   labelEnd?: ReactNode;

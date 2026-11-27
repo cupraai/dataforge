@@ -1546,7 +1546,13 @@ def _output_branch(
 #: How a preset's map names the boxes DataForge fills in.
 SOURCE_BOX_LABEL = "Each source file"
 SOURCE_BOX_DETAIL = "DataForge loads each file the job runs on here."
+START_BOX_LABEL = "Start file"
+START_BOX_DETAIL = (
+    "DataForge loads the chosen start file here; without one, what needs it is left out."
+)
+START_BOX_CHOSEN_DETAIL = "DataForge uploads the chosen start file and loads it here."
 PROMPT_BOX_DETAIL = "DataForge writes the dialog's prompt here; empty runs this saved text."
+PROMPT_BOX_TYPED_DETAIL = "DataForge writes the dialog's prompt here."
 
 
 def extract_graph_branch(
@@ -1555,8 +1561,12 @@ def extract_graph_branch(
     *,
     source_node: str | None = None,
     prompt_node: str | None = None,
+    generates: bool = False,
+    start_name: str | None = None,
+    prompt_typed: bool = False,
 ) -> OutputBranch | None:
-    """Mapped even when nothing samples; None when the node is not in the graph."""
+    """Mapped even when nothing samples; None when the node is not in the graph. A generating
+    run draws its source loader as the start file, named once one is chosen."""
     if output_node not in graph or not isinstance(graph[output_node], dict):
         return None
     stages = _generation_stages(graph, _output_nodes(graph) | {output_node})
@@ -1566,9 +1576,14 @@ def extract_graph_branch(
 
     def filled(box: MapNode) -> MapNode:
         if source_node is not None and box.id == source_node:
+            if generates and start_name:
+                return replace(box, label=start_name, detail=[START_BOX_CHOSEN_DETAIL])
+            if generates:
+                return replace(box, label=START_BOX_LABEL, detail=[START_BOX_DETAIL])
             return replace(box, label=SOURCE_BOX_LABEL, detail=[SOURCE_BOX_DETAIL])
         if prompt_node is not None and box.id.startswith(f"prompt:{prompt_node}:"):
-            return replace(box, detail=[PROMPT_BOX_DETAIL, *box.detail])
+            note = PROMPT_BOX_TYPED_DETAIL if prompt_typed else PROMPT_BOX_DETAIL
+            return replace(box, detail=[note, *box.detail])
         return box
 
     branch.map = [filled(box) for box in branch.map]

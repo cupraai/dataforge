@@ -1,6 +1,6 @@
 import asyncio
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
@@ -26,17 +26,19 @@ from external.comfy_client import probe_available, read_log_lines
 from external.comfy_workflows import (
     ComfyWorkflow,
     ComfyWorkflowError,
+    generation_seed_nodes,
     list_comfy_presets,
     parse_comfy_workflow,
     read_comfy_preset_text,
     resolve_custom_inputs,
-    with_custom_inputs,
+    with_run_values,
 )
 from external.ostris_training import (
     OstrisTrainingError,
     parse_training_template,
     read_training_template_text,
 )
+from filesystem import path_leaf_name
 from routes._helpers import job_response, resolve_folder
 from schemas import (
     AutoAdjustStartRequest,
@@ -387,7 +389,7 @@ def list_comfy_process_presets() -> ComfyPresetsResponse:
                 generates=preset.generates,
                 accepts_loras=preset.accepts_loras,
                 source_kind=preset.source_kind,
-                accepts_showcase_seed=preset.accepts_showcase_seed,
+                accepts_generation_seed=preset.accepts_generation_seed,
             )
             for preset in list_comfy_presets()
         ],
@@ -436,16 +438,31 @@ def map_comfy_workflow(body: ComfyWorkflowMapRequest) -> ComfyPresetMapResponse:
     except ComfyWorkflowError as exc:
         return ComfyPresetMapResponse(name=body.preset, error=str(exc))
 
+    generates = body.source is not None or body.mode == "generate"
+    if generates:
+        # Seeded as the job seeds it, even when it loads a start file.
+        workflow = replace(workflow, seed_nodes=generation_seed_nodes(workflow))
     try:
         values = resolve_custom_inputs(workflow, body.inputs)
     except ComfyWorkflowError:
         # A value the job would refuse draws the graph as saved.
         values = {}
+    prompt_text = body.prompt_text.strip()
+    graph = with_run_values(
+        workflow,
+        deepcopy(workflow.prompt),
+        seed=body.seed,
+        prompt_text=prompt_text or None,
+        custom_values=values,
+    )
     branch = extract_graph_branch(
-        with_custom_inputs(workflow, deepcopy(workflow.prompt), values),
+        graph,
         workflow.output_node,
         source_node=workflow.input_node,
         prompt_node=workflow.prompt_node,
+        generates=generates,
+        start_name=path_leaf_name(body.start_path) if body.start_path else None,
+        prompt_typed=bool(prompt_text),
     )
     return ComfyPresetMapResponse(
         name=workflow.preset,

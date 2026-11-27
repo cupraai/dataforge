@@ -437,7 +437,7 @@ The dialog shows the count and freezes the file list when it opens, previews inc
 **Exceptions:**
 
 - **LoRA training** always uses the whole folder, and its dialog says so.
-- **Run ComfyUI workflow** with a generation preset and **LoRA showcase** read no files. Their dialogs name the folder the new files go to, and they run even in an empty folder.
+- **Run ComfyUI workflow** set to **Generate** and **LoRA showcase** read no files from the scope; a start file is chosen in the dialog. Their dialogs name the folder the new files go to, and they run even in an empty folder.
 
 ### Running and history
 
@@ -486,7 +486,7 @@ A workflow is a saved chain of jobs, each with its own settings, such as Resize,
 
 **Limits.**
 
-- LoRA training and LoRA showcase cannot be steps, and **Run ComfyUI workflow** only with a preset that edits files.
+- LoRA training and LoRA showcase cannot be steps, and **Run ComfyUI workflow** only to edit files.
 - **Rename** can only be the last step, because the steps after it would look for the old file names.
 - A workflow holds up to 12 steps, and up to 50 workflows can be saved.
 
@@ -544,8 +544,8 @@ Jobs are grouped as in the **Tools** menu.
 
 | Job | Writes | Notes |
 | --- | --- | --- |
-| **Run ComfyUI workflow**, edit preset | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
-| **Run ComfyUI workflow**, generation preset | New files in the folder | Never replaces a file; see [ComfyUI](comfyui.md#generate-media) |
+| **Run ComfyUI workflow**, **Edit** | Results in `staging/` | Accepting a result replaces the source with no backup; see [ComfyUI](comfyui.md#review-candidates) |
+| **Run ComfyUI workflow**, **Generate** | New files in the folder | Never replaces a file; see [ComfyUI](comfyui.md#generate-media) |
 | **LoRA showcase** | New files in the folder | Renders several prompts with one LoRA, or compares LoRAs; see [Showcases](comfyui.md#showcases) |
 | **LoRA training** | Nothing in the folder | Starts and monitors a run in [AI-Toolkit](ai-toolkit.md) |
 
@@ -647,8 +647,8 @@ For example, `scene.jpg` can have `scene.txt`, `scene.jpg.issue.json`, `scene.jp
 | `.backup/<stem>.txt` | A caption backup | Backup captions | You delete it; restoring keeps it |
 | `watermarked/` | Watermarked media | Watermark | You delete it |
 | `clips/<stem>_001.mp4`, ... | Video clips | Split into clips | You delete it, or split the same video again |
-| `staging/` | Results and their `<result-name>.comfy.json` records | Run ComfyUI workflow, edit preset | It is accepted, rejected, or deleted |
-| `<prefix>_0001.png`, ... | Generated media, in the folder itself | Run ComfyUI workflow, generation preset; LoRA showcase | You delete it |
+| `staging/` | Results and their `<result-name>.comfy.json` records | Run ComfyUI workflow, Edit | It is accepted, rejected, or deleted |
+| `<prefix>_0001.png`, ... | Generated media, in the folder itself | Run ComfyUI workflow, Generate; LoRA showcase | You delete it |
 
 **App data in `backend/data/`**
 

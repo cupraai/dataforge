@@ -273,7 +273,7 @@ These are choices in each job's dialog, not environment variables. Most are reme
 
 **ComfyUI jobs:**
 
-- **Run ComfyUI workflow** remembers the last preset globally, and prompt and inputs per preset, with the seed only for an edit preset. Overwrite permission, generations, prefix and caption are remembered per folder.
+- **Run ComfyUI workflow** remembers the last preset globally, and per preset its prompt, inputs, and whether it last ran with **Edit** or **Generate**, with the seed only after **Edit**. The start file is never remembered. Overwrite permission, generations, prefix and caption are remembered per folder.
 - **LoRA showcase** remembers its whole last run per folder, seeds included; showcase sets are shared by every folder.
 - **Keep original metadata** is on by default and remembered across individual and bulk acceptance; see [candidate review](comfyui.md#review-candidates) for supported formats.
 
@@ -381,8 +381,8 @@ The default endpoints are local. A remote endpoint receives the following; its o
 
 | Job | Sends |
 | --- | --- |
-| Run ComfyUI workflow, edit preset | Source media and workflow inputs |
-| Run ComfyUI workflow, generation preset; LoRA showcase | Workflow inputs, prompts included, and a showcase's start files |
+| Run ComfyUI workflow, **Edit** | Source media and workflow inputs |
+| Run ComfyUI workflow, **Generate**; LoRA showcase | Workflow inputs, prompts included, and the chosen start files |
 | Generative fill | A crop around the painted area, its mask, and the instruction |
 
 **AI-Toolkit, at `OSTRIS_BASE_URL`**

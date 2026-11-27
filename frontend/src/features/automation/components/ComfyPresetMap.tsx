@@ -18,6 +18,21 @@ function sameWorkflow(a: ComfyWorkflowMapRequest, b: ComfyWorkflowMapRequest): b
   );
 }
 
+/** The same workflow drawn as saved, before anything typed reaches it. */
+function asSaved(request: ComfyWorkflowMapRequest): ComfyWorkflowMapRequest {
+  return { ...request, inputs: {}, prompt_text: "", seed: null, start_path: null };
+}
+
+/** Whether the request draws the workflow exactly as saved. */
+function isSaved(request: ComfyWorkflowMapRequest): boolean {
+  return (
+    Object.keys(request.inputs ?? {}).length === 0 &&
+    !request.prompt_text &&
+    request.seed == null &&
+    !request.start_path
+  );
+}
+
 /** The workflow's map as it would run with the inputs; ``saved`` shows while unchanged. */
 export function ComfyPresetMap({
   request,
@@ -30,8 +45,8 @@ export function ComfyPresetMap({
   const settledText = useDebouncedValue(JSON.stringify(request), MAP_INPUT_DELAY_MS);
   const settled = JSON.parse(settledText) as ComfyWorkflowMapRequest;
   // Another workflow is drawn at once, as saved; only its inputs wait for typing to stop.
-  const current = sameWorkflow(settled, request) ? settled : { ...request, inputs: {} };
-  const unchanged = Object.keys(current.inputs ?? {}).length === 0;
+  const current = sameWorkflow(settled, request) ? settled : asSaved(request);
+  const unchanged = isSaved(current);
   const named = Boolean(current.preset) || Boolean(current.source);
   const query = useQuery({
     ...comfyWorkflowMapQueryOptions(current),

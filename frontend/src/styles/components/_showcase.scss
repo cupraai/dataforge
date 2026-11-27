@@ -137,11 +137,6 @@
     opacity: 0.5;
   }
 
-  // Label takes the room; strength and seed are short numbers.
-  &__fields {
-    grid-template-columns: minmax(0, 1fr) 5.5rem 7.5rem;
-  }
-
   &__row-toggle,
   &__lora-toggle {
     flex: none;
@@ -204,10 +199,6 @@
 
   &__strength {
     width: 100%;
-  }
-
-  &__add {
-    align-self: flex-start;
   }
 
   &__output {

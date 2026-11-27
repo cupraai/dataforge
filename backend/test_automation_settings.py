@@ -191,7 +191,9 @@ class ComfyRunSettingsTests(unittest.TestCase):
         # No preset files exist here; a name containing "txt2img" stands for a generation one.
         patcher = patch(
             "automation_settings.comfy_run_generates",
-            side_effect=lambda preset, source: "txt2img" in preset,
+            side_effect=lambda preset, source, mode=None: (
+                mode == "generate" if mode else "txt2img" in preset
+            ),
         )
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -265,6 +267,16 @@ class ComfyRunSettingsTests(unittest.TestCase):
         self.assertEqual(
             (photos.count, photos.name_prefix, photos.caption_from_prompt), (12, "lake", True)
         )
+
+    def test_a_source_preset_remembers_how_it_ran_but_never_a_generations_seed(self) -> None:
+        self._remember(preset="i2v", seed=5, mode="generate", start_path=r"C:\Photos\a.png")
+        generated = self._stored().by_preset["i2v"]
+        self._remember(preset="upscale", seed=5, mode="edit")
+        edited = self._stored().by_preset["upscale"]
+
+        self.assertEqual((generated.mode, generated.seed), ("generate", None))
+        self.assertNotIn("start_path", generated.model_dump())
+        self.assertEqual((edited.mode, edited.seed), ("edit", 5))
 
     def test_a_files_own_workflow_remembers_nothing(self) -> None:
         self._remember(

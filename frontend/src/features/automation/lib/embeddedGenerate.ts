@@ -19,6 +19,8 @@ export function embeddedPresetSummary(embedded: EmbeddedGenerateWorkflow): Comfy
     accepts_prompt: embedded.generation.accepts_prompt,
     accepts_seed: embedded.generation.accepts_seed,
     inputs: embedded.generation.inputs,
-    generates: true,
+    generates: embedded.generation.source_kind == null,
+    source_kind: embedded.generation.source_kind,
+    accepts_generation_seed: embedded.generation.accepts_seed,
   };
 }

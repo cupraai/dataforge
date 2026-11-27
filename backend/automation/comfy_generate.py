@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import secrets
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
+
+import httpx
 
 from automation.comfy_generator import (
     PROCESSED_STAT_KEYS,
     SEED_LIMIT,
+    START_FILE_EXTENSIONS,
     GenerationRun,
     Generator,
     caption_text_for,
@@ -17,13 +22,21 @@ from automation.comfy_generator import (
 from automation.job_runner import CANCELLED, ProgressCallback, ShouldCancel
 from comfy_prompts import load_embedded_generation
 from constants import COMFY_WORKFLOW_EXTENSIONS
-from external.comfy_client import COMFY_TRANSFER_TIMEOUT_SECONDS, open_comfy_client
+from external.comfy_client import (
+    COMFY_TRANSFER_TIMEOUT_SECONDS,
+    ComfyError,
+    ComfyUnavailableError,
+    fetch_node_info,
+    open_comfy_client,
+    upload_media,
+)
+from external.comfy_sourceless import without_source
 from external.comfy_workflows import (
     PROMPT_NODE_TITLE,
     ComfyWorkflow,
     ComfyWorkflowError,
+    generation_seed_nodes,
     load_comfy_workflow,
-    require_generation,
     resolve_custom_inputs,
 )
 from filesystem import normalize_user_path
@@ -45,14 +58,65 @@ def _source_file(source: Mapping[str, object]) -> tuple[Path, str]:
 
 
 def load_generation(preset: str, source: Mapping[str, object] | None) -> ComfyWorkflow:
+    """Seeded as a generation even when it loads a start file, or every run repeats one."""
     if source is not None:
         if preset.strip():
             raise ValueError("Run either a preset or a file's workflow, not both.")
         workflow = load_embedded_generation(*_source_file(source))
     else:
         workflow = load_comfy_workflow(preset)
-    require_generation(workflow)
-    return workflow
+    return replace(workflow, seed_nodes=generation_seed_nodes(workflow))
+
+
+def start_file(workflow: ComfyWorkflow, start_path: str | None) -> Path | None:
+    """What the source loader loads; None runs the workflow without it."""
+    raw = (start_path or "").strip()
+    if not raw:
+        return None
+    if workflow.input_node is None:
+        raise ValueError(
+            f'The preset "{workflow.preset}" loads no file, so it takes no start file. Clear it, '
+            "or choose a preset with a source loader."
+        )
+    kind = workflow.source_kind or "image"
+    path = normalize_user_path(raw)
+    if not path.is_file():
+        raise ValueError(f"The start file {path.name} is no longer there.")
+    if path.suffix.lower() not in START_FILE_EXTENSIONS[kind]:
+        noun = "an image" if kind == "image" else "a video"
+        raise ValueError(
+            f'The start file {path.name} is not {noun}, and the preset "{workflow.preset}" '
+            "loads one."
+        )
+    return path
+
+
+def _start_run(
+    client: httpx.Client, workflow: ComfyWorkflow, start: Path | None, tag: str
+) -> tuple[ComfyWorkflow | None, str | None]:
+    """The workflow each run submits in place of the loaded one, and the start file's name."""
+    if workflow.input_node is None:
+        return None, None
+    if start is not None:
+        try:
+            return None, upload_media(client, start, name=f"{tag}_start{start.suffix.lower()}")
+        except ComfyError as exc:
+            raise ValueError(f"The start file was not uploaded: {exc}") from exc
+
+    infos: dict[str, dict[str, Any] | None] = {}
+
+    def node_info(class_type: str) -> dict[str, Any] | None:
+        if class_type not in infos:
+            infos[class_type] = fetch_node_info(client, class_type)
+        return infos[class_type]
+
+    try:
+        return without_source(workflow, node_info), None
+    except ComfyUnavailableError as exc:
+        raise ValueError(f"ComfyUI is not reachable: {exc}") from exc
+    except ComfyWorkflowError as exc:
+        kind = workflow.source_kind or "image"
+        raise ValueError(f"No start {kind} was chosen, and {exc} Choose one.") from exc
 
 
 def _default_prefix(preset: str, workflow: ComfyWorkflow, source: object) -> str:
@@ -70,8 +134,10 @@ def validate_comfy_generate_folder(
     inputs: Mapping[str, object] | None = None,
     name_prefix: str = "",
     source: Mapping[str, object] | None = None,
+    start_path: str | None = None,
 ) -> ComfyWorkflow:
-    """Refuse at queue time what would fail on the first run; does not probe ComfyUI."""
+    """Refuse at queue time what would fail on the first run; does not probe ComfyUI, so
+    whether a workflow runs without its start file is only known once it runs."""
     refuse_staging_folder(folder)
 
     try:
@@ -89,6 +155,7 @@ def validate_comfy_generate_folder(
         )
 
     validate_name_prefix(name_prefix_for(_default_prefix(preset, workflow, source), name_prefix))
+    start_file(workflow, start_path)
     return workflow
 
 
@@ -114,8 +181,9 @@ def run_comfy_generate_job(
     name_prefix: str = "",
     caption_from_prompt: bool = False,
     source: Mapping[str, object] | None = None,
+    start_path: str | None = None,
 ) -> dict[str, object]:
-    # The preset or file may have changed while queued.
+    # The preset, file or start file may have changed while queued.
     workflow = validate_comfy_generate_folder(
         folder,
         preset=preset,
@@ -123,7 +191,9 @@ def run_comfy_generate_job(
         inputs=inputs,
         name_prefix=name_prefix,
         source=source,
+        start_path=start_path,
     )
+    start = start_file(workflow, start_path)
     prompt_text = prompt_text.strip()
     sweep_temporary_files(folder)
     generator = Generator(
@@ -144,17 +214,26 @@ def run_comfy_generate_job(
 
     client = open_comfy_client(COMFY_TRANSFER_TIMEOUT_SECONDS)
     try:
+        bare, media_ref = _start_run(client, workflow, start, generator.job_tag)
+        seeded = bool((bare or workflow).seed_nodes)
         for index in range(1, count + 1):
             if should_cancel and should_cancel():
                 stats[CANCELLED] = count - index + 1
                 break
 
             report(index, index - 1)
-            run_seed = seed_for(seed, index - 1, bool(workflow.seed_nodes))
+            run_seed = seed_for(seed, index - 1, seeded)
             outcome = generator.attempt(
                 client,
                 index,
-                GenerationRun(prompt_text, custom_values, caption_text, run_seed),
+                GenerationRun(
+                    prompt_text,
+                    custom_values,
+                    caption_text,
+                    run_seed,
+                    media_ref=media_ref,
+                    workflow=bare,
+                ),
             )
             seed_note = f"Seed {run_seed}" if run_seed is not None else None
             results.extend(generator.success_row(path, [seed_note]) for path in outcome.written)

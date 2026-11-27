@@ -34,7 +34,7 @@ function preset(name: string, overrides: Partial<ComfyPresetSummary> = {}): Comf
     generates: true,
     accepts_loras: true,
     source_kind: null,
-    accepts_showcase_seed: true,
+    accepts_generation_seed: true,
     ...overrides,
   };
 }
@@ -120,18 +120,23 @@ describe("ComfyShowcaseDialog", () => {
     expect(within(list).queryByRole("radio", { name: "upscale" })).not.toBeInTheDocument();
   });
 
-  it("explains the prompt and the seed each beside its own field", async () => {
+  it("frames the selected item and its extra LoRAs, each saying what an empty field runs", async () => {
     installMockBackend();
     renderDialog();
 
     await screen.findByRole("radio", { name: "t2i" });
 
-    expect(screen.getByLabelText("Prompt")).toHaveAccessibleDescription(
-      "Empty runs the preset's own prompt.",
+    const item = screen.getByRole("group", { name: "Item 1" });
+    expect(within(item).getByLabelText("Prompt")).toHaveAttribute(
+      "placeholder",
+      expect.stringContaining("Empty runs the saved prompt."),
     );
-    expect(screen.getByLabelText("Seed")).toHaveAccessibleDescription(
-      "An empty seed is random, alike for every LoRA.",
-    );
+    expect(within(item).getByLabelText("Seed")).toHaveAttribute("placeholder", "Random");
+    const loras = screen.getByRole("group", { name: "More LoRAs" });
+    expect(within(loras).getByText("Only the showcased LoRA runs for this item.")).toBeVisible();
+    expect(within(loras).getByRole("button", { name: "Add LoRA" })).toBeEnabled();
+    // One seed for every LoRA compared is said once, for the whole showcase.
+    expect(screen.getByText(/with the same seed/)).toBeInTheDocument();
   });
 
   it("asks for the LoRA before it starts", async () => {

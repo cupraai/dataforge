@@ -64,7 +64,7 @@ class GenerationGraphTests(unittest.TestCase):
 
         self.assertIsNone(generation_graph(graph, "7", []))
 
-    def test_only_the_output_that_loads_no_file_generates(self) -> None:
+    def test_an_output_that_loads_a_file_generates_from_its_loader(self) -> None:
         txt = embedded_generation(TWO_OUTPUTS, "7", ["2"], source="render")
         ref = embedded_generation(TWO_OUTPUTS, "9", [], source="render")
 
@@ -72,7 +72,21 @@ class GenerationGraphTests(unittest.TestCase):
         self.assertEqual(txt.output_node, "7")
         self.assertEqual(txt.saved_prompt_text, "a lighthouse")
         self.assertEqual(txt.seed_nodes, ("5",))
-        self.assertIsNone(ref)
+        assert ref is not None
+        self.assertEqual((ref.input_node, ref.source_kind), ("8", "image"))
+
+    def test_an_output_with_two_untitled_loaders_cannot_run(self) -> None:
+        graph = {
+            "1": {"class_type": "LoadImage", "inputs": {"image": "first.png"}},
+            "2": {"class_type": "LoadImage", "inputs": {"image": "last.png"}},
+            "3": {"class_type": "ImageBatch", "inputs": {"image1": ["1", 0], "image2": ["2", 0]}},
+            "4": {
+                "class_type": "SaveImage",
+                "inputs": {"images": ["3", 0], "filename_prefix": "x"},
+            },
+        }
+
+        self.assertIsNone(embedded_generation(graph, "4", [], source="render"))
 
 
 class EmbeddedFileTests(unittest.TestCase):
@@ -86,19 +100,18 @@ class EmbeddedFileTests(unittest.TestCase):
         generation = branches["7"].generation
         assert generation is not None
         self.assertEqual(generation.prompt_node, "2")
-        self.assertIsNone(branches["9"].generation)
+        reference = branches["9"].generation
+        assert reference is not None
+        self.assertEqual(reference.input_node, "8")
 
-    def test_loading_names_why_an_output_cannot_generate(self) -> None:
+    def test_loading_names_an_output_the_workflow_lacks(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "render.png", text_chunks={"prompt": json.dumps(TWO_OUTPUTS)})
 
             self.assertEqual(load_embedded_generation(media, "7").preset, "render")
-            with self.assertRaises(ComfyWorkflowError) as source_file:
-                load_embedded_generation(media, "9")
             with self.assertRaises(ComfyWorkflowError) as missing:
                 load_embedded_generation(media, "42")
 
-        self.assertIn("edits files instead of making new ones", str(source_file.exception))
         self.assertIn("no output node 42", str(missing.exception))
 
 

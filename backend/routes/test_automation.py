@@ -828,6 +828,15 @@ class ComfyPresetMapEndpointTests(unittest.TestCase):
         self.assertEqual(boxes["input"]["label"], "Each source file")
         self.assertEqual(boxes["input"]["feeds"], [boxes["output"]["id"]])
 
+    def test_a_generation_draws_the_source_loader_as_its_start_file(self) -> None:
+        response = client.post(
+            "/api/automation/comfy-process/map",
+            json={"preset": "example_lanczos_2x", "mode": "generate"},
+        )
+
+        boxes = {node["kind"]: node for node in response.json()["branch"]["map"]}
+        self.assertEqual(boxes["input"]["label"], "Start file")
+
     def test_a_broken_preset_answers_with_its_reason(self) -> None:
         with tempfile.TemporaryDirectory() as presets:
             Path(presets, "editor.json").write_text('{"nodes": [], "links": []}', encoding="utf-8")
@@ -973,6 +982,7 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                             "seed": body["seed"],
                             "prompt_text": body["prompt_text"],
                             "inputs": {},
+                            "mode": None,
                         }
                     },
                 },
@@ -998,6 +1008,7 @@ class JobSettingsPersistenceTests(unittest.TestCase):
                             "seed": None,
                             "prompt_text": body["prompt_text"],
                             "inputs": body["inputs"],
+                            "mode": None,
                         }
                     },
                 },
@@ -1008,6 +1019,83 @@ class JobSettingsPersistenceTests(unittest.TestCase):
             self._run("set_captions", root)
 
             self.assertNotIn("overwrite", _stored_settings(root)["set_captions"])
+
+
+_PROMPT_PRESET = {
+    "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "model.safetensors"}},
+    "2": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {"text": "a lighthouse", "clip": ["1", 1]},
+        "_meta": {"title": "DataForge Prompt"},
+    },
+    "3": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512}},
+    "4": {
+        "class_type": "KSampler",
+        "inputs": {
+            "model": ["1", 0],
+            "positive": ["2", 0],
+            "latent_image": ["3", 0],
+            "seed": 7,
+            "steps": 20,
+        },
+    },
+    "5": {"class_type": "VAEDecode", "inputs": {"samples": ["4", 0], "vae": ["1", 2]}},
+    "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["5", 0]}},
+}
+
+
+class ComfyPresetMapRunValuesTests(unittest.TestCase):
+    def _map(self, **body: object) -> dict:
+        with tempfile.TemporaryDirectory() as presets:
+            Path(presets, "txt2img.json").write_text(json.dumps(_PROMPT_PRESET), encoding="utf-8")
+            with patch.dict(os.environ, {"COMFY_WORKFLOWS_DIR": presets}):
+                response = client.post(
+                    "/api/automation/comfy-process/map", json={"preset": "txt2img", **body}
+                )
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()["branch"]
+
+    def test_the_typed_prompt_and_seed_are_drawn_as_they_will_run(self) -> None:
+        branch = self._map(prompt_text="a harbour at night", seed=42)
+
+        prompt = next(box for box in branch["map"] if box["kind"] == "prompt")
+        self.assertIn("a harbour at night", " ".join([prompt["label"], *prompt["detail"]]))
+        self.assertNotIn("a lighthouse", " ".join([prompt["label"], *prompt["detail"]]))
+        seeds = [p["value"] for p in branch["parameters"] if p["label"] == "Seed"]
+        self.assertEqual(seeds, ["42"])
+
+    def test_an_empty_prompt_draws_the_saved_text(self) -> None:
+        branch = self._map()
+
+        prompt = next(box for box in branch["map"] if box["kind"] == "prompt")
+        self.assertIn("a lighthouse", " ".join([prompt["label"], *prompt["detail"]]))
+
+    def test_the_chosen_start_file_names_the_loader(self) -> None:
+        with tempfile.TemporaryDirectory() as presets:
+            Path(presets, "i2v.json").write_text(
+                json.dumps(
+                    {
+                        "1": {"class_type": "LoadImage", "inputs": {"image": "x.png"}},
+                        "9": {
+                            "class_type": "SaveImage",
+                            "inputs": {"filename_prefix": "out", "images": ["1", 0]},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.dict(os.environ, {"COMFY_WORKFLOWS_DIR": presets}):
+                response = client.post(
+                    "/api/automation/comfy-process/map",
+                    json={
+                        "preset": "i2v",
+                        "mode": "generate",
+                        "start_path": "C:/renders/start.png",
+                    },
+                )
+
+        boxes = {box["kind"]: box for box in response.json()["branch"]["map"]}
+        self.assertEqual(boxes["input"]["label"], "start.png")
 
 
 if __name__ == "__main__":

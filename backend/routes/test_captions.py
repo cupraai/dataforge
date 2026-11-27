@@ -41,7 +41,7 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
         self.assertEqual(payload["branches"][0]["class_type"], "SwiftVRRestoreVideo")
         self.assertEqual(payload["branches"][0]["label"], "Restored video")
 
-    def test_only_an_output_that_loads_no_file_offers_generation(self) -> None:
+    def test_every_output_offers_generation_and_says_what_it_loads(self) -> None:
         graph = {
             "1": {"class_type": "EmptyImage", "inputs": {"width": 8, "height": 8, "color": 0}},
             "2": {
@@ -62,9 +62,15 @@ class ComfyWorkflowEndpointTests(unittest.TestCase):
         branches = {branch["node_id"]: branch for branch in response.json()["branches"]}
         self.assertEqual(
             branches["2"]["generation"],
-            {"accepts_prompt": False, "accepts_seed": False, "inputs": [], "prompt_text": None},
+            {
+                "accepts_prompt": False,
+                "accepts_seed": False,
+                "inputs": [],
+                "prompt_text": None,
+                "source_kind": None,
+            },
         )
-        self.assertIsNone(branches["4"]["generation"])
+        self.assertEqual(branches["4"]["generation"]["source_kind"], "image")
 
     def test_editor_workflow_is_trimmed_to_the_requested_output(self) -> None:
         prompt = json.dumps(

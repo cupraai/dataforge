@@ -103,8 +103,8 @@ class ComfyPreset:
     generates: bool | None = None
     accepts_loras: bool | None = None
     source_kind: ComfySourceKind | None = None
-    #: A showcase seeds every sampler of a source preset too.
-    accepts_showcase_seed: bool | None = None
+    #: A generation seeds every sampler of a source preset too.
+    accepts_generation_seed: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -162,10 +162,9 @@ def require_source_input(workflow: ComfyWorkflow) -> None:
 def require_generation(workflow: ComfyWorkflow) -> None:
     if not workflow.generates:
         raise ComfyWorkflowError(
-            f'The preset "{workflow.preset}" loads a source file, so it edits files instead of '
-            "making new ones. To generate from a fixed reference image, title its loader "
-            f'something other than "{INPUT_NODE_TITLE}" and use a loader other than '
-            f"{', '.join(sorted(INPUT_CLASSES))}."
+            f'The preset "{workflow.preset}" loads a source file, so a run that makes new files '
+            "needs a start file for it. Choose Generate and a start file in Run ComfyUI "
+            "workflow, or leave the start file empty where the workflow can run without it."
         )
 
 
@@ -504,8 +503,8 @@ def parse_comfy_workflow(raw: str, *, source: str) -> ComfyWorkflow:
     )
 
 
-def showcase_seed_nodes(workflow: ComfyWorkflow) -> tuple[str, ...]:
-    """A showcase item is a generation even when it starts from an image."""
+def generation_seed_nodes(workflow: ComfyWorkflow) -> tuple[str, ...]:
+    """A run that makes new files is a generation even when it starts from an image."""
     return workflow.seed_nodes or sampler_seed_nodes(workflow.prompt)
 
 
@@ -553,8 +552,8 @@ def list_comfy_presets() -> list[ComfyPreset]:
                 generates=None if workflow is None else workflow.generates,
                 accepts_loras=None if workflow is None else bool(workflow.model_nodes),
                 source_kind=None if workflow is None else workflow.source_kind,
-                accepts_showcase_seed=(
-                    None if workflow is None else bool(showcase_seed_nodes(workflow))
+                accepts_generation_seed=(
+                    None if workflow is None else bool(generation_seed_nodes(workflow))
                 ),
             )
         )
@@ -632,6 +631,21 @@ def build_comfy_prompt(
             workflow.output_key, output_inputs.get(workflow.output_key), filename_prefix
         )
 
+    return with_run_values(
+        workflow, prompt, seed=seed, prompt_text=prompt_text, custom_values=custom_values or {}
+    )
+
+
+def with_run_values(
+    workflow: ComfyWorkflow,
+    prompt: dict[str, Any],
+    *,
+    seed: int | None,
+    prompt_text: str | None,
+    custom_values: Mapping[str, ComfyInputValue],
+) -> dict[str, Any]:
+    """Write what the dialog sets into the graph, as a run and its map both need; returns
+    ``prompt``. None leaves the seed or prompt as saved."""
     if seed is not None:
         for node_id in workflow.seed_nodes:
             key = _seed_key(prompt[node_id])
@@ -645,7 +659,7 @@ def build_comfy_prompt(
     ):
         prompt[workflow.prompt_node]["inputs"][workflow.prompt_key] = prompt_text
 
-    return with_custom_inputs(workflow, prompt, custom_values or {})
+    return with_custom_inputs(workflow, prompt, custom_values)
 
 
 def with_custom_inputs(

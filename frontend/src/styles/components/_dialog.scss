@@ -999,8 +999,7 @@
     padding: 0.25rem;
     overflow-y: auto;
 
-    > *,
-    .comfy-preset-layout__section > * {
+    > * {
       margin-top: 0;
     }
   }
@@ -1014,46 +1013,6 @@
       flex: 1;
       min-height: 5.5rem;
       resize: none;
-    }
-  }
-
-  // Belongs to the field above it, not a field of its own.
-  &__hint {
-    margin-top: -0.5rem;
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    min-inline-size: 0;
-    margin: 0;
-    padding: 0.875rem 0 0;
-    border: 0;
-    border-top: 1px solid var(--border);
-
-    // The gap spaces the section's fields.
-    > .field {
-      margin-top: 0;
-    }
-
-    // As close to its fields as the prompt hint is to the prompt.
-    > .comfy-preset-layout__hint {
-      margin-top: -0.375rem;
-    }
-  }
-
-  // Floated so the legend sits inside the section like a heading, not on its border.
-  &__section-label {
-    @include section-label;
-    float: left;
-    width: 100%;
-    padding: 0;
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
-
-    + * {
-      clear: both;
     }
   }
 
@@ -1168,6 +1127,19 @@
   &__cell--wide {
     grid-column: 1 / -1;
   }
+
+  // As tall as the inputs above it: the column has no height to spare.
+  &__start {
+    .start-file-picker__trigger {
+      min-height: 2.75rem;
+      padding-block: 0.125rem;
+    }
+
+    .start-file-picker__thumb {
+      width: 2.5rem;
+      height: 2.125rem;
+    }
+  }
 }
 
 .comfy-preset-map {
@@ -1186,6 +1158,61 @@
 
   &__message--problem {
     color: var(--warning);
+  }
+}
+
+// The ComfyUI dialogs' right column as framed panes like the presets and the map beside it:
+// Run's Inputs and Output, a showcase's selected item and its extra LoRAs.
+.comfy-form {
+  gap: 0.75rem;
+
+  &__pane {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-card) 55%, transparent);
+
+    > * {
+      margin: 0;
+    }
+  }
+
+  // Grows into the column's spare height, which the prompt takes.
+  &__pane--grow {
+    flex: 1 0 auto;
+
+    // A definite base, or the pane would hold the prompt's four rows and the column scroll.
+    .comfy-preset-layout__prompt textarea {
+      flex: 1 1 5rem;
+      height: 5rem;
+      min-height: 5rem;
+    }
+  }
+
+  // A heading with an action at its end, such as Add LoRA.
+  &__pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: var(--control-height-xs);
+    margin: -0.25rem 0;
+  }
+
+  &__notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0;
+    list-style: none;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
   }
 }
 

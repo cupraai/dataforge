@@ -47,6 +47,13 @@ EDIT_WORKFLOW = {
     "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["1", 0]}},
 }
 
+#: Loads a start image into a sampler, as image-to-video exports do.
+SOURCE_WORKFLOW = {
+    "1": {"class_type": "LoadImage", "inputs": {"image": "example.png"}},
+    "3": {"class_type": "KSampler", "inputs": {"seed": 7, "steps": 20, "image": ["1", 0]}},
+    "9": {"class_type": "SaveImage", "inputs": {"filename_prefix": "out", "images": ["3", 0]}},
+}
+
 
 def png_bytes(colour: str = "blue") -> bytes:
     buffer = io.BytesIO()
@@ -66,6 +73,7 @@ class Workspace:
             ("txt2img", GENERATE_WORKFLOW),
             ("plain", PLAIN_WORKFLOW),
             ("upscale", EDIT_WORKFLOW),
+            ("i2v", SOURCE_WORKFLOW),
         ):
             (self.presets / f"{name}.json").write_text(json.dumps(graph), encoding="utf-8")
         self._previous = os.environ.get("COMFY_WORKFLOWS_DIR")
@@ -91,12 +99,25 @@ def comfy_handler(
     filename: str = "out.png",
     fail_on: set[str] | None = None,
     submitted: list[dict] | None = None,
+    uploads: list[str] | None = None,
+    image_optional: bool = True,
+    output_node: str = "9",
 ):
     failing = fail_on or set()
     state = {"count": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
+
+        if path == "/upload/image":
+            name = f"upload-{len(uploads or []) + 1}.png"
+            if uploads is not None:
+                uploads.append(name)
+            return httpx.Response(200, json={"name": name, "subfolder": "dataforge"})
+
+        if path == "/object_info/KSampler":
+            group = "optional" if image_optional else "required"
+            return httpx.Response(200, json={"KSampler": {"input": {group: {"image": ["IMAGE"]}}}})
 
         if path == "/prompt":
             state["count"] += 1
@@ -128,7 +149,7 @@ def comfy_handler(
                 json={
                     prompt_id: {
                         "status": {"completed": True},
-                        "outputs": {"9": {"images": refs}},
+                        "outputs": {output_node: {"images": refs}},
                     }
                 },
             )
@@ -173,12 +194,34 @@ class ValidateTests(unittest.TestCase):
 
             self.assertIn("staging folder", str(caught.exception))
 
-    def test_an_edit_preset_is_refused_by_name(self) -> None:
+    def test_a_source_preset_generates_with_or_without_a_start_file(self) -> None:
         with Workspace() as workspace:
-            with self.assertRaises(ValueError) as caught:
-                validate_comfy_generate_folder(workspace.folder, preset="upscale")
+            start = write_media(workspace.folder, "start.png")
+            validate_comfy_generate_folder(workspace.folder, preset="i2v")
+            validate_comfy_generate_folder(workspace.folder, preset="i2v", start_path=str(start))
 
-            self.assertIn("edits files instead of making new ones", str(caught.exception))
+    def test_a_start_file_needs_a_preset_that_loads_one(self) -> None:
+        with Workspace() as workspace:
+            start = write_media(workspace.folder, "start.png")
+            with self.assertRaises(ValueError) as caught:
+                validate_comfy_generate_folder(
+                    workspace.folder, preset="txt2img", start_path=str(start)
+                )
+
+            self.assertIn("takes no start file", str(caught.exception))
+
+    def test_a_start_file_must_be_there_and_what_the_loader_takes(self) -> None:
+        with Workspace() as workspace:
+            clip = write_media(workspace.folder, "clip.mp4")
+            for path, reason in (
+                (workspace.folder / "gone.png", "no longer there"),
+                (clip, "is not an image"),
+            ):
+                with self.subTest(reason=reason), self.assertRaises(ValueError) as caught:
+                    validate_comfy_generate_folder(
+                        workspace.folder, preset="i2v", start_path=str(path)
+                    )
+                self.assertIn(reason, str(caught.exception))
 
     def test_a_prompt_is_refused_when_the_preset_has_nowhere_to_put_it(self) -> None:
         with Workspace() as workspace:
@@ -336,6 +379,57 @@ class RunJobTests(unittest.TestCase):
             self.assertNotIn("message", result["results"][0])
         self.assertEqual(submitted[0]["1"], PLAIN_WORKFLOW["1"])
 
+    def test_a_start_file_is_uploaded_once_and_every_run_is_seeded(self) -> None:
+        submitted: list[dict] = []
+        uploads: list[str] = []
+        with Workspace() as workspace:
+            start = write_media(workspace.folder, "start.png")
+            result = run_with(
+                comfy_handler(submitted=submitted, uploads=uploads),
+                workspace.folder,
+                preset="i2v",
+                count=2,
+                seed=5,
+                start_path=str(start),
+            )
+
+            self.assertEqual(result["stats"]["success"], 2)
+            self.assertEqual(workspace.names(), ["i2v_0001.png", "i2v_0002.png", "start.png"])
+
+        self.assertEqual(len(uploads), 1)
+        self.assertEqual(
+            [p["1"]["inputs"]["image"] for p in submitted], ["dataforge/upload-1.png"] * 2
+        )
+        # An edit never seeds an untitled sampler; a generation must, or each run repeats.
+        self.assertEqual([p["3"]["inputs"]["seed"] for p in submitted], [5, 6])
+
+    def test_without_a_start_file_the_loader_is_left_out(self) -> None:
+        submitted: list[dict] = []
+        uploads: list[str] = []
+        with Workspace() as workspace:
+            result = run_with(
+                comfy_handler(submitted=submitted, uploads=uploads), workspace.folder, preset="i2v"
+            )
+
+            self.assertEqual(result["stats"]["success"], 1)
+
+        self.assertEqual(uploads, [])
+        self.assertNotIn("1", submitted[0])
+        self.assertNotIn("image", submitted[0]["3"]["inputs"])
+
+    def test_a_preset_that_needs_its_start_file_fails_before_anything_runs(self) -> None:
+        submitted: list[dict] = []
+        with Workspace() as workspace:
+            with self.assertRaises(ValueError) as caught:
+                run_with(
+                    comfy_handler(submitted=submitted, image_optional=False),
+                    workspace.folder,
+                    preset="i2v",
+                )
+
+        self.assertEqual(submitted, [])
+        self.assertRegex(str(caught.exception), r'^No start image was chosen, .*"KSampler"')
+
     def test_a_failed_prompt_is_counted_without_stopping_the_run(self) -> None:
         with Workspace() as workspace:
             result = run_with(comfy_handler(fail_on={"p-1"}), workspace.folder, count=2)
@@ -443,15 +537,23 @@ class EmbeddedSourceTests(unittest.TestCase):
         self.assertNotIn("11", submitted[0])
         self.assertNotIn("10", submitted[0])
 
-    def test_an_output_that_loads_a_file_is_refused(self) -> None:
+    def test_an_output_that_loads_a_file_generates_from_a_start_file(self) -> None:
+        submitted: list[dict] = []
         with Workspace() as workspace:
             render = self._render(workspace)
-            with self.assertRaises(ValueError) as caught:
-                validate_comfy_generate_folder(
-                    workspace.folder, source={"path": str(render), "node_id": "11"}
-                )
+            start = write_media(workspace.folder, "start.png")
+            result = run_with(
+                comfy_handler(submitted=submitted, uploads=[], output_node="11"),
+                workspace.folder,
+                preset="",
+                source={"path": str(render), "node_id": "11"},
+                start_path=str(start),
+            )
 
-        self.assertIn("edits files instead of making new ones", str(caught.exception))
+            self.assertEqual(result["stats"]["success"], 1)
+
+        self.assertEqual(submitted[0]["10"]["inputs"]["image"], "dataforge/upload-1.png")
+        self.assertNotIn("3", submitted[0])
 
     def test_a_preset_and_a_file_together_are_refused(self) -> None:
         with Workspace() as workspace:

@@ -2,23 +2,23 @@ import { useId, type ReactNode } from "react";
 import type {
   ComfyPresetForm,
   ComfyFormKind,
-  ComfyRunMode,
 } from "@/features/automation/hooks/useComfyPresetForm";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import type { ComfyWorkflowMapRequest } from "@/shared/types";
+import type { ComfyRunMode, ComfyWorkflowMapRequest } from "@/shared/types";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { ComfyPresetMap } from "./ComfyPresetMap";
 import { ComfyPresetSection } from "./ComfyPresetSection";
 import { ComfyPromptField } from "./ComfyPromptField";
 import { CustomInputField } from "./CustomInputField";
 
+/** The example first, then what an empty field runs. */
 const PROMPT_PLACEHOLDERS: Record<ComfyRunMode, string> = {
-  edit: "e.g. sharp studio photograph, no watermark",
-  generate: "e.g. a lighthouse on a cliff at dusk",
+  edit: "e.g. sharp studio photograph, no watermark\nEmpty runs the saved prompt.",
+  generate: "e.g. a lighthouse on a cliff at dusk\nEmpty runs the saved prompt.",
 };
 
 const SEED_PLACEHOLDERS: Record<ComfyRunMode, string> = {
-  edit: "e.g. 424242",
+  edit: "Preset's own",
   generate: "Random",
 };
 
@@ -32,43 +32,40 @@ function EmptyHint({ kind }: { kind: ComfyFormKind }) {
   ) : (
     <p className="field__hint">
       No workflow presets found. Export one from ComfyUI with <strong>Save (API Format)</strong>{" "}
-      into the <strong>comfy_workflows</strong> folder. One whose loader node is titled{" "}
-      <strong>DataForge Input</strong> edits files; one without a loader makes new ones.
+      into the <strong>comfy_workflows</strong> folder. One that loads an image or video can edit
+      files or make new ones from a start file; one without a loader makes new ones.
     </p>
   );
 }
 
-const PROMPT_NODE = <strong>DataForge Prompt</strong>;
-const SEED_NODE = <strong>DataForge Seed</strong>;
-
-function PromptHint({ mode, blocked }: { mode: ComfyRunMode; blocked: boolean }): ReactNode {
-  if (mode === "generate") {
-    return blocked ? (
-      <>No {PROMPT_NODE} node, so the saved prompt runs.</>
-    ) : (
-      <>Optional; empty runs the saved prompt.</>
+/** Why a field the run dialog leaves out is missing; one short line each. */
+function missingFieldNotes(form: ComfyPresetForm): string[] {
+  const notes: string[] = [];
+  if (form.promptBlocked) notes.push("Runs its saved prompt: no DataForge Prompt node.");
+  if (form.seedBlocked) {
+    notes.push(
+      form.mode === "generate"
+        ? "No seed to vary, so every generation runs alike."
+        : "Runs its saved seeds: no DataForge Seed node.",
     );
   }
-  return blocked ? (
-    <>This preset has no {PROMPT_NODE} node, so the saved prompt runs.</>
-  ) : (
-    <>Optional; written into the preset&apos;s {PROMPT_NODE} node.</>
-  );
+  return notes;
 }
 
-function SeedHint({ mode, blocked }: { mode: ComfyRunMode; blocked: boolean }): ReactNode {
-  if (mode === "generate") {
-    return blocked ? (
-      <>No seed to vary, so every generation runs alike.</>
-    ) : (
-      <>An empty seed is random each time; a number counts up from there.</>
-    );
-  }
-  return blocked ? (
-    <>This preset has no {SEED_NODE} node to take a seed.</>
-  ) : (
-    <>Optional; written into the preset&apos;s {SEED_NODE} node.</>
-  );
+/** The prompt, seed and start file the map draws in place of the saved ones; none left out. */
+function mapRunValues(
+  form: ComfyPresetForm,
+  embedded: EmbeddedGenerateWorkflow | undefined,
+): Pick<ComfyWorkflowMapRequest, "prompt_text" | "seed" | "start_path"> {
+  const promptText = form.promptBlocked ? "" : form.draft.promptText.trim();
+  const seedText = form.seedBlocked ? "" : form.draft.seedText.trim();
+  // A file's own workflow opens on its saved prompt, which its saved map already draws.
+  const savedPrompt = embedded?.generation.prompt_text?.trim() ?? "";
+  return {
+    ...(promptText && promptText !== savedPrompt && { prompt_text: promptText }),
+    ...(/^\d+$/.test(seedText) && { seed: Number(seedText) }),
+    ...(form.startPath && { start_path: form.startPath }),
+  };
 }
 
 interface ComfyPresetFieldsProps {
@@ -80,6 +77,10 @@ interface ComfyPresetFieldsProps {
   promptLabelEnd?: ReactNode;
   /** The dialog's own options, under an Output heading below the preset's fields. */
   children?: ReactNode;
+  /** Above the inputs: what the run does, which the fields below follow. */
+  modeControl?: ReactNode;
+  /** A start file picker, in a row of its own after the other inputs. */
+  startFile?: ReactNode;
   /** A file's own workflow, listed alone in place of the presets. */
   embedded?: EmbeddedGenerateWorkflow;
   /** Why the job cannot start, kept in view at the bottom of the inputs. */
@@ -93,16 +94,24 @@ export function ComfyPresetFields({
   onEdited,
   promptLabelEnd,
   children,
+  modeControl,
+  startFile,
   embedded,
   problem,
 }: ComfyPresetFieldsProps) {
-  const promptHintId = useId();
-  const seedHintId = useId();
+  const inputsId = useId();
+  const outputId = useId();
   const { state, preset, mode, draft, promptBlocked, seedBlocked, customInputs, mapInputs } = form;
   const ready = state.status === "ready";
-  const mapRequest: ComfyWorkflowMapRequest = embedded
-    ? { source: { path: embedded.mediaPath, node_id: embedded.nodeId }, inputs: mapInputs }
-    : { preset, inputs: mapInputs };
+  // Drawn as it will run: what is typed replaces the saved values, as the job writes them.
+  const mapRequest: ComfyWorkflowMapRequest = {
+    ...(embedded
+      ? { source: { path: embedded.mediaPath, node_id: embedded.nodeId } }
+      : // Only a generation draws the source loader as its start file; a file's own always does.
+        { preset, ...(form.startKind && { mode: "generate" as const }) }),
+    inputs: mapInputs,
+    ...mapRunValues(form, embedded),
+  };
   const hasPresets = ready && state.presets.length > 0;
 
   return (
@@ -147,67 +156,85 @@ export function ComfyPresetFields({
         </div>
       </section>
 
-      <div className="comfy-preset-layout__form">
-        <ComfyPromptField
-          value={draft.promptText}
-          blocked={promptBlocked}
-          placeholder={PROMPT_PLACEHOLDERS[mode]}
-          hintId={promptHintId}
-          disabled={busy}
-          labelEnd={promptLabelEnd}
-          onChange={(promptText) => {
-            form.updateDraft({ promptText });
-            onEdited();
-          }}
-        />
+      <div className="comfy-preset-layout__form comfy-form">
+        {modeControl}
 
-        <p id={promptHintId} className="field__hint comfy-preset-layout__hint">
-          <PromptHint mode={mode} blocked={promptBlocked} />
-        </p>
+        <div
+          className="comfy-form__pane comfy-form__pane--grow"
+          role="group"
+          aria-labelledby={inputsId}
+        >
+          <h3 id={inputsId} className="comfy-preset-layout__heading">
+            Inputs
+          </h3>
+          {!promptBlocked && (
+            <ComfyPromptField
+              value={draft.promptText}
+              blocked={false}
+              placeholder={PROMPT_PLACEHOLDERS[mode]}
+              disabled={busy}
+              labelEnd={promptLabelEnd}
+              onChange={(promptText) => {
+                form.updateDraft({ promptText });
+                onEdited();
+              }}
+            />
+          )}
 
-        <fieldset className="comfy-preset-layout__section">
-          <div className="field-row comfy-preset-fields__inputs">
-            <Field label="Seed">
-              {(control) => (
-                <TextInput
-                  {...control}
-                  aria-describedby={seedHintId}
-                  type="number"
-                  value={seedBlocked ? "" : draft.seedText}
-                  onChange={(event) => {
-                    form.updateDraft({ seedText: event.target.value });
+          {(!seedBlocked || customInputs.length > 0) && (
+            <div className="field-row comfy-preset-fields__inputs">
+              {!seedBlocked && (
+                <Field label="Seed">
+                  {(control) => (
+                    <TextInput
+                      {...control}
+                      type="number"
+                      value={draft.seedText}
+                      onChange={(event) => {
+                        form.updateDraft({ seedText: event.target.value });
+                        onEdited();
+                      }}
+                      placeholder={SEED_PLACEHOLDERS[mode]}
+                      spellCheck={false}
+                      autoComplete="off"
+                      disabled={busy}
+                    />
+                  )}
+                </Field>
+              )}
+              {customInputs.map((input) => (
+                <CustomInputField
+                  key={input.name}
+                  input={input}
+                  text={draft.inputs[input.name] ?? ""}
+                  disabled={busy}
+                  onChange={(text) => {
+                    form.updateDraft({ inputs: { ...draft.inputs, [input.name]: text } });
                     onEdited();
                   }}
-                  placeholder={seedBlocked ? "None" : SEED_PLACEHOLDERS[mode]}
-                  spellCheck={false}
-                  autoComplete="off"
-                  disabled={busy || seedBlocked}
                 />
-              )}
-            </Field>
-            {customInputs.map((input) => (
-              <CustomInputField
-                key={input.name}
-                input={input}
-                text={draft.inputs[input.name] ?? ""}
-                disabled={busy}
-                onChange={(text) => {
-                  form.updateDraft({ inputs: { ...draft.inputs, [input.name]: text } });
-                  onEdited();
-                }}
-              />
-            ))}
-          </div>
-          <p id={seedHintId} className="field__hint comfy-preset-layout__hint">
-            <SeedHint mode={mode} blocked={seedBlocked} />
-          </p>
-        </fieldset>
+              ))}
+            </div>
+          )}
+
+          {startFile && <div className="field comfy-preset-fields__start">{startFile}</div>}
+
+          {missingFieldNotes(form).length > 0 && (
+            <ul className="comfy-form__notes">
+              {missingFieldNotes(form).map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {children && (
-          <fieldset className="comfy-preset-layout__section">
-            <legend className="comfy-preset-layout__section-label">Output</legend>
+          <div className="comfy-form__pane" role="group" aria-labelledby={outputId}>
+            <h3 id={outputId} className="comfy-preset-layout__heading">
+              Output
+            </h3>
             {children}
-          </fieldset>
+          </div>
         )}
         {problem}
       </div>
