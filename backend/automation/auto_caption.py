@@ -5,27 +5,26 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import get_args
 
-from PIL import Image
-
 from app_settings import effective_settings
 from automation.audio import AUDIO_MAX_SECONDS, extract_audio_wav
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_caption_job
 from automation.llm import (
+    DEFAULT_MODEL_SETTINGS,
     ModelOutcome,
+    ModelSettings,
     call_with_retries,
     clean_model_text,
     close_model_client,
-    model_client,
 )
-from automation.selection import filter_media_list, list_folder_media
-from automation.served_model import resolve_reasoning_effort
+from automation.selection import filter_media_list, list_folder_media, require_folder
+from automation.served_model import model_session
 from automation.vision import (
+    MediaFrames,
     MediaKind,
     MediaLoadError,
     keyframe_sentence,
     load_media_images,
     media_kind_for,
-    media_kind_max_pixels,
     request_vision_text,
 )
 from captions import (
@@ -43,7 +42,6 @@ from ffmpeg_bin import ffmpeg_path
 from openai_settings import (
     DEFAULT_PRESERVE_THINKING,
     DEFAULT_REASONING_EFFORT,
-    get_openai_model,
 )
 from sysprompt import load_sysprompt
 
@@ -228,36 +226,26 @@ def complete_caption(
     system_prompt: str,
     ref_caption: str,
     *,
-    images: list[Image.Image],
-    model: str | None = None,
-    max_tokens: int | None = None,
-    mode: str = "thinking",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
-    timestamps: list[float] | None = None,
+    frames: MediaFrames,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
     audio_wav: bytes | None = None,
     attempt: int = 1,
 ) -> str | None:
     media_kind = media_kind_for(media_path)
-    seconds = timestamps[-1] if timestamps else None
+    user_text = _build_user_text(
+        ref_caption,
+        media_kind,
+        len(frames.images),
+        has_audio=audio_wav is not None,
+        seconds=frames.seconds,
+    )
     return request_vision_text(
         client,
         system_prompt,
-        images,
-        _build_user_text(
-            ref_caption,
-            media_kind,
-            len(images),
-            has_audio=audio_wav is not None,
-            seconds=seconds,
-        ),
-        max_pixels=media_kind_max_pixels(media_kind, seconds=seconds),
-        mode=mode,
-        effort=effort,
-        preserve_thinking=preserve_thinking,
-        model=model,
-        max_tokens=max_tokens,
-        timestamps=timestamps,
+        frames,
+        user_text,
+        media_kind=media_kind,
+        settings=settings,
         audio_wav=audio_wav,
         attempt=attempt,
     )
@@ -282,11 +270,7 @@ def process_media(
     media_path: Path,
     system_prompts: CaptionPrompts,
     *,
-    model: str | None = None,
-    max_tokens: int | None = None,
-    mode: str = "thinking",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
     caption_audio: bool = False,
     should_cancel: ShouldCancel | None = None,
     reference: ReferenceCaption | None = None,
@@ -311,13 +295,8 @@ def process_media(
             media_path,
             system_prompts.for_caption(media_kind, has_draft=bool(ref_caption)),
             ref_caption,
-            images=frames.images,
-            model=model,
-            max_tokens=max_tokens,
-            mode=mode,
-            effort=effort,
-            preserve_thinking=preserve_thinking,
-            timestamps=frames.timestamps,
+            frames=frames,
+            settings=settings,
             audio_wav=audio_wav,
             attempt=number,
         )
@@ -340,8 +319,7 @@ def process_media(
 
 
 def validate_auto_caption_folder(folder: Path, *, caption_audio: bool = False) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if load_sysprompt(folder) is None:
         raise ValueError(SYSPROMPT_REQUIRED)
@@ -436,10 +414,9 @@ def run_auto_caption_job(
 
     system_prompts = build_system_prompts(folder, caption_audio=caption_audio)
     media_files = filter_media_list(list_auto_caption_media(folder), selected_paths)
-    resolved_model = model if model is not None else get_openai_model()
-
-    with model_client() as client:
-        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
+    with model_session(
+        model, mode=mode, reasoning_effort=reasoning_effort, preserve_thinking=preserve_thinking
+    ) as (client, settings):
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
@@ -449,10 +426,7 @@ def run_auto_caption_job(
                 client,
                 media_path,
                 system_prompts,
-                model=resolved_model,
-                mode=mode,
-                effort=effort,
-                preserve_thinking=preserve_thinking,
+                settings=settings,
                 caption_audio=caption_audio,
                 should_cancel=should_cancel,
                 reference=reference,

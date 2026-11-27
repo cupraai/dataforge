@@ -1,4 +1,4 @@
-import { requestJson } from "@/shared/api/http";
+import { postJson, requestJson } from "@/shared/api/http";
 import { mediaUrl } from "@/features/gallery/api/media";
 import type {
   AutoAdjustResponse,
@@ -22,11 +22,7 @@ export async function applyImageEdit(
   spec: ImageEditSpec,
 ): Promise<ImageEditResponse> {
   const params = new URLSearchParams({ path: mediaPath });
-  return requestJson<ImageEditResponse>(`/api/media/image-edit?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
-  });
+  return postJson<ImageEditResponse>(`/api/media/image-edit?${params}`, spec);
 }
 
 /** The draft rides along: the wand reads only what its crop keeps and its masks leave. */
@@ -35,11 +31,7 @@ export async function fetchImageAutoAdjust(
   spec: ImageEditSpec,
 ): Promise<AutoAdjustResponse> {
   const params = new URLSearchParams({ path: mediaPath });
-  return requestJson<AutoAdjustResponse>(`/api/media/image-edit/auto?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
-  });
+  return postJson<AutoAdjustResponse>(`/api/media/image-edit/auto?${params}`, spec);
 }
 
 export async function revertImageEdit(mediaPath: string): Promise<ImageEditResponse> {

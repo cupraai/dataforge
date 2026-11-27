@@ -23,6 +23,7 @@ from PIL import Image, ImageChops, ImageFilter, UnidentifiedImageError
 
 from api_errors import ConflictError
 from edit_sidecars import fill_assets_path
+from file_publish import unlink_quietly
 from file_write import retry_while_locked, write_bytes_atomic
 from schemas import FillBox, ImageFill
 
@@ -424,8 +425,7 @@ def write_archive(media: Path, assets: Iterable[FillAsset]) -> None:
     path = fill_assets_path(media)
     unique = {asset.fill.id: asset for asset in assets}
     if not unique:
-        with suppress(OSError):
-            path.unlink(missing_ok=True)
+        unlink_quietly(path)
         return
 
     buffer = io.BytesIO()

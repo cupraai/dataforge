@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { importFiles } from "@/features/folder/api/files";
 import type { FrameCapture } from "@/features/gallery/lib/frameCapture";
-import { frameSaveOutcome } from "@/features/gallery/lib/frameCapture";
+import { importFrame } from "@/features/gallery/lib/frameCapture";
 import {
   clampFrameIndex,
   gifFrameTargetName,
@@ -13,6 +12,7 @@ import { useNotify } from "@/shared/notifications/notifications";
 import type { GalleryItem } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useMountedRef } from "@/shared/hooks/useMountedRef";
 
 const NEIGHBOUR_WARM_DELAY_MS = 120;
 const NEIGHBOUR_WARM_OFFSETS = [-2, -1, 1, 2] as const;
@@ -42,7 +42,7 @@ export function useGifFrameCapture(options: UseGifFrameCaptureOptions): GifFrame
   // Ref so callbacks stay dependency-free; a save outliving a swap keeps its starting values.
   const optionsRef = useLatestRef(options);
 
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
 
   const [frameIndex, setFrameIndexState] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -55,13 +55,6 @@ export function useGifFrameCapture(options: UseGifFrameCaptureOptions): GifFrame
 
   // >= 1 so a one-frame GIF is still savable; the slider goes inert at that size.
   const ready = resolvedCount >= 1;
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Scrubber only; a save in flight against the previous item must run its own finally.
   if (useChanged(item?.path)) {
@@ -141,14 +134,7 @@ export function useGifFrameCapture(options: UseGifFrameCaptureOptions): GifFrame
           throw new Error(`The server could not decode frame ${targetIndex + 1}.`);
         }
         const blob = await response.blob();
-        const file = new File([blob], target, { type: "image/jpeg" });
-        const result = await importFiles(destination, [file], true);
-
-        const outcome = frameSaveOutcome(result, target);
-        notify(outcome);
-        if (outcome.variant === "success") {
-          await onSaved?.();
-        }
+        if (await importFrame(destination, blob, target, notify)) await onSaved?.();
       } catch (error) {
         // Unguarded by mountedRef: the store outlives this dialog, so a finish after close reports.
         notify({
@@ -160,7 +146,7 @@ export function useGifFrameCapture(options: UseGifFrameCaptureOptions): GifFrame
         if (mountedRef.current) setSaving(false);
       }
     })();
-  }, [frameCountRef, frameIndexRef, notify, optionsRef]);
+  }, [frameCountRef, frameIndexRef, mountedRef, notify, optionsRef]);
 
   return {
     frameMode,

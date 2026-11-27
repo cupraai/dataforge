@@ -5,7 +5,8 @@ import { formatRelativeTime } from "@/shared/lib/format";
 import { classNames } from "@/shared/lib/classNames";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { Icon } from "@/shared/ui/Icon";
-import { variantIcons, type NotificationActionFor, type NotificationRecord } from "./notifications";
+import { variantIcons, type NotificationActionFor } from "./notifications";
+import type { NotificationRecord } from "@/shared/types";
 
 const RETICK_MS = 30_000;
 

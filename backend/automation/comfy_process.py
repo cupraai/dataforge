@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from contextlib import suppress
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -55,7 +54,7 @@ from external.comfy_workflows import (
     require_source_input,
     resolve_custom_inputs,
 )
-from file_publish import publish_replacing
+from file_publish import publish_replacing, unlink_quietly
 from folder_scan import get_media_type
 from image_io import ImageReadError, load_image_for_edit
 from media_claims import claim
@@ -167,8 +166,7 @@ def _stage_image_candidate(source: Path, temp_path: Path, destination: Path) -> 
         facts = CandidateFacts(difference_percent=difference_percent(original, produced))
         publish_replacing(temp_path, destination, stale_path_for(destination))
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
     return facts
 
@@ -239,8 +237,7 @@ def _stage_video_candidate(
 
         publish_replacing(temp_path, destination, stale_path_for(destination))
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
     return facts
 

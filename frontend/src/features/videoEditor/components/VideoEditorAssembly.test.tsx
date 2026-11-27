@@ -7,7 +7,7 @@ import { installMockBackend } from "@/test/mockBackend";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import { makeClip, makeProject, makeSource } from "@/test/videoProject";
 import * as api from "@/features/videoEditor/api/videoProjects";
-import { restingAdjust } from "@/features/videoEditor/lib/timeline";
+
 import { setEditorClipboard } from "@/features/videoEditor/lib/clipboardStore";
 import { VideoEditorWorkspace } from "./VideoEditorWorkspace";
 import type {
@@ -17,6 +17,7 @@ import type {
   saveVideoProject,
   startVideoProject,
 } from "@/features/videoEditor/api/videoProjects";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 vi.mock("@/features/videoEditor/api/videoProjects", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
@@ -48,7 +49,7 @@ function startingDocument(): VideoProjectDocument {
           kind: "video",
           source_id: "src",
           link_id: "l",
-          adjust: { ...restingAdjust(), exposure: 0.5 },
+          adjust: { ...{ ...RESTING_ADJUST }, exposure: 0.5 },
         }),
         makeClip("shot-sound", "a1", 0, 4, { kind: "audio", source_id: "src", link_id: "l" }),
         makeClip("still", "v1", 6, 2),

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import suppress
 from datetime import UTC, datetime
 from math import ceil
 from pathlib import Path
@@ -20,6 +19,7 @@ from edit_sidecars import (
     restore_backup,
     temp_path_for,
 )
+from file_publish import unlink_quietly
 from image_fill import (
     apply_fill_chain,
     archived_assets,
@@ -259,8 +259,7 @@ def _apply_claimed(media: Path, spec: ImageEditSpec) -> ImageEditResponse:
         )
         publish_with_spec(temp_path, media, spec)
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
     return describe_edited(media, has_backup=True, replaced_externally=start.adopted)
 

@@ -331,7 +331,7 @@ class StripIsobmffMetadataTests(unittest.TestCase):
     def test_requires_ffmpeg(self) -> None:
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
-            with patch("automation.strip_metadata.ffmpeg_path", return_value=None):
+            with patch("ffmpeg_bin.ffmpeg_path", return_value=None):
                 with self.assertRaisesRegex(RuntimeError, "ffmpeg is required"):
                     strip_isobmff_metadata(media)
 

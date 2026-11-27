@@ -91,11 +91,7 @@ export function useCandidateReviewOverlay(
   }, [onResolved, onReturnToItem, returnPath]);
 
   return {
-    open,
-    entries,
-    index,
     openCandidateReview,
-    closeCandidateReview,
     overlay: {
       open,
       entries,

@@ -15,12 +15,11 @@ import {
   NotificationsContext,
   upsertNotification,
   type NotificationActionFor,
-  type NotificationRecord,
-  type NotificationVariant,
   type NotifyOptions,
   type Toast,
   type ToastAction,
 } from "./notifications";
+import type { NotificationRecord, NotificationVariant } from "@/shared/types";
 import { useToastTimers } from "./useToastTimers";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 

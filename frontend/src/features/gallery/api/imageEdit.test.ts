@@ -6,10 +6,9 @@ import {
   imageOriginalUrl,
   revertImageEdit,
 } from "./imageEdit";
-import { requestJson } from "@/shared/api/http";
+import { postJson, requestJson } from "@/shared/api/http";
 import type { ImageEditSpec } from "@/shared/types";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
-import type { postJson } from "@/shared/api/http";
 
 vi.mock("@/shared/api/http", () => ({
   requestJson: vi.fn<typeof requestJson>(),
@@ -17,6 +16,7 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 const requestJsonMock = vi.mocked(requestJson);
+const postJsonMock = vi.mocked(postJson);
 const PHOTO = "C:\\Photos\\sunset.png";
 const ENCODED = "C%3A%5CPhotos%5Csunset.png";
 
@@ -34,6 +34,8 @@ const SPEC: ImageEditSpec = {
 beforeEach(() => {
   requestJsonMock.mockReset();
   requestJsonMock.mockResolvedValue({});
+  postJsonMock.mockReset();
+  postJsonMock.mockResolvedValue({});
 });
 
 describe("imageOriginalUrl", () => {
@@ -59,19 +61,15 @@ describe("applyImageEdit", () => {
   it("posts the spec as JSON", async () => {
     await applyImageEdit(PHOTO, SPEC);
 
-    const [url, init] = requestJsonMock.mock.calls[0];
+    const [url, body] = postJsonMock.mock.calls[0];
     expect(url).toBe(`/api/media/image-edit?path=${ENCODED}`);
-    expect(init).toMatchObject({
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    expect(JSON.parse(String(init?.body))).toEqual(SPEC);
+    expect(body).toEqual(SPEC);
   });
 
   it("addresses no tab, because there is no progress to push back", async () => {
     await applyImageEdit(PHOTO, SPEC);
 
-    expect(String(requestJsonMock.mock.calls[0][0])).not.toContain("tab=");
+    expect(String(postJsonMock.mock.calls[0][0])).not.toContain("tab=");
   });
 });
 
@@ -79,10 +77,9 @@ describe("fetchImageAutoAdjust", () => {
   it("posts the draft so the wand reads only what the crop keeps", async () => {
     await fetchImageAutoAdjust(PHOTO, SPEC);
 
-    const [url, init] = requestJsonMock.mock.calls[0];
+    const [url, body] = postJsonMock.mock.calls[0];
     expect(url).toBe(`/api/media/image-edit/auto?path=${ENCODED}`);
-    expect(init).toMatchObject({ method: "POST" });
-    expect(JSON.parse(String(init?.body))).toEqual(SPEC);
+    expect(body).toEqual(SPEC);
   });
 });
 

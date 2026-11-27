@@ -59,13 +59,7 @@ export function AppOverlays({
         currentActions={currentJobActions}
       />
 
-      <StatsDialog
-        open={stats.open}
-        items={stats.items}
-        onClose={stats.onClose}
-        onSearchWord={stats.onSearchWord}
-        onFilterRange={stats.onFilterRange}
-      />
+      <StatsDialog {...stats} />
 
       <SelectionActionOverlays {...selectionActions} />
 
@@ -94,63 +88,23 @@ export function AppOverlays({
       )}
 
       {issueResolver.open && issueResolver.items.length > 0 && (
-        <IssueResolverDialog
-          items={issueResolver.items}
-          index={issueResolver.index}
-          onClose={issueResolver.onClose}
-          onIndexChange={issueResolver.onIndexChange}
-          onCaptionSaved={onCaptionSaved}
-        />
+        <IssueResolverDialog {...issueResolver} onCaptionSaved={onCaptionSaved} />
       )}
 
       {duplicateResolver.open && duplicateResolver.groups.length > 0 && (
-        <DuplicateResolverDialog
-          groups={duplicateResolver.groups}
-          index={duplicateResolver.index}
-          onClose={duplicateResolver.onClose}
-          onIndexChange={duplicateResolver.onIndexChange}
-          deletesToTrash={duplicateResolver.deletesToTrash}
-          onResolved={duplicateResolver.onResolved}
-        />
+        <DuplicateResolverDialog {...duplicateResolver} />
       )}
 
       {candidateReview.open && candidateReview.entries.length > 0 && (
-        <CandidateReviewDialog
-          entries={candidateReview.entries}
-          index={candidateReview.index}
-          onClose={candidateReview.onClose}
-          onIndexChange={candidateReview.onIndexChange}
-          onResolved={candidateReview.onResolved}
-        />
+        <CandidateReviewDialog {...candidateReview} />
       )}
 
-      {gallery.selectedPath && gallery.selectedIndex >= 0 && (
+      {gallery.selectedPath && gallery.index >= 0 && (
         <GalleryItemDialog
+          {...gallery}
           suspended={instructions.open || gallery.suspended}
-          focusView={gallery.focusView}
-          onFocusViewChange={gallery.onFocusViewChange}
-          onEditExpandedChange={gallery.onEditExpandedChange}
-          transitionRef={gallery.transitionRef}
-          items={gallery.dialogItems}
-          index={gallery.selectedIndex}
-          openIntent={gallery.openIntent}
-          searchQuery={gallery.searchQuery}
-          searchRegex={gallery.searchRegex}
-          hasCaptionBackup={gallery.hasCaptionBackup}
           currentFolder={currentFolder}
-          onClose={gallery.onClose}
-          onPrevious={gallery.onPrevious}
-          onNext={gallery.onNext}
-          onGoTo={gallery.onGoTo}
           onCaptionSaved={onCaptionSaved}
-          onDeleted={gallery.onDeleted}
-          onRenamed={gallery.onRenamed}
-          onMoved={gallery.onMoved}
-          onCopied={gallery.onCopied}
-          onResolveIssue={gallery.onResolveIssue}
-          onReviewCandidate={gallery.onReviewCandidate}
-          onResolveDuplicate={gallery.onResolveDuplicate}
-          onGenerateFromWorkflow={gallery.onGenerateFromWorkflow}
           selected={selectedPaths.has(gallery.selectedPath)}
           onToggleSelect={toggleSelectedPath}
         />
@@ -182,25 +136,9 @@ export function AppOverlays({
 
       <WorkflowOverlays state={workflows} />
 
-      {fileImport.overwritePrompt && (
-        <FileImportOverwriteDialog
-          conflicts={fileImport.overwritePrompt.conflicts}
-          busy={fileImport.busy}
-          onReplaceExisting={fileImport.onReplaceExisting}
-          onCopyNewOnly={fileImport.onCopyNewOnly}
-          onCancel={fileImport.onCancel}
-        />
-      )}
+      {fileImport && <FileImportOverwriteDialog {...fileImport} />}
 
-      {createFolder && (
-        <CreateFolderDialog
-          parentLabel={createFolder.parentLabel}
-          busy={createFolder.busy}
-          error={createFolder.error}
-          onConfirm={createFolder.onConfirm}
-          onCancel={createFolder.onCancel}
-        />
-      )}
+      {createFolder && <CreateFolderDialog {...createFolder} />}
 
       {renameFolder && (
         <RenameDialog
@@ -237,8 +175,8 @@ export function AppOverlays({
         />
       )}
 
-      {settings.open && <SettingsDialog onClose={settings.onClose} />}
-      {shortcuts.open && <ShortcutsDialog onClose={shortcuts.onClose} />}
+      {settings.open && <SettingsDialog onClose={settings.close} />}
+      {shortcuts.open && <ShortcutsDialog onClose={shortcuts.close} />}
     </>
   );
 }

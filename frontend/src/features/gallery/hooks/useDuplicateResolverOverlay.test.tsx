@@ -60,8 +60,8 @@ describe("useDuplicateResolverOverlay", () => {
       onOpen,
     });
 
-    await waitFor(() => expect(result.current.open).toBe(true));
-    expect(result.current.groups.map((entry) => entry.group)).toEqual(["g2"]);
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
+    expect(result.current.overlay.groups.map((entry) => entry.group)).toEqual(["g2"]);
     expect(onOpen).toHaveBeenCalledOnce();
     // Nothing to announce: the dialog is the feedback.
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("useDuplicateResolverOverlay", () => {
       path: kept,
       onOpen: vi.fn<() => void>(),
     });
-    await waitFor(() => expect(result.current.open).toBe(true));
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
     act(() => {
       result.current.overlay.onResolved([`${HOME_PATH}\\g1-two.png`]);
       result.current.overlay.onClose();
@@ -98,7 +98,7 @@ describe("useDuplicateResolverOverlay", () => {
       path: deleted,
       onOpen: vi.fn<() => void>(),
     });
-    await waitFor(() => expect(result.current.open).toBe(true));
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
     // The dialog settles its last group and closes in one go, before a refresh could land.
     act(() => {
       result.current.overlay.onResolved([deleted]);
@@ -121,7 +121,7 @@ describe("useDuplicateResolverOverlay", () => {
       "elsewhere.png has no duplicate left to compare.",
     );
     expect(onOpen).not.toHaveBeenCalled();
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("says so rather than opening on nothing when every finding lost its partner", async () => {
@@ -134,7 +134,7 @@ describe("useDuplicateResolverOverlay", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "2 duplicate findings have no partner left to compare.",
     );
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("leaves the findings alone, because the job is what rebuilds them", async () => {
@@ -146,7 +146,7 @@ describe("useDuplicateResolverOverlay", () => {
 
     // Nothing was written or deleted, so there is nothing for the listing to catch up on.
     expect(onResolved).not.toHaveBeenCalled();
-    expect(result.current.groups).toEqual([]);
+    expect(result.current.overlay.groups).toEqual([]);
   });
 
   it("still opens on the groups that are left when only some findings are spent", async () => {
@@ -155,8 +155,8 @@ describe("useDuplicateResolverOverlay", () => {
 
     await result.current.openDuplicateResolver(HOME_PATH);
 
-    await waitFor(() => expect(result.current.open).toBe(true));
-    expect(result.current.groups).toHaveLength(1);
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
+    expect(result.current.overlay.groups).toHaveLength(1);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -169,7 +169,7 @@ describe("useDuplicateResolverOverlay", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "No duplicate groups left in this folder.",
     );
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("opens every group touching the selection, with all of its members", async () => {
@@ -182,10 +182,10 @@ describe("useDuplicateResolverOverlay", () => {
       new Set([`${HOME_PATH}\\g2-one.png`]),
     );
 
-    await waitFor(() => expect(result.current.open).toBe(true));
-    expect(result.current.groups.map((entry) => entry.group)).toEqual(["g2"]);
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
+    expect(result.current.overlay.groups.map((entry) => entry.group)).toEqual(["g2"]);
     // The unselected copy stays: a group of one has nothing to compare against.
-    expect(result.current.groups[0].members).toHaveLength(2);
+    expect(result.current.overlay.groups[0].members).toHaveLength(2);
   });
 
   it("says so when no group touches the selection", async () => {
@@ -200,7 +200,7 @@ describe("useDuplicateResolverOverlay", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "No duplicate group includes the selected files.",
     );
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("reports a failed fetch instead of failing silently", async () => {
@@ -210,6 +210,6 @@ describe("useDuplicateResolverOverlay", () => {
     await result.current.openDuplicateResolver(HOME_PATH);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Backend unreachable");
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 });

@@ -8,11 +8,10 @@ import {
   transcodeVideo,
   videoOriginalUrl,
 } from "./videoEdit";
-import { requestJson } from "@/shared/api/http";
+import { postJson, requestJson } from "@/shared/api/http";
 import { serverEventsTabId } from "@/shared/api/eventStream";
 import type { VideoEditSpec } from "@/shared/types";
 import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
-import type { postJson } from "@/shared/api/http";
 
 vi.mock("@/shared/api/http", () => ({
   requestJson: vi.fn<typeof requestJson>(),
@@ -20,6 +19,7 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 const requestJsonMock = vi.mocked(requestJson);
+const postJsonMock = vi.mocked(postJson);
 const CLIP = "C:\\Photos\\clip.mp4";
 const ENCODED = "C%3A%5CPhotos%5Cclip.mp4";
 
@@ -38,6 +38,8 @@ const SPEC: VideoEditSpec = {
 beforeEach(() => {
   requestJsonMock.mockReset();
   requestJsonMock.mockResolvedValue({});
+  postJsonMock.mockReset();
+  postJsonMock.mockResolvedValue({});
 });
 
 describe("videoOriginalUrl", () => {
@@ -62,44 +64,44 @@ describe("applyVideoEdit", () => {
   it("posts the spec as JSON", async () => {
     await applyVideoEdit(CLIP, SPEC);
 
-    const [url, init] = requestJsonMock.mock.calls[0];
+    const [url, body] = postJsonMock.mock.calls[0];
     expect(url).toContain(`/api/media/video-edit?path=${ENCODED}`);
-    expect(init).toMatchObject({
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    expect(JSON.parse(String(init?.body))).toEqual(SPEC);
+    expect(body).toEqual(SPEC);
   });
 
   it("addresses the progress frames to this tab", async () => {
     await applyVideoEdit(CLIP, SPEC);
 
-    const [url] = requestJsonMock.mock.calls[0];
+    const [url] = postJsonMock.mock.calls[0];
     expect(url).toContain(`tab=${encodeURIComponent(serverEventsTabId())}`);
   });
 });
 
 describe("transcodeVideo", () => {
   it("re-renders the file's current edit with the transcode flag set", async () => {
-    requestJsonMock
-      .mockResolvedValueOnce({ path: CLIP, has_backup: true, spec: SPEC, frame_rate: 25 })
-      .mockResolvedValueOnce({});
+    requestJsonMock.mockResolvedValueOnce({
+      path: CLIP,
+      has_backup: true,
+      spec: SPEC,
+      frame_rate: 25,
+    });
 
     await transcodeVideo(CLIP);
 
-    const [, init] = requestJsonMock.mock.calls[1];
-    expect(JSON.parse(String(init?.body))).toEqual({ ...SPEC, transcode: true });
+    expect(postJsonMock.mock.calls[0][1]).toEqual({ ...SPEC, transcode: true });
   });
 
   it("transcodes an unedited file from an empty spec", async () => {
-    requestJsonMock
-      .mockResolvedValueOnce({ path: CLIP, has_backup: false, spec: null, frame_rate: 25 })
-      .mockResolvedValueOnce({});
+    requestJsonMock.mockResolvedValueOnce({
+      path: CLIP,
+      has_backup: false,
+      spec: null,
+      frame_rate: 25,
+    });
 
     await transcodeVideo(CLIP);
 
-    const [, init] = requestJsonMock.mock.calls[1];
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    expect(postJsonMock.mock.calls[0][1]).toMatchObject({
       trim_start: 0,
       trim_end: null,
       transcode: true,
@@ -111,10 +113,9 @@ describe("fetchVideoAutoAdjust", () => {
   it("posts the draft so the wand reads only the kept range, and addresses no tab", async () => {
     await fetchVideoAutoAdjust(CLIP, SPEC);
 
-    const [url, init] = requestJsonMock.mock.calls[0];
+    const [url, body] = postJsonMock.mock.calls[0];
     expect(url).toBe(`/api/media/video-edit/auto?path=${ENCODED}`);
-    expect(init).toMatchObject({ method: "POST" });
-    expect(JSON.parse(String(init?.body))).toEqual(SPEC);
+    expect(body).toEqual(SPEC);
   });
 });
 

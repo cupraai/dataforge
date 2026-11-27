@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from automation.vision import extract_video_keyframes, load_image_rgb, media_kind_for
 from constants import MEDIA_EXTENSIONS
 from duplicates import DuplicateFinding, group_id_for, save_duplicate_finding
@@ -131,8 +131,7 @@ def list_find_duplicates_media(folder: Path) -> list[Path]:
 
 
 def validate_find_duplicates_folder(folder: Path, *, threshold: str = DEFAULT_THRESHOLD) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if threshold not in THRESHOLD_DISTANCES:
         raise ValueError(f"Unknown duplicate threshold: {threshold}")

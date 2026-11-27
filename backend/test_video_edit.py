@@ -1004,7 +1004,7 @@ class ApplyVideoEditTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
 
-            with patch("video_edit.ffmpeg_path", return_value=None):
+            with patch("ffmpeg_bin.ffmpeg_path", return_value=None):
                 with self.assertRaises(RuntimeError) as caught:
                     video_edit.apply_video_edit(media, VideoEditSpec(scale=0.5))
 

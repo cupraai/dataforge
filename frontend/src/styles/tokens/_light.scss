@@ -31,7 +31,6 @@
   --danger-soft: rgba(185, 28, 28, 0.08);
   --danger-border: rgba(185, 28, 28, 0.28);
   --danger-deep: #991b1b;
-  --danger-hover: rgba(185, 28, 28, 0.14);
   --surface-hover: rgba(15, 23, 42, 0.05);
   --overlay: rgba(15, 23, 42, 0.25);
   --dialog-backdrop: rgba(15, 23, 42, 0.35);
@@ -126,26 +125,20 @@
   color-scheme: light;
 }
 
-// Card media shows images and video, which look the same in either theme, so badges, the
-// actions bar and placeholders over it keep the dark theme.
-:root[data-theme="light"] .card-actions {
-  @include root.dark-theme;
-  color: var(--text);
-}
+// Images and video look the same in either theme, so what sits over them keeps the dark theme:
+// the card's actions bar and badges, and the editor's reference tags.
+:root[data-theme="light"] {
+  $card-badges: ".card__media :is(.card__badge--video, .card__badge--candidate, .card__badge--duplicate, .card__badge--edited, .card__badge--watermarked)";
 
-// The reference tags sit over the editor's picture, so their close button keeps the dark theme.
-:root[data-theme="light"] .video-editor__reference-tag {
-  @include root.dark-theme;
-}
-
-:root[data-theme="light"] .card__media {
-  .card__badge--video,
-  .card__badge--candidate,
-  .card__badge--duplicate,
-  .card__badge--edited,
-  .card__badge--watermarked {
+  .card-actions,
+  .video-editor__reference-tag,
+  #{$card-badges} {
     @include root.dark-theme;
-    // Inherited color was already resolved against the light --text on .card.
+  }
+
+  // Inherited color was already resolved against the light --text on .card.
+  .card-actions,
+  #{$card-badges} {
     color: var(--text);
   }
 }

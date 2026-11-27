@@ -30,7 +30,7 @@ import { VIDEO_FRAME_RATES } from "@/shared/constants";
 import type { VideoFrameRate } from "@/shared/types";
 import type { SegmentOption } from "@/shared/ui/SegmentedControl";
 import type { VideoEdit } from "@/features/gallery/hooks/useVideoEdit";
-import { EffectOutput, EffectTools } from "./EffectTools";
+import { EffectTools, LookOutput } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import {
   ApplyProgress,
@@ -282,19 +282,11 @@ export function VideoEditPanel({ edit, busy, onRevertRequested }: VideoEditPanel
                   {edit.draft.volume === 0 ? "Muted" : `Volume ${formatVolume(edit.draft.volume)}`}
                 </OutputPart>
               )}
-              {edit.draft.effect && (
-                <EffectOutput
-                  effect={edit.draft.effect}
-                  previewAvailable={edit.adjust.previewAvailable}
-                />
-              )}
-              {modified.adjust && (
-                <OutputPart>
-                  {edit.adjust.previewAvailable
-                    ? "Adjusted"
-                    : "Adjusted, no live preview in this browser"}
-                </OutputPart>
-              )}
+              <LookOutput
+                effect={edit.draft.effect}
+                adjusted={modified.adjust}
+                previewAvailable={edit.adjust.previewAvailable}
+              />
               <OutputChange
                 from={formatFrameTime(edit.duration)}
                 to={formatFrameTime(edit.outputSeconds)}

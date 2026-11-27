@@ -10,11 +10,10 @@ import { InstructionFileSource } from "@/features/automation/components/Instruct
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffort";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
-import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { VisionJobFooter } from "@/features/automation/components/VisionJobFooter";
 import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
 import { useFolderInstructions } from "@/shared/hooks/useFolderInstructions";
 import { instructionApplies } from "@/shared/api/folderInstructions";
-import { DialogActions } from "@/shared/ui/Dialog";
 import { Icon } from "@/shared/ui/Icon";
 import { iconListChecks } from "@/shared/icons";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
@@ -93,19 +92,11 @@ export function AutoCaptionDialog({
       }
       onClose={onCancel}
       footer={
-        <>
-          <ServiceStatus
-            service="vision"
-            state={vision.service}
-            address={vision.info?.baseUrl}
-            issue={vision.issue}
-          />
-          <DialogActions
-            confirmLabel={confirmLabel ?? "Start auto-caption"}
-            busyLabel="Starting..."
-            onCancel={onCancel}
-          />
-        </>
+        <VisionJobFooter
+          vision={vision}
+          confirmLabel={confirmLabel ?? "Start auto-caption"}
+          onCancel={onCancel}
+        />
       }
     >
       <div className="dialog-facts">
@@ -120,13 +111,7 @@ export function AutoCaptionDialog({
 
       <AutomationModeSelector value={mode} disabled={busy} onChange={setMode} />
 
-      <ReasoningEffortSelector
-        value={effort.value}
-        levels={effort.levels}
-        loading={effort.loading}
-        disabled={mode === "instruct" || busy}
-        onChange={effort.onChange}
-      />
+      <ReasoningEffortSelector effort={effort} disabled={mode === "instruct" || busy} />
 
       <Checkbox
         label="Preserve thinking"

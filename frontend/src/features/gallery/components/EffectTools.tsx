@@ -61,17 +61,31 @@ export function EffectTools({
 }
 
 /** The effect's part of the panel's output line. */
-export function EffectOutput({
+/** The Effects and Color parts of an output line. */
+export function LookOutput({
   effect,
+  adjusted,
   previewAvailable,
 }: {
-  effect: StyleEffect;
+  effect: StyleEffect | null;
+  adjusted: boolean;
   previewAvailable: boolean;
 }) {
+  const noPreview = !previewAvailable && ", no live preview in this browser";
   return (
-    <OutputPart>
-      {formatEffect(effect)}
-      {!previewAvailable && ", no live preview in this browser"}
-    </OutputPart>
+    <>
+      {effect && (
+        <OutputPart>
+          {formatEffect(effect)}
+          {noPreview}
+        </OutputPart>
+      )}
+      {adjusted && (
+        <OutputPart>
+          Adjusted
+          {noPreview}
+        </OutputPart>
+      )}
+    </>
   );
 }

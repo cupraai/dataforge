@@ -27,18 +27,7 @@ export function useIssueResolverOverlay(onReturnToItem?: (path: string) => void)
   }, [onReturnToItem, returnPath]);
 
   return {
-    open,
-    items,
-    index,
-    setIndex,
     openIssueResolver,
-    closeIssueResolver,
-    overlay: {
-      open,
-      items,
-      index,
-      onClose: closeIssueResolver,
-      onIndexChange: setIndex,
-    },
+    overlay: { open, items, index, onClose: closeIssueResolver, onIndexChange: setIndex },
   };
 }

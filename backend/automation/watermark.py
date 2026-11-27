@@ -13,7 +13,7 @@ from typing import BinaryIO, Literal
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from automation.strip_metadata import strip_file_metadata
 from constants import (
     GIF_EXTENSION,
@@ -22,9 +22,9 @@ from constants import (
     WATERMARK_EXTENSIONS,
 )
 from db import get_db_path
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel, run_ffmpeg
-from file_publish import publish_replacing
+from ffmpeg_bin import ffmpeg_path, require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, FfmpegCancelled, ShouldCancel, run_ffmpeg
+from file_publish import publish_replacing, unlink_quietly
 from image_io import ImageReadError, load_image_for_edit, save_image_preserving_format
 from schemas import WatermarkImageInfo
 
@@ -183,8 +183,7 @@ def save_watermark_image(stream: BinaryIO) -> WatermarkImageInfo:
         # Windows refuses a plain replace while a job reads the old file.
         publish_replacing(temp, target, _stale_path(target))
     finally:
-        with suppress(OSError):
-            temp.unlink(missing_ok=True)
+        unlink_quietly(temp)
     return read_watermark_image_info()
 
 
@@ -284,8 +283,7 @@ def validate_watermark_folder(
     image_position: str = DEFAULT_WATERMARK_IMAGE_POSITION,
     selected_paths: list[Path] | None = None,
 ) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if folder.name == WATERMARK_DIR_NAME:
         raise ValueError(
@@ -472,17 +470,11 @@ def watermark_video(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> None:
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
 
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-y",
         "-i",
         str(source),
@@ -536,11 +528,7 @@ def build_gif_watermark_command(
     """One shared palette drops colours that appear later; the flags keep per-frame delays."""
     return [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-y",
         "-i",
         str(source),
@@ -571,9 +559,7 @@ def watermark_gif(
     ffmpeg: str | None = None,
     should_cancel: ShouldCancel | None = None,
 ) -> None:
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
 
     command = build_gif_watermark_command(
         source,
@@ -645,8 +631,7 @@ def _watermark_file(
         final_path = output_dir / media_path.name
         publish_replacing(temp_path, final_path, _stale_path(final_path))
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
     return kind
 

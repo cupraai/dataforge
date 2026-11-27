@@ -10,7 +10,7 @@ from automation.job_runner import (
     run_caption_job,
     run_media_job,
 )
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from captions import (
     CAPTION_READ_ERROR,
     CaptionTarget,
@@ -92,8 +92,7 @@ def _select_backup_sidecars(folder: Path, selected_paths: list[Path] | None) -> 
 
 
 def validate_backup_captions_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     media_files = list_backup_captions_media(folder)
     if not media_files:
@@ -104,8 +103,7 @@ def validate_backup_captions_folder(folder: Path) -> None:
 
 
 def validate_restore_captions_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not has_caption_backup(folder):
         raise ValueError(f"No caption backup found in {CAPTION_BACKUP_DIR_NAME}")

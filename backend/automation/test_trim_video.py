@@ -98,7 +98,7 @@ class TrimJobTests(unittest.TestCase):
             media = write_mp4_video(root)
             write_edit_spec(media, VideoEditSpec(scale=0.5))
 
-            with patch("automation.trim_video.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_trim_video_job(root, max_seconds=3.0, keep="end", ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["success"], 1)
@@ -111,7 +111,7 @@ class TrimJobTests(unittest.TestCase):
             write_mp4_video(root)
             write_image(root, "still.png")
 
-            with patch("automation.trim_video.apply_video_edit"):
+            with patch("automation.edit_spec_job.apply_video_edit"):
                 result = run_trim_video_job(root, max_seconds=3.0, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["total"], 1)
@@ -120,7 +120,7 @@ class TrimJobTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_mp4_video(root)
 
-            with patch("automation.trim_video.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_trim_video_job(root, max_seconds=20.0, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["unchanged"], 1)
@@ -150,7 +150,8 @@ class TrimJobTests(unittest.TestCase):
             media = write_mp4_video(root)
 
             with patch(
-                "automation.trim_video.apply_video_edit", side_effect=RuntimeError("ffmpeg failed")
+                "automation.edit_spec_job.apply_video_edit",
+                side_effect=RuntimeError("ffmpeg failed"),
             ):
                 result = run_trim_video_job(root, max_seconds=3.0, ffmpeg="ffmpeg")
 
@@ -162,7 +163,7 @@ class TrimJobTests(unittest.TestCase):
             write_mp4_video(root, "first.mp4")
             write_mp4_video(root, "second.mp4")
 
-            with patch("automation.trim_video.apply_video_edit", side_effect=FfmpegCancelled):
+            with patch("automation.edit_spec_job.apply_video_edit", side_effect=FfmpegCancelled):
                 result = run_trim_video_job(root, max_seconds=3.0, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["cancelled"], 2)
@@ -173,7 +174,7 @@ class TrimJobTests(unittest.TestCase):
             write_edit_backup(media)
             write_edit_spec(media, VideoEditSpec(trim_start=1.0, trim_end=4.0, scale=0.5))
 
-            with patch("automation.trim_video.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_trim_video_job(root, max_seconds=3.0, reset_trim=True, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["success"], 1)
@@ -189,7 +190,7 @@ class TrimJobTests(unittest.TestCase):
             media.write_bytes(b"rendered")
             write_edit_spec(media, VideoEditSpec(trim_end=4.0))
 
-            with patch("automation.trim_video.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_trim_video_job(root, max_seconds=3.0, reset_trim=True, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["success"], 1)

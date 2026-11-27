@@ -176,7 +176,7 @@ export function AppContent() {
             onEditInstructions={gallery.openSysPrompt}
             onNavigate={navigateTo}
             onCreateFolder={createFolder.openDialog}
-            onOpenSettings={settings.openSettings}
+            onOpenSettings={settings.show}
             onOpenVideoEditor={() => folder && openEditor({ kind: "new", path: folder.path })}
             videoEditorDisabled={!folder || folderNotFound}
             createDisabled={!folder || folderNotFound || createFolder.busy}
@@ -211,8 +211,8 @@ export function AppContent() {
                 mediaTypeFilterCounts: query.mediaTypeFilterCounts,
                 fileFilter: query.fileFilter,
                 fileFilterCounts: query.fileFilterCounts,
-                statsOpen: statsDialog.statsOpen,
-                onToggleStats: statsDialog.toggleStats,
+                statsOpen: statsDialog.open,
+                onToggleStats: statsDialog.toggle,
                 onSearchQueryChange: query.setSearchQuery,
                 onSearchRegexChange: query.setSearchRegex,
                 onSearchNamesChange: query.setSearchNames,
@@ -269,18 +269,7 @@ export function AppContent() {
                     onClearFilters={query.resetFilters}
                   />
                 }
-                fileDrop={{
-                  enabled: Boolean(folder) && !folderNotFound && !loading,
-                  active: fileDrop.isDragActive,
-                  folderLabel:
-                    folder?.breadcrumbs[folder.breadcrumbs.length - 1]?.name ??
-                    folder?.path ??
-                    "this folder",
-                  onDragEnter: fileDrop.onDragEnter,
-                  onDragOver: fileDrop.onDragOver,
-                  onDragLeave: fileDrop.onDragLeave,
-                  onDrop: fileDrop.onDrop,
-                }}
+                fileDrop={fileDrop.dropZone}
               />
             </div>
           </main>
@@ -297,26 +286,9 @@ export function AppContent() {
               settleAllCandidates={settleAllCandidates.overlay}
               onCaptionSaved={gallery.onCaptionSaved}
               gallery={{
-                selectedPath: gallery.selectedPath,
-                selectedIndex: gallery.selectedIndex,
-                dialogItems: gallery.dialogItems,
-                openIntent: gallery.openIntent,
-                searchQuery: query.highlightQuery,
-                searchRegex: query.searchRegex,
+                ...gallery.itemDialog,
                 hasCaptionBackup: folder?.has_caption_backup ?? false,
-                focusView: gallery.focusView,
-                onFocusViewChange: gallery.setFocusView,
-                onEditExpandedChange: gallery.setEditExpanded,
                 transitionRef,
-                onClose: gallery.closeGalleryItem,
-                onPrevious: gallery.goToPrevious,
-                onNext: gallery.goToNext,
-                onGoTo: gallery.goToIndex,
-                onDeleted: gallery.onGalleryItemDeleted,
-                onRenamed: gallery.onGalleryItemRenamed,
-                onMoved: onGalleryItemsMoved,
-                onCopied: onGalleryItemsCopied,
-                onResolveIssue: gallery.onResolveGalleryItemIssue,
                 onReviewCandidate: candidateReview.reviewGalleryItemCandidate,
                 onResolveDuplicate: duplicateResolver.resolveGalleryItemDuplicate,
                 // The video editor, or a run opened from this file's workflow, covers the viewer.
@@ -324,25 +296,19 @@ export function AppContent() {
                 onGenerateFromWorkflow: automation.openEmbeddedGenerate,
               }}
               issueResolver={gallery.issueResolver.overlay}
-              instructions={{
-                open: gallery.instructionsOpen,
-                folderPath: folder?.path,
-                tab: gallery.instructionsTab,
-                onClose: gallery.closeInstructions,
-                onSaved: gallery.onInstructionsSaved,
-              }}
+              instructions={gallery.instructions}
               stats={{
-                open: statsDialog.statsOpen,
+                open: statsDialog.open,
                 items,
-                onClose: statsDialog.closeStats,
+                onClose: statsDialog.close,
                 onSearchWord: (word) => {
                   query.setSearchNames(false);
                   query.setSearchQuery(word);
-                  statsDialog.closeStats();
+                  statsDialog.close();
                 },
                 onFilterRange: (axis, range) => {
                   query.setRange(axis, range);
-                  statsDialog.closeStats();
+                  statsDialog.close();
                 },
               }}
               duplicateResolver={duplicateResolver.overlay}
@@ -350,18 +316,12 @@ export function AppContent() {
               jobStart={automation.jobStartConfirm}
               automation={automation.dialogs}
               workflows={automation.workflowOverlays}
-              fileImport={{
-                overwritePrompt: fileDrop.overwritePrompt,
-                busy: fileDrop.importing,
-                onReplaceExisting: fileDrop.confirmOverwrite,
-                onCopyNewOnly: fileDrop.importNewFilesOnly,
-                onCancel: fileDrop.dismissOverwritePrompt,
-              }}
+              fileImport={fileDrop.overlay}
               createFolder={createFolder.overlay}
               renameFolder={renameFolder.overlay}
               deleteFolder={deleteFolder.overlay}
-              settings={{ open: settings.open, onClose: settings.closeSettings }}
-              shortcuts={{ open: shortcuts.open, onClose: shortcuts.closeShortcuts }}
+              settings={settings}
+              shortcuts={shortcuts}
             />
           </VideoEditorContext>
           {editorRequest && (

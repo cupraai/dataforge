@@ -26,7 +26,7 @@ from constants import (
 )
 from duplicates import duplicate_file_path
 from edit_sidecars import backup_path_for, discard_edit_state
-from file_publish import publish_replacing, sweep_publish_leftovers
+from file_publish import publish_replacing, sweep_publish_leftovers, unlink_quietly
 from file_trash import delete_path
 from file_write import write_text_atomic
 from folder_scan import get_media_type
@@ -244,8 +244,7 @@ def accept_candidate(
                 _discard_edit(media)
             publish_replacing(temp_path, target, stale_path_for(target))
         finally:
-            with suppress(OSError):
-                temp_path.unlink(missing_ok=True)
+            unlink_quietly(temp_path)
 
         if target != media:
             _migrate_finding_sidecars(media, target)

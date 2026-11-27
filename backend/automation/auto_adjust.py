@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.edit_spec_job import (
+    edit_job_files,
+    run_edit_spec_job,
+    save_image_spec,
+    save_video_spec,
+)
+from automation.job_runner import ProgressCallback
 from color_adjust import IDENTITY_EPSILON
 from color_auto import (
     NothingToAnalyseError,
@@ -12,39 +17,21 @@ from color_auto import (
     video_analysis_pixels,
     with_auto,
 )
-from constants import IMAGE_EDIT_EXTENSIONS, VIDEO_EDIT_EXTENSIONS
+from constants import VIDEO_EDIT_EXTENSIONS
 from edit_sidecars import original_path_for
 from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel
-from image_edit import apply_image_edit, read_image_edit_spec, revert_image_edit
-from image_edit import is_identity_spec as is_identity_image_spec
-from image_io import ImageReadError
+from ffmpeg_run import ShouldCancel
+from image_edit import read_image_edit_spec
 from schemas import ColorAdjust, ImageEditSpec, VideoEditSpec
-from video_edit import (
-    apply_video_edit,
-    is_identity_spec,
-    probe_source,
-    read_edit_spec,
-    revert_video_edit,
-)
-
-AUTO_ADJUST_EXTENSIONS = IMAGE_EDIT_EXTENSIONS | VIDEO_EDIT_EXTENSIONS
+from video_edit import probe_source, read_edit_spec
 
 
 class AlreadyAdjustedError(Exception):
     """Applying or resetting would leave the file as it is."""
 
 
-def list_auto_adjust_files(folder: Path) -> list[Path]:
-    return list_folder_media(folder, AUTO_ADJUST_EXTENSIONS, order="mtime")
-
-
 def validate_auto_adjust_folder(folder: Path, selected_paths: list[Path] | None = None) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
-
-    if not filter_media_list(list_auto_adjust_files(folder), selected_paths):
-        raise ValueError("No JPG, PNG, WebP, BMP, MP4, MOV or M4V files found in folder")
+    edit_job_files(folder, selected_paths)
 
 
 def _same_adjust(first: ColorAdjust, second: ColorAdjust) -> bool:
@@ -80,12 +67,7 @@ def auto_adjust_image(media: Path, *, replace: bool = False, reset: bool = False
     else:
         pixels, weights = image_analysis_pixels(original_path_for(media), spec.masks, spec.crop)
         adjusted = _auto_adjusted(spec, suggest_adjust(pixels, weights), replace=replace)
-
-    # Restore the original so the file no longer reads as edited.
-    if is_identity_image_spec(adjusted):
-        revert_image_edit(media)
-    else:
-        apply_image_edit(media, adjusted)
+    save_image_spec(media, adjusted)
 
 
 def auto_adjust_video(
@@ -112,11 +94,7 @@ def auto_adjust_video(
             duration=probe.seconds,
         )
         adjusted = _auto_adjusted(spec, suggest_adjust(pixels, weights), replace=replace)
-
-    if is_identity_spec(adjusted):
-        revert_video_edit(media)
-    else:
-        apply_video_edit(media, adjusted, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
+    save_video_spec(media, adjusted, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
 
 
 def auto_adjust_file(
@@ -148,62 +126,21 @@ def run_auto_adjust_job(
     replace_adjustments: bool = False,
     reset_adjustments: bool = False,
 ) -> dict[str, object]:
-    validate_auto_adjust_folder(folder, selected_paths)
-
-    media_files = filter_media_list(list_auto_adjust_files(folder), selected_paths)
+    media_files = edit_job_files(folder, selected_paths)
     resolved_ffmpeg = ffmpeg or ffmpeg_path()
-
-    def process(media_path: Path) -> FileOutcome:
-        try:
-            kind = auto_adjust_file(
-                media_path,
-                replace=replace_adjustments,
-                reset=reset_adjustments,
-                ffmpeg=resolved_ffmpeg,
-                should_cancel=should_cancel,
-            )
-            return FileOutcome(status="success", stats={"success": 1, f"{kind}_success": 1})
-        except AlreadyAdjustedError:
-            return FileOutcome.counted("unchanged")
-        except FfmpegCancelled:
-            return FileOutcome.cancelled()
-        except NothingToAnalyseError as exc:
-            return FileOutcome.counted("skipped", exc)
-        except (ImageReadError, ValueError) as exc:
-            return FileOutcome.counted("read_error", exc)
-        except RuntimeError as exc:
-            return FileOutcome.counted("ffmpeg_error", exc)
-        except OSError as exc:
-            return FileOutcome.counted("write_error", exc)
-
-    return run_media_job(
+    return run_edit_spec_job(
         folder,
         media_files,
-        stats={
-            "total": len(media_files),
-            "success": 0,
-            "image_success": 0,
-            "video_success": 0,
-            "unchanged": 0,
-            "skipped": 0,
-            "busy": 0,
-            "read_error": 0,
-            "write_error": 0,
-            "ffmpeg_error": 0,
-            "cancelled": 0,
-        },
-        process=process,
+        lambda media: auto_adjust_file(
+            media,
+            replace=replace_adjustments,
+            reset=reset_adjustments,
+            ffmpeg=resolved_ffmpeg,
+            should_cancel=should_cancel,
+        ),
+        unchanged=AlreadyAdjustedError,
+        skipped=NothingToAnalyseError,
+        by_kind=True,
         on_progress=on_progress,
         should_cancel=should_cancel,
-        claim_activity="render",
-        # Sub-stats of success, which must not be counted twice.
-        processed_stat_keys=(
-            "success",
-            "unchanged",
-            "skipped",
-            "busy",
-            "read_error",
-            "write_error",
-            "ffmpeg_error",
-        ),
     )

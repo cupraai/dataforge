@@ -48,19 +48,7 @@
   }
 
   &__tile-icon {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 1.375rem;
-    height: 1.375rem;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border-radius: var(--radius-sm);
-
-    svg {
-      @include icon-size(0.8125rem, $icon-stroke-sm);
-    }
+    @include device-icon-chip;
   }
 
   &__tile-label {
@@ -102,36 +90,7 @@
     font-size: var(--text-2xs);
   }
 
-  &__reading {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    @include tabular-nums;
-
-    &--warning {
-      color: var(--warning);
-    }
-
-    &--danger {
-      color: var(--danger);
-    }
-  }
-
-  &__reading-icon {
-    @include icon-size(0.75rem, $icon-stroke-sm);
-    color: var(--text-subtle);
-  }
-
-  &__sr-label {
-    @include visually-hidden;
-  }
-
-  &__total {
-    font-weight: var(--font-normal);
-    color: var(--text-subtle);
-  }
+  @include device-readings(0.75rem);
 
   // A fixed 0-100% scale: the line's height is the load, not its share of the minute's peak.
   &__spark {

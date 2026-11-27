@@ -9,7 +9,7 @@ import {
   iconVolume2,
 } from "@/shared/icons";
 import { percent, seconds } from "@/features/videoEditor/lib/sliderUnits";
-import { restingAdjust, type Clip, type Project } from "@/features/videoEditor/lib/timeline";
+import type { Clip, Project } from "@/features/videoEditor/lib/timeline";
 import { GradePresets } from "./GradePresets";
 import {
   HeaderAction,
@@ -22,6 +22,7 @@ import { TimecodeField } from "./TimecodeField";
 
 import { effectsEqual } from "@/shared/lib/audioEffects";
 import { SoundPanel } from "./SoundPanel";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 /** Returns the change for one clip, or null when the setting does not apply to it. */
 export type BatchEdit = (patch: (clip: Clip) => Partial<Clip> | null, final: boolean) => void;
@@ -240,7 +241,7 @@ export function MultiClipInspector({
                 onBatchEdit(
                   (clip) =>
                     clip.kind === "video" || clip.kind === "image"
-                      ? { adjust: restingAdjust(), auto_adjust: null }
+                      ? { adjust: { ...RESTING_ADJUST }, auto_adjust: null }
                       : null,
                   true,
                 )

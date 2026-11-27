@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { startAutomationJob, type JobStartBody } from "@/features/automation/api/jobs";
+import { startAutomationJob } from "@/features/automation/api/jobs";
+import type { JobStartBody } from "@/shared/api/jobStartBodies";
 import { runWorkflow as runWorkflowRequest } from "@/features/workflows/api/workflows";
 import { cancelJob, deleteJob, fetchJobs, fetchLatestFolderJob } from "@/features/jobs/api/jobs";
 import { stopOstrisJob } from "@/features/jobs/api/externalJobs";

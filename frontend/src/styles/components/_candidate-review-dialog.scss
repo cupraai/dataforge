@@ -19,29 +19,10 @@
     overflow: hidden;
   }
 
-  &__header {
-    @include dialog-chrome-header;
-  }
+  @include dialog-paging-header;
 
   &__header-text {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    min-width: 0;
     flex: 1;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: var(--text-md);
-    font-weight: var(--font-semibold);
-    line-height: var(--leading-snug);
-    @include truncate;
-  }
-
-  &__counter {
-    @include count-pill-muted;
-    flex-shrink: 0;
   }
 
   &__body {

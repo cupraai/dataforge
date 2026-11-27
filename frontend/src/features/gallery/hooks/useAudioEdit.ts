@@ -27,9 +27,7 @@ import { useVideoPreviewPlayback } from "@/features/gallery/hooks/useVideoPrevie
 import { formatFrameTime, hasUsableDuration } from "@/features/gallery/lib/videoFrameCapture";
 import { VIDEO_PROJECT_LOUDNESS_TARGET_LUFS } from "@/shared/constants";
 import { formatApiError, isAbortError } from "@/shared/api/http";
-import { useServerEvent } from "@/shared/events/serverEvents";
-import { useNotify } from "@/shared/notifications/notifications";
-import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
+import { useEditRun } from "@/features/gallery/hooks/useEditRun";
 import { createEffectsChain, type EffectsChain } from "@/shared/lib/audioEffects";
 import type { AudioEditSpec, AudioEffects, AudioLevel, GalleryItem } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
@@ -114,19 +112,13 @@ function proxyKey(draft: AudioEditDraft): string | null {
 }
 
 export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
-  const notify = useNotify();
   const { item, audioRef, editMode, setEditMode } = options;
   const optionsRef = useLatestRef(options);
   const path = item?.path;
 
-  const mountedRef = useRef(true);
-  const applyingRef = useRef(false);
   const [duration, setDuration] = useState(Number.NaN);
   const [draft, setDraft] = useState<AudioEditDraft>(() => emptyAudioDraft(Number.NaN));
   const [savedSpec, setSavedSpec] = useState<AudioEditSpec | null>(null);
-  const [hasBackup, setHasBackup] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
   // The saved spec has been read for this path; editing before then would apply a draft missing it.
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [proxy, setProxy] = useState<ReadyProxy | null>(null);
@@ -141,7 +133,22 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
   const graphRef = useRef<PreviewGraph | null>(null);
 
   const ready = hasUsableDuration(duration) && loadedPath === path;
-  const readyRef = useLatestRef(ready);
+  const pause = useCallback(() => audioRef.current?.pause(), [audioRef]);
+  const {
+    applying,
+    progress,
+    hasBackup,
+    setHasBackup,
+    applyingRef,
+    mountedRef,
+    run: runEdit,
+  } = useEditRun({
+    item,
+    onEdited: options.onEdited,
+    ready,
+    progressEvent: "audio_edit",
+    beforeRun: pause,
+  });
 
   const getRange = useCallback(
     () => ({ start: draftRef.current.trimStart, end: draftRef.current.trimEnd }),
@@ -158,9 +165,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
   const { playing, playheadTime, playheadRef, seekTo } = playback;
 
   useEffect(() => {
-    mountedRef.current = true;
     return () => {
-      mountedRef.current = false;
       void graphRef.current?.context.close().catch(() => undefined);
       graphRef.current = null;
     };
@@ -177,18 +182,6 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     setPreviewError(null);
     setLoudness(null);
   }
-  const listedBackupChanged = useChanged(item?.has_backup);
-  if (pathChanged || listedBackupChanged) setHasBackup(item?.has_backup ?? false);
-
-  useServerEvent((event) => {
-    if (event.type !== "audio_edit") return;
-    if (event.path !== optionsRef.current.item?.path) return;
-    setProgress(
-      event.duration && event.duration > 0
-        ? Math.min(1, Math.max(0, event.seconds / event.duration))
-        : null,
-    );
-  });
 
   const seedDraft = useCallback(
     (spec: AudioEditSpec | null, forDuration: number) => {
@@ -221,7 +214,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
       }
       if (mountedRef.current && optionsRef.current.item?.path === forPath) setLoadedPath(forPath);
     })();
-  }, [audioPath, editMode, optionsRef]);
+  }, [audioPath, editMode, mountedRef, optionsRef, setHasBackup]);
 
   // Seeded once spec and length are both in; reset while unloaded so a return reseeds.
   const seededForRef = useRef<string | null>(null);
@@ -272,7 +265,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [draftRef, editMode, path, proxy?.key, wantedProxy]);
+  }, [draftRef, editMode, mountedRef, path, proxy?.key, wantedProxy]);
 
   const sourceUrl = !path
     ? null
@@ -318,7 +311,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [loudness?.key, measuredKey, path]);
+  }, [loudness?.key, measuredKey, mountedRef, path]);
 
   const normalizeGain =
     measuredKey !== null && loudness?.key === measuredKey && loudness.lufs !== null
@@ -492,52 +485,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     }
     audioRef.current?.pause();
     setEditMode(true);
-  }, [audioRef, editMode, exitEditMode, setEditMode]);
-
-  const runEdit = useCallback(
-    (
-      request: (path: string) => Promise<{ has_backup: boolean; replaced_externally: boolean }>,
-      describe: (name: string) => string,
-      settle: () => void,
-    ) => {
-      if (applyingRef.current || !readyRef.current) return;
-      const currentItem = optionsRef.current.item;
-      if (!currentItem) return;
-      // Snapshotted so an item swap mid-render cannot retarget the write.
-      const mediaPath = currentItem.path;
-      const name = currentItem.name;
-
-      audioRef.current?.pause();
-      applyingRef.current = true;
-      setApplying(true);
-      setProgress(null);
-
-      void (async () => {
-        try {
-          const result = await request(mediaPath);
-          if (mountedRef.current) setHasBackup(result.has_backup);
-          notify({ variant: "success", message: describe(name) });
-          if (result.replaced_externally) {
-            notify({ variant: "warning", message: replacedExternallyMessage(name) });
-          }
-          await optionsRef.current.onEdited?.();
-          if (mountedRef.current) settle();
-        } catch (error) {
-          notify({
-            variant: "danger",
-            message: `Could not edit ${name}: ${formatApiError(error)}`,
-          });
-        } finally {
-          applyingRef.current = false;
-          if (mountedRef.current) {
-            setApplying(false);
-            setProgress(null);
-          }
-        }
-      })();
-    },
-    [audioRef, notify, optionsRef, readyRef],
-  );
+  }, [applyingRef, audioRef, editMode, exitEditMode, setEditMode]);
 
   const revert = useCallback(() => {
     runEdit(
@@ -571,7 +519,7 @@ export function useAudioEdit(options: UseAudioEditOptions): AudioEdit {
     const currentItem = optionsRef.current.item;
     if (!currentItem || !applyingRef.current) return;
     void cancelAudioEdit(currentItem.path);
-  }, [optionsRef]);
+  }, [applyingRef, optionsRef]);
 
   const dirty =
     ready &&

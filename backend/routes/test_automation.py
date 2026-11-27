@@ -16,6 +16,7 @@ from PIL import Image
 
 from automation.backup_captions import run_backup_captions_job
 from automation.jobs import JOB_SPECS, job_manager
+from automation.served_model import ServedModel
 from automation.watermark import watermark_image_path
 from automation_settings import AUTOMATION_SETTINGS_KEY_PREFIX, JOB_SETTINGS_MODELS
 from comfy_settings import get_comfy_workflows_dir
@@ -509,6 +510,8 @@ class EditCaptionsPreviewEndpointTests(unittest.TestCase):
             with (
                 patch("automation.edit_captions.edit_caption", return_value=edited) as model,
                 patch.object(job_manager, "queue_job") as queue,
+                # A model server left running on this machine would answer otherwise.
+                patch("automation.served_model.read_served_model", return_value=ServedModel()),
             ):
                 response = _post(
                     "edit-captions/preview",
@@ -527,9 +530,10 @@ class EditCaptionsPreviewEndpointTests(unittest.TestCase):
             self.assertTrue(all(sample["before"] == original for sample in samples))
             self.assertTrue(all(sample["after"] == edited for sample in samples))
             self.assertEqual(model.call_count, 3)
-            self.assertEqual(model.call_args.kwargs["mode"], "thinking")
-            self.assertEqual(model.call_args.kwargs["effort"], "low")
-            self.assertFalse(model.call_args.kwargs["preserve_thinking"])
+            settings = model.call_args.kwargs["settings"]
+            self.assertEqual(settings.mode, "thinking")
+            self.assertEqual(settings.effort, "low")
+            self.assertFalse(settings.preserve_thinking)
             self.assertIn("# Edit to apply\nRewrite in present tense.", model.call_args.args[1])
             queue.assert_not_called()
             self.assertEqual(_stored_settings(root), preferences)

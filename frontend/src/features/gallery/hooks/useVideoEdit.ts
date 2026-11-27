@@ -6,12 +6,7 @@ import {
   fetchVideoEditState,
   revertVideoEdit,
 } from "@/features/gallery/api/videoEdit";
-import {
-  aspectIdForCrop,
-  cropForAspect,
-  cropAspectRatio,
-  type CropRect,
-} from "@/features/gallery/lib/crop";
+import { aspectIdForCrop, cropAspectRatio, type CropRect } from "@/features/gallery/lib/crop";
 import {
   draftForDuration,
   draftFromSpec,
@@ -28,18 +23,11 @@ import {
 } from "@/features/gallery/lib/videoEdit";
 import { frameDurationFor, frameIndexAt } from "@/features/gallery/lib/frameGrid";
 import { useVideoPreviewPlayback } from "@/features/gallery/hooks/useVideoPreviewPlayback";
-import {
-  useColorAdjust,
-  type AdjustDraft,
-  type ColorAdjustControls,
-} from "@/features/gallery/hooks/useColorAdjust";
+import { useColorAdjust, type ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { useMaskRegions, type MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
-import type { MaskDraft } from "@/features/gallery/lib/mask";
 import { hasUsableDuration, formatFrameTime } from "@/features/gallery/lib/videoFrameCapture";
-import { formatApiError } from "@/shared/api/http";
-import { useServerEvent } from "@/shared/events/serverEvents";
-import { useNotify } from "@/shared/notifications/notifications";
-import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
+import { useEditRun } from "@/features/gallery/hooks/useEditRun";
+import { useEditDraftSetters } from "@/features/gallery/hooks/useEditDraftSetters";
 import type { GalleryItem, StyleEffect, VideoEditSpec, VideoFrameRate } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
@@ -113,14 +101,9 @@ export interface VideoEdit extends MaskRegionControls {
 }
 
 export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
-  const notify = useNotify();
   const { item, videoRef, standbyVideoRef, editMode, setEditMode } = options;
 
-  // Ref so callbacks stay dependency-free; an apply outliving a swap keeps its starting values.
   const optionsRef = useLatestRef(options);
-
-  const mountedRef = useRef(true);
-  const applyingRef = useRef(false);
 
   const [duration, setDuration] = useState(Number.NaN);
   // Probed server-side: no browser API reports it, and the trim grid is built on it.
@@ -130,10 +113,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   const [draft, setDraft] = useState<VideoEditDraft>(() => emptyDraft(Number.NaN));
   // Spec (no duration) so it survives the gap between an item swap and the new element reporting one.
   const [savedSpec, setSavedSpec] = useState<VideoEditSpec | null>(null);
-  const [hasBackup, setHasBackup] = useState(false);
   const [aspectId, setAspectId] = useState("free");
-  const [applying, setApplying] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
   const [cropActive, setCropActive] = useState(false);
   // Shared with the viewer's controls; remounts pick it up from the muted effect and
   // handleLoadedMetadata.
@@ -148,9 +128,8 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   const savedSpecRef = useLatestRef(savedSpec);
   const sourceRef = useLatestRef({ width: sourceWidth, height: sourceHeight });
 
-  const setMasks = useCallback((update: (current: MaskDraft[]) => MaskDraft[]) => {
-    setDraft((current) => ({ ...current, masks: update(current.masks) }));
-  }, []);
+  const { setMasks, setCrop, selectAspect, setEffect, setScale, updateAdjust } =
+    useEditDraftSetters({ setDraft, sourceRef, setAspectId, setCropActive });
 
   const {
     clearSelection: clearMaskSelection,
@@ -163,7 +142,15 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const ready =
     hasUsableDuration(duration) && sourceWidth > 0 && sourceHeight > 0 && loadedPath === path;
-  const readyRef = useLatestRef(ready);
+  const {
+    applying,
+    progress,
+    hasBackup,
+    setHasBackup,
+    applyingRef,
+    mountedRef,
+    run: runEdit,
+  } = useEditRun({ item, onEdited: options.onEdited, ready, progressEvent: "video_edit" });
 
   // Read per frame rather than captured, so a handle dragged mid-playback lands on the next lap.
   const getRange = useCallback(
@@ -182,13 +169,6 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
       getRange,
     });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
   // Keyed to the video remount; has_backup, applying and cropActive would race.
   const editModeChanged = useChanged(editMode);
   const pathChanged = useChanged(path);
@@ -206,22 +186,6 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
   useEffect(() => {
     seededPathRef.current = null;
   }, [editMode, path]);
-
-  // Separate so a listing that learns about a backup does not reset the editor.
-  const itemPathChanged = useChanged(item?.path);
-  const listedBackupChanged = useChanged(item?.has_backup);
-  if (itemPathChanged || listedBackupChanged) setHasBackup(item?.has_backup ?? false);
-
-  useServerEvent((event) => {
-    if (event.type !== "video_edit") return;
-    if (!optionsRef.current.item || event.path !== optionsRef.current.item.path) return;
-
-    setProgress(
-      event.duration && event.duration > 0
-        ? Math.min(1, Math.max(0, event.seconds / event.duration))
-        : null,
-    );
-  });
 
   // Metadata only; the fetch below seeds the draft once this has a duration.
   const handleLoadedMetadata = useCallback(
@@ -290,7 +254,17 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
       }
       if (mountedRef.current && optionsRef.current.item?.path === forPath) setLoadedPath(forPath);
     })();
-  }, [duration, durationRef, editMode, frameSecondsRef, optionsRef, path, seedDraft]);
+  }, [
+    duration,
+    durationRef,
+    editMode,
+    frameSecondsRef,
+    mountedRef,
+    optionsRef,
+    path,
+    seedDraft,
+    setHasBackup,
+  ]);
 
   // Preview plays every source frame at the chosen rate; setpts drops frames instead.
   useEffect(() => {
@@ -356,28 +330,6 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     [draftRef, durationRef, frameSecondsRef, seekTo],
   );
 
-  const setCrop = useCallback((crop: CropRect) => {
-    setDraft((current) => ({ ...current, crop }));
-  }, []);
-
-  // Owned here so it resets with the item and restores with a stored spec.
-  const selectAspect = useCallback(
-    (nextAspectId: string) => {
-      setAspectId(nextAspectId);
-
-      // Free only releases the lock; keep the rectangle the user already shaped.
-      const ratio = cropAspectRatio(nextAspectId, sourceRef.current);
-      if (ratio === null) return;
-
-      setCropActive(true);
-      // Frame fractions, so the source's own aspect divides out first.
-      const frame = sourceRef.current.width / sourceRef.current.height;
-      if (!Number.isFinite(frame) || frame <= 0) return;
-      setDraft((current) => ({ ...current, crop: cropForAspect(ratio / frame) }));
-    },
-    [sourceRef],
-  );
-
   const setSpeed = useCallback((speed: number) => {
     setDraft((current) => ({ ...current, speed }));
   }, []);
@@ -386,23 +338,8 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     setDraft((current) => ({ ...current, frameRate }));
   }, []);
 
-  const setEffect = useCallback((effect: StyleEffect | null) => {
-    setDraft((current) => ({ ...current, effect }));
-  }, []);
-
-  const setScale = useCallback((scale: number) => {
-    setDraft((current) => ({ ...current, scale, fit: null }));
-  }, []);
-
   const setVolume = useCallback((volume: number) => {
     setDraft((current) => ({ ...current, volume }));
-  }, []);
-
-  const updateAdjust = useCallback((change: (current: AdjustDraft) => AdjustDraft) => {
-    setDraft((current) => ({
-      ...current,
-      ...change({ adjust: current.adjust, autoAdjust: current.autoAdjust }),
-    }));
   }, []);
 
   const requestSuggestion = useCallback(
@@ -450,58 +387,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
       return;
     }
     enterEditMode();
-  }, [editMode, enterEditMode, exitEditMode]);
-
-  const runEdit = useCallback(
-    (
-      request: (
-        path: string,
-      ) => Promise<{ has_backup: boolean; replaced_externally: boolean; width?: number | null }>,
-      describe: (path: string) => string,
-      settle: () => void,
-    ) => {
-      // Refs guard a double click and a shortcut before the spec has seeded.
-      if (applyingRef.current || !readyRef.current) return;
-
-      const { item: currentItem, onEdited } = optionsRef.current;
-      if (!currentItem) return;
-
-      // Snapshotted so an item swap mid-render cannot retarget the write.
-      const mediaPath = currentItem.path;
-      const name = currentItem.name;
-
-      applyingRef.current = true;
-      setApplying(true);
-      setProgress(null);
-
-      void (async () => {
-        try {
-          const result = await request(mediaPath);
-          if (mountedRef.current) setHasBackup(result.has_backup);
-          notify({ variant: "success", message: describe(name) });
-          if (result.replaced_externally) {
-            notify({ variant: "warning", message: replacedExternallyMessage(name) });
-          }
-          await onEdited?.();
-          // settle records what is now on disk so Apply stays quiet until the next change.
-          if (mountedRef.current) settle();
-        } catch (error) {
-          // Unguarded by mountedRef: the store outlives this dialog, so a finish after close reports.
-          notify({
-            variant: "danger",
-            message: `Could not edit ${name}: ${formatApiError(error)}`,
-          });
-        } finally {
-          applyingRef.current = false;
-          if (mountedRef.current) {
-            setApplying(false);
-            setProgress(null);
-          }
-        }
-      })();
-    },
-    [notify, optionsRef, readyRef],
-  );
+  }, [applyingRef, editMode, enterEditMode, exitEditMode]);
 
   const revert = useCallback(() => {
     cancelAuto();
@@ -540,7 +426,7 @@ export function useVideoEdit(options: UseVideoEditOptions): VideoEdit {
     const currentItem = optionsRef.current.item;
     if (!currentItem || !applyingRef.current) return;
     void cancelVideoEdit(currentItem.path);
-  }, [optionsRef]);
+  }, [applyingRef, optionsRef]);
 
   // Dirty vs disk, not an untouched source: an identity draft after a write means Revert.
   const dirty =

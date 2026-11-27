@@ -10,6 +10,20 @@ $timeline-origin: 12px;
 $ruler-height: 1.75rem;
 $clip-head-height: 1.0625rem;
 $lane-inset: 4px;
+// A thin X across a transition mark, as the crossfade and dissolve draw it.
+$transition-cross:
+  linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  ),
+  linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.75px),
+    var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
 
 /// A well behind a group of controls, so the group reads as one thing.
 @mixin editor-well {
@@ -2637,19 +2651,7 @@ $lane-inset: 4px;
     bottom: $lane-inset;
     z-index: 2;
     border-radius: var(--radius-xs);
-    background:
-      linear-gradient(
-        to top right,
-        transparent calc(50% - 0.75px),
-        var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
-        transparent calc(50% + 0.75px)
-      ),
-      linear-gradient(
-        to bottom right,
-        transparent calc(50% - 0.75px),
-        var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
-        transparent calc(50% + 0.75px)
-      );
+    background: $transition-cross;
     pointer-events: none;
   }
 
@@ -2661,20 +2663,7 @@ $lane-inset: 4px;
     padding: 0;
     border: 1px solid var(--media-outline);
     border-radius: var(--radius-xs);
-    background:
-      linear-gradient(
-        to top right,
-        transparent calc(50% - 0.75px),
-        var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
-        transparent calc(50% + 0.75px)
-      ),
-      linear-gradient(
-        to bottom right,
-        transparent calc(50% - 0.75px),
-        var(--media-outline) calc(50% - 0.75px) calc(50% + 0.75px),
-        transparent calc(50% + 0.75px)
-      ),
-      var(--media-scrim);
+    background: $transition-cross, var(--media-scrim);
     cursor: pointer;
 
     &--selected {

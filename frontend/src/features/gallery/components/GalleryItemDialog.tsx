@@ -14,29 +14,24 @@ import {
 import type { WorkspaceAction, WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
 import type { EmbeddedGenerateWorkflow } from "@/features/automation/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
-import { readStored, writeStored } from "@/shared/lib/storage";
 import { InspectorPanel } from "@/shared/ui/InspectorPanel";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { useDiscardChanges } from "@/shared/hooks/useDiscardChanges";
 import { useDialogNavigationDraft } from "@/shared/hooks/useDialogNavigationDraft";
 import { DialogSuspendedContext } from "@/shared/ui/dialogSuspendedContext";
 import { CAPTION_SIDECAR_EXTENSION_LIST } from "@/shared/lib/captionSidecar";
-import { isEditableTarget } from "@/shared/lib/isEditableTarget";
-import { matchesShortcut, queueIndexAfter, queueStepFor, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { getGalleryItemCaptionDisplay } from "@/features/gallery/lib/captionStatus";
-import { deleteMedia, openMediaInViewer, renameMedia } from "@/features/gallery/api/media";
 import {
   galleryItemMediaUrl,
   galleryItemWaveformUrl,
   mediaCacheKey,
 } from "@/features/gallery/lib/thumbnail";
-import { formatApiError } from "@/shared/api/http";
 import { useComfyWorkflowFlag } from "@/features/gallery/hooks/useComfyWorkflowFlag";
-import { useCopyFeedback } from "@/shared/hooks/useCopyFeedback";
 import { useCaptionBackup } from "@/features/gallery/hooks/useCaptionBackup";
 import { useGalleryItemCaption } from "@/features/gallery/hooks/useGalleryItemCaption";
-import { useDeleteLeftoversNotice } from "@/features/gallery/hooks/useDeleteLeftoversNotice";
-import { useDeleteUndoNotice } from "@/features/gallery/hooks/useDeleteUndoNotice";
+import { useGalleryItemFileActions } from "@/features/gallery/hooks/useGalleryItemFileActions";
+import { useGalleryItemKeys } from "@/features/gallery/hooks/useGalleryItemKeys";
+import { useInspectorWidth } from "@/features/gallery/hooks/useInspectorWidth";
+import { useSaveBeforeLeave } from "@/features/gallery/hooks/useSaveBeforeLeave";
 import { useGifFrameCapture } from "@/features/gallery/hooks/useGifFrameCapture";
 import { useGifFrameCount } from "@/features/gallery/hooks/useGifFrameCount";
 import { useGifToMp4 } from "@/features/gallery/hooks/useGifToMp4";
@@ -48,21 +43,15 @@ import { useAudioEdit } from "@/features/gallery/hooks/useAudioEdit";
 import { audioOriginalWaveformUrl } from "@/features/gallery/api/audioEdit";
 import { useVideoFrameCapture } from "@/features/gallery/hooks/useVideoFrameCapture";
 import { useEscapeKey } from "@/shared/hooks/useEscapeKey";
-import { getScrollLockDepth } from "@/shared/hooks/scrollLockManager";
-import { useNotify } from "@/shared/notifications/notifications";
 import {
-  iconArchiveRestore,
   iconArrowUpRight,
   iconCamera,
   iconChevronLeft,
   iconChevronRight,
   iconClapperboard,
-  iconCopy,
   iconCopyPlus,
-  iconFileDiff,
   iconFiles,
   iconFolderInput,
-  iconMessageWarning,
   iconScanSquare,
   iconSquarePen,
   iconTrash2,
@@ -73,7 +62,6 @@ import {
   iconPencilLine,
 } from "@/shared/icons";
 import { isResolvableIssueItem } from "@/features/gallery/lib/issues";
-import { isUncaptionedItem, nextIndexWhere } from "@/features/gallery/lib/reviewJump";
 import { isCandidateItem } from "@/features/gallery/lib/candidateReview";
 import { isDuplicateItem } from "@/features/gallery/lib/duplicates";
 import {
@@ -86,7 +74,6 @@ import {
   isMotion,
   isVideo,
   isVideoProjectVideo,
-  mediaLabelFor,
 } from "@/features/gallery/lib/itemKind";
 import type { AdjustedPicture } from "@/features/gallery/lib/adjustedPicture";
 import type { FrameCapture } from "@/features/gallery/lib/frameCapture";
@@ -105,16 +92,13 @@ import type { CaptionSaveResponse, GalleryItem } from "@/shared/types";
 import { GIF_MP4_FRAME_RATE } from "@/shared/constants";
 import { classNames } from "@/shared/lib/classNames";
 import { buildCaptionVocabulary } from "@/features/gallery/lib/captionVocabulary";
-import { CaptionEditor } from "@/shared/ui/CaptionEditor";
-import { CaptionWordDiff } from "@/shared/ui/CaptionWordDiff";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { FileImportOverwriteDialog } from "@/features/folder/components/FileImportOverwriteDialog";
-import { CaptionSaveStatus } from "./CaptionSaveStatus";
+import { GalleryItemCaption } from "./GalleryItemCaption";
 import { FileRenameDialog } from "./FileRenameDialog";
 import { MediaInfoBar } from "./MediaInfoBar";
 import { ModelInfoStage, ModelMetadataList } from "./ModelInfoPanel";
 import { MediaTagList } from "./MediaTagList";
-import { TokenEstimate } from "@/shared/ui/TokenEstimate";
 import { Tooltip } from "@/shared/ui/Tooltip";
 import { ComfyWorkflowDialog } from "./ComfyWorkflowDialog";
 import { TransferMediaDialog } from "./TransferMediaDialog";
@@ -130,7 +114,7 @@ import { AudioEditPanel } from "./AudioEditPanel";
 import { ZoomableImage } from "./ZoomableImage";
 import { useStagePaging } from "@/features/gallery/hooks/useStagePaging";
 import { AudioWaveform } from "./AudioWaveform";
-import { transcodeVideo, videoOriginalUrl } from "@/features/gallery/api/videoEdit";
+import { videoOriginalUrl } from "@/features/gallery/api/videoEdit";
 import { useMediaPlaybackProblem } from "@/shared/hooks/useMediaPlaybackProblem";
 import { canTranscodeAway } from "@/shared/lib/mediaProblems";
 import { MediaProblemNotice } from "@/shared/ui/MediaProblemNotice";
@@ -142,18 +126,6 @@ import { useUiSettings } from "@/shared/preferences/uiPreferences";
 import { trashName } from "@/shared/lib/platform";
 
 const noop = () => {};
-
-type ReviewJump = "uncaptioned" | "issue";
-
-const REVIEW_JUMPS: Record<ReviewJump, { matches: (item: GalleryItem) => boolean; none: string }> =
-  {
-    uncaptioned: { matches: isUncaptionedItem, none: "No other uncaptioned files." },
-    issue: { matches: isResolvableIssueItem, none: "No other files with an issue." },
-  };
-
-// Widgets outside the inspector that use arrow keys themselves.
-const OUTSIDE_ARROW_OWNERS =
-  '[role="menu"], [role="listbox"], [role="slider"], [role="separator"], [role="tablist"], select';
 
 interface GalleryItemDialogProps {
   items: GalleryItem[];
@@ -189,6 +161,7 @@ interface GalleryItemDialogProps {
   /** Editing or capture expanded a docked view: the gallery is covered, its layout unsaved. */
   onEditExpandedChange?: (expanded: boolean) => void;
   transitionRef?: RefObject<WorkspaceTransition | null>;
+  /** Another dialog covers the viewer; its keys and focus trap must stay off meanwhile. */
   suspended?: boolean;
 }
 
@@ -229,27 +202,24 @@ export function GalleryItemDialog({
   const item = items[index];
   const { recordResolution, getResolution } = useMediaResolution();
   const hasComfyWorkflow = useComfyWorkflowFlag(item?.path);
-  const notify = useNotify();
 
+  const captionEditor = useGalleryItemCaption({ item, onCaptionSaved });
   const {
     caption,
-    saveState,
-    saveError,
-    handleCaptionChange,
-    retrySave,
     flushPendingSave,
     discardCaptionChanges,
     hasUnsavedChanges: captionDirty,
-    saving: captionSaving,
-    conflict: captionConflict,
-    reloadCaption,
-    overwriteCaption,
-    readError: captionReadError,
-    captionLocked,
-    replaceUnreadableCaption,
-  } = useGalleryItemCaption({ item, onCaptionSaved });
-  const notifyDeleteLeftovers = useDeleteLeftoversNotice();
-  const notifyDeleteUndo = useDeleteUndoNotice();
+  } = captionEditor;
+  const saveLeave = useSaveBeforeLeave({
+    unsavedChanges: captionDirty,
+    flushPendingSave,
+    retrySave: captionEditor.retrySave,
+    overwriteCaption: captionEditor.overwriteCaption,
+    conflict: captionEditor.conflict,
+    saving: captionEditor.saving,
+    discardCaptionChanges,
+  });
+  const { leaving, flushAndLeave: saveAndLeave } = saveLeave;
   const itemIsModel = item ? isModel(item) : false;
   const { taggingEnabled } = useUiSettings();
   const { backup: backupCaption, pending: backupPending } = useCaptionBackup(
@@ -258,35 +228,19 @@ export function GalleryItemDialog({
   );
   const captionCompletions = useMemo(() => buildCaptionVocabulary(items), [items]);
 
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [renaming, setRenaming] = useState(false);
-  const [renameError, setRenameError] = useState<string | null>(null);
-  const [openingInViewer, setOpeningInViewer] = useState(false);
   // Survives paging, so a review can step through the files without reopening it each time.
   const [comparingBackup, setComparingBackup] = useState(false);
-  const comparedBackup = comparingBackup ? backupCaption : null;
   // A loading backup keeps the comparison up rather than flashing the editor in between.
   const showingBackupDiff = comparingBackup && (backupCaption !== null || backupPending);
-  const [viewerError, setViewerError] = useState<string | null>(null);
   // Owned here so next/prev keeps capture across videos and GIFs; per-hook flags dropped it.
   const [frameMode, setFrameMode] = useState(openIntent?.mode === "frame");
   // Exclusive with frameMode: one `<video>` cannot serve a scrubber and a timeline.
   const [editMode, setEditMode] = useState(openIntent?.mode === "edit");
   const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
   const [comfyWorkflowOpen, setComfyWorkflowOpen] = useState(false);
-  const [inspectorWidth, setInspectorWidth] = useState(() => {
-    const width = Number(readStored("workspace-inspector-width"));
-    return width >= 320 && width <= 520 ? width : 380;
-  });
   const narrow = useMediaQuery("(max-width: 999px)");
-  const [leaving, setLeaving] = useState(false);
-  const leavingRef = useRef(false);
-  const pendingActionRef = useRef<WorkspaceAction | null>(null);
-  const [leaveFailed, setLeaveFailed] = useState(false);
-
   const dialogRef = useRef<HTMLDivElement>(null);
+  const inspector = useInspectorWidth(dialogRef);
 
   const transferPaths = useMemo(() => (item ? [item.path] : []), [item]);
 
@@ -310,7 +264,6 @@ export function GalleryItemDialog({
         : galleryItemMediaUrl(item)
       : undefined;
   const playback = useMediaPlaybackProblem(videoSrc);
-  const [converting, setConverting] = useState(false);
 
   // Both hooks run unconditionally; hooks cannot be called behind a branch.
   const { videoRef, ...videoCapture } = useVideoFrameCapture({
@@ -361,16 +314,33 @@ export function GalleryItemDialog({
   const gifToMp4 = useGifToMp4({ item, onConverted: onCopied });
 
   const { transferPicker, overwritePrompt, transferring } = transfer;
-  const otherWorkBusy =
-    leaving || deleting || renaming || transferring !== null || gifToMp4.converting;
   const editApplying = videoEdit.applying || imageEdit.applying || audioEdit.applying;
-  const busy = otherWorkBusy || frameCapture.saving || editApplying || converting;
+  const fileActions = useGalleryItemFileActions({
+    item,
+    busyElsewhere:
+      leaving ||
+      transferring !== null ||
+      gifToMp4.converting ||
+      frameCapture.saving ||
+      editApplying,
+    flushPendingSave,
+    onDeleted,
+    onRenamed,
+    onCopied,
+  });
+  const otherWorkBusy =
+    leaving ||
+    fileActions.deleting ||
+    fileActions.renaming ||
+    transferring !== null ||
+    gifToMp4.converting;
+  const busy = otherWorkBusy || frameCapture.saving || editApplying || fileActions.converting;
   const parentSuspended = useContext(DialogSuspendedContext);
   const otherOverlayOpen =
     parentSuspended ||
     suspended ||
-    deleteConfirmOpen ||
-    renameOpen ||
+    fileActions.deleteConfirmOpen ||
+    fileActions.renameOpen ||
     revertConfirmOpen ||
     comfyWorkflowOpen ||
     transfer.transferDialogOpen ||
@@ -399,32 +369,15 @@ export function GalleryItemDialog({
   const renameDiscard = useDiscardChanges({
     unsavedChanges: unsavedEdits,
     busy,
-    suspended: otherOverlayOpen && !renameOpen,
+    suspended: otherOverlayOpen && !fileActions.renameOpen,
     description: "Your unapplied media edits will be lost when this file is renamed.",
   });
   const { request: requestRename } = renameDiscard;
   const flushAndLeave = useCallback(
     async (action: WorkspaceAction) => {
-      if (busy || leavingRef.current) return;
-      if (!captionDirty) {
-        await action();
-        return;
-      }
-      leavingRef.current = true;
-      setLeaving(true);
-      const saved = await flushPendingSave();
-      leavingRef.current = false;
-      setLeaving(false);
-      if (!saved) {
-        pendingActionRef.current = action;
-        setLeaveFailed(true);
-        return;
-      }
-      pendingActionRef.current = null;
-      setLeaveFailed(false);
-      await action();
+      if (!busy) await saveAndLeave(action);
     },
-    [busy, captionDirty, flushPendingSave],
+    [busy, saveAndLeave],
   );
   const resetEditDraft = activeEdit.resetDraft;
   const leave = useCallback(
@@ -452,13 +405,6 @@ export function GalleryItemDialog({
 
   if (useChanged(item?.path)) {
     if (item?.path !== focusCaptionOf) setFocusCaptionOf(null);
-    setDeleteConfirmOpen(false);
-    setDeleting(false);
-    setRenameOpen(false);
-    setRenaming(false);
-    setRenameError(null);
-    setOpeningInViewer(false);
-    setViewerError(null);
     setComfyWorkflowOpen(false);
   }
 
@@ -493,85 +439,26 @@ export function GalleryItemDialog({
     });
   }, [requestDiscard, frameCapture]);
 
-  const toggleVideoEditMode = useCallback(() => {
+  const toggleEditMode = useCallback(() => {
     void requestDiscard(() => {
       setFrameMode(false);
-      videoEdit.toggleEditMode();
+      activeEdit.toggleEditMode();
     });
-  }, [requestDiscard, videoEdit]);
-
-  const toggleAudioEditMode = useCallback(() => {
-    void requestDiscard(() => {
-      setFrameMode(false);
-      audioEdit.toggleEditMode();
-    });
-  }, [requestDiscard, audioEdit]);
-
-  const toggleImageEditMode = useCallback(() => {
-    void requestDiscard(() => {
-      setFrameMode(false);
-      imageEdit.toggleEditMode();
-    });
-  }, [requestDiscard, imageEdit]);
+  }, [requestDiscard, activeEdit]);
 
   const exitEditMode = useCallback(() => {
     void requestDiscard(activeEdit.exitEditMode);
   }, [activeEdit.exitEditMode, requestDiscard]);
-
-  const { copyState, copyLabel, copyText } = useCopyFeedback();
 
   const closeDialog = useCallback(() => {
     if (busy) return;
     void leave(onClose);
   }, [busy, leave, onClose]);
 
-  const openDeleteConfirm = useCallback(() => {
-    if (busy) return;
-    setDeleteConfirmOpen(true);
-  }, [busy]);
-
-  const cancelDeleteConfirm = useCallback(() => {
-    if (deleting) return;
-    setDeleteConfirmOpen(false);
-  }, [deleting]);
-
-  const openRename = useCallback(() => {
-    if (busy) return;
-    setRenameError(null);
-    setRenameOpen(true);
-  }, [busy]);
-
-  const cancelRename = useCallback(() => {
-    if (renaming) return;
-    setRenameOpen(false);
-    setRenameError(null);
-  }, [renaming]);
-
+  const { rename } = fileActions;
   const confirmRename = useCallback(
-    (name: string) =>
-      requestRename(async () => {
-        if (!item || renaming) return;
-
-        setRenaming(true);
-        setRenameError(null);
-        // A caption saved after the rename would write a file under the old name.
-        if (!(await flushPendingSave(true))) {
-          setRenaming(false);
-          setRenameError("The caption could not be saved. Try renaming again to retry the save.");
-          return;
-        }
-
-        try {
-          const result = await renameMedia(item.path, name);
-          setRenameOpen(false);
-          onRenamed?.(item.path, result.destination);
-        } catch (error) {
-          setRenameError(formatApiError(error));
-        } finally {
-          setRenaming(false);
-        }
-      }),
-    [requestRename, flushPendingSave, item, onRenamed, renaming],
+    (name: string) => requestRename(() => rename(name)),
+    [rename, requestRename],
   );
 
   const handleResolveIssue = useCallback(() => {
@@ -588,79 +475,6 @@ export function GalleryItemDialog({
     if (!item || busy || !onResolveDuplicate) return;
     void leave(() => onResolveDuplicate(item));
   }, [busy, leave, item, onResolveDuplicate]);
-
-  const handleOpenInViewer = useCallback(async () => {
-    if (!item || openingInViewer) return;
-
-    setViewerError(null);
-    setOpeningInViewer(true);
-
-    try {
-      await openMediaInViewer(item.path);
-    } catch (error) {
-      setViewerError(formatApiError(error));
-    } finally {
-      setOpeningInViewer(false);
-    }
-  }, [item, openingInViewer]);
-
-  const confirmDelete = useCallback(async () => {
-    if (!item || deleting) return;
-
-    setDeleting(true);
-    if (!(await flushPendingSave())) {
-      setDeleting(false);
-      setDeleteConfirmOpen(false);
-      return;
-    }
-
-    try {
-      const result = await deleteMedia(item.path);
-      setDeleteConfirmOpen(false);
-      onDeleted?.(item.path);
-      notifyDeleteLeftovers([result]);
-      // onCopied refreshes the folder, which is all a restored file needs to show up again.
-      notifyDeleteUndo([result], () => onCopied?.());
-    } catch (error) {
-      setDeleteConfirmOpen(false);
-      notify({
-        variant: "danger",
-        message: `Could not delete ${item.name}: ${formatApiError(error)}`,
-      });
-    } finally {
-      setDeleting(false);
-    }
-  }, [
-    deleting,
-    flushPendingSave,
-    item,
-    notify,
-    notifyDeleteLeftovers,
-    notifyDeleteUndo,
-    onCopied,
-    onDeleted,
-  ]);
-
-  /** Re-encodes in place through the edit pipeline: Revert original gets the file back. */
-  const convertToPlayable = useCallback(async () => {
-    if (!item || busy) return;
-    setConverting(true);
-    try {
-      await transcodeVideo(item.path);
-      notify({
-        variant: "success",
-        message: `Converted ${item.name} to H.264. Revert original restores it as it was.`,
-      });
-      await onCopied?.();
-    } catch (error) {
-      notify({
-        variant: "danger",
-        message: `Could not convert ${item.name}: ${formatApiError(error)}`,
-      });
-    } finally {
-      setConverting(false);
-    }
-  }, [busy, item, notify, onCopied]);
 
   // Derived above the early return so the hooks below are not called conditionally.
   const canEditVideoItem = item ? isEditableVideo(item) : false;
@@ -683,158 +497,30 @@ export function GalleryItemDialog({
     return () => onEditExpandedChange(false);
   }, [editExpanded, onEditExpandedChange]);
 
-  useEffect(() => {
-    // Wraps and skips the open item; -1 when no other item matches.
-    const jumpTo = (kind: ReviewJump, direction: 1 | -1) => {
-      const target = nextIndexWhere(items, index, REVIEW_JUMPS[kind].matches, direction);
-      if (target < 0 || !onGoTo) {
-        notify({ variant: "warning", message: REVIEW_JUMPS[kind].none });
-        return -1;
-      }
-      void leave(() => onGoTo(target));
-      return target;
-    };
-    const fromCaptionEditor = (event: KeyboardEvent) =>
-      event.target instanceof Element && event.target.closest(".code-editor--caption") !== null;
-    // Review keys: plain letters, never while typing or while an editor owns the keyboard.
-    const handleReviewKey = (event: KeyboardEvent) => {
-      if (editing || frameCapture.frameMode || !item) return false;
-      const jump = matchesShortcut(event, SHORTCUTS.nextUncaptioned)
-        ? "uncaptioned"
-        : matchesShortcut(event, SHORTCUTS.nextIssue)
-          ? "issue"
-          : null;
-      if (jump) {
-        event.preventDefault();
-        jumpTo(jump, event.shiftKey ? -1 : 1);
-        return true;
-      }
-      if (canTransfer && matchesShortcut(event, SHORTCUTS.moveItem)) {
-        event.preventDefault();
-        void leave(() => transfer.openTransferPicker("move"));
-        return true;
-      }
-      if (onToggleSelect && matchesShortcut(event, SHORTCUTS.toggleSelectItem)) {
-        event.preventDefault();
-        onToggleSelect(item.path);
-        return true;
-      }
-      return false;
-    };
-    const goToStep = (step: NonNullable<ReturnType<typeof queueStepFor>>) => {
-      if (items.length < 2) return;
-      if (step === "previous") void leave(onPrevious);
-      else if (step === "next") void leave(onNext);
-      else {
-        const target = queueIndexAfter(step, index, items.length);
-        if (onGoTo && target !== index) void leave(() => onGoTo(target));
-      }
-    };
-    // Escape leaves the backup comparison first; edit and frame modes take it before that.
-    const leavesComparison = (event: KeyboardEvent) => {
-      if (!showingBackupDiff || editing || frameCapture.frameMode) return false;
-      if (!matchesShortcut(event, SHORTCUTS.close)) return false;
-      event.preventDefault();
-      setComparingBackup(false);
-      return true;
-    };
-    const handleKey = (event: KeyboardEvent) => {
-      if (childOverlayOpen || busy) return;
-      const outside =
-        inline && (!(event.target instanceof Node) || !dialogRef.current?.contains(event.target));
-      // Docked, only closing and paging pass the panel; focus stays on the card.
-      if (outside) {
-        const target = event.target instanceof Element ? event.target : null;
-        if (
-          event.defaultPrevented ||
-          getScrollLockDepth() > 0 ||
-          isEditableTarget(event) ||
-          target?.closest(OUTSIDE_ARROW_OWNERS)
-        )
-          return;
-        if (leavesComparison(event)) return;
-        if (matchesShortcut(event, SHORTCUTS.close)) {
-          event.preventDefault();
-          closeDialog();
-          return;
-        }
-        if (handleReviewKey(event)) return;
-        const step = queueStepFor(event);
-        if (!step) return;
-        event.preventDefault();
-        goToStep(step);
-        return;
-      }
-
-      // First: the caption editor, where this gets pressed, has already prevented the default.
-      if (matchesShortcut(event, SHORTCUTS.saveAndNext)) {
-        event.preventDefault();
-        if (items.length < 2) {
-          void flushPendingSave();
-          return;
-        }
-        if (fromCaptionEditor(event)) setFocusCaptionOf(items[(index + 1) % items.length].path);
-        void leave(onNext);
-        return;
-      }
-      if (matchesShortcut(event, SHORTCUTS.saveAndNextUncaptioned)) {
-        event.preventDefault();
-        const target = jumpTo("uncaptioned", 1);
-        if (target < 0) void flushPendingSave();
-        else if (fromCaptionEditor(event)) setFocusCaptionOf(items[target].path);
-        return;
-      }
-      // A mask surface claims arrows and Delete by preventing the default.
-      if (event.defaultPrevented) return;
-      if (leavesComparison(event)) return;
-      if (inline && matchesShortcut(event, SHORTCUTS.close) && getScrollLockDepth() === 0) {
-        event.preventDefault();
-        closeDialog();
-        return;
-      }
-      // A focused scrubber is exempt via isEditableTarget so arrows still step frames.
-      if (isEditableTarget(event)) return;
-
-      if (matchesShortcut(event, SHORTCUTS.deleteItem)) {
-        if (editing || frameCapture.frameMode) return;
-        event.preventDefault();
-        openDeleteConfirm();
-        return;
-      }
-      if (handleReviewKey(event)) return;
-
-      const step = queueStepFor(event);
-      if (!step) return;
-      event.preventDefault();
-      goToStep(step);
-    };
-
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [
-    busy,
-    canTransfer,
-    childOverlayOpen,
-    closeDialog,
-    editing,
-    leave,
-    inline,
-    frameCapture.frameMode,
-    flushPendingSave,
+  const { openTransferPicker } = transfer;
+  const openMovePicker = useCallback(() => openTransferPicker("move"), [openTransferPicker]);
+  const leaveComparison = useCallback(() => setComparingBackup(false), []);
+  useGalleryItemKeys({
+    items,
     index,
     item,
-    items,
-    notify,
-    onGoTo,
-    onNext,
-    onPrevious,
-    onToggleSelect,
-    openDeleteConfirm,
+    blocked: childOverlayOpen || busy,
+    inline,
+    panelRef: dialogRef,
+    modeOwnsKeys: editing || frameCapture.frameMode,
     showingBackupDiff,
-    transfer,
-  ]);
+    onLeaveComparison: leaveComparison,
+    leave,
+    onClose: closeDialog,
+    onPrevious,
+    onNext,
+    onGoTo,
+    flushPendingSave,
+    onFocusCaptionOf: setFocusCaptionOf,
+    onDelete: fileActions.openDeleteConfirm,
+    onMove: canTransfer ? openMovePicker : undefined,
+    onToggleSelect,
+  });
 
   // In frame/edit mode Escape steps back to viewing; DialogShell stands down via escape="none".
   useEscapeKey(frameCapture.exitFrameMode, frameCapture.frameMode && !busy && !childOverlayOpen);
@@ -862,19 +548,19 @@ export function GalleryItemDialog({
     AUDIO_TRACK_WAVEFORM_HEIGHT,
   );
 
-  const mediaLabel = mediaLabelFor(item);
   const resolution = getResolution(item);
-  const captionDisplay = getGalleryItemCaptionDisplay(item, mediaLabel);
-  const copyContent = caption;
-  const canCopyCaption = copyContent.length > 0;
-  const canRestoreBackup = backupCaption !== null && backupCaption.trim() !== caption.trim();
   const canResolveIssue = isResolvableIssueItem(item) && Boolean(onResolveIssue);
   const canReviewCandidate = isCandidateItem(item) && Boolean(onReviewCandidate);
   const canResolveDuplicate = isDuplicateItem(item) && Boolean(onResolveDuplicate);
   // Destination folder only; a missing onCopied costs the refresh, not the save.
   const canCaptureFrame = (itemIsVideo || itemIsGif) && Boolean(currentFolder);
-  const placeholder =
-    captionDisplay.variant === "success" ? "Add a caption..." : captionDisplay.message;
+  const editKind = canEditVideoItem
+    ? "video"
+    : canEditAudioItem
+      ? "audio"
+      : canEditImageItem
+        ? "image"
+        : null;
 
   const Surface = inline ? InspectorPanel : DialogShell;
   return (
@@ -888,40 +574,9 @@ export function GalleryItemDialog({
         escape={frameCapture.frameMode || editMode || showingBackupDiff ? "none" : "close"}
         panelRef={dialogRef}
         scrollLock="gallery-item-dialog-open"
-        style={{ "--inspector-width": `${inspectorWidth}px` } as CSSProperties}
+        style={{ "--inspector-width": `${inspector.width}px` } as CSSProperties}
       >
-        {inline && (
-          <div
-            className="workspace-inspector-resize"
-            role="separator"
-            aria-label="Caption inspector width"
-            aria-orientation="vertical"
-            aria-valuemin={320}
-            aria-valuemax={520}
-            aria-valuenow={inspectorWidth}
-            tabIndex={0}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-              event.preventDefault();
-              const width = Math.max(
-                320,
-                Math.min(520, inspectorWidth + (event.key === "ArrowLeft" ? 20 : -20)),
-              );
-              setInspectorWidth(width);
-              writeStored("workspace-inspector-width", String(width));
-            }}
-            onPointerDown={(event) => event.currentTarget.setPointerCapture(event.pointerId)}
-            onPointerMove={(event) => {
-              if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-              const right = dialogRef.current?.getBoundingClientRect().right ?? window.innerWidth;
-              setInspectorWidth(Math.max(320, Math.min(520, right - event.clientX)));
-            }}
-            onPointerUp={(event) => {
-              event.currentTarget.releasePointerCapture(event.pointerId);
-              writeStored("workspace-inspector-width", String(inspectorWidth));
-            }}
-          />
-        )}
+        {inline && <div className="workspace-inspector-resize" {...inspector.separatorProps} />}
         <header className="gallery-item-dialog__header">
           <div className="gallery-item-dialog__header-text">
             <Tooltip content={item.name} whenTruncated>
@@ -988,41 +643,17 @@ export function GalleryItemDialog({
                 disabled={busy || editing}
               />
             )}
-            {canEditVideoItem && (
+            {editKind && (
               <IconButton
                 size={headerActionSize}
                 icon={iconSquarePen}
-                label={editMode ? `Exit video editing for ${item.name}` : `Edit ${item.name}`}
-                tooltip={editMode ? "Exit video editing" : "Edit video"}
+                label={editMode ? `Exit ${editKind} editing for ${item.name}` : `Edit ${item.name}`}
+                tooltip={editMode ? `Exit ${editKind} editing` : `Edit ${editKind}`}
                 tone="accent"
                 pressed={editMode}
-                onClick={toggleVideoEditMode}
+                onClick={toggleEditMode}
                 // Editing needs a picture to draw on; the notice over the video says why.
-                disabled={busy || (playback.problem !== null && !editMode)}
-              />
-            )}
-            {canEditAudioItem && (
-              <IconButton
-                size={headerActionSize}
-                icon={iconSquarePen}
-                label={editMode ? `Exit audio editing for ${item.name}` : `Edit ${item.name}`}
-                tooltip={editMode ? "Exit audio editing" : "Edit audio"}
-                tone="accent"
-                pressed={editMode}
-                onClick={toggleAudioEditMode}
-                disabled={busy}
-              />
-            )}
-            {canEditImageItem && (
-              <IconButton
-                size={headerActionSize}
-                icon={iconSquarePen}
-                label={editMode ? `Exit image editing for ${item.name}` : `Edit ${item.name}`}
-                tooltip={editMode ? "Exit image editing" : "Edit image"}
-                tone="accent"
-                pressed={editMode}
-                onClick={toggleImageEditMode}
-                disabled={busy}
+                disabled={busy || (editKind === "video" && playback.problem !== null && !editMode)}
               />
             )}
             {!isMotion(item) && !itemIsAudio && !itemIsModel && (
@@ -1030,11 +661,11 @@ export function GalleryItemDialog({
                 size={headerActionSize}
                 icon={iconArrowUpRight}
                 label="Open in image preview"
-                tooltip={viewerError ?? "Open in image preview"}
+                tooltip={fileActions.viewerError ?? "Open in image preview"}
                 tone="accent"
-                busy={openingInViewer}
+                busy={fileActions.openingInViewer}
                 onClick={() => {
-                  void handleOpenInViewer();
+                  void fileActions.openInViewer();
                 }}
                 disabled={busy}
               />
@@ -1098,7 +729,7 @@ export function GalleryItemDialog({
                 label={`Rename ${item.name}`}
                 tooltip="Rename file"
                 tone="accent"
-                onClick={openRename}
+                onClick={fileActions.openRename}
                 disabled={busy}
               />
             )}
@@ -1108,7 +739,7 @@ export function GalleryItemDialog({
               label={`Delete ${item.name}`}
               tooltip="Delete file"
               tone="danger"
-              onClick={openDeleteConfirm}
+              onClick={fileActions.openDeleteConfirm}
               disabled={busy}
             />
             <div className="gallery-item-dialog__presentation-actions">
@@ -1214,10 +845,10 @@ export function GalleryItemDialog({
                         <Tooltip content="Re-encodes it in place; Revert original brings it back">
                           <Button
                             size="xs"
-                            onClick={() => void convertToPlayable()}
+                            onClick={() => void fileActions.convertToPlayable()}
                             disabled={busy}
                           >
-                            {converting ? "Converting..." : "Convert to H.264"}
+                            {fileActions.converting ? "Converting..." : "Convert to H.264"}
                           </Button>
                         </Tooltip>
                       ) : undefined
@@ -1412,191 +1043,33 @@ export function GalleryItemDialog({
               </footer>
             ) : (
               <footer className="gallery-item-dialog__footer">
-                <div className="gallery-item-dialog__caption-editor">
-                  <div className="gallery-item-dialog__caption-toolbar">
-                    <div className="gallery-item-dialog__caption-heading">
-                      <label
-                        htmlFor="gallery-item-caption"
-                        className="gallery-item-dialog__caption-label"
-                      >
-                        Caption
-                      </label>
-                      <TokenEstimate
-                        text={caption}
-                        className="gallery-item-dialog__caption-tokens"
-                      />
-                    </div>
-                    <div className="gallery-item-dialog__caption-actions">
-                      {canResolveIssue && !showingBackupDiff && (
-                        <Button
-                          variant="warning"
-                          icon={iconMessageWarning}
-                          onClick={handleResolveIssue}
-                          disabled={busy}
-                          aria-label={`Resolve caption issue for ${item.name}`}
-                          size="xs"
-                        >
-                          Resolve
-                        </Button>
-                      )}
-                      {(backupCaption !== null || showingBackupDiff) && (
-                        <Button
-                          icon={showingBackupDiff ? iconPencilLine : iconFileDiff}
-                          onClick={() => setComparingBackup((current) => !current)}
-                          // The label names the action, not a state: a toggle that renames itself
-                          // would contradict aria-pressed.
-                          aria-label={
-                            showingBackupDiff
-                              ? `Back to editing the caption for ${item.name}`
-                              : `Compare the caption for ${item.name} with its backup`
-                          }
-                          size="xs"
-                        >
-                          {showingBackupDiff ? "Back to editing" : "Compare"}
-                        </Button>
-                      )}
-                      {/* Copy acts on the editor's text, which the comparison hides. Restoring
-                          takes its slot. */}
-                      {showingBackupDiff ? (
-                        <Button
-                          icon={iconArchiveRestore}
-                          onClick={() => {
-                            if (comparedBackup === null) return;
-                            handleCaptionChange(comparedBackup);
-                            setComparingBackup(false);
-                          }}
-                          disabled={busy || !canRestoreBackup}
-                          aria-label={`Restore the backed up caption for ${item.name}`}
-                          size="xs"
-                        >
-                          Restore
-                        </Button>
-                      ) : (
-                        <Button
-                          icon={iconCopy}
-                          feedback={copyState}
-                          onClick={() => {
-                            void copyText(copyContent);
-                          }}
-                          disabled={!canCopyCaption}
-                          aria-label={copyLabel}
-                          size="xs"
-                        >
-                          {copyLabel}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {showingBackupDiff && (
-                    <div
-                      className="gallery-item-dialog__caption-compare"
-                      role="region"
-                      aria-label={`Caption compared with its backup for ${item.name}`}
-                      tabIndex={0}
-                    >
-                      {comparedBackup === null ? null : canRestoreBackup ? (
-                        <CaptionWordDiff
-                          before={caption.trim()}
-                          after={comparedBackup.trim()}
-                          legend={{ removed: "Only in this caption", added: "From the backup" }}
-                          addedVerb="restored"
-                        />
-                      ) : (
-                        <p className="gallery-item-dialog__caption-compare-note">
-                          Matches the backup.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <CaptionEditor
-                    // Fresh editor per item: CodeMirror maps selection through a document swap.
-                    key={item.path}
-                    id="gallery-item-caption"
-                    // Hidden, not unmounted, so comparing keeps the editor's undo history.
-                    className={showingBackupDiff ? "gallery-item-dialog__hidden-editor" : undefined}
-                    completions={captionCompletions}
-                    value={caption}
-                    placeholder={placeholder}
-                    variant={captionDisplay.variant}
-                    saveState={captionConflict ? "error" : saveState}
-                    searchQuery={searchQuery}
-                    searchRegex={searchRegex}
-                    aria-label={`Caption for ${item.name}`}
-                    aria-invalid={saveState === "error" || captionConflict}
-                    onChange={handleCaptionChange}
-                    editable={!leaving && !captionLocked}
-                    autoFocus={focusCaptionOf === item.path}
-                  />
-                  {captionReadError && (
-                    <div className="workspace-save-error" role="alert">
-                      {/* The placeholder already says why; this says what the button does. */}
-                      <p>
-                        {captionReadError === "encoding"
-                          ? "Replacing it writes a new UTF-8 caption over the file."
-                          : "Close the program that has it open, then try again."}
-                      </p>
-                      {captionReadError === "encoding" ? (
-                        <Button onClick={replaceUnreadableCaption}>Replace caption</Button>
-                      ) : (
-                        <Button onClick={() => void reloadCaption()}>Try again</Button>
-                      )}
-                    </div>
-                  )}
-                  <CaptionSaveStatus
-                    state={saveState}
-                    error={saveError}
-                    onRetry={retrySave}
-                    onReload={() => void reloadCaption()}
-                    onOverwrite={() => void overwriteCaption()}
-                  />
-                  {leaveFailed && (
-                    <div className="workspace-save-error" role="alert">
-                      <p>
-                        {captionConflict
-                          ? "The caption changed elsewhere since it was loaded. Overwrite it with yours or discard your changes to continue."
-                          : "The caption could not be saved. Retry saving or discard the unsaved changes to continue."}
-                      </p>
-                      <Button
-                        disabled={leaving}
-                        onClick={async () => {
-                          if (leavingRef.current) return;
-                          leavingRef.current = true;
-                          setLeaving(true);
-                          const saved = await (captionConflict ? overwriteCaption() : retrySave());
-                          leavingRef.current = false;
-                          setLeaving(false);
-                          if (saved) {
-                            const action = pendingActionRef.current;
-                            if (action) await leave(action);
-                          }
-                        }}
-                      >
-                        {captionConflict ? "Overwrite and continue" : "Retry and continue"}
-                      </Button>
-                      <Button
-                        disabled={leaving || captionSaving}
-                        onClick={() => {
-                          if (captionSaving) return;
-                          const action = pendingActionRef.current;
-                          pendingActionRef.current = null;
-                          discardCaptionChanges();
-                          setLeaveFailed(false);
-                          void action?.();
-                        }}
-                      >
-                        Discard and continue
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          pendingActionRef.current = null;
-                          setLeaveFailed(false);
-                        }}
-                      >
-                        Keep editing
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <GalleryItemCaption
+                  item={item}
+                  editor={captionEditor}
+                  completions={captionCompletions}
+                  searchQuery={searchQuery}
+                  searchRegex={searchRegex}
+                  busy={busy}
+                  leaving={leaving}
+                  autoFocus={focusCaptionOf === item.path}
+                  backupCaption={backupCaption}
+                  showingBackupDiff={showingBackupDiff}
+                  onToggleComparison={() => setComparingBackup((current) => !current)}
+                  onLeaveComparison={leaveComparison}
+                  onResolveIssue={canResolveIssue ? handleResolveIssue : undefined}
+                  leaveFailure={
+                    saveLeave.failed
+                      ? {
+                          conflict: captionEditor.conflict,
+                          leaving,
+                          saving: captionEditor.saving,
+                          onRetry: () => void saveLeave.retryAndContinue(leave),
+                          onDiscard: saveLeave.discardAndContinue,
+                          onKeep: saveLeave.keepEditing,
+                        }
+                      : null
+                  }
+                />
               </footer>
             )}
           </>
@@ -1605,7 +1078,7 @@ export function GalleryItemDialog({
       {discard.promptProps && <DiscardChangesDialog {...discard.promptProps} />}
       {renameDiscard.promptProps && <DiscardChangesDialog {...renameDiscard.promptProps} />}
 
-      {deleteConfirmOpen && (
+      {fileActions.deleteConfirmOpen && (
         <ConfirmDialog
           title="Delete file?"
           description={
@@ -1619,24 +1092,24 @@ export function GalleryItemDialog({
           }
           confirmLabel="Delete"
           confirmVariant="danger"
-          busy={deleting}
+          busy={fileActions.deleting}
           onConfirm={() => {
-            void confirmDelete();
+            void fileActions.confirmDelete();
           }}
-          onCancel={cancelDeleteConfirm}
+          onCancel={fileActions.cancelDeleteConfirm}
         />
       )}
 
-      {renameOpen && (
+      {fileActions.renameOpen && (
         <FileRenameDialog
           fileName={item.name}
-          busy={renaming}
+          busy={fileActions.renaming}
           suspended={renameDiscard.confirming}
-          error={renameError}
+          error={fileActions.renameError}
           onConfirm={(name) => {
             void confirmRename(name);
           }}
-          onCancel={cancelRename}
+          onCancel={fileActions.cancelRename}
         />
       )}
 
@@ -1654,9 +1127,7 @@ export function GalleryItemDialog({
           busy={editApplying}
           onConfirm={() => {
             setRevertConfirmOpen(false);
-            if (canEditVideoItem) videoEdit.revert();
-            else if (canEditAudioItem) audioEdit.revert();
-            else imageEdit.revert();
+            activeEdit.revert();
           }}
           onCancel={() => setRevertConfirmOpen(false)}
         />

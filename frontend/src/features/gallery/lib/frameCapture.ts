@@ -1,6 +1,8 @@
+import { importFiles } from "@/features/folder/api/files";
 import { pathBaseName } from "@/features/gallery/lib/mediaActionMessages";
-import type { NotificationVariant } from "@/shared/notifications/notifications";
-import type { FileImportResponse } from "@/shared/types";
+import type { FileImportResponse, NotificationVariant } from "@/shared/types";
+
+type FrameNotice = { variant: NotificationVariant; message: string };
 
 export const JPEG_QUALITY = 0.95;
 
@@ -21,10 +23,7 @@ export function frameTargetStem(path: string): string {
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
-export function frameSaveOutcome(
-  result: FileImportResponse,
-  targetName: string,
-): { variant: NotificationVariant; message: string } {
+export function frameSaveOutcome(result: FileImportResponse, targetName: string): FrameNotice {
   if (result.copied.length > 0) {
     return { variant: "success", message: `Saved frame as ${targetName}.` };
   }
@@ -44,4 +43,17 @@ export function frameSaveOutcome(
     variant: "danger",
     message: `Could not save ${targetName}: the server saved nothing.`,
   };
+}
+
+/** Saves the frame as a JPEG in `destination` and reports how that went; true once it landed. */
+export async function importFrame(
+  destination: string,
+  blob: Blob,
+  targetName: string,
+  notify: (notice: FrameNotice) => void,
+): Promise<boolean> {
+  const file = new File([blob], targetName, { type: "image/jpeg" });
+  const outcome = frameSaveOutcome(await importFiles(destination, [file], true), targetName);
+  notify(outcome);
+  return outcome.variant === "success";
 }

@@ -1,6 +1,7 @@
 import { RESTING_EFFECTS } from "@/shared/lib/audioEffects";
 import type { VideoProjectClip, VideoProjectSource, VideoProjectTrack } from "@/shared/types";
-import { restingAdjust, type Project } from "@/features/videoEditor/lib/timeline";
+import { type Project } from "@/features/videoEditor/lib/timeline";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 export function makeTrack(
   id: string,
@@ -44,7 +45,7 @@ export function makeClip(
     transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
     crop: null,
     fit: "fit",
-    adjust: restingAdjust(),
+    adjust: { ...RESTING_ADJUST },
     gain: 1,
     fade_in: 0,
     fade_out: 0,

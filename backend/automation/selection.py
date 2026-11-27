@@ -18,6 +18,11 @@ def _name_key(path: Path) -> tuple[float, str]:
     return (0.0, path.name.lower())
 
 
+def require_folder(folder: Path) -> None:
+    if not folder.is_dir():
+        raise ValueError("Folder not found")
+
+
 def list_folder_media(
     folder: Path,
     extensions: set[str],

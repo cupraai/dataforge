@@ -13,14 +13,10 @@ from PIL import Image
 
 from app_settings import effective_settings
 from automation.audio import AUDIO_FORMAT
-from automation.llm import run_chat_completion
+from automation.llm import DEFAULT_MODEL_SETTINGS, ModelSettings, run_chat_completion
 from constants import GIF_EXTENSION, VIDEO_EXTENSIONS
 from gif_frames import extract_gif_first_frame, keyframe_indices
 from image_io import displayed_image
-from openai_settings import (
-    DEFAULT_PRESERVE_THINKING,
-    DEFAULT_REASONING_EFFORT,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -156,6 +152,11 @@ class MediaFrames:
 
     images: list[Image.Image]
     timestamps: list[float] | None = None
+
+    @property
+    def seconds(self) -> float | None:
+        """The last frame's time, which stands for the clip's length."""
+        return self.timestamps[-1] if self.timestamps else None
 
 
 def keyframe_count_for_seconds(seconds: float | None) -> int:
@@ -389,22 +390,19 @@ def vision_messages(
 def request_vision_text(
     client,
     system_prompt: str,
-    images: list[Image.Image],
+    frames: MediaFrames,
     user_text: str,
     *,
-    max_pixels: int,
-    mode: str,
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
-    model: str | None = None,
-    max_tokens: int | None = None,
-    timestamps: list[float] | None = None,
+    media_kind: MediaKind,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
     audio_wav: bytes | None = None,
     attempt: int = 1,
 ) -> str | None:
     """``attempt`` only reaches JPEG quality."""
     images_b64 = prepare_images_for_api(
-        images, max_pixels=max_pixels, quality=retry_jpeg_quality(attempt)
+        frames.images,
+        max_pixels=media_kind_max_pixels(media_kind, seconds=frames.seconds),
+        quality=retry_jpeg_quality(attempt),
     )
     if not images_b64:
         return None
@@ -415,12 +413,8 @@ def request_vision_text(
             system_prompt,
             images_b64,
             user_text,
-            timestamps=timestamps,
+            timestamps=frames.timestamps,
             audio_wav=audio_wav,
         ),
-        mode=mode,
-        effort=effort,
-        preserve_thinking=preserve_thinking,
-        model=model,
-        max_tokens=max_tokens,
+        settings,
     )

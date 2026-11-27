@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import tempfile
-from contextlib import suppress
 from pathlib import Path
 
 from constants import VIDEO_PROJECT_COMPATIBLE_TAG
-from ffmpeg_run import run_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, run_ffmpeg
+from file_publish import unlink_quietly
 from video_project_export import allocate_output_name, publish_new_file
 
 COMPATIBLE_COPY_TIMEOUT_SECONDS = 1800
@@ -19,7 +19,7 @@ COMPATIBLE_COPY_TEMP_SUFFIX = ".compat-tmp"
 
 def build_compatible_copy(executable: str, source: Path, output: Path) -> list[str]:
     return [
-        *(executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "error", "-y"),
+        *(executable, *FFMPEG_QUIET_ARGS, "-y"),
         *("-i", str(source), "-map", "0:v:0", "-map", "0:a:0?"),
         *("-c:v", "libx264", "-preset", "medium", "-crf", str(COMPATIBLE_COPY_CRF)),
         *("-pix_fmt", "yuv420p", "-fps_mode", "passthrough"),
@@ -42,6 +42,5 @@ def make_compatible_copy(executable: str, source: Path) -> Path:
             )
         publish_new_file(temp_path, output)
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
     return output

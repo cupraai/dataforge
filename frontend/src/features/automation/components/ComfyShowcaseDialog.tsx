@@ -1,12 +1,12 @@
 import { useId, useState } from "react";
 import { jobTypeIconFor } from "@/features/jobs/lib/jobMeta";
 import { ComfyPresetSection } from "@/features/automation/components/ComfyPresetSection";
-import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { ComfyJobFooter } from "@/features/automation/components/ComfyJobFooter";
 import { ShowcaseItemForm } from "@/features/automation/components/ShowcaseForms";
 import { ShowcaseItemList } from "@/features/automation/components/ShowcaseItemList";
 import { ShowcaseSetMenu } from "@/features/automation/components/ShowcaseSetMenu";
 import { ShowcaseSubjects } from "@/features/automation/components/ShowcaseSubjects";
-import { comfyServiceState, useComfyPresetList } from "@/features/automation/hooks/useComfyPresets";
+import { useComfyPresetList } from "@/features/automation/hooks/useComfyPresets";
 import { useListedPreset } from "@/features/automation/hooks/useListedPreset";
 import {
   resolveContent,
@@ -27,7 +27,6 @@ import { iconPlus, iconTriangleAlert } from "@/shared/icons";
 import type { ComfyPresetSummary, ComfyShowcaseJobSettings, GalleryItem } from "@/shared/types";
 import { Button } from "@/shared/ui/Button";
 import { Checkbox } from "@/shared/ui/Checkbox";
-import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
@@ -72,7 +71,6 @@ export function ComfyShowcaseDialog({
 
   const listed = presets.status === "ready" ? presets.presets : undefined;
   const comfyReady = presets.status === "ready" && presets.service === "ready";
-  const comfyService = comfyServiceState(presets);
   const { preset: presetName, removed } = useListedPreset(
     listed?.map((entry) => entry.name),
     draft.preset,
@@ -115,20 +113,7 @@ export function ComfyShowcaseDialog({
       onClose={onCancel}
       describedById={error ? errorId : undefined}
       footer={
-        <>
-          {comfyService && (
-            <ServiceStatus
-              service="comfy"
-              state={comfyService}
-              address={presets.status === "ready" ? presets.baseUrl : undefined}
-            />
-          )}
-          <DialogActions
-            confirmLabel="Start showcase"
-            busyLabel="Starting..."
-            onCancel={onCancel}
-          />
-        </>
+        <ComfyJobFooter presets={presets} confirmLabel="Start showcase" onCancel={onCancel} />
       }
     >
       <div className="comfy-preset-layout comfy-showcase">

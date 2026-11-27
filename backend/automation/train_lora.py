@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from automation.job_runner import ProgressCallback, ShouldCancel
-from automation.selection import list_folder_media
+from automation.selection import list_folder_media, require_folder
 from constants import MEDIA_EXTENSIONS
 from external.ostris_jobs import (
     OSTRIS_TRAIN_POLL_INTERVAL_SECONDS,
@@ -57,8 +57,7 @@ def validate_train_lora_folder(
     template: str | None = None,
     **_params: object,
 ) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not list_train_lora_media(folder):
         raise ValueError("No supported images or videos found in folder")

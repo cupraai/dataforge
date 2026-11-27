@@ -14,7 +14,6 @@ import { useLatestRef } from "@/shared/hooks/useLatestRef";
 export interface MaskRegionControls {
   maskActive: boolean;
   selectedMaskId: string | null;
-  selectedMask: MaskDraft | null;
   maskMode: MaskMode;
   maskStrength: number;
   maskLimitReached: boolean;
@@ -126,7 +125,6 @@ export function useMaskRegions(
   return {
     maskActive,
     selectedMaskId,
-    selectedMask,
     maskMode: selectedMask?.mode ?? maskDefaults.mode,
     maskStrength: selectedMask?.strength ?? maskDefaults.strength,
     maskLimitReached: masks.length >= MAX_MASK_REGIONS,

@@ -28,6 +28,8 @@ import {
   type PlaceSourceRequest,
   type Project,
   type TrimEdge,
+  clipsUnderPlayhead,
+  NO_CLIP_UNDER_PLAYHEAD,
 } from "./timeline";
 
 export const MIN_SPEED = SPEED_PRESETS[0];
@@ -244,15 +246,8 @@ export function trimToPlayhead(
   edge: TrimEdge,
 ): EditResult {
   const chosen = new Set(ids);
-  const under = project.clips.filter(
-    (clip) =>
-      clip.start + MIN_CLIP_SECONDS - EPSILON < time &&
-      time < clipEnd(clip) - MIN_CLIP_SECONDS + EPSILON &&
-      (chosen.size > 0 ? chosen.has(clip.id) : !trackById(project, clip.track_id)?.locked),
-  );
-  if (under.length === 0) {
-    return { error: "The playhead is not inside a clip to trim. Move it over the clip first." };
-  }
+  const under = clipsUnderPlayhead(project, chosen, time);
+  if (under.length === 0) return { error: NO_CLIP_UNDER_PLAYHEAD };
   let current = project;
   const done = new Set<string>();
   for (const clip of under) {

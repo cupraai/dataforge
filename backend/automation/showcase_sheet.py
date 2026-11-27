@@ -25,7 +25,7 @@ from constants import (
     MOTION_EXTENSIONS,
 )
 from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import run_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, run_ffmpeg
 from image_io import ImageReadError, displayed_size, load_image_for_edit
 from numbered_files import next_number, publish_numbered, temporary_file
 from video_edit import probe_source
@@ -303,11 +303,7 @@ def build_sheet_command(
     fps = _rate(timing.fps)
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-progress",
         "pipe:1",
         "-y",

@@ -6,6 +6,7 @@ import { useNotify } from "@/shared/notifications/notifications";
 import type { GalleryItem } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useMountedRef } from "@/shared/hooks/useMountedRef";
 
 export interface UseGifToMp4Options {
   item: GalleryItem | undefined;
@@ -26,20 +27,13 @@ export function useGifToMp4(options: UseGifToMp4Options): GifToMp4Conversion {
   // Ref so callbacks stay dependency-free; a conversion outliving a swap keeps its values.
   const optionsRef = useLatestRef(options);
 
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const [converting, setConverting] = useState(false);
   const [conflict, setConflict] = useState<string | null>(null);
 
   // Ref guard: a double click lands before converting has re-rendered the button disabled.
   const convertingRef = useRef(false);
   const conflictSourceRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Prompt belongs to the item that raised it; a conversion in flight runs its own finally.
   const itemPath = options.item?.path;
@@ -85,7 +79,7 @@ export function useGifToMp4(options: UseGifToMp4Options): GifToMp4Conversion {
         }
       })();
     },
-    [notify, optionsRef],
+    [mountedRef, notify, optionsRef],
   );
 
   const convert = useCallback(() => {

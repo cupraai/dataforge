@@ -45,6 +45,14 @@ def ffmpeg_path() -> str | None:
     return location[0] if location else None
 
 
+def require_ffmpeg(given: str | None, missing: str) -> str:
+    """``given`` or the located ffmpeg; raises ``RuntimeError(missing)`` when there is neither."""
+    executable = given or ffmpeg_path()
+    if not executable:
+        raise RuntimeError(missing)
+    return executable
+
+
 def _candidates() -> Iterator[FfmpegLocation]:
     setup = SETUP_FFMPEG_DIR / FFMPEG_EXECUTABLE
     if setup.is_file():

@@ -14,7 +14,6 @@ import {
   placeSource,
   removeDissolve,
   removeTrack,
-  restingAdjust,
   rippleDelete,
   setClipSpeed,
   setDissolveDuration,
@@ -30,6 +29,7 @@ import {
   type EditResult,
   type Project,
 } from "./timeline";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 function clip(
   id: string,
@@ -51,7 +51,7 @@ function clip(
     transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
     crop: null,
     fit: "fit",
-    adjust: restingAdjust(),
+    adjust: { ...RESTING_ADJUST },
     gain: 1,
     fade_in: 0,
     fade_out: 0,

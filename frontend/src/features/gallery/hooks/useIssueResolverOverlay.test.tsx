@@ -37,13 +37,13 @@ describe("useIssueResolverOverlay", () => {
     const { result } = renderHook(() => useIssueResolverOverlay(onReturnToItem), { wrapper });
 
     act(() => result.current.openIssueResolver([flagged[0]], flagged[0].path));
-    expect(result.current.open).toBe(true);
-    expect(result.current.items).toHaveLength(1);
+    expect(result.current.overlay.open).toBe(true);
+    expect(result.current.overlay.items).toHaveLength(1);
 
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onClose());
 
     expect(onReturnToItem).toHaveBeenCalledWith(flagged[0].path);
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("closes to the gallery when the whole folder queue was opened", () => {
@@ -52,10 +52,10 @@ describe("useIssueResolverOverlay", () => {
 
     // The Review menu's shape: a queue, no originating file.
     act(() => result.current.openIssueResolver(flagged));
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onClose());
 
     expect(onReturnToItem).not.toHaveBeenCalled();
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
   });
 
   it("keeps only the resolvable items and starts the queue at the top", () => {
@@ -65,8 +65,8 @@ describe("useIssueResolverOverlay", () => {
       result.current.openIssueResolver([flagged[0], item("clean.png", { has_issue_file: false })]),
     );
 
-    expect(result.current.items.map((entry) => entry.name)).toEqual(["car.png"]);
-    expect(result.current.index).toBe(0);
+    expect(result.current.overlay.items.map((entry) => entry.name)).toEqual(["car.png"]);
+    expect(result.current.overlay.index).toBe(0);
   });
 
   it("clears the queue and the return path so a second close cannot fire again", () => {
@@ -74,13 +74,13 @@ describe("useIssueResolverOverlay", () => {
     const { result } = renderHook(() => useIssueResolverOverlay(onReturnToItem), { wrapper });
 
     act(() => result.current.openIssueResolver([flagged[0]], flagged[0].path));
-    act(() => result.current.setIndex(1));
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onIndexChange(1));
+    act(() => result.current.overlay.onClose());
 
-    expect(result.current.items).toEqual([]);
-    expect(result.current.index).toBe(0);
+    expect(result.current.overlay.items).toEqual([]);
+    expect(result.current.overlay.index).toBe(0);
 
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onClose());
 
     expect(onReturnToItem).toHaveBeenCalledTimes(1);
   });
@@ -90,10 +90,10 @@ describe("useIssueResolverOverlay", () => {
     const { result } = renderHook(() => useIssueResolverOverlay(onReturnToItem), { wrapper });
 
     act(() => result.current.openIssueResolver([flagged[0]], flagged[0].path));
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onClose());
 
     act(() => result.current.openIssueResolver([flagged[1]], flagged[1].path));
-    act(() => result.current.closeIssueResolver());
+    act(() => result.current.overlay.onClose());
 
     expect(onReturnToItem).toHaveBeenNthCalledWith(1, flagged[0].path);
     expect(onReturnToItem).toHaveBeenNthCalledWith(2, flagged[1].path);

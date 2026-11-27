@@ -27,6 +27,7 @@ from constants import (
 )
 from ffmpeg_bin import ffmpeg_path
 from ffmpeg_run import FfmpegCancelled, run_ffmpeg
+from file_publish import unlink_quietly
 from file_write import copy_file_atomic, write_text_atomic
 from media_claims import claim
 from media_group import media_group_paths
@@ -148,8 +149,7 @@ def sweep_export_leftovers(folder: Path, running_outputs: set[str]) -> None:
         for leftover in folder.glob(f"*{VIDEO_PROJECT_EXPORT_TEMP_SUFFIX}"):
             owner = leftover.with_name(leftover.name.removesuffix(VIDEO_PROJECT_EXPORT_TEMP_SUFFIX))
             if os.path.normcase(str(owner)) not in running_outputs:
-                with suppress(OSError):
-                    leftover.unlink(missing_ok=True)
+                unlink_quietly(leftover)
 
 
 def publish_new_file(temp_path: Path, final_path: Path) -> None:
@@ -377,8 +377,7 @@ class ExportManager:
         else:
             self._finish(record, "completed")
         finally:
-            with suppress(OSError):
-                temp_path.unlink(missing_ok=True)
+            unlink_quietly(temp_path)
 
 
 def _finite(value: float) -> float | None:
@@ -420,8 +419,7 @@ def _publish_claimed(
         publish_new_file(temp_path, output)
     except Exception:
         for path in written:
-            with suppress(OSError):
-                path.unlink(missing_ok=True)
+            unlink_quietly(path)
         raise
 
 

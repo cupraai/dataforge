@@ -9,11 +9,10 @@ import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffo
 import { SavedSnippetMenu } from "@/features/automation/components/SavedSnippetMenu";
 import { SyspromptPlacementMenu } from "@/features/automation/components/SyspromptPlacementMenu";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
-import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { VisionJobFooter } from "@/features/automation/components/VisionJobFooter";
 import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
 import { appendSnippet } from "@/features/automation/lib/appendSnippet";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
-import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 
 type Settings = JobSettingsByType["verify_captions"];
@@ -83,30 +82,16 @@ export function VerifyCaptionsDialog({
       }
       onClose={onCancel}
       footer={
-        <>
-          <ServiceStatus
-            service="vision"
-            state={vision.service}
-            address={vision.info?.baseUrl}
-            issue={vision.issue}
-          />
-          <DialogActions
-            confirmLabel={confirmLabel ?? "Start verify captions"}
-            busyLabel="Starting..."
-            onCancel={onCancel}
-          />
-        </>
+        <VisionJobFooter
+          vision={vision}
+          confirmLabel={confirmLabel ?? "Start verify captions"}
+          onCancel={onCancel}
+        />
       }
     >
       <AutomationModeSelector value={mode} disabled={busy} onChange={setMode} />
 
-      <ReasoningEffortSelector
-        value={effort.value}
-        levels={effort.levels}
-        loading={effort.loading}
-        disabled={mode === "instruct" || busy}
-        onChange={effort.onChange}
-      />
+      <ReasoningEffortSelector effort={effort} disabled={mode === "instruct" || busy} />
 
       <Checkbox
         label="Preserve thinking"

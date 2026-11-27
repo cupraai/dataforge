@@ -57,7 +57,7 @@
   }
 
   &__footer {
-    @include dialog-editor-footer;
+    @include dialog-chrome-footer(flex-start);
     justify-content: space-between;
     gap: 1rem;
   }

@@ -11,7 +11,6 @@ import {
   isTimedClip,
   lockedMessage,
   lockedTrackOf,
-  MIN_CLIP_SECONDS,
   rippleScope,
   trackById,
   trimClip,
@@ -21,6 +20,8 @@ import {
   type EditResult,
   type Project,
   type TrimEdge,
+  clipsUnderPlayhead,
+  NO_CLIP_UNDER_PLAYHEAD,
 } from "./timeline";
 
 /** Every pair of clips on one track that overlaps, keyed by their ids. */
@@ -187,15 +188,8 @@ export function rippleTrimToPlayhead(
   edge: TrimEdge,
 ): EditResult {
   const chosen = new Set(ids);
-  const under = project.clips.filter(
-    (clip) =>
-      clip.start + MIN_CLIP_SECONDS - EPSILON < time &&
-      time < clipEnd(clip) - MIN_CLIP_SECONDS + EPSILON &&
-      (chosen.size > 0 ? chosen.has(clip.id) : !trackById(project, clip.track_id)?.locked),
-  );
-  if (under.length === 0) {
-    return { error: "The playhead is not inside a clip to trim. Move it over the clip first." };
-  }
+  const under = clipsUnderPlayhead(project, chosen, time);
+  if (under.length === 0) return { error: NO_CLIP_UNDER_PLAYHEAD };
   const order = new Map(project.tracks.map((track, index) => [track.id, index]));
   under.sort((a, b) => (order.get(a.track_id) ?? 0) - (order.get(b.track_id) ?? 0));
   const groups = new Set(under.map((clip) => [...withLinked(project, [clip.id])].sort().join()));

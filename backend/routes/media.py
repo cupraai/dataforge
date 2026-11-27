@@ -325,14 +325,19 @@ def delete_media(
     return MediaDeleteResponse.model_validate(result)
 
 
+def _deleted_media_path(path: str) -> Path:
+    """Resolves the folder only: the file itself may be gone."""
+    requested = Path(path)
+    media = resolve_folder(str(requested.parent)) / requested.name
+    if media.suffix.lower() not in GALLERY_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Not a supported media file")
+    return media
+
+
 @router.post("/media/cleanup", response_model=MediaDeleteResponse)
 def clean_up_after_delete(body: MediaCleanupRequest) -> MediaDeleteResponse:
     """Such as a caption another program held."""
-    requested = Path(body.path)
-    folder = resolve_folder(str(requested.parent))
-    media = folder / requested.name
-    if media.suffix.lower() not in GALLERY_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Not a supported media file")
+    media = _deleted_media_path(body.path)
     try:
         files = [normalize_user_path(raw) for raw in body.files]
         return MediaDeleteResponse.model_validate(delete_leftovers(media, files))
@@ -345,11 +350,7 @@ def clean_up_after_delete(body: MediaCleanupRequest) -> MediaDeleteResponse:
 @router.post("/media/restore", response_model=MediaRestoreResponse)
 def restore_deleted_media(body: MediaRestoreRequest) -> MediaRestoreResponse:
     """Restore a deleted file and its own sidecars from the Recycle Bin."""
-    requested = Path(body.path)
-    folder = resolve_folder(str(requested.parent))
-    media = folder / requested.name
-    if media.suffix.lower() not in GALLERY_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Not a supported media file")
+    media = _deleted_media_path(body.path)
     try:
         files = [normalize_user_path(raw) for raw in body.files]
     except ValueError as exc:
@@ -410,13 +411,16 @@ def preview_transfer_media(
     )
 
 
+_DESTINATION_QUERY = Query(..., description="Absolute path to destination folder")
+_OVERWRITE_QUERY = Query(
+    False, description="Replace files that already exist in the destination folder"
+)
+
+
 @router.post("/media/move", response_model=MediaTransferResponse)
 def move_media(
-    destination: str = Query(..., description="Absolute path to destination folder"),
-    overwrite: bool = Query(
-        False,
-        description="Replace files that already exist in the destination folder",
-    ),
+    destination: str = _DESTINATION_QUERY,
+    overwrite: bool = _OVERWRITE_QUERY,
     body: MediaTransferRequest = ...,
 ) -> MediaTransferResponse:
     return _transfer(destination, body.paths, mode="move", overwrite=overwrite)
@@ -424,11 +428,8 @@ def move_media(
 
 @router.post("/media/copy", response_model=MediaTransferResponse)
 def copy_media(
-    destination: str = Query(..., description="Absolute path to destination folder"),
-    overwrite: bool = Query(
-        False,
-        description="Replace files that already exist in the destination folder",
-    ),
+    destination: str = _DESTINATION_QUERY,
+    overwrite: bool = _OVERWRITE_QUERY,
     body: MediaTransferRequest = ...,
 ) -> MediaTransferResponse:
     return _transfer(destination, body.paths, mode="copy", overwrite=overwrite)
@@ -758,21 +759,23 @@ def _audio_proxy_file(path: str, original: bool, noise_reduction: float, pitch: 
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-_PROXY_NOISE_DESCRIPTION = "Noise reduction strength, 0 to 1"
-_PROXY_PITCH_DESCRIPTION = "Pitch move in semitones"
+_PROXY_PATH_QUERY = Query(..., description="Absolute path to an audio or video file")
+_PROXY_NOISE_QUERY = Query(0.0, ge=0.0, le=1.0, description="Noise reduction strength, 0 to 1")
+_PROXY_PITCH_QUERY = Query(
+    0,
+    ge=-AUDIO_PITCH_MAX_SEMITONES,
+    le=AUDIO_PITCH_MAX_SEMITONES,
+    description="Pitch move in semitones",
+)
+_PROXY_ORIGINAL_QUERY = Query(False, description=_ORIGINAL_DESCRIPTION)
 
 
 @router.get("/media/audio-proxy")
 def serve_audio_proxy(
-    path: str = Query(..., description="Absolute path to an audio or video file"),
-    noise_reduction: float = Query(0.0, ge=0.0, le=1.0, description=_PROXY_NOISE_DESCRIPTION),
-    pitch: int = Query(
-        0,
-        ge=-AUDIO_PITCH_MAX_SEMITONES,
-        le=AUDIO_PITCH_MAX_SEMITONES,
-        description=_PROXY_PITCH_DESCRIPTION,
-    ),
-    original: bool = Query(False, description=_ORIGINAL_DESCRIPTION),
+    path: str = _PROXY_PATH_QUERY,
+    noise_reduction: float = _PROXY_NOISE_QUERY,
+    pitch: int = _PROXY_PITCH_QUERY,
+    original: bool = _PROXY_ORIGINAL_QUERY,
     v: str | None = Query(None, description="Client cache-busting token"),
 ) -> Response:
     proxy = _audio_proxy_file(path, original, noise_reduction, pitch)
@@ -784,15 +787,10 @@ def serve_audio_proxy(
 
 @router.post("/media/audio-proxy", status_code=204)
 def prepare_audio_proxy(
-    path: str = Query(..., description="Absolute path to an audio or video file"),
-    noise_reduction: float = Query(0.0, ge=0.0, le=1.0, description=_PROXY_NOISE_DESCRIPTION),
-    pitch: int = Query(
-        0,
-        ge=-AUDIO_PITCH_MAX_SEMITONES,
-        le=AUDIO_PITCH_MAX_SEMITONES,
-        description=_PROXY_PITCH_DESCRIPTION,
-    ),
-    original: bool = Query(False, description=_ORIGINAL_DESCRIPTION),
+    path: str = _PROXY_PATH_QUERY,
+    noise_reduction: float = _PROXY_NOISE_QUERY,
+    pitch: int = _PROXY_PITCH_QUERY,
+    original: bool = _PROXY_ORIGINAL_QUERY,
 ) -> Response:
     """So the preview switches without a stall."""
     _audio_proxy_file(path, original, noise_reduction, pitch)

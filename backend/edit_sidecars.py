@@ -20,7 +20,12 @@ from constants import (
     EDIT_TEMP_SUFFIX,
     FILL_ASSETS_SUFFIX,
 )
-from file_publish import copy_creation_time, publish_replacing, sweep_publish_leftovers
+from file_publish import (
+    copy_creation_time,
+    publish_replacing,
+    sweep_publish_leftovers,
+    unlink_quietly,
+)
 from file_trash import delete_path
 from file_write import write_text_atomic
 from media_claims import holds_claim, is_claimed
@@ -208,8 +213,7 @@ def begin_edit(media: Path) -> EditStart:
             shutil.copy2(media, pending)
             os.replace(pending, backup)
         finally:
-            with suppress(OSError):
-                pending.unlink(missing_ok=True)
+            unlink_quietly(pending)
 
     return EditStart(source=backup, adopted=adopted)
 
@@ -231,13 +235,9 @@ def restore_backup(media: Path) -> bool:
         _keep_creation_time(media, temp_path)
         publish_replacing(temp_path, media, stale_path_for(media))
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
-    with suppress(OSError):
-        backup.unlink(missing_ok=True)
-    with suppress(OSError):
-        edit_spec_path(media).unlink(missing_ok=True)
-    with suppress(OSError):
-        fill_assets_path(media).unlink(missing_ok=True)
+    unlink_quietly(backup)
+    unlink_quietly(edit_spec_path(media))
+    unlink_quietly(fill_assets_path(media))
     return True

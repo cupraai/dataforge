@@ -1,4 +1,4 @@
-import { requestJson } from "@/shared/api/http";
+import { postJson, requestJson } from "@/shared/api/http";
 import { mediaUrl } from "@/features/gallery/api/media";
 import { serverEventsTabId } from "@/shared/api/eventStream";
 import type {
@@ -43,11 +43,7 @@ export async function applyAudioEdit(
   spec: AudioEditSpec,
 ): Promise<AudioEditResponse> {
   const params = new URLSearchParams({ path: mediaPath, tab: serverEventsTabId() });
-  return requestJson<AudioEditResponse>(`/api/media/audio-edit?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
-  });
+  return postJson<AudioEditResponse>(`/api/media/audio-edit?${params}`, spec);
 }
 
 /** Loudness before the level stage, so the preview plays a normalize at the render's gain. */
@@ -57,10 +53,7 @@ export async function measureAudioLoudness(
   signal?: AbortSignal,
 ): Promise<AudioLoudnessResponse> {
   const params = new URLSearchParams({ path: mediaPath });
-  return requestJson<AudioLoudnessResponse>(`/api/media/audio-edit/loudness?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
+  return postJson<AudioLoudnessResponse>(`/api/media/audio-edit/loudness?${params}`, spec, {
     signal,
   });
 }

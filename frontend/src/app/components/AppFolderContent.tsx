@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { FolderErrorState } from "@/features/folder/components/FolderErrorState";
 import { FolderLoadingState } from "@/features/folder/components/FolderLoadingState";
 import { FolderGrid } from "@/features/folder/components/FolderGrid";
+import type { FolderDropZone } from "@/features/folder/hooks/useFolderFileDrop";
 import { Gallery } from "@/features/gallery/components/Gallery";
 import { GalleryBadgeMenu } from "@/features/gallery/components/GalleryBadgeMenu";
 import { GalleryDisplayMenu } from "@/features/gallery/components/GalleryDisplayMenu";
@@ -48,17 +49,7 @@ type AppFolderContentProps = {
   searchQuery?: string;
   displayMode: GalleryDisplayMode;
   onDisplayModeChange: (value: GalleryDisplayMode) => void;
-  fileDrop: FileDropState;
-};
-
-type FileDropState = {
-  enabled: boolean;
-  active: boolean;
-  folderLabel: string;
-  onDragEnter: (event: React.DragEvent) => void;
-  onDragOver: (event: React.DragEvent) => void;
-  onDragLeave: (event: React.DragEvent) => void;
-  onDrop: (event: React.DragEvent) => void;
+  fileDrop: FolderDropZone;
 };
 
 export function AppFolderContent({

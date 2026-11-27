@@ -7,13 +7,17 @@ servers do not report a template, so their levels stay unknown and every level i
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 import openai
 
+from automation.llm import ModelSettings, model_client
 from chat_template import nearest_effort, template_efforts
+from openai_settings import get_openai_model
 from schemas import ReasoningEffort
 
 logger = logging.getLogger(__name__)
@@ -124,3 +128,14 @@ def resolve_reasoning_effort(client: Any, effort: str, *, mode: str, model: str)
     if resolved != effort:
         logger.info("%s has no %s reasoning effort; sending %s", served.model, effort, resolved)
     return resolved
+
+
+@contextmanager
+def model_session(
+    model: str | None, *, mode: str, reasoning_effort: str, preserve_thinking: bool
+) -> Generator[tuple[Any, ModelSettings]]:
+    """A job's client, and the settings each of its requests sends."""
+    resolved_model = model if model is not None else get_openai_model()
+    with model_client() as client:
+        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
+        yield client, ModelSettings(resolved_model, mode, effort, preserve_thinking)

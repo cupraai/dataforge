@@ -8,7 +8,7 @@ import { makeItem } from "@/test/galleryItemDialog";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import * as api from "@/features/videoEditor/api/videoProjects";
-import { restingAdjust } from "@/features/videoEditor/lib/timeline";
+
 import { SOURCE_DRAG_TYPE, TIMELINE_ORIGIN_PX } from "./Timeline";
 import { VideoEditorWorkspace } from "./VideoEditorWorkspace";
 import type {
@@ -23,6 +23,7 @@ import type {
   startVideoProjectExport,
   suggestVideoProjectAdjust,
 } from "@/features/videoEditor/api/videoProjects";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 vi.mock("@/features/videoEditor/api/videoProjects", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
@@ -58,7 +59,7 @@ function clip(id: string, track: string, kind: VideoProjectClip["kind"]): VideoP
     transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
     crop: null,
     fit: "fit",
-    adjust: restingAdjust(),
+    adjust: { ...RESTING_ADJUST },
     gain: 1,
     fade_in: 0,
     fade_out: 0,
@@ -471,7 +472,7 @@ describe("VideoEditorWorkspace", () => {
   it("lets Auto read the clip's take and adds its suggestion, then takes it back off", async () => {
     const user = userEvent.setup();
     const suggest = vi.mocked(api.suggestVideoProjectAdjust).mockResolvedValue({
-      suggestion: { ...restingAdjust(), exposure: 0.4 },
+      suggestion: { ...{ ...RESTING_ADJUST }, exposure: 0.4 },
     });
     renderEditor();
     await screen.findByRole("button", { name: "Back to gallery" });

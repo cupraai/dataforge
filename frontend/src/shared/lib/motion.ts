@@ -5,7 +5,6 @@ export const DURATION_BASE_MS = 200;
 export const DURATION_MODERATE_MS = 260;
 export const EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
 export const EASE_EMPHASIZED = "cubic-bezier(0.22, 1, 0.36, 1)";
-export const EASE_EXIT = "cubic-bezier(0.4, 0, 1, 1)";
 /** One step of a staggered entrance, and the most steps any list staggers. */
 export const STAGGER_STEP_MS = 18;
 export const STAGGER_MAX = 12;

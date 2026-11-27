@@ -31,6 +31,7 @@ import {
   EFFECT_PRESETS,
   adjustRange,
   isAdjustIdentity,
+  RESTING_ADJUST,
   type AdjustTool,
 } from "@/features/gallery/lib/colorAdjust";
 import { rescaleAuto, withoutAuto } from "@/features/gallery/lib/autoAdjust";
@@ -43,7 +44,6 @@ import {
   MIN_CLIP_SECONDS,
   nextNeighbour,
   projectDuration,
-  restingAdjust,
   sourceById,
   transitionOverlap,
   type Clip,
@@ -826,7 +826,7 @@ function ColorPanel({
   autoPending: boolean;
   onAuto: () => void;
 }) {
-  const resting = restingAdjust();
+  const resting = { ...RESTING_ADJUST };
   const auto = clip.auto_adjust ?? null;
   const set = (tool: AdjustTool, value: number, final: boolean) =>
     onEdit({ adjust: { ...clip.adjust, [tool]: value } }, final);
@@ -839,7 +839,7 @@ function ColorPanel({
       action={
         <ResetButton
           label="Reset color"
-          onClick={() => onEdit({ adjust: restingAdjust(), auto_adjust: null }, true)}
+          onClick={() => onEdit({ adjust: { ...RESTING_ADJUST }, auto_adjust: null }, true)}
         />
       }
     >

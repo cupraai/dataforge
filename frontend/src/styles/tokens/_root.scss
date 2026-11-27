@@ -33,7 +33,6 @@
   --danger-soft: rgba(252, 165, 165, 0.12);
   --danger-border: rgba(252, 165, 165, 0.25);
   --danger-deep: #c45a5a;
-  --danger-hover: rgba(252, 165, 165, 0.22);
   --surface-hover: rgba(255, 255, 255, 0.05);
   --overlay: rgba(0, 0, 0, 0.45);
   --dialog-backdrop: rgba(0, 0, 0, 0.62);
@@ -208,13 +207,7 @@
 
   --space-0_5: #{$space-0_5};
   --space-1: #{$space-1};
-  --space-1_5: #{$space-1_5};
   --space-2: #{$space-2};
-  --space-3: #{$space-3};
-  --space-4: #{$space-4};
-  --space-5: #{$space-5};
-  --space-6: #{$space-6};
-  --space-8: #{$space-8};
 
   --font-sans: #{$font-sans};
   --font-mono: #{$font-mono};

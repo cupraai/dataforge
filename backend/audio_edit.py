@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -26,8 +25,9 @@ from edit_sidecars import (
     restore_backup,
     temp_path_for,
 )
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import ProgressCallback, ShouldCancel, run_ffmpeg
+from ffmpeg_bin import require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, ProgressCallback, ShouldCancel, run_ffmpeg
+from file_publish import unlink_quietly
 from media_claims import claim
 from schemas import AudioEditResponse, AudioEditSpec
 from video_edit import IDENTITY_EPSILON, atempo_chain
@@ -173,7 +173,7 @@ def build_audio_edit_command(
 ) -> list[str]:
     """``tagged`` is the original, whose tags and cover go on even when ``source`` is a proxy."""
     command = [
-        *(executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "error"),
+        *(executable, *FFMPEG_QUIET_ARGS),
         *("-progress", "pipe:1", "-y", "-i", str(source)),
     ]
     tags = 0
@@ -210,9 +210,7 @@ def measure_loudness(
     original: Path, spec: AudioEditSpec, *, ffmpeg: str | None = None
 ) -> float | None:
     """Integrated LUFS before the level stage; ``None`` for silence."""
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
     source = _render_source(executable, original, spec)
     probe = probe_audio(executable, original)
     output_seconds = expected_output_seconds(spec, probe.duration)
@@ -267,9 +265,7 @@ def _apply_claimed(
     on_progress: ProgressCallback | None,
     should_cancel: ShouldCancel,
 ) -> AudioEditResponse:
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
 
     muxer = resolve_muxer(media)
     check_audio_filters(executable, spec.effects, pitch=spec.pitch)
@@ -315,8 +311,7 @@ def _apply_claimed(
         )
         publish_with_spec(temp_path, media, spec)
     finally:
-        with suppress(OSError):
-            temp_path.unlink(missing_ok=True)
+        unlink_quietly(temp_path)
 
     return describe_edited(media, has_backup=True, replaced_externally=start.adopted)
 

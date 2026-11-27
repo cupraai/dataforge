@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import { makeClip, makeProject, makeSource, makeTrack } from "@/test/videoProject";
 import { copyClips, pasteAttributes, pastableGroups, pasteClips } from "./clipboard";
-import { restingAdjust, type Clip, type Project } from "./timeline";
+import { type Clip, type Project } from "./timeline";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
-const graded = { ...restingAdjust(), saturation: -0.3 };
+const graded = { ...{ ...RESTING_ADJUST }, saturation: -0.3 };
 
 function edit(): Project {
   return makeProject({
@@ -106,7 +107,7 @@ describe("paste attributes", () => {
     expect(sound.effect).toBeFalsy();
     expect(still.fade_in).toBe(0.2);
     expect(still.transform.scale).toBe(1);
-    expect(sound.adjust).toEqual(restingAdjust());
+    expect(sound.adjust).toEqual({ ...RESTING_ADJUST });
     expect(sound.fade_in).toBe(0.2);
   });
 

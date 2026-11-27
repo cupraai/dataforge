@@ -37,7 +37,6 @@ function makeEdit(overrides: Partial<VideoEdit> = {}): VideoEdit {
     cropActive: false,
     maskActive: false,
     selectedMaskId: null,
-    selectedMask: null,
     maskMode: DEFAULT_MASK_MODE,
     maskStrength: DEFAULT_MASK_STRENGTH,
     maskLimitReached: false,

@@ -256,6 +256,17 @@ def _selected_paths(params: dict[str, object]) -> list[Path] | None:
     return selected if isinstance(selected, list) else None
 
 
+def _with_selection(
+    validate: Callable[[Path, list[Path] | None], None],
+) -> Callable[..., None]:
+    """Adapt a ``(folder, selected_paths)`` validator to the spec signature."""
+
+    def validate_selection(folder: Path, **params: object) -> None:
+        validate(folder, _selected_paths(params))
+
+    return validate_selection
+
+
 def _validate_rename_media(folder: Path, **params: object) -> None:
     validate_rename_media_folder(
         folder,
@@ -297,22 +308,6 @@ def _validate_watermark(folder: Path, **params: object) -> None:
         image_position=str(params.get("image_position", DEFAULT_WATERMARK_IMAGE_POSITION)),
         selected_paths=_selected_paths(params),
     )
-
-
-def _validate_auto_adjust(folder: Path, **params: object) -> None:
-    validate_auto_adjust_folder(folder, _selected_paths(params))
-
-
-def _validate_resize(folder: Path, **params: object) -> None:
-    validate_resize_folder(folder, _selected_paths(params))
-
-
-def _validate_split_video(folder: Path, **params: object) -> None:
-    validate_split_video_folder(folder, _selected_paths(params))
-
-
-def _validate_trim_video(folder: Path, **params: object) -> None:
-    validate_trim_video_folder(folder, _selected_paths(params))
 
 
 def _comfy_inputs(params: dict[str, object]) -> dict[str, object]:
@@ -517,25 +512,25 @@ JOB_SPECS: dict[JobType, JobSpec] = {
         thread_prefix="auto-adjust",
         run=run_auto_adjust_job,
         failure_message=auto_adjust_error_message,
-        validate=_validate_auto_adjust,
+        validate=_with_selection(validate_auto_adjust_folder),
     ),
     "resize": JobSpec(
         thread_prefix="resize",
         run=run_resize_job,
         failure_message=resize_error_message,
-        validate=_validate_resize,
+        validate=_with_selection(validate_resize_folder),
     ),
     "split_video": JobSpec(
         thread_prefix="split-video",
         run=run_split_video_job,
         failure_message=split_video_error_message,
-        validate=_validate_split_video,
+        validate=_with_selection(validate_split_video_folder),
     ),
     "trim_video": JobSpec(
         thread_prefix="trim-video",
         run=run_trim_video_job,
         failure_message=trim_video_error_message,
-        validate=_validate_trim_video,
+        validate=_with_selection(validate_trim_video_folder),
     ),
     "comfy_run": JobSpec(
         thread_prefix="comfy-run",
@@ -716,14 +711,13 @@ class JobManager:
 
     def queue_job(self, job_type: JobType, folder: Path, **params: object) -> Job:
         """``params`` go to the runner; validated now and again when a queued job starts."""
-        spec = JOB_SPECS[job_type]
         folder = resolve_path(folder.expanduser())
-        spec.validate(folder, **params)
+        JOB_SPECS[job_type].validate(folder, **params)
 
-        job, start_now = self._register_job(spec, folder, job_type, params)
+        jobs, start_now = self._register_jobs(folder, [(job_type, params)])
         if start_now is not None:
             self._spawn_worker(start_now)
-        return job
+        return jobs[0]
 
     def queue_workflow(
         self,
@@ -804,9 +798,7 @@ class JobManager:
             self.cancel_job(job_id)
 
         with self._lock:
-            self._jobs.pop(job_id, None)
-            self._cancel_flags.pop(job_id, None)
-            self._published.pop(job_id, None)
+            self._forget_unlocked(job_id)
             self._deleted_ids.add(job_id)
             deleted_store = jobs_store.delete_job(job_id)
             self._publish_removed([job_id])
@@ -817,9 +809,7 @@ class JobManager:
         with self._lock:
             pruned = jobs_store.prune_finished_jobs(days)
             for job_id in pruned:
-                self._jobs.pop(job_id, None)
-                self._cancel_flags.pop(job_id, None)
-                self._published.pop(job_id, None)
+                self._forget_unlocked(job_id)
             if pruned:
                 self._publish_removed(pruned)
         return len(pruned)
@@ -888,17 +878,6 @@ class JobManager:
             daemon=True,
         )
         thread.start()
-
-    def _register_job(
-        self,
-        spec: JobSpec,
-        folder: Path,
-        job_type: JobType,
-        params: dict[str, object],
-    ) -> tuple[Job, _QueuedRun | None]:
-        """``None`` when it waits in the folder's queue."""
-        jobs, start_now = self._register_jobs(folder, [(job_type, params)])
-        return jobs[0], start_now
 
     def _register_jobs(
         self,
@@ -973,11 +952,14 @@ class JobManager:
                 and existing.job_type == job_type
                 and existing.status not in ACTIVE_STATUSES
             ):
-                self._jobs.pop(jid, None)
-                self._cancel_flags.pop(jid, None)
-                self._published.pop(jid, None)
+                self._forget_unlocked(jid)
 
         return job, _QueuedRun(spec, job_id, folder, cancel_event, params)
+
+    def _forget_unlocked(self, job_id: str) -> None:
+        self._jobs.pop(job_id, None)
+        self._cancel_flags.pop(job_id, None)
+        self._published.pop(job_id, None)
 
     def _discard_unsaved_unlocked(self, jobs: list[Job]) -> None:
         """Drop a registration whose save failed; a kept job would hold its folder forever."""

@@ -157,7 +157,7 @@ class VideoTests(unittest.TestCase):
             media = write_mp4_video(root)
             write_edit_spec(media, VideoEditSpec(trim_start=1.0, scale=0.5))
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_resize_job(root, megapixels=2.0, multiple=32, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["video_success"], 1)
@@ -170,7 +170,7 @@ class VideoTests(unittest.TestCase):
         with TempMediaFolder() as root:
             write_mp4_video(root)
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 run_resize_job(root, megapixels=2.0, multiple=32, frame_rate=16, ffmpeg="ffmpeg")
 
             self.assertEqual(apply.call_args.args[1].frame_rate, 16)
@@ -181,7 +181,7 @@ class VideoTests(unittest.TestCase):
             fit = SizeFit(megapixels=2.0, multiple=32)
             write_edit_spec(media, VideoEditSpec(fit=fit, frame_rate=24))
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 changed = run_resize_job(
                     root, megapixels=2.0, multiple=32, frame_rate=16, ffmpeg="ffmpeg"
                 )
@@ -199,7 +199,7 @@ class VideoTests(unittest.TestCase):
             fit = SizeFit(megapixels=2.0, multiple=32)
             write_edit_spec(media, VideoEditSpec(fit=fit, frame_rate=16))
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 run_resize_job(root, megapixels=2.0, multiple=32, reset_size=True, ffmpeg="ffmpeg")
 
             self.assertEqual(
@@ -211,7 +211,8 @@ class VideoTests(unittest.TestCase):
             media = write_mp4_video(root)
 
             with patch(
-                "automation.resize.apply_video_edit", side_effect=RuntimeError("ffmpeg failed")
+                "automation.edit_spec_job.apply_video_edit",
+                side_effect=RuntimeError("ffmpeg failed"),
             ):
                 result = run_resize_job(root, megapixels=2.0, multiple=32, ffmpeg="ffmpeg")
 
@@ -223,7 +224,7 @@ class VideoTests(unittest.TestCase):
             write_mp4_video(root, "first.mp4")
             write_mp4_video(root, "second.mp4")
 
-            with patch("automation.resize.apply_video_edit", side_effect=FfmpegCancelled):
+            with patch("automation.edit_spec_job.apply_video_edit", side_effect=FfmpegCancelled):
                 result = run_resize_job(root, megapixels=2.0, multiple=32, ffmpeg="ffmpeg")
 
             self.assertEqual(result["stats"]["cancelled"], 2)
@@ -235,7 +236,7 @@ class VideoTests(unittest.TestCase):
             fit = SizeFit(megapixels=2.0, multiple=32)
             write_edit_spec(media, VideoEditSpec(trim_start=1.0, fit=fit))
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_resize_job(
                     root, megapixels=2.0, multiple=32, reset_size=True, ffmpeg="ffmpeg"
                 )
@@ -253,7 +254,7 @@ class VideoTests(unittest.TestCase):
             media.write_bytes(b"rendered")
             write_edit_spec(media, VideoEditSpec(fit=SizeFit(megapixels=2.0, multiple=32)))
 
-            with patch("automation.resize.apply_video_edit") as apply:
+            with patch("automation.edit_spec_job.apply_video_edit") as apply:
                 result = run_resize_job(
                     root, megapixels=2.0, multiple=32, reset_size=True, ffmpeg="ffmpeg"
                 )

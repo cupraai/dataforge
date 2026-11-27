@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from caption_rules import CaptionRuleChecker, cap_rule_findings, load_caption_rules_for
 from captions import (
     CAPTION_READ_ERROR,
@@ -19,8 +19,7 @@ def list_check_caption_rules_media(folder: Path) -> list[Path]:
 
 
 def validate_check_caption_rules_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     load_caption_rules_for(folder)
 

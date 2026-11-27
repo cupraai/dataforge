@@ -29,9 +29,6 @@ FILL_TEMPLATES: dict[FillPreset, str] = {
     "quality": "qwen21_fill_quality",
 }
 
-#: In the order the editor offers them.
-FILL_PRESET_LABELS: dict[FillPreset, str] = {"fast": "Fast", "quality": "Quality"}
-
 STEPS_INPUT = "Steps"
 SAMPLER_CLASS = "KSampler"
 CFG_INPUT = "cfg"

@@ -28,7 +28,7 @@ from automation.auto_caption import (
     validate_auto_caption_folder,
 )
 from automation.job_messages import auto_caption_failure_message
-from automation.llm import INSTRUCT_THINK_PREFILL, MAX_MODEL_ATTEMPTS
+from automation.llm import INSTRUCT_THINK_PREFILL, MAX_MODEL_ATTEMPTS, ModelSettings
 from automation.vision import VIDEO_KEYFRAME_COUNT, MediaFrames, load_media_images
 from testing_fixtures import (
     FakeChatClient,
@@ -124,7 +124,11 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
             client = FakeChatClient("A polished video caption.")
 
             caption = complete_caption(
-                client, video, "Video system prompt", "Draft video caption", images=frames
+                client,
+                video,
+                "Video system prompt",
+                "Draft video caption",
+                frames=MediaFrames(images=frames),
             )
 
         self.assertEqual(caption, "A polished video caption.")
@@ -142,8 +146,10 @@ class AutoCaptionVideoUnitTests(unittest.TestCase):
                 media,
                 "System prompt",
                 "Draft",
-                images=[Image.new("RGB", (64, 64)) for _ in range(2)],
-                timestamps=[0.0, 239 / 30],
+                frames=MediaFrames(
+                    images=[Image.new("RGB", (64, 64)) for _ in range(2)],
+                    timestamps=[0.0, 239 / 30],
+                ),
             )
 
         self.assertIn("8.0 seconds", _user_text(client))
@@ -157,7 +163,7 @@ class AutoCaptionGifTests(unittest.TestCase):
             assert isinstance(frames, MediaFrames)
             client = FakeChatClient("A polished GIF caption.")
 
-            complete_caption(client, media, "System prompt", "Draft", images=frames.images)
+            complete_caption(client, media, "System prompt", "Draft", frames=frames)
 
         self.assertIn("Caption the image", _user_text(client))
         self.assertNotIn("keyframes", _user_text(client))
@@ -488,8 +494,10 @@ class AutoCaptionAudioRequestTests(unittest.TestCase):
             media,
             "Video system prompt",
             "Draft.",
-            images=[Image.new("RGB", (128, 128), color="blue") for _ in range(3)],
-            mode=mode,
+            frames=MediaFrames(
+                images=[Image.new("RGB", (128, 128), color="blue") for _ in range(3)]
+            ),
+            settings=ModelSettings(mode=mode),
             audio_wav=audio_wav,
         )
         return client

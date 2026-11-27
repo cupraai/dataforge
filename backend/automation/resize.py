@@ -4,27 +4,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
-from constants import IMAGE_EDIT_EXTENSIONS, VIDEO_EDIT_EXTENSIONS
+from automation.edit_spec_job import (
+    edit_job_files,
+    run_edit_spec_job,
+    save_image_spec,
+    save_video_spec,
+)
+from automation.job_runner import ProgressCallback
+from constants import VIDEO_EDIT_EXTENSIONS
 from edit_sidecars import original_path_for
 from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel
-from image_edit import apply_image_edit, fit_input_size, read_image_edit_spec, revert_image_edit
-from image_edit import is_identity_spec as is_identity_image_spec
-from image_io import ImageReadError, load_image_for_edit
+from ffmpeg_run import ShouldCancel
+from image_edit import fit_input_size, read_image_edit_spec
+from image_io import load_image_for_edit
 from schemas import ImageEditSpec, SizeFit, VideoEditSpec, VideoFrameRate
 from size_fit import fitted_size
-from video_edit import (
-    apply_video_edit,
-    cropped_frame_size,
-    is_identity_spec,
-    probe_source,
-    read_edit_spec,
-    revert_video_edit,
-)
-
-RESIZE_EXTENSIONS = IMAGE_EDIT_EXTENSIONS | VIDEO_EDIT_EXTENSIONS
+from video_edit import cropped_frame_size, probe_source, read_edit_spec
 
 
 class AlreadyResizedError(Exception):
@@ -35,16 +30,8 @@ class TooSmallToResizeError(Exception):
     """A side is shorter than one grid cell."""
 
 
-def list_resize_files(folder: Path) -> list[Path]:
-    return list_folder_media(folder, RESIZE_EXTENSIONS, order="mtime")
-
-
 def validate_resize_folder(folder: Path, selected_paths: list[Path] | None = None) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
-
-    if not filter_media_list(list_resize_files(folder), selected_paths):
-        raise ValueError("No JPG, PNG, WebP, BMP, MP4, MOV or M4V files found in folder")
+    edit_job_files(folder, selected_paths)
 
 
 def _with_fit[SpecT: (ImageEditSpec, VideoEditSpec)](
@@ -81,12 +68,7 @@ def resize_image(media: Path, fit: SizeFit, *, reset: bool = False) -> None:
         # EXIF orientation decides which side is the width.
         image, _, _ = load_image_for_edit(original_path_for(media))
         resized = _with_fit(spec, fit, fit_input_size(image.size, spec), even=False)
-
-    # Restore the original so the file no longer reads as edited.
-    if is_identity_image_spec(resized):
-        revert_image_edit(media)
-    else:
-        apply_image_edit(media, resized)
+    save_image_spec(media, resized)
 
 
 def resize_video(
@@ -115,11 +97,7 @@ def resize_video(
             resized = spec
         if retimed:
             resized = resized.model_copy(update={"frame_rate": frame_rate})
-
-    if is_identity_spec(resized):
-        revert_video_edit(media)
-    else:
-        apply_video_edit(media, resized, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
+    save_video_spec(media, resized, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
 
 
 def resize_file(
@@ -159,64 +137,23 @@ def run_resize_job(
     reset_size: bool = False,
     frame_rate: VideoFrameRate | None = None,
 ) -> dict[str, object]:
-    validate_resize_folder(folder, selected_paths)
-
     fit = SizeFit(megapixels=megapixels, multiple=multiple)
-    media_files = filter_media_list(list_resize_files(folder), selected_paths)
+    media_files = edit_job_files(folder, selected_paths)
     resolved_ffmpeg = ffmpeg or ffmpeg_path()
-
-    def process(media_path: Path) -> FileOutcome:
-        try:
-            kind = resize_file(
-                media_path,
-                fit,
-                reset=reset_size,
-                frame_rate=frame_rate,
-                ffmpeg=resolved_ffmpeg,
-                should_cancel=should_cancel,
-            )
-            return FileOutcome(status="success", stats={"success": 1, f"{kind}_success": 1})
-        except AlreadyResizedError:
-            return FileOutcome.counted("unchanged")
-        except FfmpegCancelled:
-            return FileOutcome.cancelled()
-        except TooSmallToResizeError as exc:
-            return FileOutcome.counted("skipped", exc)
-        except (ImageReadError, ValueError) as exc:
-            return FileOutcome.counted("read_error", exc)
-        except RuntimeError as exc:
-            return FileOutcome.counted("ffmpeg_error", exc)
-        except OSError as exc:
-            return FileOutcome.counted("write_error", exc)
-
-    return run_media_job(
+    return run_edit_spec_job(
         folder,
         media_files,
-        stats={
-            "total": len(media_files),
-            "success": 0,
-            "image_success": 0,
-            "video_success": 0,
-            "unchanged": 0,
-            "skipped": 0,
-            "busy": 0,
-            "read_error": 0,
-            "write_error": 0,
-            "ffmpeg_error": 0,
-            "cancelled": 0,
-        },
-        process=process,
+        lambda media: resize_file(
+            media,
+            fit,
+            reset=reset_size,
+            frame_rate=frame_rate,
+            ffmpeg=resolved_ffmpeg,
+            should_cancel=should_cancel,
+        ),
+        unchanged=AlreadyResizedError,
+        skipped=TooSmallToResizeError,
+        by_kind=True,
         on_progress=on_progress,
         should_cancel=should_cancel,
-        claim_activity="render",
-        # Sub-stats of success, which must not be counted twice.
-        processed_stat_keys=(
-            "success",
-            "unchanged",
-            "skipped",
-            "busy",
-            "read_error",
-            "write_error",
-            "ffmpeg_error",
-        ),
     )

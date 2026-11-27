@@ -161,6 +161,11 @@
     font-size: var(--text-sm);
     text-align: left;
     cursor: pointer;
+    transition:
+      --fade-bg var(--transition),
+      color var(--transition),
+      opacity var(--transition),
+      transform var(--transition);
     svg {
       width: 1rem;
       height: 1rem;
@@ -174,13 +179,35 @@
       @include fade-bg(var(--surface-hover));
       color: var(--text);
     }
-    @include drag-reorder-row(0.5rem, -1px);
-    // After the mixin, whose own list covers only the drag states.
-    transition:
-      --fade-bg var(--transition),
-      color var(--transition),
-      opacity var(--transition),
-      transform var(--transition);
+
+    &--dragging {
+      opacity: 0.5;
+      transform: scale(0.97);
+    }
+
+    &--drop-before,
+    &--drop-after {
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset-inline: 0.5rem;
+        height: 2px;
+        border-radius: 1px;
+        background: var(--accent);
+        pointer-events: none;
+        animation: drop-line-enter var(--transition) both;
+      }
+    }
+
+    &--drop-before::after {
+      top: -1px;
+    }
+
+    &--drop-after::after {
+      bottom: -1px;
+    }
     // The open folder's edge mark: the old row's shrinks as the new one's springs up.
     &::before {
       content: "";

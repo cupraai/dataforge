@@ -7,7 +7,6 @@ import math
 import re
 import subprocess
 import tempfile
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -23,8 +22,9 @@ from edit_sidecars import (
     restore_backup,
     temp_path_for,
 )
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import ProgressCallback, ShouldCancel, run_ffmpeg
+from ffmpeg_bin import require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, ProgressCallback, ShouldCancel, run_ffmpeg
+from file_publish import unlink_quietly
 from media_claims import claim
 from media_dimensions import media_dimensions
 from schemas import MaskRegion, VideoEditResponse, VideoEditSpec
@@ -539,11 +539,7 @@ def build_video_edit_command(
     ``-ss`` sits half a frame early; ``-t`` is the take less half a frame."""
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-progress",
         "pipe:1",
         "-y",
@@ -647,9 +643,7 @@ def _apply_claimed(
     should_cancel: ShouldCancel,
     probe: SourceProbe | None,
 ) -> VideoEditResponse:
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
 
     muxer = resolve_muxer(media)
     check_filters(executable, spec)
@@ -687,8 +681,7 @@ def _apply_claimed(
             )
             publish_with_spec(temp_path, media, spec)
         finally:
-            with suppress(OSError):
-                temp_path.unlink(missing_ok=True)
+            unlink_quietly(temp_path)
 
     return describe_edited(media, has_backup=True, replaced_externally=start.adopted)
 

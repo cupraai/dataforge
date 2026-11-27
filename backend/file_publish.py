@@ -122,6 +122,11 @@ def copy_creation_time(source: Path, target: Path) -> None:
     _copy_creation_time(source, target)
 
 
+def unlink_quietly(path: Path) -> None:
+    with suppress(OSError):
+        path.unlink(missing_ok=True)
+
+
 def publish_replacing(temp_path: Path, final_path: Path, stale_path: Path) -> None:
     """Windows refuses ``os.replace`` onto a streamed path, so the destination moves aside first."""
     try:
@@ -131,8 +136,7 @@ def publish_replacing(temp_path: Path, final_path: Path, stale_path: Path) -> No
         if not final_path.exists():
             raise
 
-    with suppress(OSError):
-        stale_path.unlink(missing_ok=True)
+    unlink_quietly(stale_path)
 
     os.replace(final_path, stale_path)
     try:
@@ -142,8 +146,7 @@ def publish_replacing(temp_path: Path, final_path: Path, stale_path: Path) -> No
             os.replace(stale_path, final_path)
         raise
 
-    with suppress(OSError):
-        stale_path.unlink(missing_ok=True)
+    unlink_quietly(stale_path)
 
 
 def sweep_publish_leftovers(

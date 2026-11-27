@@ -121,18 +121,27 @@ def describe_empty_completion(response: object) -> str:
     return ", ".join(details)
 
 
+@dataclass(frozen=True)
+class ModelSettings:
+    """How a job's requests ask the served model to answer; ``model`` None is the configured one."""
+
+    model: str | None = None
+    mode: str = "thinking"
+    effort: str | None = DEFAULT_REASONING_EFFORT
+    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING
+
+
+DEFAULT_MODEL_SETTINGS = ModelSettings()
+
+
 def run_chat_completion(
     client,
     messages: list[dict],
-    *,
-    mode: str,
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
-    model: str | None = None,
-    max_tokens: int | None = None,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
 ) -> str | None:
+    mode = settings.mode
     profile = get_sampling_profile(mode)
-    resolved_model = model if model is not None else get_openai_model()
+    resolved_model = settings.model if settings.model is not None else get_openai_model()
     outbound = messages
     if mode == "instruct":
         # Helps when extra_body kwargs are ignored.
@@ -142,14 +151,14 @@ def run_chat_completion(
         response = client.chat.completions.create(
             model=resolved_model,
             messages=outbound,
-            max_tokens=max_tokens if max_tokens is not None else get_max_tokens(),
+            max_tokens=get_max_tokens(),
             temperature=profile.temperature,
             top_p=profile.top_p,
             presence_penalty=profile.presence_penalty,
             extra_body=build_sampling_extra_body(
                 mode,
-                effort=effort,
-                preserve_thinking=preserve_thinking,
+                effort=settings.effort,
+                preserve_thinking=settings.preserve_thinking,
             ),
         )
     except Exception as exc:

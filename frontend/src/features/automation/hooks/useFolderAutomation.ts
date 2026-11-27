@@ -40,7 +40,6 @@ export function useFolderAutomation(
     folderJob,
     queuedJobs,
     startingJobType,
-    isStarting: startingJobType !== null,
     cancellingJob: folderJob ? cancellingJobId === folderJob.id : false,
     cancelFolderJob,
     startJob,

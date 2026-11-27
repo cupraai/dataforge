@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
   type ComponentProps,
-  type CSSProperties,
 } from "react";
 import {
   iconArrowLeft,
@@ -22,9 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker } from "@tanstack/react-router";
 import { formatApiError } from "@/shared/api/http";
 import { isEditableTarget, isTextEntryTarget } from "@/shared/lib/isEditableTarget";
-import { matchesShortcut, SHORTCUTS } from "@/shared/lib/shortcuts";
-import { readStoredJson, writeStored } from "@/shared/lib/storage";
-import { Dialog } from "@/shared/ui/Dialog";
+import { matchesShortcut, SHORTCUTS, type ShortcutDefinition } from "@/shared/lib/shortcuts";
 import { Icon } from "@/shared/ui/Icon";
 import { DialogShell } from "@/shared/ui/DialogShell";
 import { DialogNavigationContext } from "@/shared/ui/dialogNavigationContext";
@@ -33,16 +30,11 @@ import { useDialogNavigationDraft } from "@/shared/hooks/useDialogNavigationDraf
 import type {
   GalleryItem,
   VideoProjectDocument,
-  VideoProjectExportSettings,
-  VideoProjectExportSpan,
-  VideoProjectSource,
-  VideoProjectSourceInfo,
   VideoProjectSourceStatus,
   VideoProjectVersionSummary,
 } from "@/shared/types";
 import {
   deleteVideoProject,
-  makeCompatibleCopy,
   newVideoProject,
   openVideoProject,
   probeVideoProjectSource,
@@ -51,7 +43,6 @@ import {
   saveVideoProject,
   startVideoProject,
   suggestVideoProjectAdjust,
-  startVideoProjectExport,
 } from "@/features/videoEditor/api/videoProjects";
 import { folderPathsEqual } from "@/features/folder/lib/folderPath";
 import { withAuto, withoutAuto } from "@/features/gallery/lib/autoAdjust";
@@ -59,23 +50,22 @@ import type { VideoEditorRequest } from "@/features/videoEditor/context/VideoEdi
 import { EDITOR_ROUTE } from "@/features/videoEditor/lib/editorLocation";
 import { useMediaProblems, usePlayheadTime } from "@/features/videoEditor/hooks/usePlayhead";
 import { useAudioProxies } from "@/features/videoEditor/hooks/useAudioProxies";
-import { useVideoExports } from "@/features/videoEditor/hooks/useVideoExports";
+import { useEditorLayout } from "@/features/videoEditor/hooks/useEditorLayout";
+import { useProjectSources } from "@/features/videoEditor/hooks/useProjectSources";
+import { useProjectExport } from "@/features/videoEditor/hooks/useProjectExport";
 import { VIDEO_PROJECTS_QUERY_KEY } from "@/features/videoEditor/hooks/useVideoProjectList";
 import {
   useVideoProject,
   type VideoProjectState,
 } from "@/features/videoEditor/hooks/useVideoProject";
 import {
-  insertSource,
   nudgeClips,
-  replaceClip,
   setClipLength,
   setClipsLength,
   setClipStart,
   slipClip,
   trimToPlayhead,
   updateClips,
-  type ReplacePolicy,
 } from "@/features/videoEditor/lib/assembly";
 import {
   copyClips,
@@ -101,7 +91,6 @@ import {
   duplicateClips,
   linkClips,
   newId,
-  placeSource,
   projectDuration,
   removeDissolve,
   rippleDelete,
@@ -121,7 +110,8 @@ import { ClipInspector } from "./ClipInspector";
 import { DeleteVideoProjectDialog } from "./DeleteVideoProjectDialog";
 import { EditorTopBar } from "./EditorTopBar";
 import { ExportDialog } from "./ExportDialog";
-import { MediaBrowser, type MediaView } from "./MediaBrowser";
+import { LeaveUnsavedProjectDialog } from "./LeaveUnsavedProjectDialog";
+import { MediaBrowser } from "./MediaBrowser";
 import { MediaProblems } from "./MediaProblems";
 import { PasteAttributesDialog } from "./PasteAttributesDialog";
 import {
@@ -154,43 +144,6 @@ interface VideoEditorWorkspaceProps {
 const MESSAGE_MS = 7000;
 const ZOOM_STEP = 1.5;
 const EMPTY_FIT_SECONDS = 20;
-const LAYOUT_KEY = "video-editor-layout";
-
-interface Layout {
-  browser: number;
-  inspector: number;
-  timeline: number;
-  browserOpen: boolean;
-  inspectorOpen: boolean;
-  mediaView: MediaView;
-  guides: boolean;
-}
-
-const DEFAULT_LAYOUT: Layout = {
-  browser: 280,
-  inspector: 320,
-  timeline: 320,
-  browserOpen: true,
-  inspectorOpen: true,
-  mediaView: "grid",
-  guides: false,
-};
-
-function parseLayout(value: unknown): Layout | null {
-  if (!value || typeof value !== "object") return null;
-  const stored = value as Partial<Layout>;
-  const number = (key: "browser" | "inspector" | "timeline") =>
-    typeof stored[key] === "number" ? stored[key] : DEFAULT_LAYOUT[key];
-  return {
-    browser: number("browser"),
-    inspector: number("inspector"),
-    timeline: number("timeline"),
-    browserOpen: stored.browserOpen !== false,
-    inspectorOpen: stored.inspectorOpen !== false,
-    mediaView: stored.mediaView === "list" ? "list" : "grid",
-    guides: stored.guides === true,
-  };
-}
 
 /** Loads the starting project, then hands over to the session that edits it. */
 export function VideoEditorWorkspace({
@@ -338,38 +291,18 @@ function EditorSession({
   const [sourceItem, setSourceItem] = useState<GalleryItem | null>(null);
   const [sourceRange, setSourceRange] = useState<SourceRange>({ start: 0, end: null });
   const [browserTab, setBrowserTab] = useState<"media" | "projects">("media");
-  const [layout, setLayout] = useState<Layout>(() =>
-    readStoredJson(LAYOUT_KEY, parseLayout, DEFAULT_LAYOUT),
-  );
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exportBusy, setExportBusy] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const { layout, gridStyle, ...panes } = useEditorLayout();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [attributesOpen, setAttributesOpen] = useState(false);
-  const [converting, setConverting] = useState<ReadonlySet<string>>(new Set());
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [leaveRetrying, setLeaveRetrying] = useState(false);
-  const leaveRetryIdRef = useRef(0);
-  const cancelLeave = useCallback(() => {
-    leaveRetryIdRef.current++;
-    setLeaveRetrying(false);
-    setLeaveOpen(false);
-  }, []);
-  useEffect(
-    () => () => {
-      leaveRetryIdRef.current++;
-    },
-    [],
-  );
   const [menuOpen, setMenuOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [autoPending, setAutoPending] = useState<Set<string>>(new Set());
-  const [exportIds, setExportIds] = useState<string[]>([]);
   const timelineBoxRef = useRef<HTMLDivElement>(null);
   const sourceTransportRef = useRef<SourceTransport | null>(null);
-  const { exports, track, cancel, dismiss } = useVideoExports();
+  const projectExport = useProjectExport(state);
+  const latestExport = projectExport.latest;
   const queryClient = useQueryClient();
   const mediaProblems = useMediaProblems(engine);
 
@@ -377,7 +310,7 @@ function EditorSession({
   const parentSuspended = useContext(DialogSuspendedContext);
   const navigation = useContext(DialogNavigationContext);
   const dialogOpen =
-    exportOpen || settingsOpen || leaveOpen || deleteOpen || versionsOpen || attributesOpen;
+    projectExport.open || settingsOpen || leaveOpen || deleteOpen || versionsOpen || attributesOpen;
   const locations = useMemo(
     () => sourceLocations(state.sources, project.sources),
     [state.sources, project.sources],
@@ -393,9 +326,8 @@ function EditorSession({
     );
   }, [project.clips, state.sources]);
   const selectedClips = project.clips.filter((clip) => selection.has(clip.id));
-  // Read by edits that wait on the server, so they act on the latest project and selection.
+  // Read by edits that wait on the server, so they act on the latest project.
   const projectRef = useLatestRef(project);
-  const selectedClipsRef = useLatestRef(selectedClips);
   // Undo and redo can take away what is chosen; a choice never names a clip that is gone.
   const clipIds = useMemo(() => new Set(project.clips.map((clip) => clip.id)), [project.clips]);
   if ([...selection].some((id) => !clipIds.has(id))) {
@@ -416,8 +348,6 @@ function EditorSession({
     const timer = window.setTimeout(() => setMessage(null), MESSAGE_MS);
     return () => window.clearTimeout(timer);
   }, [message]);
-
-  useEffect(() => writeStored(LAYOUT_KEY, JSON.stringify(layout)), [layout]);
 
   const zoom = useCallback((value: number) => setPxPerSecond(clampZoom(value)), []);
 
@@ -612,97 +542,19 @@ function EditorSession({
     [engine],
   );
 
-  /** A source new to the project is recorded as found where it was just read. */
-  const noteSource = useCallback(
-    (next: Project | undefined, path: string, name: string) => {
-      const source = next?.sources.find((item) => item.name === name);
-      if (source && !state.sources.some((status) => status.source_id === source.id)) {
-        state.setSources([...state.sources, { source_id: source.id, state: "ok", path }]);
-      }
-    },
-    [state],
-  );
-
-  /** Insert, or a replacement of the one selected clip, from the source monitor's marks. */
-  const placeFromSource = useCallback(
-    async (mode: "insert" | ReplacePolicy) => {
-      if (!sourceItem) return;
-      const target = selectedClipsRef.current;
-      if (mode !== "insert" && target.length !== 1) {
-        setMessage("Select the one clip on the timeline to replace.");
-        return;
-      }
-      setBusy(true);
-      try {
-        const info = await probeVideoProjectSource(sourceItem.path);
-        const marks = { rangeIn: sourceRange.start, rangeOut: sourceRange.end ?? undefined };
-        const latest = projectRef.current;
-        if (mode === "insert") {
-          const time = snapToFrame(engine.currentTime, latest.frame_rate);
-          const result = insertSource(latest, { info, start: time, ...marks });
-          if (apply(result)) {
-            noteSource(result.project, info.path, info.name);
-            if (result.placed) setSelection(new Set(result.placed));
-            setPreviewMode("timeline");
-          }
-        } else {
-          const result = replaceClip(latest, target[0].id, { info, policy: mode, ...marks });
-          if (apply(result)) {
-            noteSource(result.project, info.path, info.name);
-            setPreviewMode("timeline");
-            if (result.note) setMessage(result.note);
-          }
-        }
-      } catch (caught) {
-        setMessage(formatApiError(caught));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [
-      apply,
-      engine,
-      noteSource,
-      projectRef,
-      selectedClipsRef,
-      setSelection,
-      sourceItem,
-      sourceRange,
-    ],
-  );
-
-  const addSource = useCallback(
-    async (path: string, start: number, trackId?: string, sourceRangeArg?: SourceRange) => {
-      setBusy(true);
-      try {
-        const info: VideoProjectSourceInfo = await probeVideoProjectSource(path);
-        const result = placeSource(project, {
-          info,
-          start,
-          trackId,
-          rangeIn: sourceRangeArg?.start,
-          rangeOut: sourceRangeArg?.end ?? undefined,
-        });
-        if (apply(result) && result.placed) {
-          const placedSource = result.project?.clips.find((clip) => clip.id === result.placed?.[0]);
-          const sourceId = placedSource?.source_id;
-          if (sourceId && !state.sources.some((status) => status.source_id === sourceId)) {
-            state.setSources([
-              ...state.sources,
-              { source_id: sourceId, state: "ok", path: info.path },
-            ]);
-          }
-          setSelection(new Set(result.placed));
-          setPreviewMode("timeline");
-        }
-      } catch (caught) {
-        setMessage(formatApiError(caught));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [apply, project, setSelection, state],
-  );
+  const sources = useProjectSources({
+    state,
+    projectRef,
+    selectedClips,
+    engine,
+    apply,
+    setSelection,
+    setPreviewMode,
+    setMessage,
+    sourceItem,
+    sourceRange,
+  });
+  const { addSource, resolveSource } = sources;
 
   /** Reads the clip's take of its source as it is now and composes the suggestion onto it. */
   const autoAdjustClip = useCallback(
@@ -800,62 +652,6 @@ function EditorSession({
     [engine, onOpenProject, setSelection, state],
   );
 
-  const resolveSource = useCallback(
-    async (sourceId: string, path: string) => {
-      setBusy(true);
-      try {
-        const info = await probeVideoProjectSource(path);
-        if (project.sources.some((item) => item.id !== sourceId && item.name === info.name)) {
-          setMessage(`${info.name} is already a source of this project; relink to another file.`);
-          return;
-        }
-        const relink = (source: VideoProjectSource): VideoProjectSource =>
-          source.id === sourceId
-            ? {
-                ...source,
-                name: info.name,
-                size: info.size,
-                modified_us: info.modified_us,
-                duration: info.duration ?? null,
-                width: info.width ?? null,
-                height: info.height ?? null,
-                frame_rate: info.frame_rate ?? null,
-                has_audio: info.has_audio,
-              }
-            : source;
-        state.amend((current) => ({ ...current, sources: current.sources.map(relink) }));
-        state.setSources(
-          state.sources.map((status) =>
-            status.source_id === sourceId ? { ...status, state: "ok", path: info.path } : status,
-          ),
-        );
-      } catch (caught) {
-        setMessage(formatApiError(caught));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [project, state],
-  );
-
-  /** Writes an H.264 copy of a source the browser cannot play, and relinks the project to it. */
-  const convertSource = useCallback(
-    async (sourceId: string) => {
-      const status = state.sources.find((item) => item.source_id === sourceId);
-      if (!status) return;
-      setConverting((current) => new Set([...current, sourceId]));
-      try {
-        const copy = await makeCompatibleCopy(status.path);
-        await resolveSource(sourceId, copy.path);
-      } catch (caught) {
-        setMessage(formatApiError(caught));
-      } finally {
-        setConverting((current) => new Set([...current].filter((id) => id !== sourceId)));
-      }
-    },
-    [resolveSource, state.sources],
-  );
-
   /** Saves a copy under a new id and name, then carries on editing the copy. */
   const duplicateProject = useCallback(async () => {
     if (!(await state.flush())) {
@@ -912,32 +708,6 @@ function EditorSession({
       ? "The timeline is empty."
       : null;
 
-  const startExport = useCallback(
-    async (settings: VideoProjectExportSettings, span: VideoProjectExportSpan | null) => {
-      // A part's own name is not kept as the project's export name.
-      const kept = span ? { ...settings, filename: state.project.export.filename } : settings;
-      const next = state.amend((current) => ({ ...current, export: kept }));
-      setExportBusy(true);
-      setExportError(null);
-      try {
-        const started = await startVideoProjectExport(
-          state.folder,
-          state.path,
-          { ...next, export: settings },
-          span,
-        );
-        track(started);
-        setExportIds((current) => [started.id, ...current]);
-        setExportOpen(false);
-      } catch (caught) {
-        setExportError(formatApiError(caught));
-      } finally {
-        setExportBusy(false);
-      }
-    },
-    [state, track],
-  );
-
   /** I and O on the timeline mark the range a ripple delete removes, like a source's in and out. */
   const markTimeline = useCallback(
     (edge: "in" | "out") => {
@@ -982,68 +752,69 @@ function EditorSession({
       source
         ? source.step(frames)
         : engine.seek(snapToFrame(engine.currentTime + frames * frame, project.frame_rate));
-    if (matchesShortcut(event, SHORTCUTS.editorPlayPause))
-      run(() => (source ? source.toggle() : engine.toggle()));
-    else if (matchesShortcut(event, SHORTCUTS.editorStepBack)) run(() => step(-1));
-    else if (matchesShortcut(event, SHORTCUTS.editorStepForward)) run(() => step(1));
-    else if (matchesShortcut(event, SHORTCUTS.editorGoToStart))
-      run(() => (source ? source.seekToEdge("start") : engine.seek(0)));
-    else if (matchesShortcut(event, SHORTCUTS.editorGoToEnd))
-      run(() => (source ? source.seekToEdge("end") : engine.seek(duration)));
-    else if (matchesShortcut(event, SHORTCUTS.editorPreviousEdit)) run(() => jump(-1));
-    else if (matchesShortcut(event, SHORTCUTS.editorNextEdit)) run(() => jump(1));
-    else if (matchesShortcut(event, SHORTCUTS.editorPreviousMarker)) run(() => jumpMarker(-1));
-    else if (matchesShortcut(event, SHORTCUTS.editorNextMarker)) run(() => jumpMarker(1));
-    else if (matchesShortcut(event, SHORTCUTS.editorAddMarker) && !source) run(markAtPlayhead);
-    else if (matchesShortcut(event, SHORTCUTS.editorMarkIn))
-      run(() => (source ? source.markIn() : markTimeline("in")));
-    else if (matchesShortcut(event, SHORTCUTS.editorMarkOut))
-      run(() => (source ? source.markOut() : markTimeline("out")));
-    else if (matchesShortcut(event, SHORTCUTS.editorClearMarks)) {
+    const clearMarks = () => {
       if (source) {
-        run(() => setSourceRange({ start: 0, end: null }));
-      } else if (range || selection.size > 0 || transitionId) {
-        run(() => {
-          setRange(null);
-          setSelectionState(new Set());
-          setTransitionId(null);
-        });
+        setSourceRange({ start: 0, end: null });
+        return;
       }
-    } else if (matchesShortcut(event, SHORTCUTS.editorSelectTool)) run(() => setTool("select"));
-    else if (matchesShortcut(event, SHORTCUTS.editorBladeTool)) run(() => setTool("blade"));
-    else if (matchesShortcut(event, SHORTCUTS.editorRangeTool)) run(() => setTool("range"));
-    else if (matchesShortcut(event, SHORTCUTS.editorRippleTool)) run(() => setTool("ripple"));
-    else if (matchesShortcut(event, SHORTCUTS.editorRollTool)) run(() => setTool("roll"));
-    else if (matchesShortcut(event, SHORTCUTS.editorSelectAll))
-      run(() => setSelection(new Set(project.clips.map((clip) => clip.id))));
-    else if (matchesShortcut(event, SHORTCUTS.editorSelectForward)) run(() => selectForward(false));
-    else if (matchesShortcut(event, SHORTCUTS.editorSelectForwardOnTracks))
-      run(() => selectForward(true));
-    else if (matchesShortcut(event, SHORTCUTS.editorSnapping)) run(() => setSnapping((on) => !on));
-    else if (matchesShortcut(event, SHORTCUTS.editorZoomIn))
-      run(() => zoom(pxPerSecond * ZOOM_STEP));
-    else if (matchesShortcut(event, SHORTCUTS.editorZoomOut))
-      run(() => zoom(pxPerSecond / ZOOM_STEP));
-    else if (matchesShortcut(event, SHORTCUTS.editorZoomFit)) run(fitTimeline);
-    else if (matchesShortcut(event, SHORTCUTS.editorSplit)) run(split);
-    else if (matchesShortcut(event, SHORTCUTS.editorRippleDelete)) run(ripple);
-    else if (matchesShortcut(event, SHORTCUTS.editorDelete)) run(deleteSelection);
-    else if (matchesShortcut(event, SHORTCUTS.editorDuplicate)) run(duplicate);
-    else if (matchesShortcut(event, SHORTCUTS.editorNudgeBack)) run(() => nudge(-1));
-    else if (matchesShortcut(event, SHORTCUTS.editorNudgeForward)) run(() => nudge(1));
-    else if (matchesShortcut(event, SHORTCUTS.editorTrimStart)) run(() => trimEdge("start"));
-    else if (matchesShortcut(event, SHORTCUTS.editorTrimEnd)) run(() => trimEdge("end"));
-    else if (matchesShortcut(event, SHORTCUTS.editorRippleTrimStart))
-      run(() => trimEdge("start", true));
-    else if (matchesShortcut(event, SHORTCUTS.editorRippleTrimEnd))
-      run(() => trimEdge("end", true));
-    // Copy and cut leave the browser's own text copy alone while no clip is chosen.
-    else if (matchesShortcut(event, SHORTCUTS.editorCopy) && selection.size > 0)
-      run(() => copySelection(false));
-    else if (matchesShortcut(event, SHORTCUTS.editorCut) && selection.size > 0)
-      run(() => copySelection(true));
-    else if (matchesShortcut(event, SHORTCUTS.editorPasteAttributes)) run(openPasteAttributes);
-    else if (matchesShortcut(event, SHORTCUTS.editorPaste)) run(() => void paste());
+      setRange(null);
+      setSelectionState(new Set());
+      setTransitionId(null);
+    };
+    // In priority order; a binding whose condition is false lets the key go on down the list.
+    const bindings: [ShortcutDefinition, () => void, boolean?][] = [
+      [SHORTCUTS.editorPlayPause, () => (source ? source.toggle() : engine.toggle())],
+      [SHORTCUTS.editorStepBack, () => step(-1)],
+      [SHORTCUTS.editorStepForward, () => step(1)],
+      [SHORTCUTS.editorGoToStart, () => (source ? source.seekToEdge("start") : engine.seek(0))],
+      [SHORTCUTS.editorGoToEnd, () => (source ? source.seekToEdge("end") : engine.seek(duration))],
+      [SHORTCUTS.editorPreviousEdit, () => jump(-1)],
+      [SHORTCUTS.editorNextEdit, () => jump(1)],
+      [SHORTCUTS.editorPreviousMarker, () => jumpMarker(-1)],
+      [SHORTCUTS.editorNextMarker, () => jumpMarker(1)],
+      [SHORTCUTS.editorAddMarker, markAtPlayhead, !source],
+      [SHORTCUTS.editorMarkIn, () => (source ? source.markIn() : markTimeline("in"))],
+      [SHORTCUTS.editorMarkOut, () => (source ? source.markOut() : markTimeline("out"))],
+      [
+        SHORTCUTS.editorClearMarks,
+        clearMarks,
+        Boolean(source || range || selection.size > 0 || transitionId),
+      ],
+      [SHORTCUTS.editorSelectTool, () => setTool("select")],
+      [SHORTCUTS.editorBladeTool, () => setTool("blade")],
+      [SHORTCUTS.editorRangeTool, () => setTool("range")],
+      [SHORTCUTS.editorRippleTool, () => setTool("ripple")],
+      [SHORTCUTS.editorRollTool, () => setTool("roll")],
+      [
+        SHORTCUTS.editorSelectAll,
+        () => setSelection(new Set(project.clips.map((clip) => clip.id))),
+      ],
+      [SHORTCUTS.editorSelectForward, () => selectForward(false)],
+      [SHORTCUTS.editorSelectForwardOnTracks, () => selectForward(true)],
+      [SHORTCUTS.editorSnapping, () => setSnapping((on) => !on)],
+      [SHORTCUTS.editorZoomIn, () => zoom(pxPerSecond * ZOOM_STEP)],
+      [SHORTCUTS.editorZoomOut, () => zoom(pxPerSecond / ZOOM_STEP)],
+      [SHORTCUTS.editorZoomFit, fitTimeline],
+      [SHORTCUTS.editorSplit, split],
+      [SHORTCUTS.editorRippleDelete, ripple],
+      [SHORTCUTS.editorDelete, deleteSelection],
+      [SHORTCUTS.editorDuplicate, duplicate],
+      [SHORTCUTS.editorNudgeBack, () => nudge(-1)],
+      [SHORTCUTS.editorNudgeForward, () => nudge(1)],
+      [SHORTCUTS.editorTrimStart, () => trimEdge("start")],
+      [SHORTCUTS.editorTrimEnd, () => trimEdge("end")],
+      [SHORTCUTS.editorRippleTrimStart, () => trimEdge("start", true)],
+      [SHORTCUTS.editorRippleTrimEnd, () => trimEdge("end", true)],
+      // Copy and cut leave the browser's own text copy alone while no clip is chosen.
+      [SHORTCUTS.editorCopy, () => copySelection(false), selection.size > 0],
+      [SHORTCUTS.editorCut, () => copySelection(true), selection.size > 0],
+      [SHORTCUTS.editorPasteAttributes, openPasteAttributes],
+      [SHORTCUTS.editorPaste, () => void paste()],
+    ];
+    const binding = bindings.find(
+      ([shortcut, , enabled = true]) => enabled && matchesShortcut(event, shortcut),
+    );
+    if (binding) run(binding[1]);
   });
   // A layout effect, so a key pressed as the editor first shows is never dropped.
   useLayoutEffect(() => {
@@ -1051,21 +822,6 @@ function EditorSession({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [keysRef]);
-
-  const myExports = exports.filter(
-    (item) =>
-      exportIds.includes(item.id) || (state.path !== null && item.project_path === state.path),
-  );
-  const latestExport = myExports[0];
-
-  const gridStyle = {
-    "--browser-width": layout.browserOpen ? `${layout.browser}px` : "0px",
-    "--inspector-width": layout.inspectorOpen ? `${layout.inspector}px` : "0px",
-    "--timeline-height": `${layout.timeline}px`,
-  } as CSSProperties;
-
-  const resize = (key: "browser" | "inspector" | "timeline", next: (size: number) => number) =>
-    setLayout((current) => ({ ...current, [key]: next(current[key]) }));
 
   return (
     <DialogShell
@@ -1081,12 +837,8 @@ function EditorSession({
         <EditorTopBar
           state={state}
           latestExport={latestExport}
-          onCancelExport={() => latestExport && void cancel(latestExport.id)}
-          onDismissExport={() => {
-            if (!latestExport) return;
-            setExportIds((current) => current.filter((id) => id !== latestExport.id));
-            void dismiss(latestExport.id);
-          }}
+          onCancelExport={projectExport.cancelLatest}
+          onDismissExport={projectExport.dismissLatest}
           onOpenExport={() => {
             if (!latestExport) return;
             void state.flush().then((saved) => {
@@ -1096,26 +848,19 @@ function EditorSession({
           }}
           browserOpen={layout.browserOpen}
           inspectorOpen={layout.inspectorOpen}
-          onToggleBrowser={() =>
-            setLayout((current) => ({ ...current, browserOpen: !current.browserOpen }))
-          }
-          onToggleInspector={() =>
-            setLayout((current) => ({ ...current, inspectorOpen: !current.inspectorOpen }))
-          }
+          onToggleBrowser={() => panes.toggle("browserOpen")}
+          onToggleInspector={() => panes.toggle("inspectorOpen")}
           menuOpen={menuOpen}
           onMenuOpenChange={setMenuOpen}
           onOpenProject={() => {
-            setLayout((current) => ({ ...current, browserOpen: true }));
+            panes.update({ browserOpen: true });
             setBrowserTab("projects");
           }}
           onSettings={() => setSettingsOpen(true)}
           onDuplicate={() => void duplicateProject()}
           onVersions={() => setVersionsOpen(true)}
           onDelete={() => setDeleteOpen(true)}
-          onExport={() => {
-            setExportError(null);
-            setExportOpen(true);
-          }}
+          onExport={projectExport.show}
           canExport={duration > 0}
           onBack={() => void requestExit()}
         />
@@ -1129,7 +874,7 @@ function EditorSession({
                 items={folderItems}
                 usedPaths={usedPaths}
                 view={layout.mediaView}
-                onView={(mediaView) => setLayout((current) => ({ ...current, mediaView }))}
+                onView={(mediaView) => panes.update({ mediaView })}
                 previewing={previewMode === "source" ? (sourceItem?.path ?? null) : null}
                 currentProjectPath={state.path}
                 onPreview={(item) => {
@@ -1144,8 +889,8 @@ function EditorSession({
               <Splitter
                 label="Media browser width"
                 orientation="vertical"
-                onResize={(delta) => resize("browser", (size) => clampSize(size + delta, 200, 560))}
-                onReset={() => resize("browser", () => DEFAULT_LAYOUT.browser)}
+                onResize={(delta) => panes.resize("browser", delta)}
+                onReset={() => panes.reset("browser")}
               />
             </>
           )}
@@ -1172,8 +917,8 @@ function EditorSession({
               sourceItem &&
               void addSource(sourceItem.path, engine.currentTime, undefined, sourceRange)
             }
-            onInsertSource={() => void placeFromSource("insert")}
-            onReplaceSource={(policy) => void placeFromSource(policy)}
+            onInsertSource={() => void sources.placeFromSource("insert")}
+            onReplaceSource={(policy) => void sources.placeFromSource(policy)}
             replaceLabel={
               selectedClips.length === 1 && selectedClips[0].kind !== "title"
                 ? clipLabel(project, selectedClips[0])
@@ -1182,15 +927,15 @@ function EditorSession({
             sourceTransportRef={sourceTransportRef}
             hasMissing={usedIssues.some((status) => status.state === "missing")}
             guides={layout.guides}
-            onGuides={() => setLayout((current) => ({ ...current, guides: !current.guides }))}
+            onGuides={() => panes.toggle("guides")}
             renderFrame={(time) => renderVideoProjectFrame(state.folder, project, time)}
             notice={
               <MediaProblems
                 project={project}
                 problems={mediaProblems}
-                converting={converting}
+                converting={sources.converting}
                 onRetry={(sourceId) => engine.retry(sourceId)}
-                onConvert={(sourceId) => void convertSource(sourceId)}
+                onConvert={(sourceId) => void sources.convertSource(sourceId)}
               />
             }
           />
@@ -1200,10 +945,8 @@ function EditorSession({
               <Splitter
                 label="Inspector width"
                 orientation="vertical"
-                onResize={(delta) =>
-                  resize("inspector", (size) => clampSize(size - delta, 240, 560))
-                }
-                onReset={() => resize("inspector", () => DEFAULT_LAYOUT.inspector)}
+                onResize={(delta) => panes.resize("inspector", -delta)}
+                onReset={() => panes.reset("inspector")}
               />
               <aside
                 className="video-editor__inspector video-editor__pane"
@@ -1283,8 +1026,8 @@ function EditorSession({
         <Splitter
           label="Timeline height"
           orientation="horizontal"
-          onResize={(delta) => resize("timeline", (size) => clampSize(size - delta, 180, 680))}
-          onReset={() => resize("timeline", () => DEFAULT_LAYOUT.timeline)}
+          onResize={(delta) => panes.resize("timeline", -delta)}
+          onReset={() => panes.reset("timeline")}
         />
 
         <section
@@ -1321,7 +1064,7 @@ function EditorSession({
             project={project}
             statuses={state.sources}
             items={folderItems}
-            busy={busy}
+            busy={sources.busy}
             onRelink={(sourceId, item) => void resolveSource(sourceId, item.path)}
             onAccept={(sourceId) => {
               const status = state.sources.find((item) => item.source_id === sourceId);
@@ -1372,7 +1115,7 @@ function EditorSession({
       </div>
 
       <DialogSuspendedContext.Provider value={parentSuspended || leaveOpen}>
-        {exportOpen && (
+        {projectExport.open && (
           <ExportDialog
             project={project}
             range={range}
@@ -1384,11 +1127,11 @@ function EditorSession({
                   }
                 : null
             }
-            busy={exportBusy}
-            error={exportError}
+            busy={projectExport.busy}
+            error={projectExport.error}
             blocked={exportBlocked}
-            onExport={(settings, span) => void startExport(settings, span)}
-            onCancel={() => setExportOpen(false)}
+            onExport={(settings, span) => void projectExport.start(settings, span)}
+            onCancel={projectExport.close}
           />
         )}
         {deleteOpen && state.path && (
@@ -1438,55 +1181,16 @@ function EditorSession({
         )}
       </DialogSuspendedContext.Provider>
       {leaveOpen && (
-        <Dialog
-          role="alertdialog"
-          title="Your latest changes are not saved"
-          description={
-            <>
-              {state.saveError ?? "The project could not be saved."} Try saving again, stay in the
-              editor, or leave and lose the changes made since the last save.
-            </>
-          }
-          onClose={cancelLeave}
-          footer={
-            <>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  cancelLeave();
-                  onExit();
-                }}
-              >
-                Exit
-              </Button>
-              <Button onClick={cancelLeave}>Cancel</Button>
-              <Button
-                variant="primary"
-                busy={leaveRetrying}
-                onClick={() => {
-                  if (leaveRetrying) return;
-                  const requestId = ++leaveRetryIdRef.current;
-                  setLeaveRetrying(true);
-                  const save = state.saveState === "conflict" ? state.saveAsCopy() : state.flush();
-                  void save.then((saved) => {
-                    if (requestId !== leaveRetryIdRef.current) return;
-                    setLeaveRetrying(false);
-                    if (saved) onExit();
-                  });
-                }}
-              >
-                {state.saveState === "conflict" ? "Save as new" : "Retry save"}
-              </Button>
-            </>
-          }
+        <LeaveUnsavedProjectDialog
+          saveError={state.saveError}
+          conflict={state.saveState === "conflict"}
+          onSave={() => (state.saveState === "conflict" ? state.saveAsCopy() : state.flush())}
+          onExit={onExit}
+          onClose={() => setLeaveOpen(false)}
         />
       )}
     </DialogShell>
   );
-}
-
-function clampSize(value: number, low: number, high: number): number {
-  return Math.min(high, Math.max(low, value));
 }
 
 /** The inspector reads animated values at the playhead, so it redraws with the readouts. */

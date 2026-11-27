@@ -39,7 +39,6 @@ function makeEdit(overrides: Partial<ImageEdit> = {}): ImageEdit {
     cropActive: false,
     maskActive: false,
     selectedMaskId: null,
-    selectedMask: null,
     maskMode: DEFAULT_MASK_MODE,
     maskStrength: DEFAULT_MASK_STRENGTH,
     maskLimitReached: false,
@@ -546,7 +545,6 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit({
         draft: draftWith({ masks: [mask] }),
         selectedMaskId: mask.id,
-        selectedMask: mask,
         maskMode: "pixelate",
         maskStrength: 0.065,
       });
@@ -579,7 +577,6 @@ describe("ImageEditPanel", () => {
       const edit = makeEdit({
         draft: draftWith({ masks: [mask] }),
         selectedMaskId: mask.id,
-        selectedMask: mask,
       });
       const user = await openBlur(edit);
 

@@ -16,6 +16,7 @@ import type {
   VideoProjectTransition,
 } from "@/shared/types";
 import { noKeyframes, scaleKeyframes, shiftKeyframes } from "./keyframes";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 export type Project = VideoProject;
 export type Clip = VideoProjectClip;
@@ -53,6 +54,23 @@ export function snapToFrame(time: number, frameRate: number): number {
 
 export function trackById(project: Project, id: string): Track | undefined {
   return project.tracks.find((track) => track.id === id);
+}
+
+export const NO_CLIP_UNDER_PLAYHEAD =
+  "The playhead is not inside a clip to trim. Move it over the clip first.";
+
+/** The chosen clips the playhead cuts with room on both sides; none chosen means every unlocked. */
+export function clipsUnderPlayhead(
+  project: Project,
+  chosen: ReadonlySet<string>,
+  time: number,
+): Clip[] {
+  return project.clips.filter(
+    (clip) =>
+      clip.start + MIN_CLIP_SECONDS - EPSILON < time &&
+      time < clipEnd(clip) - MIN_CLIP_SECONDS + EPSILON &&
+      (chosen.size > 0 ? chosen.has(clip.id) : !trackById(project, clip.track_id)?.locked),
+  );
 }
 
 export function sourceById(project: Project, id: string | null | undefined) {
@@ -889,19 +907,9 @@ export function placeSource(
     start,
     duration,
     source_in: rangeIn,
-    speed: 1,
     link_id: link,
-    transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
-    crop: null,
-    fit: "fit",
-    adjust: restingAdjust(),
-    gain: 1,
-    fade_in: 0,
-    fade_out: 0,
-    fade_curve: "equal_power",
-    audio_effects: { ...RESTING_EFFECTS },
     title: null,
-    keyframes: noKeyframes(),
+    ...restingClipSettings(),
   };
   const clips = [main];
   if (link) {
@@ -961,18 +969,8 @@ export function addTitle(
     start,
     duration: TITLE_SECONDS,
     source_in: 0,
-    speed: 1,
     link_id: null,
-    transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
-    crop: null,
-    fit: "fit",
-    adjust: restingAdjust(),
-    gain: 1,
-    fade_in: 0,
-    fade_out: 0,
-    fade_curve: "equal_power",
-    audio_effects: { ...RESTING_EFFECTS },
-    keyframes: noKeyframes(),
+    ...restingClipSettings(),
     title: {
       text: "Title",
       size: 0.08,
@@ -988,23 +986,35 @@ export function addTitle(
   return result.project ? { project: result.project, placed: [clip.id] } : result;
 }
 
-export function restingAdjust() {
+type ClipSettings = Pick<
+  Clip,
+  | "speed"
+  | "transform"
+  | "crop"
+  | "fit"
+  | "adjust"
+  | "gain"
+  | "fade_in"
+  | "fade_out"
+  | "fade_curve"
+  | "audio_effects"
+  | "keyframes"
+>;
+
+/** What a new clip starts with, apart from where it sits and what it shows. */
+function restingClipSettings(): ClipSettings {
   return {
-    exposure: 0,
-    brilliance: 0,
-    highlights: 0,
-    shadows: 0,
-    contrast: 0,
-    brightness: 0,
-    black_point: 0,
-    white_point: 0,
-    saturation: 0,
-    vibrance: 0,
-    warmth: 0,
-    tint: 0,
-    hue: 0,
-    definition: 0,
-    noise_reduction: 0,
+    speed: 1,
+    transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
+    crop: null,
+    fit: "fit",
+    adjust: { ...RESTING_ADJUST },
+    gain: 1,
+    fade_in: 0,
+    fade_out: 0,
+    fade_curve: "equal_power",
+    audio_effects: { ...RESTING_EFFECTS },
+    keyframes: noKeyframes(),
   };
 }
 

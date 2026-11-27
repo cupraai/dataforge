@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { installMockBackend } from "@/test/mockBackend";
 import { renderWithProviders } from "@/test/renderWithProviders";
 import * as api from "@/features/videoEditor/api/videoProjects";
-import { restingAdjust } from "@/features/videoEditor/lib/timeline";
+
 import { GradePresets } from "./GradePresets";
 import type {
   deleteVideoProjectGrade,
@@ -12,6 +12,7 @@ import type {
   saveVideoProjectGrade,
 } from "@/features/videoEditor/api/videoProjects";
 import type { ColorAdjust } from "@/shared/types";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 vi.mock("@/features/videoEditor/api/videoProjects", async (importOriginal) => ({
   ...(await importOriginal<typeof api>()),
@@ -23,7 +24,7 @@ vi.mock("@/features/videoEditor/api/videoProjects", async (importOriginal) => ({
 const dusk = {
   id: "g1",
   name: "Dusk",
-  adjust: { ...restingAdjust(), warmth: 0.4 },
+  adjust: { ...{ ...RESTING_ADJUST }, warmth: 0.4 },
   created_at: "",
 };
 
@@ -37,7 +38,7 @@ describe("GradePresets", () => {
   it("applies a saved grade and saves the current one under a name", async () => {
     const user = userEvent.setup();
     const onApply = vi.fn<(adjust: ColorAdjust) => void>();
-    const current = { ...restingAdjust(), contrast: 0.2 };
+    const current = { ...{ ...RESTING_ADJUST }, contrast: 0.2 };
     renderWithProviders(<GradePresets current={current} onApply={onApply} />);
 
     const pick = await screen.findByRole("combobox", { name: "Saved grade" });

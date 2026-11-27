@@ -288,10 +288,6 @@ def keyframe_indices(total_frames: int, count: int) -> list[int]:
     return sorted({round(index * (total_frames - 1) / (count - 1)) for index in range(count)})
 
 
-#: Browsers clamp a 0 or 10ms delay to this.
-GIF_DEFAULT_FRAME_DELAY_MS = 100.0
-
-
 def extract_gif_first_frame(path: Path) -> Image.Image | None:
     """Flatten, since convert("RGB") emits the transparent palette entry."""
     try:

@@ -4,7 +4,8 @@ import { makeClip, makeProject, makeSource } from "@/test/videoProject";
 import { AdjustRenderer } from "@/features/gallery/lib/adjustRenderer";
 import { MEDIA_STALL_MS, problemFromError } from "@/shared/lib/mediaProblems";
 import { peakOf, PreviewEngine, SCRUB_GRAIN_MS, type SourceLocation } from "./previewEngine";
-import { restingAdjust, type Project } from "./timeline";
+import { type Project } from "./timeline";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 function project(duration: number): Project {
   return {
@@ -49,7 +50,7 @@ function project(duration: number): Project {
         transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
         crop: null,
         fit: "fit",
-        adjust: restingAdjust(),
+        adjust: { ...RESTING_ADJUST },
         gain: 1,
         fade_in: 0,
         fade_out: 0,
@@ -316,7 +317,9 @@ describe("PreviewEngine media problems and fidelity", () => {
     vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(1920);
     vi.spyOn(HTMLImageElement.prototype, "naturalHeight", "get").mockReturnValue(1080);
     const graded = makeProject({
-      clips: [makeClip("first", "v1", 0, 2, { adjust: { ...restingAdjust(), exposure: 0.3 } })],
+      clips: [
+        makeClip("first", "v1", 0, 2, { adjust: { ...{ ...RESTING_ADJUST }, exposure: 0.3 } }),
+      ],
     });
     const { canvas } = recordingCanvas();
     engine.attach(canvas);

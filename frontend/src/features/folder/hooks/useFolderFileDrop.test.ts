@@ -1,8 +1,9 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, screen } from "@testing-library/react";
 import type { DragEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import * as api from "@/features/folder/api/files";
 import type { FileImportPreviewResponse } from "@/shared/types";
+import { AppProviders } from "@/test/AppProviders";
 import { useFolderFileDrop } from "./useFolderFileDrop";
 
 const FOLDER_A = "/datasets/a";
@@ -19,6 +20,10 @@ function conflictPreview(names: string[]): FileImportPreviewResponse {
   return { importable: names, new_files: [], conflicts: names, rejected: [] };
 }
 
+function newFilesPreview(names: string[]): FileImportPreviewResponse {
+  return { importable: names, new_files: names, conflicts: [], rejected: [] };
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((settle) => {
@@ -29,8 +34,14 @@ function deferred<T>() {
 
 function renderDrop(folderPath: string) {
   return renderHook(
-    ({ path }) => useFolderFileDrop({ folderPath: path, enabled: true, onImported: () => {} }),
-    { initialProps: { path: folderPath } },
+    ({ path }) =>
+      useFolderFileDrop({
+        folderPath: path,
+        folderLabel: "Photos",
+        enabled: true,
+        onImported: () => {},
+      }),
+    { initialProps: { path: folderPath }, wrapper: AppProviders },
   );
 }
 
@@ -47,12 +58,11 @@ describe("useFolderFileDrop", () => {
     const importFiles = vi.spyOn(api, "importFiles");
     const view = renderDrop(FOLDER_A);
 
-    act(() => view.result.current.onDrop(dropOf([photo()])));
+    act(() => view.result.current.dropZone.onDrop(dropOf([photo()])));
     view.rerender({ path: FOLDER_B });
     await act(async () => preview.resolve(conflictPreview(["photo.png"])));
 
-    expect(view.result.current.overwritePrompt).toBeNull();
-    act(() => view.result.current.confirmOverwrite());
+    expect(view.result.current.overlay).toBeNull();
     expect(importFiles).not.toHaveBeenCalled();
   });
 
@@ -61,12 +71,14 @@ describe("useFolderFileDrop", () => {
     const importFiles = vi.spyOn(api, "importFiles");
     const view = renderDrop(FOLDER_A);
 
-    await act(async () => view.result.current.onDrop(dropOf([photo()])));
-    expect(view.result.current.overwritePrompt).not.toBeNull();
+    await act(async () => view.result.current.dropZone.onDrop(dropOf([photo()])));
+    const prompt = view.result.current.overlay;
+    expect(prompt).not.toBeNull();
 
     view.rerender({ path: FOLDER_B });
-    expect(view.result.current.overwritePrompt).toBeNull();
-    act(() => view.result.current.confirmOverwrite());
+    expect(view.result.current.overlay).toBeNull();
+    // A confirm still in flight from the closed prompt imports nothing.
+    act(() => prompt?.onReplaceExisting());
     expect(importFiles).not.toHaveBeenCalled();
   });
 
@@ -77,11 +89,36 @@ describe("useFolderFileDrop", () => {
       .mockResolvedValue({ copied: [], skipped: [], rejected: [] });
     const view = renderDrop(FOLDER_A);
 
-    await act(async () => view.result.current.onDrop(dropOf([photo()])));
-    await act(async () => view.result.current.confirmOverwrite());
+    await act(async () => view.result.current.dropZone.onDrop(dropOf([photo()])));
+    await act(async () => view.result.current.overlay?.onReplaceExisting());
 
     expect(importFiles).toHaveBeenCalledTimes(1);
     expect(importFiles).toHaveBeenCalledWith(FOLDER_A, expect.any(Array), true);
+  });
+
+  it("reports an import that fails instead of dropping it silently", async () => {
+    vi.spyOn(api, "previewFileImport").mockResolvedValue(newFilesPreview(["photo.png"]));
+    vi.spyOn(api, "importFiles").mockRejectedValue(new Error("The disk is full."));
+    const view = renderDrop(FOLDER_A);
+
+    await act(async () => view.result.current.dropZone.onDrop(dropOf([photo()])));
+
+    expect(
+      await screen.findByText("Could not import the dropped files: The disk is full."),
+    ).toBeInTheDocument();
+  });
+
+  it("reports a preview that fails", async () => {
+    vi.spyOn(api, "previewFileImport").mockRejectedValue(new Error("The folder is gone."));
+    const importFiles = vi.spyOn(api, "importFiles");
+    const view = renderDrop(FOLDER_A);
+
+    await act(async () => view.result.current.dropZone.onDrop(dropOf([photo()])));
+
+    expect(
+      await screen.findByText("Could not import the dropped files: The folder is gone."),
+    ).toBeInTheDocument();
+    expect(importFiles).not.toHaveBeenCalled();
   });
 
   it("sends one import when confirm is pressed twice", async () => {
@@ -90,10 +127,11 @@ describe("useFolderFileDrop", () => {
     const importFiles = vi.spyOn(api, "importFiles").mockReturnValue(pending.promise);
     const view = renderDrop(FOLDER_A);
 
-    await act(async () => view.result.current.onDrop(dropOf([photo()])));
+    await act(async () => view.result.current.dropZone.onDrop(dropOf([photo()])));
+    const prompt = view.result.current.overlay;
     act(() => {
-      view.result.current.confirmOverwrite();
-      view.result.current.confirmOverwrite();
+      prompt?.onReplaceExisting();
+      prompt?.onReplaceExisting();
     });
     await act(async () => pending.resolve({ copied: [], skipped: [], rejected: [] }));
 

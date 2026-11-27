@@ -33,7 +33,6 @@ function setupHost(
     runWorkflow: vi.fn<() => Promise<null>>(),
     startingWorkflow: null,
     startingJobType: null,
-    isStarting: false,
     cancellingJob: false,
     cancelFolderJob: vi.fn<() => void>(),
     startJob,

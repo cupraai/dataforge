@@ -58,12 +58,12 @@ describe("useCandidateReviewOverlay", () => {
       await result.current.openCandidateReview(HOME_PATH, [source]);
     });
 
-    await waitFor(() => expect(result.current.open).toBe(true));
-    expect(result.current.entries).toHaveLength(1);
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
+    expect(result.current.overlay.entries).toHaveLength(1);
     // Every candidate call names the source path, not the staged one.
-    expect(result.current.entries[0].path).toBe(`${HOME_PATH}\\lake.png`);
-    expect(result.current.entries[0].source).toBe(source);
-    expect(result.current.entries[0].candidate.width).toBe(1024);
+    expect(result.current.overlay.entries[0].path).toBe(`${HOME_PATH}\\lake.png`);
+    expect(result.current.overlay.entries[0].source).toBe(source);
+    expect(result.current.overlay.entries[0].candidate.width).toBe(1024);
   });
 
   it("keeps a candidate whose source is gone, rather than hiding it", async () => {
@@ -76,8 +76,8 @@ describe("useCandidateReviewOverlay", () => {
       await result.current.openCandidateReview(HOME_PATH, []);
     });
 
-    await waitFor(() => expect(result.current.open).toBe(true));
-    expect(result.current.entries[0].source).toBeNull();
+    await waitFor(() => expect(result.current.overlay.open).toBe(true));
+    expect(result.current.overlay.entries[0].source).toBeNull();
   });
 
   it("says so instead of opening an empty queue", async () => {
@@ -89,7 +89,7 @@ describe("useCandidateReviewOverlay", () => {
       await result.current.openCandidateReview(HOME_PATH, []);
     });
 
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
     expect(await screen.findByText("No candidates are waiting for review.")).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("useCandidateReviewOverlay", () => {
       await result.current.openCandidateReview(HOME_PATH, []);
     });
 
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
     expect(await screen.findByText("No candidates are waiting for review.")).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe("useCandidateReviewOverlay", () => {
       await result.current.openCandidateReview(HOME_PATH, []);
     });
 
-    expect(result.current.open).toBe(false);
+    expect(result.current.overlay.open).toBe(false);
     expect(await screen.findByText("Disk on fire")).toBeInTheDocument();
   });
 
@@ -131,11 +131,11 @@ describe("useCandidateReviewOverlay", () => {
     });
     expect(onResolved).not.toHaveBeenCalled();
 
-    act(() => result.current.closeCandidateReview());
+    act(() => result.current.overlay.onClose());
 
     expect(onResolved).toHaveBeenCalledTimes(1);
-    expect(result.current.open).toBe(false);
-    expect(result.current.entries).toHaveLength(0);
+    expect(result.current.overlay.open).toBe(false);
+    expect(result.current.overlay.entries).toHaveLength(0);
   });
 
   it("lists the folder's staging subfolder", async () => {
@@ -176,7 +176,7 @@ describe("useCandidateReviewOverlay", () => {
         });
       });
 
-      expect(result.current.entries.map((entry) => entry.path)).toEqual([ridge.path]);
+      expect(result.current.overlay.entries.map((entry) => entry.path)).toEqual([ridge.path]);
     });
 
     it("hands over only once the queue is ready, so a failed listing leaves the file open", async () => {
@@ -189,7 +189,7 @@ describe("useCandidateReviewOverlay", () => {
       });
 
       expect(onOpen).not.toHaveBeenCalled();
-      expect(result.current.open).toBe(false);
+      expect(result.current.overlay.open).toBe(false);
     });
 
     it("says so when that file's candidate is already gone", async () => {
@@ -205,7 +205,7 @@ describe("useCandidateReviewOverlay", () => {
       });
 
       expect(onOpen).not.toHaveBeenCalled();
-      expect(result.current.open).toBe(false);
+      expect(result.current.overlay.open).toBe(false);
       expect(await screen.findByText("No candidate is waiting for lake.png.")).toBeInTheDocument();
     });
 
@@ -221,7 +221,7 @@ describe("useCandidateReviewOverlay", () => {
           onOpen: vi.fn<() => void>(),
         });
       });
-      act(() => result.current.closeCandidateReview());
+      act(() => result.current.overlay.onClose());
 
       expect(onReturnToItem).toHaveBeenCalledExactlyOnceWith(lake.path);
     });
@@ -235,7 +235,7 @@ describe("useCandidateReviewOverlay", () => {
       await act(async () => {
         await result.current.openCandidateReview(HOME_PATH, [lake]);
       });
-      act(() => result.current.closeCandidateReview());
+      act(() => result.current.overlay.onClose());
 
       expect(onReturnToItem).not.toHaveBeenCalled();
     });
@@ -273,8 +273,8 @@ describe("useCandidateReviewOverlay", () => {
         );
       });
 
-      expect(result.current.open).toBe(true);
-      expect(result.current.entries.map((entry) => entry.path)).toEqual([lake.path]);
+      expect(result.current.overlay.open).toBe(true);
+      expect(result.current.overlay.entries.map((entry) => entry.path)).toEqual([lake.path]);
     });
 
     it("says so when nothing selected has a candidate", async () => {
@@ -289,7 +289,7 @@ describe("useCandidateReviewOverlay", () => {
         );
       });
 
-      expect(result.current.open).toBe(false);
+      expect(result.current.overlay.open).toBe(false);
       expect(
         await screen.findByText("No candidates are waiting in the selection."),
       ).toBeInTheDocument();

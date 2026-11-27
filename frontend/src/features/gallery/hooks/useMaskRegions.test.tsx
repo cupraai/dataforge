@@ -17,7 +17,7 @@ describe("useMaskRegions", () => {
     const { result } = renderMasks();
 
     expect(result.current.masks).toEqual([]);
-    expect(result.current.controls.selectedMask).toBeNull();
+    expect(result.current.controls.selectedMaskId).toBeNull();
     expect(result.current.controls.maskActive).toBe(false);
   });
 
@@ -76,7 +76,7 @@ describe("useMaskRegions", () => {
     act(() => result.current.controls.setMaskStrength(0.12));
     act(() => result.current.controls.selectMask(null));
 
-    expect(result.current.controls.selectedMask).toBeNull();
+    expect(result.current.controls.selectedMaskId).toBeNull();
     expect(result.current.controls.maskStrength).toBe(0.12);
   });
 

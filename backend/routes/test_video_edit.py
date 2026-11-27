@@ -156,7 +156,7 @@ class ApplyVideoEditTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_mp4_video(root, "clip.mp4")
 
-            with patch("video_edit.ffmpeg_path", return_value=None):
+            with patch("ffmpeg_bin.ffmpeg_path", return_value=None):
                 response = client.post(edit_url(media), json={"scale": 0.5})
 
             self.assertEqual(response.status_code, 503)

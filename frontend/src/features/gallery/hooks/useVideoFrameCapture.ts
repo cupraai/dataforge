@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { importFiles } from "@/features/folder/api/files";
+import { useCallback, useRef, useState, type RefObject } from "react";
 import type { FrameCapture } from "@/features/gallery/lib/frameCapture";
-import { JPEG_QUALITY, frameSaveOutcome } from "@/features/gallery/lib/frameCapture";
+import { JPEG_QUALITY, importFrame } from "@/features/gallery/lib/frameCapture";
 import {
   clampFrameTime,
   hasUsableDuration,
@@ -16,6 +15,7 @@ import { useNotify } from "@/shared/notifications/notifications";
 import type { GalleryItem } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useMountedRef } from "@/shared/hooks/useMountedRef";
 
 export interface UseVideoFrameCaptureOptions {
   item: GalleryItem | undefined;
@@ -47,7 +47,7 @@ export function useVideoFrameCapture(options: UseVideoFrameCaptureOptions): Vide
   const optionsRef = useLatestRef(options);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
 
   const [duration, setDuration] = useState(Number.NaN);
   const [sliderTime, setSliderTimeState] = useState(0);
@@ -61,13 +61,6 @@ export function useVideoFrameCapture(options: UseVideoFrameCaptureOptions): Vide
 
   const ready = hasUsableDuration(duration);
   const displayTime = presentedTime ?? sliderTime;
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Scrubber only; a save in flight against the previous item must run its own finally.
   if (useChanged(item?.path)) {
@@ -161,14 +154,7 @@ export function useVideoFrameCapture(options: UseVideoFrameCaptureOptions): Vide
         target = videoFrameTargetName(sourcePath, presented);
 
         const blob = await encodeVideoFrame(video, JPEG_QUALITY);
-        const file = new File([blob], target, { type: "image/jpeg" });
-        const result = await importFiles(destination, [file], true);
-
-        const outcome = frameSaveOutcome(result, target);
-        notify(outcome);
-        if (outcome.variant === "success") {
-          await onSaved?.();
-        }
+        if (await importFrame(destination, blob, target, notify)) await onSaved?.();
       } catch (error) {
         // Unguarded by mountedRef: the store outlives this dialog, so a finish after close reports.
         notify({
@@ -180,7 +166,7 @@ export function useVideoFrameCapture(options: UseVideoFrameCaptureOptions): Vide
         if (mountedRef.current) setSaving(false);
       }
     })();
-  }, [durationRef, notify, optionsRef, sliderTimeRef]);
+  }, [durationRef, mountedRef, notify, optionsRef, sliderTimeRef]);
 
   return {
     videoRef,

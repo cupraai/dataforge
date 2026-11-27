@@ -1,18 +1,25 @@
 import { useCallback, useEffect, useMemo, type Dispatch, type SetStateAction } from "react";
-import { useFolderCaptionPatch } from "@/features/gallery/hooks/useFolderCaptionPatch";
 import { useGalleryView } from "@/features/gallery/hooks/useGalleryView";
 import { useGalleryOverlays } from "@/features/gallery/hooks/useGalleryOverlays";
 import { useGalleryQuery } from "@/features/gallery/hooks/useGalleryQuery";
 import type { useGallerySelection } from "@/features/gallery/hooks/useGallerySelection";
 import { useIssueResolverOverlay } from "@/features/gallery/hooks/useIssueResolverOverlay";
-import { applyFolderItemRename } from "@/features/gallery/lib/applyFolderItemRename";
+import {
+  applyFolderCaptionSave,
+  applyFolderItemRename,
+} from "@/features/gallery/lib/folderItemPatch";
 import { isModel, jobEligibleItems, jobEligiblePaths } from "@/features/gallery/lib/itemKind";
 import { processModels } from "@/features/gallery/lib/models";
 import { searchRegexError } from "@/features/gallery/lib/query";
 import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
 import { countResolvableIssues, isResolvableIssueItem } from "@/features/gallery/lib/issues";
 import { instructionApplies, type InstructionKind } from "@/shared/api/folderInstructions";
-import type { FolderResponse, GalleryItem, InstructionFileResponse } from "@/shared/types";
+import type {
+  CaptionSaveResponse,
+  FolderResponse,
+  GalleryItem,
+  InstructionFileResponse,
+} from "@/shared/types";
 import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 
@@ -117,7 +124,6 @@ export function useGallerySession({
   }, [query.filteredItems, selectionMode, visibleSelectedCount, visibleSelectedPaths]);
 
   const issueCount = countResolvableIssues(items);
-  const handleCaptionSaved = useFolderCaptionPatch(setFolder);
 
   const {
     selectedPath,
@@ -136,7 +142,7 @@ export function useGallerySession({
     closeInstructions,
     instructionsOpen,
     instructionsTab,
-    focusView,
+    focusView: savedFocusView,
     setFocusView,
     editExpanded,
     setEditExpanded,
@@ -152,11 +158,11 @@ export function useGallerySession({
   const { openIssueResolver } = issueResolver;
 
   const onCaptionSaved = useCallback(
-    (path: string, update: Parameters<typeof handleCaptionSaved>[1]) => {
-      handleCaptionSaved(path, update);
+    (path: string, update: CaptionSaveResponse) => {
+      setFolder((current) => current && applyFolderCaptionSave(current, path, update));
       void syncBaseline();
     },
-    [handleCaptionSaved, syncBaseline],
+    [setFolder, syncBaseline],
   );
 
   const onInstructionsSaved = useCallback(
@@ -211,7 +217,8 @@ export function useGallerySession({
     ],
   );
 
-  const onGalleryItemsDeleted = useCallback(
+  // Deleted and moved files both leave the folder.
+  const onGalleryItemsRemoved = useCallback(
     async (paths: string[]) => {
       for (const path of paths) {
         removeGalleryItem(path);
@@ -221,21 +228,6 @@ export function useGallerySession({
     },
     [removeGalleryItem, removeSelectedPaths, refreshFolder],
   );
-
-  const onGalleryItemsMoved = useCallback(
-    async (paths: string[]) => {
-      for (const path of paths) {
-        removeGalleryItem(path);
-      }
-      removeSelectedPaths(paths);
-      await refreshFolder();
-    },
-    [removeGalleryItem, removeSelectedPaths, refreshFolder],
-  );
-
-  const onGalleryItemsCopied = useCallback(async () => {
-    await refreshFolder();
-  }, [refreshFolder]);
 
   const handleToggleSelectPath = useCallback(
     (path: string) => {
@@ -273,6 +265,9 @@ export function useGallerySession({
     [enterSelectionMode, replaceSelectedPaths],
   );
 
+  // A model has no media to expand, so it stays in the inspector whatever the saved layout.
+  const focusView = savedFocusView && !(selectedIndex >= 0 && isModel(dialogItems[selectedIndex]));
+
   const handleInvertSelection = useCallback(() => {
     if (!selectionMode) return;
     invertSelectedPaths(query.filteredItems.map((item) => item.path));
@@ -300,33 +295,47 @@ export function useGallerySession({
     displayMode,
     setDisplayMode,
     issueCount,
+    selectedPath,
+    focusView,
+    editExpanded,
     openGalleryItem,
+    closeGalleryItem,
     openSysPrompt,
     openInstructions,
-    closeInstructions,
-    instructionsOpen,
-    instructionsTab,
-    selectedPath,
-    selectedIndex,
-    dialogItems,
-    openIntent,
-    closeGalleryItem,
-    // A model has no media to expand, so it stays in the inspector whatever the saved layout.
-    focusView: focusView && !(selectedIndex >= 0 && isModel(dialogItems[selectedIndex])),
-    setFocusView,
-    editExpanded,
-    setEditExpanded,
-    goToPrevious,
-    goToNext,
-    goToIndex,
     issueResolver,
     onResolveGalleryItemIssue,
     onCaptionSaved,
-    onInstructionsSaved,
-    onGalleryItemDeleted,
     onGalleryItemRenamed,
-    onGalleryItemsDeleted,
-    onGalleryItemsMoved,
-    onGalleryItemsCopied,
+    onGalleryItemsDeleted: onGalleryItemsRemoved,
+    onGalleryItemsMoved: onGalleryItemsRemoved,
+    onGalleryItemsCopied: refreshFolder,
+    /** The item viewer's props that the session owns; the app adds the rest. */
+    itemDialog: {
+      selectedPath,
+      items: dialogItems,
+      index: selectedIndex,
+      openIntent,
+      searchQuery: query.highlightQuery,
+      searchRegex: query.searchRegex,
+      focusView,
+      onFocusViewChange: setFocusView,
+      onEditExpandedChange: setEditExpanded,
+      onClose: closeGalleryItem,
+      onPrevious: goToPrevious,
+      onNext: goToNext,
+      onGoTo: goToIndex,
+      onDeleted: onGalleryItemDeleted,
+      onRenamed: onGalleryItemRenamed,
+      onMoved: onGalleryItemsRemoved,
+      onCopied: refreshFolder,
+      onResolveIssue: onResolveGalleryItemIssue,
+    },
+    instructions: {
+      open: instructionsOpen,
+      folderPath,
+      tab: instructionsTab,
+      onClose: closeInstructions,
+      onSaved: onInstructionsSaved,
+    },
   };
 }

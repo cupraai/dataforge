@@ -188,7 +188,42 @@
   }
 
   &__option {
-    @include dialog-option-tile;
+    // Anchors the visually hidden radio, like `.dialog__checkbox`.
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5625rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    @include fade-bg(var(--bg-elevated));
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition:
+      border-color var(--transition),
+      --fade-bg var(--transition);
+
+    // The input is visually hidden, so the tile reads :disabled from it. No opacity here: the radio
+    // and label already fade.
+    &:has(input:disabled) {
+      cursor: not-allowed;
+    }
+
+    &:hover:not(:has(input:disabled)) {
+      border-color: var(--accent-border);
+    }
+
+    &--selected {
+      border-color: var(--accent);
+      @include fade-bg(var(--accent-soft));
+    }
+
+    &--selected:hover {
+      border-color: var(--accent);
+      @include fade-bg(var(--accent-soft));
+    }
     @include focus-ring-within;
   }
 
@@ -197,11 +232,40 @@
   }
 
   &__radio {
-    @include custom-radio-control;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    @include fade-bg(var(--bg-elevated));
+    color: var(--bg);
+    transition:
+      --fade-bg var(--transition),
+      border-color var(--transition);
+
+    &::after {
+      content: "";
+      // Odd-pixel size so the disc sits on the grid center.
+      width: 0.375rem;
+      height: 0.375rem;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
   }
 
   &__radio-input:checked + &__radio {
-    @include custom-radio-control-checked;
+    @include fade-bg(var(--accent));
+    border-color: var(--accent);
+
+    &::after {
+      opacity: 1;
+    }
   }
 
   &__option:hover &__radio-input:not(:disabled) + &__radio {

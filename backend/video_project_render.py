@@ -22,6 +22,7 @@ from constants import (
     VIDEO_PROJECT_SIZE_PRESET_SHORT_SIDES,
     VIDEO_PROJECT_TIME_EPSILON,
 )
+from ffmpeg_run import FFMPEG_QUIET_ARGS
 from image_io import displayed_image
 from schemas import (
     VideoEditSpec,
@@ -702,11 +703,7 @@ def build_render(
     quality = VIDEO_PROJECT_QUALITY_PRESETS[settings.quality]
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-progress",
         "pipe:1",
         "-y",
@@ -830,7 +827,7 @@ def build_frame(
     links.append(f"[{base}]select='eq(n\\,{index - shift})',setsar=1,format=rgb24[vout]")
     (workspace / GRAPH_FILE_NAME).write_text(";\n".join(links), encoding="utf-8")
     return [
-        *(executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "error", "-y"),
+        *(executable, *FFMPEG_QUIET_ARGS, "-y"),
         *inputs.arguments,
         *("-/filter_complex", GRAPH_FILE_NAME, "-map", "[vout]", "-frames:v", "1"),
         *("-update", "1", "-f", "image2", "-c:v", "png", str(output)),

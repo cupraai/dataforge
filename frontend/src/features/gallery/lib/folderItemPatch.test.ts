@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { HOME_PATH, homeFolder } from "@/test/fixtures";
-import { applyFolderItemRename } from "./applyFolderItemRename";
+import { applyFolderItemRename } from "./folderItemPatch";
 
 describe("applyFolderItemRename", () => {
   it("gives the item its new path and name and leaves the rest of the listing", () => {

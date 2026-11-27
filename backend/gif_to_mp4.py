@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -13,9 +12,9 @@ from edit_sidecars import (
     sweep_edit_temp_files,
     temp_path_for,
 )
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import ShouldCancel, run_ffmpeg
-from file_publish import publish_replacing
+from ffmpeg_bin import require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, ShouldCancel, run_ffmpeg
+from file_publish import publish_replacing, unlink_quietly
 from media_claims import claim
 from schemas import GifToMp4Response, GifToMp4StateResponse
 
@@ -48,11 +47,7 @@ def build_gif_to_mp4_command(
     """``yuv420p`` cannot express an odd dimension."""
     return [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-y",
         "-i",
         str(source),
@@ -83,9 +78,7 @@ def convert_gif_to_mp4(
     should_cancel: ShouldCancel | None = None,
 ) -> GifToMp4Response:
     """Failure leaves an existing MP4 byte-identical."""
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError(FFMPEG_MISSING_MESSAGE)
+    executable = require_ffmpeg(ffmpeg, FFMPEG_MISSING_MESSAGE)
 
     target = mp4_target_for(media)
     # Two GIFs can never share a destination.
@@ -103,8 +96,7 @@ def convert_gif_to_mp4(
             )
             publish_replacing(temp_path, target, stale_path_for(target))
         finally:
-            with suppress(OSError):
-                temp_path.unlink(missing_ok=True)
+            unlink_quietly(temp_path)
 
         # Otherwise the next edit would render from a gone file's backup.
         discard_edit_state(target)

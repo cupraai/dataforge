@@ -1,4 +1,4 @@
-import { requestJson } from "@/shared/api/http";
+import { postJson, requestJson } from "@/shared/api/http";
 import { mediaUrl } from "@/features/gallery/api/media";
 import { serverEventsTabId } from "@/shared/api/eventStream";
 import { emptyDraft, toVideoEditSpec } from "@/features/gallery/lib/videoEdit";
@@ -24,11 +24,7 @@ export async function applyVideoEdit(
   spec: VideoEditSpec,
 ): Promise<VideoEditResponse> {
   const params = new URLSearchParams({ path: mediaPath, tab: serverEventsTabId() });
-  return requestJson<VideoEditResponse>(`/api/media/video-edit?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
-  });
+  return postJson<VideoEditResponse>(`/api/media/video-edit?${params}`, spec);
 }
 
 /** Re-encodes an unplayable video in place, keeping its edit; Revert original restores it. */
@@ -46,11 +42,7 @@ export async function fetchVideoAutoAdjust(
   spec: VideoEditSpec,
 ): Promise<AutoAdjustResponse> {
   const params = new URLSearchParams({ path: mediaPath });
-  return requestJson<AutoAdjustResponse>(`/api/media/video-edit/auto?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(spec),
-  });
+  return postJson<AutoAdjustResponse>(`/api/media/video-edit/auto?${params}`, spec);
 }
 
 export async function cancelVideoEdit(mediaPath: string): Promise<void> {

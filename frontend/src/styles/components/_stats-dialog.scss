@@ -5,35 +5,7 @@
 $hero-font-size: 3rem;
 
 .stats-dialog {
-  position: fixed;
-  inset: 0;
-  z-index: $z-index-drawer;
-  pointer-events: none;
-
-  &__backdrop {
-    @include dialog-backdrop;
-    pointer-events: auto;
-  }
-
-  &__panel {
-    position: absolute;
-    top: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    width: min(100%, $drawer-width);
-    height: 100%;
-    background: var(--surface-sheen), var(--bg-elevated);
-    border-left: 1px solid var(--border);
-    box-shadow: var(--shadow-drawer);
-    pointer-events: auto;
-    animation: drawer-slide-in var(--duration-moderate) var(--ease-emphasized);
-
-    // Two classes beat `.dialog-panel--exit` fade on specificity, so load order does not matter.
-    &.dialog-panel--exit {
-      animation: drawer-slide-out var(--duration-base) var(--ease-exit) both;
-    }
-  }
+  @include drawer-shell;
 
   &__header {
     display: flex;

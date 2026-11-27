@@ -93,11 +93,7 @@ export function useDuplicateResolverOverlay(
   );
 
   return {
-    open,
-    groups,
-    index,
     openDuplicateResolver,
-    closeDuplicateResolver,
     overlay: {
       open,
       groups,

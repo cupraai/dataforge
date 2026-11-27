@@ -26,11 +26,21 @@
   }
 
   &__box {
-    @include custom-checkbox-box;
+    @include custom-checkbox-box-surface;
+
+    &::after {
+      @include custom-checkbox-mark;
+    }
   }
 
   &__input:checked + &__box {
-    @include custom-checkbox-box-checked;
+    @include fade-bg(var(--accent));
+    border-color: var(--accent);
+
+    &::after {
+      scale: 1;
+      opacity: 1;
+    }
   }
 
   @include focus-ring-detached("&__input:focus-visible + &__box");

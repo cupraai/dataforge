@@ -103,7 +103,7 @@ class ConvertGifTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif")
 
-            with patch("gif_to_mp4.ffmpeg_path", return_value=None):
+            with patch("ffmpeg_bin.ffmpeg_path", return_value=None):
                 response = client.post(convert_url(media))
 
             self.assertEqual(response.status_code, 503)

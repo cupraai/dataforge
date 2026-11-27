@@ -135,7 +135,6 @@ export function useComfyPresetForm(
   const selected = loadedPresets?.find((entry) => entry.name === preset) ?? null;
   // Only a preset with a source loader can edit, and it can generate from a start file too. An
   // unparseable one may be either, and reads as editing: queueing it names the fix either way.
-  const canChooseMode = kind === "run" && !embedded && selected !== null && !selected.generates;
   let selectedMode: ComfyRunMode | null = null;
   if (embedded) selectedMode = "generate";
   else if (kind === "edit") selectedMode = "edit";
@@ -207,8 +206,6 @@ export function useComfyPresetForm(
     state,
     preset,
     mode,
-    /** Whether the selected preset can both edit files and make new ones. */
-    canChooseMode,
     /** Only a preset with a source loader edits; a file's own workflow never does. */
     canEdit: !embedded && selected?.generates !== true,
     /** A workflow step only edits. */

@@ -52,21 +52,8 @@ export function useCreateFolderDialog({
   );
 
   return {
-    open,
     busy,
-    error,
-    parentLabel,
     openDialog,
-    closeDialog,
-    confirm,
-    overlay: open
-      ? {
-          parentLabel,
-          busy,
-          error,
-          onConfirm: confirm,
-          onCancel: closeDialog,
-        }
-      : null,
+    overlay: open ? { parentLabel, busy, error, onConfirm: confirm, onCancel: closeDialog } : null,
   };
 }

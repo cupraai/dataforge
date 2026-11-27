@@ -104,20 +104,13 @@ $loop-pulse: 2.4s;
 $attention: 0.7s;
 // Reduced motion keeps exits this short so `animationend` still unmounts them.
 $duration-skip: 1ms;
-// One step of a staggered entrance, and the most steps any list staggers.
+// One step of a staggered entrance.
 $stagger-step: 18ms;
-$stagger-max: 12;
 
 // A 4px grid; `0_5` is the half step for hairline gaps.
 $space-0_5: 0.125rem;
 $space-1: 0.25rem;
-$space-1_5: 0.375rem;
 $space-2: 0.5rem;
-$space-3: 0.75rem;
-$space-4: 1rem;
-$space-5: 1.25rem;
-$space-6: 1.5rem;
-$space-8: 2rem;
 
 // Bundled (`inter-ui` in main.tsx), so the app renders the same offline. The full Inter build:
 // the Google Fonts one leaves out the alternates `$font-features` turn on.

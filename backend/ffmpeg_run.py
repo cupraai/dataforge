@@ -20,6 +20,8 @@ FFMPEG_POLL_SECONDS = 0.2
 FFMPEG_TIMEOUT_SECONDS = 3600
 FFMPEG_TERMINATE_SECONDS = 2.0
 FFMPEG_READER_JOIN_SECONDS = 5.0
+#: Errors only on stderr, and no reads from stdin.
+FFMPEG_QUIET_ARGS = ("-nostdin", "-hide_banner", "-nostats", "-loglevel", "error")
 
 #: Both spellings carry microseconds; `out_time_ms` is a misnomer.
 _PROGRESS_TIME_KEYS = ("out_time_us", "out_time_ms")

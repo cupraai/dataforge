@@ -9,6 +9,7 @@ from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 
+from file_publish import unlink_quietly
 from file_write import publish_new_file
 from media_claims import ClaimActivity, MediaBusyError, claim
 
@@ -62,8 +63,7 @@ def temporary_file(folder: Path) -> Generator[Path]:
     try:
         yield path
     finally:
-        with suppress(OSError):
-            path.unlink(missing_ok=True)
+        unlink_quietly(path)
 
 
 def sweep_temporary_files(folder: Path) -> None:

@@ -109,7 +109,8 @@ $toolbar-group-inset: 0.1875rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
     overflow: hidden;
-    @include toolbar-pill-interaction;
+    @include btn-hover-default;
+    @include focus-ring-within;
     transition:
       width $toolbar-search-expand-duration $toolbar-search-expand-ease,
       min-width $toolbar-search-expand-duration $toolbar-search-expand-ease,

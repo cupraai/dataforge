@@ -15,7 +15,7 @@ import numpy
 from PIL import Image
 
 from app_settings import SETTING_DEFAULTS
-from automation.llm import MAX_MODEL_ATTEMPTS
+from automation.llm import MAX_MODEL_ATTEMPTS, ModelSettings
 from automation.vision import (
     FRAME_ERROR,
     JPEG_QUALITY,
@@ -73,10 +73,10 @@ class RetryReencodeWorkaroundTests(unittest.TestCase):
         request_vision_text(
             client,
             "System prompt",
-            [Image.new("RGB", (64, 64), color="blue")],
+            MediaFrames(images=[Image.new("RGB", (64, 64), color="blue")]),
             "Caption it.",
-            max_pixels=SETTING_DEFAULTS.image_max_pixels,
-            mode="instruct",
+            media_kind="image",
+            settings=ModelSettings(mode="instruct"),
             attempt=attempt,
         )
         return image_urls(client.last["messages"])

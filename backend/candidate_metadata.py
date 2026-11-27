@@ -17,8 +17,8 @@ from automation.strip_metadata import (
     upright_exif,
 )
 from constants import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import run_ffmpeg
+from ffmpeg_bin import require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, run_ffmpeg
 
 _PNG_IHDR = b"IHDR"
 _XMP_KEYWORD = b"XML:com.adobe.xmp"
@@ -73,17 +73,11 @@ def _remux_with_source_metadata(
     source: Path, candidate: Path, destination: Path, *, ffmpeg: str | None
 ) -> None:
     """Every candidate stream untouched; only global tags come from the source."""
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError("ffmpeg is required to keep a video's metadata")
+    executable = require_ffmpeg(ffmpeg, "ffmpeg is required to keep a video's metadata")
 
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-y",
         "-i",
         str(candidate),

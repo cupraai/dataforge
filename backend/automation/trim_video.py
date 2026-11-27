@@ -5,22 +5,14 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.edit_spec_job import edit_job_files, run_edit_spec_job, save_video_spec
+from automation.job_runner import ProgressCallback
 from constants import VIDEO_EDIT_EXTENSIONS
 from edit_sidecars import original_path_for
 from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel
+from ffmpeg_run import ShouldCancel
 from schemas import TrimVideoKeep, VideoEditSpec
-from video_edit import (
-    IDENTITY_EPSILON,
-    SourceProbe,
-    apply_video_edit,
-    is_identity_spec,
-    probe_source,
-    read_edit_spec,
-    revert_video_edit,
-)
+from video_edit import IDENTITY_EPSILON, SourceProbe, probe_source, read_edit_spec
 
 #: Float noise must not drop a whole frame.
 _FRAME_EPSILON = 1e-6
@@ -30,16 +22,17 @@ class AlreadyTrimmedError(Exception):
     """Already within the length, or no trim to clear."""
 
 
-def list_trim_video_files(folder: Path) -> list[Path]:
-    return list_folder_media(folder, VIDEO_EDIT_EXTENSIONS, order="mtime")
+def _trim_video_files(folder: Path, selected_paths: list[Path] | None) -> list[Path]:
+    return edit_job_files(
+        folder,
+        selected_paths,
+        extensions=VIDEO_EDIT_EXTENSIONS,
+        missing="No MP4, MOV or M4V files found in folder",
+    )
 
 
 def validate_trim_video_folder(folder: Path, selected_paths: list[Path] | None = None) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
-
-    if not filter_media_list(list_trim_video_files(folder), selected_paths):
-        raise ValueError("No MP4, MOV or M4V files found in folder")
+    _trim_video_files(folder, selected_paths)
 
 
 def trimmed_spec(
@@ -105,12 +98,7 @@ def trim_video(
     else:
         probe = probe_source(original_path_for(media))
         trimmed = trimmed_spec(spec, probe, max_seconds, keep)
-
-    # Restore the original so the file no longer reads as edited.
-    if is_identity_spec(trimmed):
-        revert_video_edit(media)
-    else:
-        apply_video_edit(media, trimmed, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
+    save_video_spec(media, trimmed, ffmpeg=ffmpeg, should_cancel=should_cancel, probe=probe)
 
 
 def run_trim_video_job(
@@ -124,48 +112,20 @@ def run_trim_video_job(
     keep: TrimVideoKeep = "start",
     reset_trim: bool = False,
 ) -> dict[str, object]:
-    validate_trim_video_folder(folder, selected_paths)
-
-    media_files = filter_media_list(list_trim_video_files(folder), selected_paths)
+    media_files = _trim_video_files(folder, selected_paths)
     resolved_ffmpeg = ffmpeg or ffmpeg_path()
-
-    def process(media_path: Path) -> FileOutcome:
-        try:
-            trim_video(
-                media_path,
-                max_seconds,
-                keep,
-                reset=reset_trim,
-                ffmpeg=resolved_ffmpeg,
-                should_cancel=should_cancel,
-            )
-            return FileOutcome(status="success", stats={"success": 1})
-        except AlreadyTrimmedError:
-            return FileOutcome.counted("unchanged")
-        except FfmpegCancelled:
-            return FileOutcome.cancelled()
-        except ValueError as exc:
-            return FileOutcome.counted("read_error", exc)
-        except RuntimeError as exc:
-            return FileOutcome.counted("ffmpeg_error", exc)
-        except OSError as exc:
-            return FileOutcome.counted("write_error", exc)
-
-    return run_media_job(
+    return run_edit_spec_job(
         folder,
         media_files,
-        stats={
-            "total": len(media_files),
-            "success": 0,
-            "unchanged": 0,
-            "busy": 0,
-            "read_error": 0,
-            "write_error": 0,
-            "ffmpeg_error": 0,
-            "cancelled": 0,
-        },
-        process=process,
+        lambda media: trim_video(
+            media,
+            max_seconds,
+            keep,
+            reset=reset_trim,
+            ffmpeg=resolved_ffmpeg,
+            should_cancel=should_cancel,
+        ),
+        unchanged=AlreadyTrimmedError,
         on_progress=on_progress,
         should_cancel=should_cancel,
-        claim_activity="render",
     )

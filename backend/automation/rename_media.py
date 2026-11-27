@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from automation.job_runner import ProgressCallback, ShouldCancel
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from constants import MEDIA_EXTENSIONS
 from media_claims import claim, is_claimed
 from media_group import media_group_paths
@@ -90,8 +90,7 @@ def validate_rename_media_folder(
     start_number: int = 1,
     selected_paths: list[Path] | None = None,
 ) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     # Its original name is lost, and this run's temporary names would land on it.
     leftover = next((p for p in folder.iterdir() if p.name.startswith(RENAME_TEMP_PREFIX)), None)

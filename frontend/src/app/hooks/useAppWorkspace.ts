@@ -32,14 +32,14 @@ import {
 import { jobEligibleItems } from "@/features/gallery/lib/itemKind";
 import { countCandidates, isCandidateItem } from "@/features/gallery/lib/candidateReview";
 import { countResolvableIssues } from "@/features/gallery/lib/issues";
-import { useStatsDialog } from "@/features/gallery/hooks/useStatsDialog";
-import { useSettingsDialog } from "@/features/settings/hooks/useSettingsDialog";
-import { useShortcutsDialog } from "@/features/shortcuts/hooks/useShortcutsDialog";
 import { useQuickActionHost } from "@/features/quickAction/hooks/useQuickActionHost";
 import { filterSubfoldersBySearch, searchRegexError } from "@/features/gallery/lib/query";
 import { useRegexSearch } from "@/features/gallery/hooks/useRegexSearch";
 import { reviewScopeFor } from "@/features/gallery/lib/reviewScope";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
+import { useOpenState } from "@/shared/hooks/useOpenState";
+import { useGlobalShortcut } from "@/shared/hooks/useGlobalShortcut";
+import { SHORTCUTS } from "@/shared/lib/shortcuts";
 import { pathBaseName } from "@/features/gallery/lib/mediaActionMessages";
 import { useNotify } from "@/shared/notifications/notifications";
 import type { GalleryItem, JobType } from "@/shared/types";
@@ -102,6 +102,7 @@ export function useAppWorkspace() {
 
   const fileDrop = useFolderFileDrop({
     folderPath: folder?.path,
+    folderLabel,
     enabled: Boolean(folder) && !folderNotFound && !loading,
     onImported: refreshFolder,
   });
@@ -196,8 +197,9 @@ export function useAppWorkspace() {
     onSwept: refreshFolder,
   });
 
-  const statsDialog = useStatsDialog();
-  const settings = useSettingsDialog();
+  const statsDialog = useOpenState();
+  const settings = useOpenState();
+  useGlobalShortcut(SHORTCUTS.settings, settings.show, { inEditable: true });
   const notify = useNotify();
 
   // A job's file may be gone or filtered out by now; say so instead of opening nothing.
@@ -219,7 +221,8 @@ export function useAppWorkspace() {
     },
     [notify, openGalleryItem],
   );
-  const shortcuts = useShortcutsDialog();
+  const shortcuts = useOpenState();
+  useGlobalShortcut(SHORTCUTS.shortcuts, shortcuts.show);
 
   // Refresh on close: per-deletion reloads race the watcher's push against the frozen queue.
   const duplicateResolverOverlay = useDuplicateResolverOverlay(
@@ -411,8 +414,8 @@ export function useAppWorkspace() {
     sidecarSweep,
     settleAllCandidates,
     filters: quickActionFilters,
-    onOpenSettings: settings.openSettings,
-    onOpenShortcuts: shortcuts.openShortcuts,
+    onOpenSettings: settings.show,
+    onOpenShortcuts: shortcuts.show,
   });
 
   return {

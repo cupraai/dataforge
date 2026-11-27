@@ -21,7 +21,7 @@ from automation.edit_captions import (
     strip_wrapping_quotes,
     validate_edit_captions_folder,
 )
-from automation.llm import MAX_MODEL_ATTEMPTS
+from automation.llm import MAX_MODEL_ATTEMPTS, ModelSettings
 from automation.served_model import ServedModel
 from testing_fixtures import (
     FakeChatClient,
@@ -520,7 +520,10 @@ class EditCaptionsRequestTests(unittest.TestCase):
         client = FakeChatClient(EDITED)
 
         edit_caption(
-            client, build_edit_system_prompt(INSTRUCTION), ORIGINAL, mode="thinking", effort="low"
+            client,
+            build_edit_system_prompt(INSTRUCTION),
+            ORIGINAL,
+            settings=ModelSettings(mode="thinking", effort="low"),
         )
 
         user_message = client.last["messages"][1]
@@ -537,7 +540,7 @@ class EditCaptionsRequestTests(unittest.TestCase):
                 client = FakeChatClient(EDITED)
 
                 with (
-                    patch("automation.edit_captions.model_client") as factory,
+                    patch("automation.served_model.model_client") as factory,
                     patch(
                         "automation.served_model.read_served_model",
                         return_value=ServedModel("served", efforts),
@@ -575,7 +578,7 @@ class EditCaptionsVisionTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = _captioned(root, "photo.png")
 
-            with patch("automation.edit_captions.model_client") as factory:
+            with patch("automation.served_model.model_client") as factory:
                 factory.return_value.__enter__.return_value = client
                 result = _run(root, vision=True)
 
@@ -591,7 +594,7 @@ class EditCaptionsVisionTests(unittest.TestCase):
         with TempMediaFolder() as root:
             _captioned(root, "photo.png")
 
-            with patch("automation.edit_captions.model_client") as factory:
+            with patch("automation.served_model.model_client") as factory:
                 factory.return_value.__enter__.return_value = client
                 _run(root)
 

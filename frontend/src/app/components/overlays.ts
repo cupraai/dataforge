@@ -1,65 +1,32 @@
 import type { WorkflowOverlaysState } from "@/features/workflows/hooks/useWorkflowHost";
 import type { InstructionKind } from "@/shared/api/folderInstructions";
-import type { AutomationDialogsState, EmbeddedGenerateWorkflow } from "@/features/automation/types";
-import type { GalleryItemOpenIntent } from "@/features/gallery/hooks/useGalleryOverlays";
+import type { AutomationDialogsState } from "@/features/automation/types";
 import type { ConfirmableJobType } from "@/features/jobs/lib/jobMeta";
 import type { SelectionActionOverlaysProps } from "@/features/gallery/components/SelectionActionOverlays";
 import type { SidecarSweepDialogProps } from "@/features/gallery/components/SidecarSweepDialog";
 import type { DeleteFolderOverlayState } from "@/features/folder/hooks/useDeleteFolderDialog";
 import type { RenameFolderOverlayState } from "@/features/folder/hooks/useRenameFolderDialog";
 import type { SettleAllCandidatesDialogProps } from "@/features/gallery/components/SettleAllCandidatesDialog";
-import type { CandidateReviewEntry } from "@/features/gallery/lib/candidateReview";
 import type { QuickActionOverlayState } from "@/features/quickAction/hooks/useQuickActionHost";
-import type {
-  CaptionSaveResponse,
-  DuplicateGroup,
-  GalleryItem,
-  InstructionFileResponse,
-} from "@/shared/types";
-import type { GalleryRange, RangeAxis } from "@/features/gallery/lib/query";
+import type { CaptionSaveResponse, InstructionFileResponse } from "@/shared/types";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
-import type { RefObject } from "react";
-import type { WorkspaceTransition } from "@/app/hooks/useWorkspaceTransitions";
+import type { ComponentProps } from "react";
+import type { CandidateReviewDialog } from "@/features/gallery/components/CandidateReviewDialog";
+import type { DuplicateResolverDialog } from "@/features/gallery/components/DuplicateResolverDialog";
+import type { GalleryItemDialog } from "@/features/gallery/components/GalleryItemDialog";
+import type { IssueResolverDialog } from "@/features/gallery/components/IssueResolverDialog";
+import type { StatsDialog } from "@/features/gallery/components/StatsDialog";
+import type { CreateFolderDialog } from "@/features/folder/components/CreateFolderDialog";
+import type { FileImportOverwriteDialog } from "@/features/folder/components/FileImportOverwriteDialog";
+import type { useOpenState } from "@/shared/hooks/useOpenState";
 import type { CurrentJobActions } from "@/features/jobs/components/JobsDialog";
 
 type CaptionSavedHandler = (path: string, update: CaptionSaveResponse) => void;
 
-type GalleryOverlayState = {
-  selectedPath: string | null;
-  selectedIndex: number;
-  dialogItems: GalleryItem[];
-  openIntent: GalleryItemOpenIntent | null;
-  searchQuery: string;
-  searchRegex: boolean;
-  hasCaptionBackup: boolean;
-  focusView?: boolean;
-  onFocusViewChange?: (focus: boolean) => void;
-  onEditExpandedChange?: (expanded: boolean) => void;
-  transitionRef?: RefObject<WorkspaceTransition | null>;
-  /** Another dialog covers the viewer; its keys and focus trap must stay off meanwhile. */
-  suspended?: boolean;
-  onClose: () => void;
-  onPrevious: () => void;
-  onNext: () => void;
-  onGoTo: (index: number) => void;
-  onDeleted?: (path: string) => void;
-  onRenamed?: (path: string, renamedPath: string) => void;
-  onMoved?: (paths: string[]) => void | Promise<void>;
-  onCopied?: () => void | Promise<void>;
-  onResolveIssue?: (item: GalleryItem) => void;
-  onReviewCandidate?: (item: GalleryItem) => void;
-  onResolveDuplicate?: (item: GalleryItem) => void;
-  /** Opens Run ComfyUI workflow on one output of the file's own workflow. */
-  onGenerateFromWorkflow?: (workflow: EmbeddedGenerateWorkflow) => void;
-};
-
-type IssueResolverOverlayState = {
-  open: boolean;
-  items: GalleryItem[];
-  index: number;
-  onClose: () => void;
-  onIndexChange: (index: number) => void;
-};
+type GalleryOverlayState = Omit<
+  ComponentProps<typeof GalleryItemDialog>,
+  "currentFolder" | "onCaptionSaved" | "selected" | "onToggleSelect"
+> & { selectedPath: string | null };
 
 type InstructionsOverlayState = {
   open: boolean;
@@ -69,53 +36,12 @@ type InstructionsOverlayState = {
   onSaved: (kind: InstructionKind, saved: InstructionFileResponse) => void;
 };
 
-type DuplicateResolverOverlayState = {
-  open: boolean;
-  groups: DuplicateGroup[];
-  index: number;
-  onClose: () => void;
-  onIndexChange: (index: number) => void;
-  deletesToTrash: boolean;
-  onResolved: (deletedPaths: string[]) => void;
-};
-
-type CandidateReviewOverlayState = {
-  open: boolean;
-  entries: CandidateReviewEntry[];
-  index: number;
-  onClose: () => void;
-  onIndexChange: (index: number) => void;
-  onResolved: () => void;
-};
-
-type StatsOverlayState = {
-  open: boolean;
-  items: GalleryItem[];
-  onClose: () => void;
-  onSearchWord: (word: string) => void;
-  onFilterRange: (axis: RangeAxis, range: GalleryRange) => void;
-};
+type PagingOverlayState<Props> = Props & { open: boolean };
 
 type JobStartConfirmState = {
   pending: ConfirmableJobType | null;
   scope: DialogScopeInfo;
   onConfirm: () => void;
-  onCancel: () => void;
-};
-
-type FileImportOverlayState = {
-  overwritePrompt: { conflicts: string[] } | null;
-  busy: boolean;
-  onReplaceExisting: () => void;
-  onCopyNewOnly: () => void;
-  onCancel: () => void;
-};
-
-type CreateFolderOverlayState = {
-  parentLabel: string;
-  busy: boolean;
-  error: string | null;
-  onConfirm: (name: string) => void;
   onCancel: () => void;
 };
 
@@ -127,15 +53,7 @@ type RenameFileOverlayState = {
   onCancel: () => void;
 };
 
-type SettingsOverlayState = {
-  open: boolean;
-  onClose: () => void;
-};
-
-type ShortcutsOverlayState = {
-  open: boolean;
-  onClose: () => void;
-};
+type OpenOverlayState = Pick<ReturnType<typeof useOpenState>, "open" | "close">;
 
 export type AppOverlaysProps = {
   currentJobActions?: Partial<CurrentJobActions>;
@@ -148,18 +66,21 @@ export type AppOverlaysProps = {
   settleAllCandidates: SettleAllCandidatesDialogProps;
   onCaptionSaved: CaptionSavedHandler;
   gallery: GalleryOverlayState;
-  issueResolver: IssueResolverOverlayState;
+  issueResolver: Omit<
+    PagingOverlayState<ComponentProps<typeof IssueResolverDialog>>,
+    "onCaptionSaved"
+  >;
   instructions: InstructionsOverlayState;
-  stats: StatsOverlayState;
-  duplicateResolver: DuplicateResolverOverlayState;
-  candidateReview: CandidateReviewOverlayState;
+  stats: ComponentProps<typeof StatsDialog>;
+  duplicateResolver: PagingOverlayState<ComponentProps<typeof DuplicateResolverDialog>>;
+  candidateReview: PagingOverlayState<ComponentProps<typeof CandidateReviewDialog>>;
   jobStart: JobStartConfirmState;
   automation: AutomationDialogsState;
   workflows: WorkflowOverlaysState;
-  fileImport: FileImportOverlayState;
-  createFolder: CreateFolderOverlayState | null;
+  fileImport: ComponentProps<typeof FileImportOverwriteDialog> | null;
+  createFolder: ComponentProps<typeof CreateFolderDialog> | null;
   renameFolder: RenameFolderOverlayState | null;
   deleteFolder: DeleteFolderOverlayState | null;
-  settings: SettingsOverlayState;
-  shortcuts: ShortcutsOverlayState;
+  settings: OpenOverlayState;
+  shortcuts: OpenOverlayState;
 };

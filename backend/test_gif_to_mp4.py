@@ -140,7 +140,7 @@ class ConvertTests(unittest.TestCase):
         with TempMediaFolder() as root:
             media = write_gif(root, "loop.gif")
 
-            with patch("gif_to_mp4.ffmpeg_path", return_value=None):
+            with patch("ffmpeg_bin.ffmpeg_path", return_value=None):
                 with self.assertRaises(RuntimeError) as raised:
                     gif_to_mp4.convert_gif_to_mp4(media)
 

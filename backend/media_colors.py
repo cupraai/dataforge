@@ -51,11 +51,6 @@ def init_media_colors_table() -> None:
         conn.commit()
 
 
-def clear_remembered_colors_for_tests() -> None:
-    with _remembered_lock:
-        _remembered.clear()
-
-
 def folder_color_rows(folder: Path) -> dict[str, ColorRow]:
     with get_connection() as conn:
         rows = conn.execute(

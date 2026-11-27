@@ -18,29 +18,7 @@
     @include dialog-panel-surface;
   }
 
-  &__header {
-    @include dialog-chrome-header;
-  }
-
-  &__header-text {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    min-width: 0;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: var(--text-md);
-    font-weight: var(--font-semibold);
-    line-height: var(--leading-snug);
-    @include truncate;
-  }
-
-  &__counter {
-    @include count-pill-muted;
-    flex-shrink: 0;
-  }
+  @include dialog-paging-header;
 
   &__stage {
     @include dialog-stage($dialog-stage-padding-block 3.75rem);

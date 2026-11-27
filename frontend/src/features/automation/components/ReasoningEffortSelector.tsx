@@ -1,8 +1,7 @@
 import { useId } from "react";
 import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
+import type { ReasoningEffortChoice } from "@/features/automation/hooks/useReasoningEffort";
 import type { ReasoningEffort } from "@/shared/types";
-
-export type { ReasoningEffort };
 
 // What a level does depends on the loaded model's chat template, so none is described here.
 const EFFORTS: ReadonlyArray<SegmentOption<ReasoningEffort>> = [
@@ -19,23 +18,16 @@ const NO_EFFORT: ReadonlyArray<SegmentOption<"none">> = [
 ];
 
 interface ReasoningEffortSelectorProps {
-  value: ReasoningEffort;
-  /** The loaded model's levels; null offers every level, empty says it has none. */
-  levels: readonly ReasoningEffort[] | null;
-  /** Waiting for the server: a placeholder stands where the levels will be. */
-  loading?: boolean;
+  effort: ReasoningEffortChoice;
   disabled?: boolean;
-  onChange: (effort: ReasoningEffort) => void;
 }
 
 /** How hard the model reasons, for the vision-LLM job dialogs in reasoning mode. */
 export function ReasoningEffortSelector({
-  value,
-  levels,
-  loading = false,
+  effort,
   disabled = false,
-  onChange,
 }: ReasoningEffortSelectorProps) {
+  const { value, levels, loading, onChange } = effort;
   const labelId = useId();
   const options = levels ? EFFORTS.filter((option) => levels.includes(option.value)) : EFFORTS;
 

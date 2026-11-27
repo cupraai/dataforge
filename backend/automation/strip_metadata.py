@@ -11,11 +11,11 @@ from typing import Literal
 from PIL import Image, UnidentifiedImageError
 
 from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from constants import ISOBMFF_EXTENSIONS, NATIVE_IMAGE_EXTENSIONS
 from edit_sidecars import refresh_published
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel, run_ffmpeg
+from ffmpeg_bin import ffmpeg_path, require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, FfmpegCancelled, ShouldCancel, run_ffmpeg
 from image_io import JPEG_SUFFIXES
 
 # BMP is listed so the job does not skip it in silence.
@@ -108,8 +108,7 @@ def list_strip_metadata_files(folder: Path) -> list[Path]:
 
 
 def validate_strip_metadata_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not list_strip_metadata_files(folder):
         raise ValueError("No JPG, PNG, WebP, BMP, MP4, MOV or M4V files found in folder")
@@ -276,18 +275,12 @@ def strip_isobmff_metadata(
     path: Path, *, ffmpeg: str | None = None, should_cancel: ShouldCancel | None = None
 ) -> None:
     """Without re-encoding any stream."""
-    executable = ffmpeg or ffmpeg_path()
-    if not executable:
-        raise RuntimeError("ffmpeg is required to strip video metadata")
+    executable = require_ffmpeg(ffmpeg, "ffmpeg is required to strip video metadata")
 
     temp_path = path.with_name(f"{path.stem}{STRIP_TEMP_MARKER}{path.suffix}")
     command = [
         executable,
-        "-nostdin",
-        "-hide_banner",
-        "-nostats",
-        "-loglevel",
-        "error",
+        *FFMPEG_QUIET_ARGS,
         "-y",
         "-i",
         str(path),

@@ -11,5 +11,16 @@ html.folder-instructions-dialog-open,
 html.training-sample-dialog-open,
 html.settings-dialog-open,
 html.video-editor-open {
-  @include dialog-scroll-lock;
+  overflow: hidden;
+  overscroll-behavior: none;
+
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .main {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 }

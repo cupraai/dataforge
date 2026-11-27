@@ -12,14 +12,12 @@ import { MAX_COMFY_GENERATE_COUNT, MAX_COMFY_GENERATE_PREFIX_LENGTH } from "@/sh
 import { iconPencil, iconSparkles } from "@/shared/icons";
 import type { ComfyRunMode, GalleryItem } from "@/shared/types";
 import { Checkbox } from "@/shared/ui/Checkbox";
-import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import { Field, TextInput } from "@/shared/ui/Field";
 import { GuardedDialog } from "@/shared/ui/GuardedDialog";
 import { SegmentedControl, type SegmentOption } from "@/shared/ui/SegmentedControl";
-import { comfyServiceState } from "@/features/automation/hooks/useComfyPresets";
+import { ComfyJobFooter } from "./ComfyJobFooter";
 import { ComfyPresetFields } from "./ComfyPresetFields";
-import { ServiceStatus } from "./ServiceStatus";
 
 export interface ComfyRunSettings extends ResolvedPresetValues {
   /** The run makes new files, so the job ignores the scope. */
@@ -128,7 +126,6 @@ export function ComfyRunDialog({
   const [error, setError] = useState<string | null>(null);
   const errorId = useId();
   const ready = form.state.status === "ready";
-  const comfyService = comfyServiceState(form.state);
   // A workflow step runs later, so only starting now needs ComfyUI to answer.
   const comfyBlocks =
     !editOnly && !(form.state.status === "ready" && form.state.service === "ready");
@@ -204,20 +201,11 @@ export function ComfyRunDialog({
       onClose={onCancel}
       describedById={error ? errorId : undefined}
       footer={
-        <>
-          {comfyService && (
-            <ServiceStatus
-              service="comfy"
-              state={comfyService}
-              address={form.state.status === "ready" ? form.state.baseUrl : undefined}
-            />
-          )}
-          <DialogActions
-            confirmLabel={confirmLabel ?? "Start workflow"}
-            busyLabel="Starting..."
-            onCancel={onCancel}
-          />
-        </>
+        <ComfyJobFooter
+          presets={form.state}
+          confirmLabel={confirmLabel ?? "Start workflow"}
+          onCancel={onCancel}
+        />
       }
     >
       <ComfyPresetFields

@@ -15,7 +15,7 @@ from PIL import Image
 
 from app_settings import SETTING_DEFAULTS
 from automation.auto_caption import complete_caption
-from automation.llm import MAX_MODEL_ATTEMPTS
+from automation.llm import MAX_MODEL_ATTEMPTS, ModelSettings
 from automation.verify_captions import (
     _response_preview,
     build_verification_system_prompt,
@@ -394,17 +394,17 @@ class VerifyCaptionsApiTests(unittest.TestCase):
     def test_default_quality_matches_auto_caption(self) -> None:
         with TempMediaFolder() as root:
             media = write_media(root, "img.png")
-            frames = [Image.new("RGB", (160, 96), color="blue")]
+            frames = MediaFrames(images=[Image.new("RGB", (160, 96), color="blue")])
             auto = _verdict_client()
             verify = _verdict_client()
 
-            complete_caption(auto, media, "Caption accurately.", "A blue landscape.", images=frames)
+            complete_caption(auto, media, "Caption accurately.", "A blue landscape.", frames=frames)
             verify_caption(
                 verify,
                 media,
                 build_verification_system_prompt(),
                 "A blue landscape.",
-                images=frames,
+                frames=frames,
             )
 
         quality_fields = ("temperature", "top_p", "presence_penalty", "max_tokens", "extra_body")
@@ -418,14 +418,14 @@ class VerifyCaptionsApiTests(unittest.TestCase):
         # Bound at import, the frame would go out at the default size.
         with TempMediaFolder() as root:
             media = write_media(root, "img.png")
-            frames = [Image.new("RGB", (2000, 2000), color="blue")]
+            frames = MediaFrames(images=[Image.new("RGB", (2000, 2000), color="blue")])
             system = build_verification_system_prompt()
 
             default = _verdict_client()
-            verify_caption(default, media, system, "A blue car in the rain.", images=frames)
+            verify_caption(default, media, system, "A blue car in the rain.", frames=frames)
             configured = _verdict_client()
             with patch.dict(os.environ, {"IMAGE_MAX_PIXELS": "400000"}):
-                verify_caption(configured, media, system, "A blue car in the rain.", images=frames)
+                verify_caption(configured, media, system, "A blue car in the rain.", frames=frames)
 
         self.assertLessEqual(_sent_image_pixels(configured), 400_000)
         self.assertLessEqual(_sent_image_pixels(default), SETTING_DEFAULTS.image_max_pixels)
@@ -728,9 +728,8 @@ class VerifyCaptionsJobRunTests(unittest.TestCase):
                         media,
                         build_verification_system_prompt(media_kind="image"),
                         "An animated loop.",
-                        images=frames.images,
-                        timestamps=frames.timestamps,
-                        mode=mode,
+                        frames=frames,
+                        settings=ModelSettings(mode=mode),
                     )
 
                     user_content = client.last["messages"][1]["content"]

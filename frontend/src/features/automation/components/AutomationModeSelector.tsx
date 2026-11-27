@@ -1,8 +1,6 @@
 import { RadioTileGroup, type RadioTileOption } from "@/shared/ui/RadioTileGroup";
 import type { AutomationMode } from "@/shared/types";
 
-export type { AutomationMode };
-
 const MODES: ReadonlyArray<RadioTileOption<AutomationMode>> = [
   { value: "thinking", title: "Reasoning", description: "Slower, but better overall outcome" },
   { value: "instruct", title: "Instruct", description: "Faster, but makes more mistakes" },

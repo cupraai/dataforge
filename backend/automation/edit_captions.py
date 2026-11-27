@@ -10,15 +10,15 @@ from automation.backup_captions import back_up_caption, caption_backup_dir
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_caption_job
 from automation.llm import (
     ModelOutcome,
+    ModelSettings,
     call_with_retries,
     clean_model_text,
     close_model_client,
-    model_client,
     run_chat_completion,
     strip_code_fences,
 )
-from automation.selection import filter_media_list, list_folder_media
-from automation.served_model import resolve_reasoning_effort
+from automation.selection import filter_media_list, list_folder_media, require_folder
+from automation.served_model import model_session
 from automation.vision import (
     FRAME_ERROR,
     MediaFrames,
@@ -27,7 +27,6 @@ from automation.vision import (
     keyframe_sentence,
     load_media_images,
     media_kind_for,
-    media_kind_max_pixels,
     request_vision_text,
 )
 from captions import (
@@ -43,7 +42,6 @@ from constants import CAPTION_EDIT_PREVIEW_LIMIT, MEDIA_EXTENSIONS
 from openai_settings import (
     DEFAULT_PRESERVE_THINKING,
     DEFAULT_REASONING_EFFORT,
-    get_openai_model,
 )
 from schemas import (
     AutomationMode,
@@ -55,6 +53,8 @@ from sysprompt import load_placed_sysprompt, place_sysprompt
 
 REJECTED = "rejected"
 UNCHANGED = "unchanged"
+
+INSTRUCT_SETTINGS = ModelSettings(mode="instruct")
 
 # Omit one and the progress bar stops short of ``total``.
 PROCESSED_STAT_KEYS = (
@@ -227,8 +227,7 @@ def list_edit_captions_media(folder: Path) -> list[Path]:
 
 
 def validate_edit_captions_folder(folder: Path, *, instruction: str = "") -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not instruction.strip():
         raise ValueError("Enter an instruction for the edit")
@@ -242,30 +241,20 @@ def edit_caption(
     system_prompt: str,
     caption: str,
     *,
-    model: str | None = None,
-    max_tokens: int | None = None,
-    mode: AutomationMode = "instruct",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
+    settings: ModelSettings = INSTRUCT_SETTINGS,
     frames: MediaFrames | None = None,
     media_kind: MediaKind = "image",
     attempt: int = 1,
 ) -> str | None:
     """Text-only unless ``frames`` is given."""
     if frames is not None:
-        seconds = frames.timestamps[-1] if frames.timestamps else None
         return request_vision_text(
             client,
             system_prompt,
-            frames.images,
-            build_edit_user_text(caption, media_kind, len(frames.images), seconds),
-            max_pixels=media_kind_max_pixels(media_kind, seconds=seconds),
-            mode=mode,
-            effort=effort,
-            preserve_thinking=preserve_thinking,
-            model=model,
-            max_tokens=max_tokens,
-            timestamps=frames.timestamps,
+            frames,
+            build_edit_user_text(caption, media_kind, len(frames.images), frames.seconds),
+            media_kind=media_kind,
+            settings=settings,
             attempt=attempt,
         )
 
@@ -275,11 +264,7 @@ def edit_caption(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": build_edit_user_text(caption)},
         ],
-        mode=mode,
-        effort=effort,
-        preserve_thinking=preserve_thinking,
-        model=model,
-        max_tokens=max_tokens,
+        settings,
     )
 
 
@@ -289,10 +274,7 @@ def process_media(
     system_prompts: dict[MediaKind, str],
     *,
     vision: bool = False,
-    model: str | None = None,
-    mode: AutomationMode = "instruct",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
+    settings: ModelSettings = INSTRUCT_SETTINGS,
     should_cancel: ShouldCancel | None = None,
     reference_caption: str | None = None,
 ) -> tuple[str | None, str, str | None]:
@@ -315,10 +297,7 @@ def process_media(
             client,
             system_prompts[media_kind],
             ref_caption,
-            model=model,
-            mode=mode,
-            effort=effort,
-            preserve_thinking=preserve_thinking,
+            settings=settings,
             frames=frames,
             media_kind=media_kind,
             attempt=number,
@@ -366,11 +345,11 @@ def preview_caption_edits(
         sysprompt=load_placed_sysprompt(folder, sysprompt_placement),
         sysprompt_placement=sysprompt_placement,
     )
-    resolved_model = get_openai_model()
     samples: list[CaptionEditPreviewSample] = []
 
-    with model_client() as client:
-        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
+    with model_session(
+        None, mode=mode, reasoning_effort=reasoning_effort, preserve_thinking=preserve_thinking
+    ) as (client, settings):
         # A shared caption is edited once.
         for target in caption_targets(media_files):
             media_path = target.primary
@@ -382,10 +361,7 @@ def preview_caption_edits(
                 media_path,
                 system_prompts,
                 vision=vision,
-                model=resolved_model,
-                mode=mode,
-                effort=effort,
-                preserve_thinking=preserve_thinking,
+                settings=settings,
                 reference_caption=original,
             )
             samples.append(
@@ -444,7 +420,6 @@ def run_edit_captions_job(
         sysprompt_placement=sysprompt_placement,
     )
     media_files = filter_media_list(list_edit_captions_media(folder), selected_paths)
-    resolved_model = model if model is not None else get_openai_model()
 
     backup_dir = caption_backup_dir(folder)
     if backup:
@@ -453,8 +428,9 @@ def run_edit_captions_job(
         except OSError as exc:
             raise ValueError(f"Could not create the .backup folder: {exc}") from exc
 
-    with model_client() as client:
-        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
+    with model_session(
+        model, mode=mode, reasoning_effort=reasoning_effort, preserve_thinking=preserve_thinking
+    ) as (client, settings):
 
         def process(target: CaptionTarget) -> FileOutcome:
             media_path = target.primary
@@ -468,10 +444,7 @@ def run_edit_captions_job(
                 media_path,
                 system_prompts,
                 vision=vision,
-                model=resolved_model,
-                mode=mode,
-                effort=effort,
-                preserve_thinking=preserve_thinking,
+                settings=settings,
                 should_cancel=should_cancel,
                 reference_caption=draft,
             )

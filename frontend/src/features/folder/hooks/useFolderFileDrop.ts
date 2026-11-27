@@ -4,6 +4,7 @@ import { formatApiError } from "@/shared/api/http";
 import { isExternalFileDrag } from "@/shared/lib/dragTransfer";
 import { filterImportableFiles } from "@/features/folder/lib/importableFiles";
 import { useChanged } from "@/shared/hooks/useChanged";
+import { useNotify } from "@/shared/notifications/notifications";
 
 type OverwritePrompt = {
   conflicts: string[];
@@ -17,14 +18,22 @@ type PendingImport = {
 
 type UseFolderFileDropOptions = {
   folderPath: string | undefined;
+  /** Named on the drop overlay. */
+  folderLabel: string;
   enabled: boolean;
   onImported: () => Promise<void> | void;
 };
 
-export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolderFileDropOptions) {
+export type FolderDropZone = ReturnType<typeof useFolderFileDrop>["dropZone"];
+
+export function useFolderFileDrop({
+  folderPath,
+  folderLabel,
+  enabled,
+  onImported,
+}: UseFolderFileDropOptions) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
   const [overwritePrompt, setOverwritePrompt] = useState<OverwritePrompt | null>(null);
   const dragDepthRef = useRef(0);
   const pendingRef = useRef<PendingImport | null>(null);
@@ -32,6 +41,15 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
   const generationRef = useRef(0);
   // Synchronous, unlike `importing`: a double click must not send the upload twice.
   const busyRef = useRef(false);
+  const notify = useNotify();
+  const reportFailure = useCallback(
+    (error: unknown) =>
+      notify({
+        variant: "danger",
+        message: `Could not import the dropped files: ${formatApiError(error)}`,
+      }),
+    [notify],
+  );
 
   if (useChanged(folderPath)) setOverwritePrompt(null);
   useEffect(() => {
@@ -52,7 +70,6 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
 
       busyRef.current = true;
       setImporting(true);
-      setImportError(null);
 
       try {
         const result = await importFiles(destination, files, overwrite);
@@ -60,7 +77,7 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
           await onImported();
         }
       } catch (error) {
-        setImportError(formatApiError(error));
+        reportFailure(error);
       } finally {
         busyRef.current = false;
         setImporting(false);
@@ -69,7 +86,7 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
         resetDragState();
       }
     },
-    [onImported, resetDragState],
+    [onImported, reportFailure, resetDragState],
   );
 
   const beginImport = useCallback(
@@ -84,7 +101,6 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
         return;
       }
 
-      setImportError(null);
       const destination = folderPath;
       const generation = generationRef.current;
 
@@ -114,11 +130,11 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
 
         await runImport(destination, allowedFiles, false);
       } catch (error) {
-        setImportError(formatApiError(error));
+        reportFailure(error);
         resetDragState();
       }
     },
-    [enabled, folderPath, importing, resetDragState, runImport],
+    [enabled, folderPath, importing, reportFailure, resetDragState, runImport],
   );
 
   const onDragEnter = useCallback(
@@ -203,22 +219,25 @@ export function useFolderFileDrop({ folderPath, enabled, onImported }: UseFolder
     setOverwritePrompt(null);
   }, []);
 
-  const dismissImportError = useCallback(() => {
-    setImportError(null);
-  }, []);
-
   return {
-    isDragActive,
-    importing,
-    importError,
-    overwritePrompt,
-    onDragEnter,
-    onDragOver,
-    onDragLeave,
-    onDrop,
-    confirmOverwrite,
-    importNewFilesOnly,
-    dismissOverwritePrompt,
-    dismissImportError,
+    dropZone: {
+      enabled,
+      active: isDragActive,
+      folderLabel,
+      onDragEnter,
+      onDragOver,
+      onDragLeave,
+      onDrop,
+    },
+    /** The overwrite question, while one is open. */
+    overlay: overwritePrompt
+      ? {
+          conflicts: overwritePrompt.conflicts,
+          busy: importing,
+          onReplaceExisting: confirmOverwrite,
+          onCopyNewOnly: importNewFilesOnly,
+          onCancel: dismissOverwritePrompt,
+        }
+      : null,
   };
 }

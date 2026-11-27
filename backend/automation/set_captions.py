@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_caption_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from captions import (
     CAPTION_CHANGED_STATUS,
     CAPTION_READ_ERROR,
@@ -21,8 +21,7 @@ def list_set_captions_media(folder: Path) -> list[Path]:
 
 
 def validate_set_captions_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not list_set_captions_media(folder):
         raise ValueError("No supported images or videos found in folder")

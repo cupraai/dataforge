@@ -12,11 +12,11 @@ from itertools import pairwise
 from pathlib import Path
 
 from automation.job_runner import FileOutcome, ProgressCallback, run_media_job
-from automation.selection import filter_media_list, list_folder_media
+from automation.selection import filter_media_list, list_folder_media, require_folder
 from constants import CLIPS_DIR_NAME, VIDEO_EXTENSIONS
-from ffmpeg_bin import ffmpeg_path
-from ffmpeg_run import FfmpegCancelled, ShouldCancel, run_ffmpeg, stream_ffmpeg
-from file_publish import publish_replacing
+from ffmpeg_bin import require_ffmpeg
+from ffmpeg_run import FFMPEG_QUIET_ARGS, FfmpegCancelled, ShouldCancel, run_ffmpeg, stream_ffmpeg
+from file_publish import publish_replacing, unlink_quietly
 from media_delete import delete_media_with_sidecars
 from scene_detect import (
     ANALYSIS_FRAME_BYTES,
@@ -126,7 +126,7 @@ def _frames_command(executable: str, source: Path) -> list[str]:
     """On stderr, which is what run_ffmpeg keeps."""
     return [
         executable,
-        *("-nostdin", "-hide_banner", "-nostats", "-loglevel", "error"),
+        *FFMPEG_QUIET_ARGS,
         *("-i", str(source), "-map", "0:v:0", "-c", "copy", "-f", "framecrc", "pipe:2"),
     ]
 
@@ -135,7 +135,7 @@ def _analysis_command(executable: str, source: Path) -> list[str]:
     """``passthrough`` so no frame is dropped or repeated."""
     return [
         executable,
-        *("-nostdin", "-hide_banner", "-nostats", "-loglevel", "error"),
+        *FFMPEG_QUIET_ARGS,
         *("-i", str(source), "-map", "0:v:0", "-an", "-sn", "-fps_mode", "passthrough"),
         *("-vf", f"scale={ANALYSIS_WIDTH}:{ANALYSIS_HEIGHT}:flags=area"),
         *("-f", "rawvideo", "-pix_fmt", "bgr24", "pipe:1"),
@@ -181,7 +181,7 @@ def build_clip_command(
 ) -> list[str]:
     """``-ss`` half a frame early and ``-t`` half a frame short, as the editor's trims do."""
     half_frame = frame_seconds / 2
-    command = [executable, "-nostdin", "-hide_banner", "-nostats", "-loglevel", "error", "-y"]
+    command = [executable, *FFMPEG_QUIET_ARGS, "-y"]
     start = max(0.0, piece.start - half_frame)
     if start > 0:
         command += ["-ss", f"{start:.6f}"]
@@ -201,8 +201,7 @@ def list_split_files(folder: Path) -> list[Path]:
 
 
 def validate_split_video_folder(folder: Path, selected_paths: list[Path] | None = None) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if folder.name.lower() == CLIPS_DIR_NAME:
         raise ValueError(
@@ -297,8 +296,7 @@ def split_file(
             publish_replacing(temp, final, stale)
     finally:
         for temp in temps:
-            with suppress(OSError):
-                temp.unlink(missing_ok=True)
+            unlink_quietly(temp)
 
     return len(kept)
 
@@ -315,9 +313,7 @@ def run_split_video_job(
     validate_split_video_folder(folder, selected_paths)
     parsed = SplitVideoJobSettings.model_validate(settings)
 
-    resolved_ffmpeg = ffmpeg or ffmpeg_path()
-    if not resolved_ffmpeg:
-        raise RuntimeError("FFmpeg was not found, so videos cannot be split")
+    resolved_ffmpeg = require_ffmpeg(ffmpeg, "FFmpeg was not found, so videos cannot be split")
 
     videos = list_split_files(folder)
     media_files = filter_media_list(videos, selected_paths)

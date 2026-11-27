@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   applyImageEdit,
   fetchImageAutoAdjust,
@@ -7,19 +7,13 @@ import {
 } from "@/features/gallery/api/imageEdit";
 import {
   aspectIdForCrop,
-  cropForAspect,
   cropAspectRatio,
   type CropRect,
   type Orientation,
 } from "@/features/gallery/lib/crop";
-import {
-  useColorAdjust,
-  type AdjustDraft,
-  type ColorAdjustControls,
-} from "@/features/gallery/hooks/useColorAdjust";
+import { useColorAdjust, type ColorAdjustControls } from "@/features/gallery/hooks/useColorAdjust";
 import { useImageFill, type ImageFillControls } from "@/features/gallery/hooks/useImageFill";
 import { useMaskRegions, type MaskRegionControls } from "@/features/gallery/hooks/useMaskRegions";
-import type { MaskDraft } from "@/features/gallery/lib/mask";
 import {
   draftFromSpec,
   emptyDraft,
@@ -31,9 +25,8 @@ import {
   toImageEditSpec,
   type ImageEditDraft,
 } from "@/features/gallery/lib/imageEdit";
-import { formatApiError } from "@/shared/api/http";
-import { useNotify } from "@/shared/notifications/notifications";
-import { replacedExternallyMessage } from "@/features/gallery/lib/mediaActionMessages";
+import { useEditRun } from "@/features/gallery/hooks/useEditRun";
+import { useEditDraftSetters } from "@/features/gallery/hooks/useEditDraftSetters";
 import type { GalleryItem, StyleEffect, ImageEditSpec, ImageFill } from "@/shared/types";
 import { useLatestRef } from "@/shared/hooks/useLatestRef";
 import { useChanged } from "@/shared/hooks/useChanged";
@@ -87,23 +80,14 @@ export interface ImageEdit extends MaskRegionControls {
 }
 
 export function useImageEdit(options: UseImageEditOptions): ImageEdit {
-  const notify = useNotify();
   const { item, editMode, setEditMode } = options;
-
-  // Ref so callbacks stay dependency-free; an apply outliving a swap keeps its starting values.
-  const optionsRef = useLatestRef(options);
-
-  const mountedRef = useRef(true);
-  const applyingRef = useRef(false);
 
   const [sourceWidth, setSourceWidth] = useState(0);
   const [sourceHeight, setSourceHeight] = useState(0);
   const [draft, setDraft] = useState<ImageEditDraft>(emptyDraft);
   // On-disk spec, kept apart so dirty can compare and one can survive a re-seed alone.
   const [savedSpec, setSavedSpec] = useState<ImageEditSpec | null>(null);
-  const [hasBackup, setHasBackup] = useState(false);
   const [aspectId, setAspectId] = useState("free");
-  const [applying, setApplying] = useState(false);
   const [cropActive, setCropActive] = useState(false);
   const [fillActive, setFillActive] = useState(false);
   // The saved spec has been read; editing before then would apply a draft missing it.
@@ -113,9 +97,8 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
   const savedSpecRef = useLatestRef(savedSpec);
   const sourceRef = useLatestRef({ width: sourceWidth, height: sourceHeight });
 
-  const setMasks = useCallback((update: (current: MaskDraft[]) => MaskDraft[]) => {
-    setDraft((current) => ({ ...current, masks: update(current.masks) }));
-  }, []);
+  const { setMasks, setCrop, selectAspect, setEffect, setScale, updateAdjust } =
+    useEditDraftSetters({ setDraft, sourceRef, setAspectId, setCropActive });
 
   const {
     clearSelection: clearMaskSelection,
@@ -126,14 +109,14 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
   const path = item?.path;
   const sized = sourceWidth > 0 && sourceHeight > 0;
   const ready = sized && stateLoaded;
-  const readyRef = useLatestRef(ready);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const {
+    applying,
+    hasBackup,
+    setHasBackup,
+    applyingRef,
+    mountedRef,
+    run: runEdit,
+  } = useEditRun({ item, onEdited: options.onEdited, ready });
 
   // Keyed on path alone; has_backup, applying and cropActive would race paging.
   if (useChanged(path)) {
@@ -145,11 +128,6 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     setAspectId("free");
     clearMaskSelection();
   }
-
-  // Separate so a listing that learns about a backup does not reset the editor.
-  const itemPathChanged = useChanged(item?.path);
-  const listedBackupChanged = useChanged(item?.has_backup);
-  if (itemPathChanged || listedBackupChanged) setHasBackup(item?.has_backup ?? false);
 
   const handleLoad = useCallback((image: HTMLImageElement) => {
     setSourceWidth(image.naturalWidth);
@@ -189,29 +167,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
     return () => {
       cancelled = true;
     };
-  }, [editMode, path, sized, seedDraft]);
-
-  const setCrop = useCallback((crop: CropRect) => {
-    setDraft((current) => ({ ...current, crop }));
-  }, []);
-
-  // Owned here so it resets with the item and restores with a stored spec.
-  const selectAspect = useCallback(
-    (nextAspectId: string) => {
-      setAspectId(nextAspectId);
-
-      // Free only releases the lock; keep the rectangle the user already shaped.
-      const ratio = cropAspectRatio(nextAspectId, sourceRef.current);
-      if (ratio === null) return;
-
-      setCropActive(true);
-      // Frame fractions, so the source's own aspect divides out first.
-      const frame = sourceRef.current.width / sourceRef.current.height;
-      if (!Number.isFinite(frame) || frame <= 0) return;
-      setDraft((current) => ({ ...current, crop: cropForAspect(ratio / frame) }));
-    },
-    [sourceRef],
-  );
+  }, [editMode, mountedRef, path, seedDraft, setHasBackup, sized]);
 
   const turn = useCallback((turns: number) => {
     setDraft((current) => ({ ...current, rotate: rotateBy(current.rotate, turns) }));
@@ -226,21 +182,6 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
 
   const toggleMirrorV = useCallback(() => {
     setDraft((current) => ({ ...current, mirrorV: !current.mirrorV }));
-  }, []);
-
-  const setEffect = useCallback((effect: StyleEffect | null) => {
-    setDraft((current) => ({ ...current, effect }));
-  }, []);
-
-  const setScale = useCallback((scale: number) => {
-    setDraft((current) => ({ ...current, scale, fit: null }));
-  }, []);
-
-  const updateAdjust = useCallback((change: (current: AdjustDraft) => AdjustDraft) => {
-    setDraft((current) => ({
-      ...current,
-      ...change({ adjust: current.adjust, autoAdjust: current.autoAdjust }),
-    }));
   }, []);
 
   const requestSuggestion = useCallback(
@@ -298,52 +239,7 @@ export function useImageEdit(options: UseImageEditOptions): ImageEdit {
       return;
     }
     setEditMode(true);
-  }, [editMode, exitEditMode, setEditMode]);
-
-  const runEdit = useCallback(
-    (
-      request: (path: string) => Promise<{ has_backup: boolean; replaced_externally: boolean }>,
-      describe: (name: string) => string,
-      settle: () => void,
-    ) => {
-      // Refs guard a double click and a shortcut before the spec has seeded.
-      if (applyingRef.current || !readyRef.current) return;
-
-      const { item: currentItem, onEdited } = optionsRef.current;
-      if (!currentItem) return;
-
-      // Snapshotted so an item swap mid-render cannot retarget the write.
-      const mediaPath = currentItem.path;
-      const name = currentItem.name;
-
-      applyingRef.current = true;
-      setApplying(true);
-
-      void (async () => {
-        try {
-          const result = await request(mediaPath);
-          if (mountedRef.current) setHasBackup(result.has_backup);
-          notify({ variant: "success", message: describe(name) });
-          if (result.replaced_externally) {
-            notify({ variant: "warning", message: replacedExternallyMessage(name) });
-          }
-          await onEdited?.();
-          // settle records what is now on disk so Apply stays quiet until the next change.
-          if (mountedRef.current) settle();
-        } catch (error) {
-          // Unguarded by mountedRef: the store outlives this dialog, so a finish after close reports.
-          notify({
-            variant: "danger",
-            message: `Could not edit ${name}: ${formatApiError(error)}`,
-          });
-        } finally {
-          applyingRef.current = false;
-          if (mountedRef.current) setApplying(false);
-        }
-      })();
-    },
-    [notify, optionsRef, readyRef],
-  );
+  }, [applyingRef, editMode, exitEditMode, setEditMode]);
 
   const revert = useCallback(() => {
     cancelAuto();

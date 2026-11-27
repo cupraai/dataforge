@@ -31,12 +31,6 @@ export type PresetsState =
     }
   | { status: "error"; message: string };
 
-/** ComfyUI's state for a dialog's status indicator; null when the presets could not be listed. */
-export function comfyServiceState(state: PresetsState): ServiceState | null {
-  if (state.status === "loading") return "checking";
-  return state.status === "ready" ? state.service : null;
-}
-
 /** One job's presets, live while the presets folder changes. */
 export function useComfyPresetList(kind: ComfyPresetKind): PresetsState {
   // Polled for ComfyUI's status: listing the presets is cheap next to ComfyUI's own answer.

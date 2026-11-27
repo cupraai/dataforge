@@ -3,8 +3,6 @@ import { DURATION_BASE_MS } from "@/shared/lib/motion";
 import { iconCircleAlert, iconCircleCheck, iconTriangleAlert, type AppIcon } from "@/shared/icons";
 import type { NotificationRecord, NotificationVariant } from "@/shared/types";
 
-export type { NotificationRecord, NotificationVariant };
-
 /** A follow-up on the toast itself; the notification history keeps only the message. */
 export interface ToastAction {
   label: string;

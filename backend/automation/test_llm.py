@@ -21,6 +21,7 @@ from automation.llm import (
     MAX_MODEL_ATTEMPTS,
     SUCCESS,
     ModelOutcome,
+    ModelSettings,
     call_with_retries,
     clean_model_text,
     close_model_client,
@@ -428,7 +429,7 @@ class RunChatCompletionTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 client = FakeChatClient("A red hatchback.")
 
-                run_chat_completion(client, self.MESSAGES, mode=mode)
+                run_chat_completion(client, self.MESSAGES, ModelSettings(mode=mode))
 
                 sent = client.last
                 self.assertEqual(
@@ -445,8 +446,8 @@ class RunChatCompletionTests(unittest.TestCase):
         thinking = FakeChatClient("A red hatchback.")
         instruct = FakeChatClient("A red hatchback.")
 
-        run_chat_completion(thinking, self.MESSAGES, mode="thinking")
-        run_chat_completion(instruct, self.MESSAGES, mode="instruct")
+        run_chat_completion(thinking, self.MESSAGES, ModelSettings(mode="thinking"))
+        run_chat_completion(instruct, self.MESSAGES, ModelSettings(mode="instruct"))
 
         self.assertEqual(thinking.last["messages"], self.MESSAGES)
         self.assertEqual(
@@ -458,7 +459,9 @@ class RunChatCompletionTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 client = FakeChatClient("", reasoning_content="A red hatchback.")
 
-                self.assertEqual(run_chat_completion(client, self.MESSAGES, mode=mode), expected)
+                self.assertEqual(
+                    run_chat_completion(client, self.MESSAGES, ModelSettings(mode=mode)), expected
+                )
 
 
 class CloseModelClientTests(unittest.TestCase):
@@ -521,7 +524,7 @@ class EmptyCompletionDiagnosticsTests(unittest.TestCase):
         )
 
         with self.assertLogs("automation.llm", level="ERROR") as logs:
-            self.assertIsNone(run_chat_completion(client, [], mode="thinking"))
+            self.assertIsNone(run_chat_completion(client, [], ModelSettings(mode="thinking")))
 
         self.assertIn("finish_reason=stop", logs.output[0])
         self.assertIn("prompt_tokens=997", logs.output[0])
@@ -557,7 +560,7 @@ class DescribeExceptionTests(unittest.TestCase):
         client = FakeChatClient(raises=RuntimeError("boom"))
 
         with self.assertLogs("automation.llm", level="ERROR") as logs:
-            self.assertIsNone(run_chat_completion(client, [], mode="thinking"))
+            self.assertIsNone(run_chat_completion(client, [], ModelSettings(mode="thinking")))
 
         self.assertIn("RuntimeError: boom", logs.output[0])
 

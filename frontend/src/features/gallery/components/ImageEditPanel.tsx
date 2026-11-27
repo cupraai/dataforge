@@ -23,7 +23,7 @@ import {
 } from "@/shared/icons";
 import { Icon } from "@/shared/ui/Icon";
 import type { ImageEdit } from "@/features/gallery/hooks/useImageEdit";
-import { EffectOutput, EffectTools } from "./EffectTools";
+import { EffectTools, LookOutput } from "./EffectTools";
 import { AdjustTools } from "./AdjustTools";
 import { FillTools } from "./FillTools";
 import {
@@ -216,19 +216,11 @@ export function ImageEditPanel({ edit, busy, onRevertRequested }: ImageEditPanel
                   {edit.draft.mirrorV && " flipped"}
                 </OutputPart>
               )}
-              {edit.draft.effect && (
-                <EffectOutput
-                  effect={edit.draft.effect}
-                  previewAvailable={edit.adjust.previewAvailable}
-                />
-              )}
-              {modified.adjust && (
-                <OutputPart>
-                  {edit.adjust.previewAvailable
-                    ? "Adjusted"
-                    : "Adjusted, no live preview in this browser"}
-                </OutputPart>
-              )}
+              <LookOutput
+                effect={edit.draft.effect}
+                adjusted={modified.adjust}
+                previewAvailable={edit.adjust.previewAvailable}
+              />
             </>
           ) : (
             <OutputPart>The tools load with the image.</OutputPart>

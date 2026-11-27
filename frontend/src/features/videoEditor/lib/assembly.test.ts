@@ -12,7 +12,8 @@ import {
   trimToPlayhead,
   updateClips,
 } from "./assembly";
-import { restingAdjust, type Clip, type Project } from "./timeline";
+import { type Clip, type Project } from "./timeline";
+import { RESTING_ADJUST } from "@/features/gallery/lib/colorAdjust";
 
 function info(name: string, patch: Partial<VideoProjectSourceInfo> = {}): VideoProjectSourceInfo {
   return {
@@ -30,7 +31,7 @@ function info(name: string, patch: Partial<VideoProjectSourceInfo> = {}): VideoP
   };
 }
 
-const graded = { ...restingAdjust(), exposure: 0.4 };
+const graded = { ...{ ...RESTING_ADJUST }, exposure: 0.4 };
 
 /** A 2 s shot at 1 s with linked sound, then a still at 3 s, plus one lone image source. */
 function cut(patch: Partial<Project> = {}): Project {

@@ -6,26 +6,25 @@ import textwrap
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from PIL import Image
-
 from automation.job_runner import FileOutcome, ProgressCallback, ShouldCancel, run_media_job
 from automation.llm import (
+    DEFAULT_MODEL_SETTINGS,
     ModelOutcome,
+    ModelSettings,
     call_with_retries,
     clean_model_text,
     close_model_client,
-    model_client,
     strip_code_fences,
 )
-from automation.selection import filter_media_list, list_folder_media
-from automation.served_model import resolve_reasoning_effort
+from automation.selection import filter_media_list, list_folder_media, require_folder
+from automation.served_model import model_session
 from automation.vision import (
+    MediaFrames,
     MediaKind,
     MediaLoadError,
     keyframe_sentence,
     load_media_images,
     media_kind_for,
-    media_kind_max_pixels,
     request_vision_text,
 )
 from captions import (
@@ -39,7 +38,6 @@ from constants import MAX_ISSUE_FIXES, MEDIA_EXTENSIONS
 from openai_settings import (
     DEFAULT_PRESERVE_THINKING,
     DEFAULT_REASONING_EFFORT,
-    get_openai_model,
 )
 from schemas import AutomationMode, SyspromptPlacement
 from sysprompt import load_placed_sysprompt, place_sysprompt
@@ -336,29 +334,18 @@ def verify_caption(
     system_prompt: str,
     ref_caption: str,
     *,
-    images: list[Image.Image],
-    model: str | None = None,
-    max_tokens: int | None = None,
-    mode: AutomationMode = "thinking",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
-    timestamps: list[float] | None = None,
+    frames: MediaFrames,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
     attempt: int = 1,
 ) -> str | None:
     media_kind = media_kind_for(media_path)
-    seconds = timestamps[-1] if timestamps else None
     return request_vision_text(
         client,
         system_prompt,
-        images,
-        build_verification_user_text(ref_caption, media_kind, len(images), seconds),
-        max_pixels=media_kind_max_pixels(media_kind, seconds=seconds),
-        mode=mode,
-        effort=effort,
-        preserve_thinking=preserve_thinking,
-        model=model,
-        max_tokens=max_tokens,
-        timestamps=timestamps,
+        frames,
+        build_verification_user_text(ref_caption, media_kind, len(frames.images), frames.seconds),
+        media_kind=media_kind,
+        settings=settings,
         attempt=attempt,
     )
 
@@ -368,10 +355,7 @@ def process_media(
     media_path: Path,
     system_prompts: dict[MediaKind, str],
     *,
-    model: str | None = None,
-    mode: AutomationMode = "thinking",
-    effort: str | None = DEFAULT_REASONING_EFFORT,
-    preserve_thinking: bool = DEFAULT_PRESERVE_THINKING,
+    settings: ModelSettings = DEFAULT_MODEL_SETTINGS,
     should_cancel: ShouldCancel | None = None,
 ) -> tuple[VerificationResult | None, str, str | None]:
     # Per file: a shared caption is checked against each file.
@@ -392,12 +376,8 @@ def process_media(
             media_path,
             system_prompt,
             ref_caption,
-            images=frames.images,
-            model=model,
-            mode=mode,
-            effort=effort,
-            preserve_thinking=preserve_thinking,
-            timestamps=frames.timestamps,
+            frames=frames,
+            settings=settings,
             attempt=number,
         )
         if raw_caption is None:
@@ -429,8 +409,7 @@ def process_media(
 
 
 def validate_verify_captions_folder(folder: Path) -> None:
-    if not folder.is_dir():
-        raise ValueError("Folder not found")
+    require_folder(folder)
 
     if not list_verify_captions_media(folder):
         raise ValueError("No supported images or videos found in folder")
@@ -472,21 +451,14 @@ def run_verify_captions_job(
         sysprompt_placement=sysprompt_placement,
     )
     media_files = filter_media_list(list_verify_captions_media(folder), selected_paths)
-    resolved_model = model if model is not None else get_openai_model()
 
-    with model_client() as client:
-        effort = resolve_reasoning_effort(client, reasoning_effort, mode=mode, model=resolved_model)
+    with model_session(
+        model, mode=mode, reasoning_effort=reasoning_effort, preserve_thinking=preserve_thinking
+    ) as (client, settings):
 
         def process(media_path: Path) -> FileOutcome:
             verification, status, message = process_media(
-                client,
-                media_path,
-                system_prompts,
-                model=resolved_model,
-                mode=mode,
-                effort=effort,
-                preserve_thinking=preserve_thinking,
-                should_cancel=should_cancel,
+                client, media_path, system_prompts, settings=settings, should_cancel=should_cancel
             )
 
             if status == "cancelled":

@@ -1,6 +1,6 @@
 import { postJson, requestJson } from "@/shared/api/http";
 import { withJobPaths } from "@/features/jobs/api/jobPaths";
-import type { JobStartBodies, JobStartBody } from "@/shared/api/jobStartBodies";
+import type { JobStartBodies } from "@/shared/api/jobStartBodies";
 import type {
   AutoCaptionPreviewResponse,
   ComfyLogsResponse,
@@ -20,8 +20,6 @@ import type {
   TrainLoraStartRequest,
   WatermarkImageInfo,
 } from "@/shared/types";
-
-export type { JobStartBody };
 
 export interface TrainLoraSettings {
   loraName: string;

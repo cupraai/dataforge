@@ -15,12 +15,11 @@ import { AutomationModeSelector } from "@/features/automation/components/Automat
 import { ReasoningEffortSelector } from "@/features/automation/components/ReasoningEffortSelector";
 import { useReasoningEffort } from "@/features/automation/hooks/useReasoningEffort";
 import { VisionModelBadge } from "@/features/automation/components/VisionModelBadge";
-import { ServiceStatus } from "@/features/automation/components/ServiceStatus";
+import { VisionJobFooter } from "@/features/automation/components/VisionJobFooter";
 import { useVisionLlmInfo } from "@/features/automation/hooks/useVisionLlmInfo";
 import type { JobSettingsByType } from "@/features/automation/preferences/automationPreferences";
 import { formatApiError } from "@/shared/api/http";
 import { CAPTION_EDIT_PREVIEW_LIMIT } from "@/shared/constants";
-import { DialogActions } from "@/shared/ui/Dialog";
 import type { DialogScopeInfo } from "@/shared/ui/DialogScope";
 import type { EditCaptionsRunSettings } from "@/shared/types";
 
@@ -111,28 +110,24 @@ export function EditCaptionsDialog({
     );
   }
 
-  const handlePreview = () => {
-    if (controlsBusy) return;
-    if (!instruction.trim()) {
-      setError("Enter an instruction for the edit.");
-      instructionRef.current?.focus();
-      return;
-    }
-    setError(null);
-    void preview.refetch();
-  };
-
-  const handleConfirm = () => {
-    if (controlsBusy) return;
-
+  /** False, with the error shown, when there is no instruction to run. */
+  const checkInstruction = () => {
+    if (controlsBusy) return false;
     if (!settings.instruction) {
       setError("Enter an instruction for the edit.");
       instructionRef.current?.focus();
-      return;
+      return false;
     }
-
     setError(null);
-    onConfirm({ ...settings, backup });
+    return true;
+  };
+
+  const handlePreview = () => {
+    if (checkInstruction()) void preview.refetch();
+  };
+
+  const handleConfirm = () => {
+    if (checkInstruction()) onConfirm({ ...settings, backup });
   };
 
   return (
@@ -167,32 +162,18 @@ export function EditCaptionsDialog({
       initialFocusRef={instructionRef}
       describedById={error ? errorId : undefined}
       footer={
-        <>
-          <ServiceStatus
-            service="vision"
-            state={server.service}
-            address={server.info?.baseUrl}
-            issue={server.issue}
-          />
-          <DialogActions
-            confirmLabel={confirmLabel ?? "Start edit captions"}
-            busyLabel="Starting..."
-            onCancel={onCancel}
-          />
-        </>
+        <VisionJobFooter
+          vision={server}
+          confirmLabel={confirmLabel ?? "Start edit captions"}
+          onCancel={onCancel}
+        />
       }
     >
       <div className="edit-captions-dialog__body dialog-preview-split">
         <div className="dialog-preview-split__form">
           <AutomationModeSelector value={mode} disabled={controlsBusy} onChange={setMode} />
 
-          <ReasoningEffortSelector
-            value={effort.value}
-            levels={effort.levels}
-            loading={effort.loading}
-            disabled={mode === "instruct" || controlsBusy}
-            onChange={effort.onChange}
-          />
+          <ReasoningEffortSelector effort={effort} disabled={mode === "instruct" || controlsBusy} />
 
           <div className="field edit-captions-dialog__toggles">
             <Checkbox
